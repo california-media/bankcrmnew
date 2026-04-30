@@ -1,6 +1,20 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../api/client';
 
+/**
+ * @typedef {{
+ *   id: string, name: string, email: string, phone: string,
+ *   role: 'admin'|'agency'|'agent',
+ *   referralCode?: string,
+ *   banks?: Array<{ _id: string, name: string, code?: string }>
+ * }} SafeUser
+ */
+
+/**
+ * POST /auth/login
+ * @param {{ email: string, password: string }} creds
+ * @returns {Promise<SafeUser>}
+ */
 export const login = createAsyncThunk('auth/login', async (creds, { rejectWithValue }) => {
   try {
     const { data } = await api.post('/auth/login', creds);
@@ -11,6 +25,11 @@ export const login = createAsyncThunk('auth/login', async (creds, { rejectWithVa
   }
 });
 
+/**
+ * POST /auth/register-agent
+ * @param {{ name: string, email: string, password: string, phone?: string, referralCode?: string }} payload
+ * @returns {Promise<SafeUser>}
+ */
 export const registerAgent = createAsyncThunk('auth/registerAgent', async (payload, { rejectWithValue }) => {
   try {
     const { data } = await api.post('/auth/register-agent', payload);
@@ -21,6 +40,11 @@ export const registerAgent = createAsyncThunk('auth/registerAgent', async (paylo
   }
 });
 
+/**
+ * POST /auth/set-password (completes invitation)
+ * @param {{ token: string, password: string, name?: string, phone?: string }} payload
+ * @returns {Promise<SafeUser>}
+ */
 export const setPassword = createAsyncThunk('auth/setPassword', async (payload, { rejectWithValue }) => {
   try {
     const { data } = await api.post('/auth/set-password', payload);
@@ -31,6 +55,10 @@ export const setPassword = createAsyncThunk('auth/setPassword', async (payload, 
   }
 });
 
+/**
+ * GET /auth/me — rehydrate the current user from a stored token.
+ * @returns {Promise<SafeUser>}
+ */
 export const fetchMe = createAsyncThunk('auth/me', async (_, { rejectWithValue }) => {
   try {
     const { data } = await api.get('/auth/me');

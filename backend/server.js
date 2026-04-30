@@ -3,6 +3,13 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 
+const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET'];
+const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.error(`[fatal] Missing required env vars: ${missing.join(', ')}`);
+  process.exit(1);
+}
+
 const app = express();
 
 connectDB();

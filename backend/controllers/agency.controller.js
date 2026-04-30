@@ -2,7 +2,13 @@ const User = require('../models/User');
 const { generateInviteToken } = require('../utils/token');
 const { sendInviteEmail } = require('../utils/email');
 
-// POST /agencies (admin) — create agency invite
+/**
+ * POST /api/agencies  (admin)
+ * Body: { name?: string, email: string (required), banks: ObjectId[] (>=1) }
+ * Response 201: { agency: { id, name, email, banks: ObjectId[] }, inviteUrl?: string }
+ *   inviteUrl is only returned when SMTP is unconfigured (dev mode).
+ * Errors: 400 missing fields, 409 email taken
+ */
 exports.create = async (req, res) => {
   try {
     const { name, email, banks } = req.body;
@@ -40,16 +46,28 @@ exports.create = async (req, res) => {
   }
 };
 
-// GET /agencies (admin) — list agencies
+/**
+ * GET /api/agencies  (admin)
+ * Response: Array<Agency User> with banks populated ({ name, code }), newest first.
+ */
 exports.list = async (req, res) => {
-  const agencies = await User.find({ role: 'agency' })
-    .populate('banks', 'name code')
-    .select('-password -inviteToken -inviteTokenExpires')
-    .sort({ createdAt: -1 });
-  res.json(agencies);
+  try {
+    const agencies = await User.find({ role: 'agency' })
+      .populate('banks', 'name code')
+      .select('-password -inviteToken -inviteTokenExpires')
+      .sort({ createdAt: -1 });
+    res.json(agencies);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
-// POST /agencies/:id/resend-invite (admin)
+/**
+ * POST /api/agencies/:id/resend-invite  (admin)
+ * Response: { ok: true, inviteUrl?: string }
+ *   inviteUrl is only returned when SMTP is unconfigured (dev mode).
+ * Errors: 404 not found, 400 already activated
+ */
 exports.resendInvite = async (req, res) => {
   try {
     const agency = await User.findOne({ _id: req.params.id, role: 'agency' });

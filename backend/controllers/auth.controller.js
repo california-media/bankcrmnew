@@ -1,7 +1,15 @@
-const crypto = require('crypto');
 const User = require('../models/User');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
 
+/**
+ * Public-safe user shape returned to clients.
+ * @typedef {{
+ *   id: string, name: string, email: string, phone: string,
+ *   role: 'admin'|'agency'|'agent',
+ *   referralCode?: string,
+ *   banks?: Array<{ _id: string, name: string, code?: string }>
+ * }} SafeUser
+ */
 const sanitize = (user) => ({
   id: user._id,
   name: user.name,
@@ -13,9 +21,16 @@ const sanitize = (user) => ({
 });
 
 const populatedUser = async (id) =>
-  User.findById(id).select('-password -inviteToken -inviteTokenExpires').populate('banks', 'name code');
+  User.findById(id)
+    .select('-password -inviteToken -inviteTokenExpires')
+    .populate('banks', 'name code');
 
-// POST /auth/register-agent (public)
+/**
+ * POST /api/auth/register-agent  (public)
+ * Body: { name: string, email: string, password: string, phone?: string, referralCode?: string }
+ * Response 201: { token: string, user: SafeUser }
+ * Errors: 400 missing fields / invalid referral, 409 email taken
+ */
 exports.registerAgent = async (req, res) => {
   try {
     const { name, email, password, phone, referralCode } = req.body;
@@ -58,7 +73,12 @@ exports.registerAgent = async (req, res) => {
   }
 };
 
-// POST /auth/login (public, all roles)
+/**
+ * POST /api/auth/login  (public — all roles)
+ * Body: { email: string, password: string }
+ * Response: { token: string, user: SafeUser }
+ * Errors: 400 missing fields, 401 invalid credentials, 403 inactive
+ */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -79,7 +99,11 @@ exports.login = async (req, res) => {
   }
 };
 
-// GET /auth/invite/:token  (public — verify invite token)
+/**
+ * GET /api/auth/invite/:token  (public)
+ * Response: { email: string, role: 'agency' }
+ * Errors: 400 invalid/expired
+ */
 exports.verifyInvite = async (req, res) => {
   try {
     const { token } = req.params;
@@ -94,7 +118,12 @@ exports.verifyInvite = async (req, res) => {
   }
 };
 
-// POST /auth/set-password (public — completes invitation)
+/**
+ * POST /api/auth/set-password  (public — completes invitation)
+ * Body: { token: string, password: string, name?: string, phone?: string }
+ * Response: { token: string, user: SafeUser }
+ * Errors: 400 invalid token / missing fields
+ */
 exports.setPassword = async (req, res) => {
   try {
     const { token, password, name, phone } = req.body;
@@ -122,8 +151,15 @@ exports.setPassword = async (req, res) => {
   }
 };
 
-// GET /auth/me
+/**
+ * GET /api/auth/me  (any authenticated user)
+ * Response: { user: SafeUser }
+ */
 exports.me = async (req, res) => {
-  const full = await populatedUser(req.user._id);
-  res.json({ user: sanitize(full) });
+  try {
+    const full = await populatedUser(req.user._id);
+    res.json({ user: sanitize(full) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };

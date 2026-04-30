@@ -1,12 +1,23 @@
 const Bank = require('../models/Bank');
 
-// GET /banks  (any authenticated user — agencies/agents need to list)
+/**
+ * GET /api/banks  (any authenticated user)
+ * Response: Array<{ _id, name, code, description, createdAt, updatedAt }>
+ */
 exports.list = async (req, res) => {
-  const banks = await Bank.find().sort({ name: 1 });
-  res.json(banks);
+  try {
+    const banks = await Bank.find().sort({ name: 1 });
+    res.json(banks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
-// POST /banks (admin)
+/**
+ * POST /api/banks  (admin)
+ * Body: { name: string (required), code?: string, description?: string }
+ * Response 201: { _id, name, code, description, ... }
+ */
 exports.create = async (req, res) => {
   try {
     const { name, code, description } = req.body;
@@ -19,20 +30,41 @@ exports.create = async (req, res) => {
   }
 };
 
-// PUT /banks/:id (admin)
+/**
+ * PUT /api/banks/:id  (admin)
+ * Body: { name?: string, code?: string, description?: string }
+ * Response: updated bank document
+ */
 exports.update = async (req, res) => {
   try {
-    const bank = await Bank.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { name, code, description } = req.body;
+    const update = {};
+    if (name !== undefined) update.name = name;
+    if (code !== undefined) update.code = code;
+    if (description !== undefined) update.description = description;
+
+    const bank = await Bank.findByIdAndUpdate(req.params.id, update, {
+      new: true,
+      runValidators: true,
+    });
     if (!bank) return res.status(404).json({ message: 'Bank not found' });
     res.json(bank);
   } catch (err) {
+    if (err.code === 11000) return res.status(409).json({ message: 'Bank name already in use' });
     res.status(500).json({ message: err.message });
   }
 };
 
-// DELETE /banks/:id (admin)
+/**
+ * DELETE /api/banks/:id  (admin)
+ * Response: { ok: true }
+ */
 exports.remove = async (req, res) => {
-  const bank = await Bank.findByIdAndDelete(req.params.id);
-  if (!bank) return res.status(404).json({ message: 'Bank not found' });
-  res.json({ ok: true });
+  try {
+    const bank = await Bank.findByIdAndDelete(req.params.id);
+    if (!bank) return res.status(404).json({ message: 'Bank not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };

@@ -13,56 +13,9 @@ import SubmitLead from './pages/agent/SubmitLead';
 import MyLeads from './pages/agent/MyLeads';
 import AgencyDashboard from './pages/agency/Dashboard';
 
-const theme = {
-  token: {
-    colorPrimary: '#8b1f1f',
-    colorInfo: '#8b1f1f',
-    colorSuccess: '#15803d',
-    colorWarning: '#a16207',
-    colorError: '#7f1d1d',
-    colorTextBase: '#1a1410',
-    colorBgBase: '#fbf7ee',
-    colorBgContainer: '#ffffff',
-    colorBgElevated: '#ffffff',
-    colorBorder: '#d8cfb8',
-    colorBorderSecondary: '#ece5d2',
-    borderRadius: 2,
-    borderRadiusLG: 4,
-    borderRadiusSM: 2,
-    fontFamily:
-      "'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
-    fontSize: 14,
-    wireframe: false,
-    controlHeight: 40,
-  },
-  components: {
-    Button: {
-      controlHeight: 40,
-      fontWeight: 500,
-      primaryShadow: 'none',
-      defaultShadow: 'none',
-    },
-    Input: { controlHeight: 40, paddingInline: 12 },
-    Select: { controlHeight: 40 },
-    Layout: { siderBg: '#1a1410', headerBg: '#fbf7ee', bodyBg: 'transparent', triggerBg: '#1a1410' },
-    Menu: {
-      darkItemBg: '#1a1410',
-      darkSubMenuItemBg: '#1a1410',
-      darkItemSelectedBg: '#8b1f1f',
-      darkItemHoverBg: '#2a201a',
-      darkItemColor: '#bfb8a8',
-      darkItemSelectedColor: '#fbf7ee',
-      itemBorderRadius: 0,
-    },
-    Card: { borderRadiusLG: 4, paddingLG: 28 },
-    Modal: { borderRadiusLG: 4 },
-    Tag: { defaultBg: '#fbf7ee', defaultColor: '#1a1410' },
-  },
-};
-
 function App() {
   return (
-    <ConfigProvider theme={theme}>
+    <ConfigProvider theme={{ token: { colorPrimary: '#1677ff', borderRadius: 6 } }}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

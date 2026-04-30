@@ -1,4 +1,4 @@
-import { Layout, Menu, Avatar, Dropdown } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Typography } from 'antd';
 import {
   DashboardOutlined,
   BankOutlined,
@@ -16,21 +16,21 @@ const { Header, Sider, Content } = Layout;
 
 const menusByRole = {
   admin: [
-    { key: '/admin', icon: <DashboardOutlined />, label: <Link to="/admin">Editorial Desk</Link> },
+    { key: '/admin', icon: <DashboardOutlined />, label: <Link to="/admin">Dashboard</Link> },
     { key: '/admin/banks', icon: <BankOutlined />, label: <Link to="/admin/banks">Banks</Link> },
     { key: '/admin/agencies', icon: <TeamOutlined />, label: <Link to="/admin/agencies">Agencies</Link> },
   ],
   agent: [
-    { key: '/agent', icon: <DashboardOutlined />, label: <Link to="/agent">Field Desk</Link> },
-    { key: '/agent/leads/new', icon: <FileAddOutlined />, label: <Link to="/agent/leads/new">File a Lead</Link> },
-    { key: '/agent/leads', icon: <UnorderedListOutlined />, label: <Link to="/agent/leads">My Filings</Link> },
+    { key: '/agent', icon: <DashboardOutlined />, label: <Link to="/agent">Dashboard</Link> },
+    { key: '/agent/leads/new', icon: <FileAddOutlined />, label: <Link to="/agent/leads/new">Submit Lead</Link> },
+    { key: '/agent/leads', icon: <UnorderedListOutlined />, label: <Link to="/agent/leads">My Leads</Link> },
   ],
   agency: [
-    { key: '/agency', icon: <DashboardOutlined />, label: <Link to="/agency">Standing Desk</Link> },
+    { key: '/agency', icon: <DashboardOutlined />, label: <Link to="/agency">Dashboard</Link> },
   ],
 };
 
-const roleLabels = { admin: 'The Mediator', agency: 'The Agency', agent: 'The Field' };
+const titleByRole = { admin: 'Admin', agency: 'Agency', agent: 'Agent' };
 
 function AppLayout() {
   const { user } = useSelector((s) => s.auth);
@@ -49,137 +49,38 @@ function AppLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        breakpoint="lg"
-        collapsedWidth="0"
-        width={240}
-        style={{
-          background: 'var(--ink)',
-          borderRight: '1px solid var(--ink)',
-          backgroundImage: 'radial-gradient(rgba(251, 247, 238, 0.025) 1px, transparent 1px)',
-          backgroundSize: '4px 4px',
-        }}
-      >
-        <div style={brand.box}>
-          <div className="eyebrow" style={{ color: 'rgba(251, 247, 238, 0.45)' }}>
-            § Vol. I
-          </div>
-          <div style={brand.word}>
-            The Bank<br />
-            <em style={brand.italic}>Ledger</em>.
-          </div>
-          <div style={brand.role}>{roleLabels[user.role]}</div>
+      <Sider breakpoint="lg" collapsedWidth="0" theme="dark">
+        <div style={{ color: '#fff', textAlign: 'center', padding: '20px 0', fontWeight: 600, fontSize: 18 }}>
+          Bank CRM
         </div>
-        <hr style={brand.rule} />
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={items}
-          style={{ background: 'transparent', borderInlineEnd: 0, fontFamily: 'var(--font-body)', fontSize: 14 }}
-        />
+        <Menu theme="dark" mode="inline" selectedKeys={[location.pathname]} items={items} />
       </Sider>
       <Layout>
-        <Header style={header.bar}>
-          <div style={header.dateline}>
-            <span className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
-            <span style={header.dot}>&middot;</span>
-            <span className="eyebrow">{user.role.toUpperCase()} EDITION</span>
-          </div>
+        <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography.Title level={4} style={{ margin: 0 }}>
+            {titleByRole[user.role]} Panel
+          </Typography.Title>
           <Dropdown
             menu={{
               items: [
                 { key: 'profile', icon: <UserOutlined />, label: user.email, disabled: true },
                 { type: 'divider' },
-                { key: 'logout', icon: <LogoutOutlined />, label: 'Log out' },
+                { key: 'logout', icon: <LogoutOutlined />, label: 'Logout' },
               ],
               onClick: onMenuAction,
             }}
           >
-            <div style={header.avatarWrap}>
-              <span style={header.avatarName}>{user.name || user.email}</span>
-              <Avatar style={header.avatar}>
-                {(user.name || user.email)[0].toUpperCase()}
-              </Avatar>
-            </div>
+            <Avatar style={{ backgroundColor: '#1677ff', cursor: 'pointer' }}>
+              {(user.name || user.email)[0].toUpperCase()}
+            </Avatar>
           </Dropdown>
         </Header>
-        <Content style={content.box}>
+        <Content style={{ margin: 24, padding: 24, background: '#fff', borderRadius: 8 }}>
           <Outlet />
         </Content>
       </Layout>
     </Layout>
   );
 }
-
-const brand = {
-  box: { padding: '28px 24px 8px' },
-  word: {
-    fontFamily: 'var(--font-display)',
-    fontSize: 28,
-    lineHeight: 1,
-    letterSpacing: '-0.03em',
-    color: 'var(--paper)',
-    marginTop: 14,
-  },
-  italic: {
-    fontStyle: 'italic',
-    color: '#e7c9bd',
-    fontVariationSettings: '"opsz" 144, "SOFT" 100',
-  },
-  role: {
-    marginTop: 14,
-    fontFamily: 'var(--font-mono)',
-    fontSize: 11,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    color: '#e7c9bd',
-  },
-  rule: {
-    border: 0,
-    borderTop: '1px solid rgba(251, 247, 238, 0.7)',
-    borderBottom: '1px solid rgba(251, 247, 238, 0.7)',
-    height: 4,
-    margin: '20px 0',
-  },
-};
-
-const header = {
-  bar: {
-    background: 'var(--paper)',
-    padding: '0 32px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '1px solid var(--ink)',
-    height: 64,
-  },
-  dateline: { display: 'flex', alignItems: 'center', gap: 12 },
-  dot: { color: 'var(--ink-muted)' },
-  avatarWrap: { display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' },
-  avatarName: {
-    fontFamily: 'var(--font-display)',
-    fontStyle: 'italic',
-    fontSize: 16,
-    color: 'var(--ink)',
-  },
-  avatar: {
-    background: 'var(--ink)',
-    color: 'var(--paper)',
-    fontFamily: 'var(--font-display)',
-    fontSize: 16,
-    border: '1px solid var(--ink)',
-  },
-};
-
-const content = {
-  box: {
-    margin: 32,
-    padding: '40px 44px',
-    background: 'var(--surface)',
-    border: '1px solid var(--rule)',
-    boxShadow: 'var(--shadow-paper)',
-  },
-};
 
 export default AppLayout;

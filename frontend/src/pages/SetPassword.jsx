@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Button, Alert, Spin } from 'antd';
+import { Card, Form, Input, Button, Typography, Alert, Spin } from 'antd';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import api from '../api/client';
@@ -18,92 +18,54 @@ function SetPassword() {
 
   useEffect(() => {
     if (!token) { setVerifying(false); setVerifyError('Missing token'); return; }
-    api.get(`/auth/invite/${token}`)
+    api
+      .get(`/auth/invite/${token}`)
       .then((res) => setInvite(res.data))
       .catch((err) => setVerifyError(err.response?.data?.message || 'Invalid invite'))
       .finally(() => setVerifying(false));
   }, [token]);
 
-  useEffect(() => { if (user) navigate(`/${user.role}`, { replace: true }); }, [user, navigate]);
+  useEffect(() => {
+    if (user) navigate(`/${user.role}`, { replace: true });
+  }, [user, navigate]);
+
   useEffect(() => () => dispatch(clearError()), [dispatch]);
 
   const onFinish = (values) => dispatch(setPassword({ token, ...values }));
 
   if (verifying) {
-    return <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}><Spin size="large" /></div>;
+    return <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}><Spin size="large" /></div>;
   }
 
   return (
-    <div style={styles.shell}>
-      <div style={styles.card}>
-        <div className="eyebrow">§ Account Activation</div>
-        <h1 style={styles.title}>
-          Set the <em style={styles.italic}>seal.</em>
-        </h1>
-
+    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5' }}>
+      <Card style={{ width: 440 }}>
+        <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 4 }}>Activate Account</Typography.Title>
         {invite && (
-          <p style={styles.lede}>
-            Activating <span style={{ fontFamily: 'var(--font-mono)', background: 'var(--paper)', padding: '2px 6px' }}>{invite.email}</span> as <i>{invite.role}</i>. Choose a password to take possession.
-          </p>
+          <Typography.Paragraph style={{ textAlign: 'center', color: '#888' }}>
+            Setting up <b>{invite.email}</b> ({invite.role})
+          </Typography.Paragraph>
         )}
-
-        <hr className="rule" />
-
-        {(verifyError || error) && (
-          <Alert type="error" message={verifyError || error} style={{ marginBottom: 16, borderRadius: 2 }} />
-        )}
-
+        {(verifyError || error) && <Alert type="error" message={verifyError || error} style={{ marginBottom: 16 }} />}
         {invite && (
-          <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
-            <Form.Item name="name" label={<span className="eyebrow">Full Name / Agency</span>} rules={[{ required: true }]}>
+          <Form layout="vertical" onFinish={onFinish}>
+            <Form.Item name="name" label="Full name / Agency name" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
-            <Form.Item name="phone" label={<span className="eyebrow">Phone</span>}>
+            <Form.Item name="phone" label="Phone">
               <Input />
             </Form.Item>
-            <Form.Item name="password" label={<span className="eyebrow">Password</span>} rules={[{ required: true, min: 6 }]}>
+            <Form.Item name="password" label="Password" rules={[{ required: true, min: 6 }]}>
               <Input.Password />
             </Form.Item>
-            <Button type="primary" htmlType="submit" loading={status === 'loading'} block style={styles.cta}>
-              Activate &amp; Sign In &rarr;
+            <Button type="primary" htmlType="submit" loading={status === 'loading'} block>
+              Activate &amp; Login
             </Button>
           </Form>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
-
-const styles = {
-  shell: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' },
-  card: {
-    width: '100%',
-    maxWidth: 540,
-    background: 'var(--surface)',
-    border: '1px solid var(--rule)',
-    boxShadow: 'var(--shadow-paper)',
-    padding: '48px 56px',
-  },
-  title: {
-    fontFamily: 'var(--font-display)',
-    fontSize: 56,
-    lineHeight: 1,
-    letterSpacing: '-0.03em',
-    fontWeight: 400,
-    margin: '12px 0 12px',
-    color: 'var(--ink)',
-  },
-  italic: { fontStyle: 'italic', color: 'var(--accent)' },
-  lede: { fontFamily: 'var(--font-display)', fontSize: 17, lineHeight: 1.5, color: 'var(--ink-soft)', margin: 0 },
-  cta: {
-    height: 48,
-    fontFamily: 'var(--font-mono)',
-    fontSize: 12,
-    letterSpacing: '0.14em',
-    textTransform: 'uppercase',
-    background: 'var(--ink)',
-    borderColor: 'var(--ink)',
-  },
-};
 
 export default SetPassword;

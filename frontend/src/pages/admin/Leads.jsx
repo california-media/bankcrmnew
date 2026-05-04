@@ -4,7 +4,8 @@ import { SearchOutlined, DollarOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 const STATUSES = [
-  { value: 'submitted', label: 'Submitted', color: 'default' },
+  { value: 'draft', label: 'Draft', color: 'default' },
+  { value: 'submitted', label: 'Submitted', color: 'blue' },
   { value: 'under_review', label: 'Under Review', color: 'gold' },
   { value: 'assigned', label: 'Assigned', color: 'cyan' },
   { value: 'approved', label: 'Approved', color: 'green' },

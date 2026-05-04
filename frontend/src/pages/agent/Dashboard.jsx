@@ -13,7 +13,8 @@ import { Link } from 'react-router-dom';
 import api from '../../api/client';
 
 const statusTag = {
-  submitted: { color: 'default', label: 'Submitted' },
+  draft: { color: 'default', label: 'Draft' },
+  submitted: { color: 'blue', label: 'Submitted' },
   under_review: { color: 'gold', label: 'Under Review' },
   assigned: { color: 'cyan', label: 'Assigned' },
   approved: { color: 'green', label: 'Approved' },

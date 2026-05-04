@@ -47,15 +47,22 @@ This is the canonical journey of a lead from signup to payout. Reads top-to-bott
 3. System generates a unique 8-char `referralCode` for the new agent (used to refer further agents).
 4. Account is immediately active, JWT issued, redirected to `/agent`.
 
-### 2.4 Filing a lead (Agent)
-At `/agent/leads/new`:
+### 2.4 Filing a lead (Agent) — two separate actions
+
+**Step 1 — Create a draft.** At `/agent/leads/new`:
 1. Agent enters the customer's name and phone.
 2. Picks a **Product** (Credit Card or Loan).
 3. Picks a **Bank**.
-4. Picks a **Send to Agency** — the dropdown shows **only** active agencies whose assigned banks include the chosen bank. The agent decides who handles this lead.
-5. Optional notes for the agency.
+4. Optional notes.
 
-The lead is created with `status='submitted'` and the chosen `agency` set. It is **not** broadcast — only that one agency sees it.
+The lead is saved with `status='draft'` and `agency=null`. It is the agent's private record — no agency can see it yet. The agent can also delete a draft from the actions column.
+
+**Step 2 — Send the draft to an agency.** At `/agent/leads`, every draft row has a **Send to Agency** action:
+1. Clicking it opens a modal that fetches `GET /api/agencies/for-bank/:bankId` — only active agencies whose assigned banks include this lead's bank.
+2. Agent picks one and confirms.
+3. The backend validates the agency services the bank, sets `lead.agency` and flips `status='submitted'`. The lead is now visible on that one agency's queue.
+
+The split keeps "I have customer info" separate from "I've decided who handles it."
 
 ### 2.5 Working a lead (Agency)
 At `/agency/leads`, the agency sees every lead filed to them. From the actions column they walk it through:
@@ -66,7 +73,7 @@ At `/agency/leads`, the agency sees every lead filed to them. From the actions c
 | `under_review` → `assigned` | **Mark Assigned** | Agency has handed the case off to the bank |
 | any non-final → `approved` | **Approve** | Lead is approved. Commission is computed from the matching CommissionRule and stored on the lead. `commissionStatus` becomes `pending`. |
 | any non-final → `rejected` | **Reject** | Commission cleared. `commissionStatus` becomes `none`. |
-| `approved` → `disbursed` | **Mark Disbursed** | Funds released. `commissionStatus` becomes `payable` — meaning the agent has earned it but hasn't been paid yet. |
+| `approved` → `disbursed` | **Mark Disbursed** | Funds released. `commissiontStatus` becomes `payable` — meaning the agent has earned it but hasn't been paid yet. |
 
 Agencies cannot touch leads filed to other agencies. Admins can override any status.
 
@@ -96,7 +103,11 @@ Agencies cannot touch leads filed to other agencies. Admins can override any sta
 
 ```
                 ┌──────────────┐
-                │  submitted   │  ← agent files; agency is set
+                │    draft     │  ← agent created; agency=null; private to agent
+                └──────┬───────┘
+                       │ Send to Agency  (agent picks an agency)
+                ┌──────▼───────┐
+                │  submitted   │  ← agency now sees it on their queue
                 └──────┬───────┘
                        │ Start Review
                 ┌──────▼───────┐
@@ -196,9 +207,9 @@ backend/
 | customerName, phone | String | |
 | productType | enum | `credit_card` \| `loan` |
 | bank | ObjectId → Bank | |
-| status | enum | `submitted`, `under_review`, `assigned`, `approved`, `rejected`, `disbursed` |
+| status | enum | `draft`, `submitted`, `under_review`, `assigned`, `approved`, `rejected`, `disbursed` |
 | agent | ObjectId → User | the filer |
-| agency | ObjectId → User | chosen by the agent at submission |
+| agency | ObjectId → User \| null | null while in `draft`; set when the agent sends the lead |
 | commission | Number | AED, written by `commission.service.recalcOnStatusChange` |
 | commissionStatus | enum | `none` \| `pending` \| `payable` \| `paid` |
 | commissionPaidAt | Date | set when admin marks paid |
@@ -239,9 +250,11 @@ All non-public routes require `Authorization: Bearer <jwt>`.
 #### Leads
 | Method | Path | Role | Purpose |
 |---|---|---|---|
-| POST | `/api/leads` | agent | Submit a new lead — agent picks `bank` + `agency` |
+| POST | `/api/leads` | agent | Create a new lead as `draft` (no agency yet) |
+| POST | `/api/leads/:id/send-to-agency` | agent | Pick an agency for a draft → `status='submitted'` |
+| DELETE | `/api/leads/:id` | agent | Delete one of the agent's own drafts |
 | GET | `/api/leads/mine` | agent | Agent's own leads |
-| GET | `/api/leads/stats` | agent | Counters for dashboard |
+| GET | `/api/leads/stats` | agent | Counters for dashboard (incl. `drafts`) |
 | GET | `/api/leads/ledger` | agent | Earnings ledger + current monthly bonus |
 | GET | `/api/leads/agency` | agency | Leads where `agency = self` |
 | GET | `/api/leads` | admin | All leads, fully populated |

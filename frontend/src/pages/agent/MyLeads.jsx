@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import {
+  Table, Tag, Typography, Button, Input, Select, Row, Col, Space,
+  Modal, Form, Empty, Popconfirm, message,
+} from 'antd';
+import { PlusOutlined, SearchOutlined, SendOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 
 const STATUSES = [
-  { value: 'submitted', label: 'Submitted', color: 'default' },
+  { value: 'draft', label: 'Draft', color: 'default' },
+  { value: 'submitted', label: 'Submitted', color: 'blue' },
   { value: 'under_review', label: 'Under Review', color: 'gold' },
   { value: 'assigned', label: 'Assigned', color: 'cyan' },
   { value: 'approved', label: 'Approved', color: 'green' },
@@ -27,10 +31,62 @@ function MyLeads() {
   const [statusFilter, setStatusFilter] = useState();
   const [productFilter, setProductFilter] = useState();
 
-  useEffect(() => {
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sendingLead, setSendingLead] = useState(null);
+  const [agencies, setAgencies] = useState([]);
+  const [agenciesLoading, setAgenciesLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendForm] = Form.useForm();
+
+  const load = async () => {
     setLoading(true);
-    api.get('/leads/mine').then((res) => setLeads(res.data)).finally(() => setLoading(false));
-  }, []);
+    try {
+      const { data } = await api.get('/leads/mine');
+      setLeads(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const openSend = async (lead) => {
+    setSendingLead(lead);
+    setSendOpen(true);
+    sendForm.resetFields();
+    setAgenciesLoading(true);
+    try {
+      const { data } = await api.get(`/agencies/for-bank/${lead.bank?._id || lead.bank}`);
+      setAgencies(data);
+    } finally {
+      setAgenciesLoading(false);
+    }
+  };
+
+  const onSendSubmit = async () => {
+    const { agency } = await sendForm.validateFields();
+    setSending(true);
+    try {
+      await api.post(`/leads/${sendingLead._id}/send-to-agency`, { agency });
+      message.success('Lead sent to agency');
+      setSendOpen(false);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to send');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const onDelete = async (id) => {
+    try {
+      await api.delete(`/leads/${id}`);
+      message.success('Draft deleted');
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to delete');
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -41,6 +97,8 @@ function MyLeads() {
       return true;
     });
   }, [leads, search, statusFilter, productFilter]);
+
+  const draftCount = leads.filter((l) => l.status === 'draft').length;
 
   const columns = [
     {
@@ -58,12 +116,9 @@ function MyLeads() {
         </div>
       ),
     },
-    {
-      title: 'Product',
-      dataIndex: 'productType',
-      render: (v) => PRODUCTS.find((p) => p.value === v)?.label,
-    },
+    { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
+    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || <Typography.Text type="secondary">—</Typography.Text> },
     {
       title: 'Stage',
       dataIndex: 'status',
@@ -83,6 +138,20 @@ function MyLeads() {
       dataIndex: 'createdAt',
       render: (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' }),
     },
+    {
+      title: 'Actions',
+      width: 220,
+      render: (_, row) => row.status === 'draft' && (
+        <Space>
+          <Button size="small" type="primary" icon={<SendOutlined />} onClick={() => openSend(row)}>
+            Send to Agency
+          </Button>
+          <Popconfirm title="Delete this draft?" onConfirm={() => onDelete(row._id)}>
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
   ];
 
   return (
@@ -96,10 +165,16 @@ function MyLeads() {
         </Col>
         <Col>
           <Link to="/agent/leads/new">
-            <Button type="primary" icon={<PlusOutlined />}>Submit New Lead</Button>
+            <Button type="primary" icon={<PlusOutlined />}>New Lead</Button>
           </Link>
         </Col>
       </Row>
+
+      {draftCount > 0 && !statusFilter && (
+        <Typography.Text type="warning" style={{ display: 'block', marginTop: 12 }}>
+          You have {draftCount} draft {draftCount === 1 ? 'lead' : 'leads'} not yet sent to an agency.
+        </Typography.Text>
+      )}
 
       <Space wrap style={{ margin: '24px 0 16px', width: '100%', justifyContent: 'space-between' }}>
         <Space wrap>
@@ -132,6 +207,39 @@ function MyLeads() {
       </Space>
 
       <Table rowKey="_id" loading={loading} dataSource={filtered} columns={columns} />
+
+      <Modal
+        title="Send Lead to Agency"
+        open={sendOpen}
+        onCancel={() => setSendOpen(false)}
+        onOk={onSendSubmit}
+        okText="Send"
+        confirmLoading={sending}
+        destroyOnClose
+      >
+        {sendingLead && (
+          <>
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
+              Sending <b>{sendingLead.customerName}</b> ({sendingLead.bank?.name}) to an agency.
+              Only agencies that service this bank are listed.
+            </Typography.Paragraph>
+            <Form form={sendForm} layout="vertical">
+              <Form.Item
+                name="agency"
+                label="Agency"
+                rules={[{ required: true, message: 'Pick an agency' }]}
+              >
+                <Select
+                  loading={agenciesLoading}
+                  placeholder={agenciesLoading ? 'Loading…' : 'Pick an agency'}
+                  notFoundContent={<Empty description="No agencies for this bank" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
+                  options={agencies.map((a) => ({ value: a._id, label: a.name || a.email }))}
+                />
+              </Form.Item>
+            </Form>
+          </>
+        )}
+      </Modal>
     </>
   );
 }

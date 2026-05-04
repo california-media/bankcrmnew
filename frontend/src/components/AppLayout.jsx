@@ -32,7 +32,7 @@ const menusByRole = {
   agent: [
     { key: '/agent', icon: <DashboardOutlined />, label: <Link to="/agent">Dashboard</Link> },
     { key: '/agent/leads', icon: <UnorderedListOutlined />, label: <Link to="/agent/leads">My Leads</Link> },
-    { key: '/agent/leads/new', icon: <FileAddOutlined />, label: <Link to="/agent/leads/new">Submit Lead</Link> },
+    { key: '/agent/leads/new', icon: <FileAddOutlined />, label: <Link to="/agent/leads/new">New Lead</Link> },
     { key: '/agent/commissions', icon: <DollarOutlined />, label: <Link to="/agent/commissions">Commissions</Link> },
   ],
   agency: [

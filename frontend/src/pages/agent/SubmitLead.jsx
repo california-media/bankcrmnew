@@ -1,48 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Space, Empty } from 'antd';
+import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Space, Alert } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
 function SubmitLead() {
   const [banks, setBanks] = useState([]);
-  const [agencies, setAgencies] = useState([]);
-  const [agenciesLoading, setAgenciesLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const selectedBank = Form.useWatch('bank', form);
 
   useEffect(() => {
     api.get('/banks').then((res) => setBanks(res.data));
   }, []);
 
-  useEffect(() => {
-    if (!selectedBank) {
-      setAgencies([]);
-      form.setFieldValue('agency', undefined);
-      return;
-    }
-    setAgenciesLoading(true);
-    api.get(`/agencies/for-bank/${selectedBank}`)
-      .then((res) => {
-        setAgencies(res.data);
-        const current = form.getFieldValue('agency');
-        if (current && !res.data.some((a) => a._id === current)) {
-          form.setFieldValue('agency', undefined);
-        }
-      })
-      .finally(() => setAgenciesLoading(false));
-  }, [selectedBank, form]);
-
   const onFinish = async (values) => {
     setSubmitting(true);
     try {
       await api.post('/leads', values);
-      message.success('Lead submitted');
+      message.success('Lead saved as draft. Send it to an agency from My Leads.');
       navigate('/agent/leads');
     } catch (err) {
-      message.error(err.response?.data?.message || 'Failed to submit');
+      message.error(err.response?.data?.message || 'Failed to save');
     } finally {
       setSubmitting(false);
     }
@@ -52,9 +31,9 @@ function SubmitLead() {
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>Submit New Lead</Typography.Title>
+          <Typography.Title level={3} style={{ margin: 0 }}>New Lead</Typography.Title>
           <Typography.Text type="secondary">
-            Pick the bank, then the agency that will handle this lead.
+            Capture the customer's details. You'll pick which agency handles it from My Leads.
           </Typography.Text>
         </Col>
         <Col>
@@ -64,15 +43,19 @@ function SubmitLead() {
         </Col>
       </Row>
 
-      <Form form={form} layout="vertical" onFinish={onFinish} style={{ marginTop: 24 }}>
+      <Alert
+        type="info"
+        showIcon
+        message="This lead is saved as a draft."
+        description="After saving, open My Leads → Send to Agency to route it to an agency that services the chosen bank."
+        style={{ margin: '16px 0 24px' }}
+      />
+
+      <Form form={form} layout="vertical" onFinish={onFinish}>
         <Card title="Client Information" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <Form.Item
-                name="customerName"
-                label="Client Full Name"
-                rules={[{ required: true }]}
-              >
+              <Form.Item name="customerName" label="Client Full Name" rules={[{ required: true }]}>
                 <Input placeholder="e.g. Mohammed Ahmed" />
               </Form.Item>
             </Col>
@@ -108,24 +91,6 @@ function SubmitLead() {
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item
-            name="agency"
-            label="Send to Agency"
-            rules={[{ required: true, message: 'Pick the agency that should handle this lead' }]}
-            extra={selectedBank
-              ? (agencies.length === 0 && !agenciesLoading
-                ? 'No active agency services this bank yet — ask the admin to assign one.'
-                : 'Only agencies that service the chosen bank are listed.')
-              : 'Choose a bank first.'}
-          >
-            <Select
-              loading={agenciesLoading}
-              disabled={!selectedBank}
-              placeholder={selectedBank ? 'Pick an agency' : 'Select a bank first'}
-              notFoundContent={selectedBank ? <Empty description="No agencies for this bank" image={Empty.PRESENTED_IMAGE_SIMPLE} /> : null}
-              options={agencies.map((a) => ({ value: a._id, label: a.name || a.email }))}
-            />
-          </Form.Item>
           <Form.Item name="notes" label="Notes (optional)">
             <Input.TextArea rows={3} placeholder="Anything the agency should know about this customer." />
           </Form.Item>
@@ -133,7 +98,7 @@ function SubmitLead() {
 
         <Space>
           <Button type="primary" htmlType="submit" loading={submitting}>
-            Submit Lead
+            Save Draft
           </Button>
           <Button onClick={() => form.resetFields()}>Reset</Button>
         </Space>

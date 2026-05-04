@@ -9,6 +9,8 @@ router.post('/', requireRole('agent'), ctrl.create);
 router.get('/mine', requireRole('agent'), ctrl.listMine);
 router.get('/stats', requireRole('agent'), ctrl.stats);
 router.get('/ledger', requireRole('agent'), ctrl.myLedger);
+router.post('/:id/send-to-agency', requireRole('agent'), ctrl.sendToAgency);
+router.delete('/:id', requireRole('agent'), ctrl.removeDraft);
 
 // Agency
 router.get('/agency', requireRole('agency'), ctrl.listForAgency);

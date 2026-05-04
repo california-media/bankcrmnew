@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const LEAD_STATUSES = [
+  'draft',
   'submitted',
   'under_review',
   'assigned',
@@ -17,7 +18,7 @@ const leadSchema = new mongoose.Schema(
     phone: { type: String, required: true, trim: true },
     productType: { type: String, enum: ['credit_card', 'loan'], required: true },
     bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
-    status: { type: String, enum: LEAD_STATUSES, default: 'submitted' },
+    status: { type: String, enum: LEAD_STATUSES, default: 'draft' },
     agent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     commission: { type: Number, default: 0 },

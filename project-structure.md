@@ -1,6 +1,12 @@
 # Bank CRM — Project Structure
 
-A MERN CRM for managing bank-product leads (credit cards, loans). Three independent roles: **Admin** (mediator), **Agency**, **Agent**. Agents and agencies are independent entities (no hierarchy).
+A MERN CRM that connects three independent parties around bank-product leads (credit cards and loans):
+
+- **Agents** find customers in the field and file leads.
+- **Agencies** receive those leads, work them through review, and shepherd them to a bank decision.
+- **The Admin (Mediator)** runs the master data — the banks of record, the agencies on the masthead, the commission rules — and pays agents out.
+
+Agencies and agents are independent: no agency owns an agent, and no agent reports to an agency. The agent decides, lead by lead, which agency to file with.
 
 ---
 
@@ -15,7 +21,117 @@ bank_crm/
 
 ---
 
-## 2. Backend
+## 2. End-to-end flow
+
+This is the canonical journey of a lead from signup to payout. Reads top-to-bottom.
+
+### 2.1 One-time setup (Admin)
+1. Run `npm run seed` in the backend → default admin (`admin@bankcrm.local / admin123`) is created.
+2. Admin signs in and configures the master data:
+   - **Banks** — every bank that the system will ever route leads to.
+   - **Commission Rules** — for each (product, bank) pair, how many AED an agent earns when a lead is approved. A "default" rule (no bank set) acts as the fallback for that product.
+   - **Volume Bonuses** — optional monthly tiers that pay agents extra when they cross approved-lead thresholds (e.g. 10 approvals = AED 1,000 bonus).
+3. Admin invites agencies one at a time:
+   - Enter the agency's email + pick the banks that agency is allowed to service.
+   - System creates an inactive `User { role: agency }` with a 24-hour `inviteToken`.
+   - An invite email is sent (Gmail SMTP); in dev (no SMTP), the invite URL is also returned in the API response so the admin can copy it from the modal.
+
+### 2.2 Agency activation
+1. Agency clicks the invite link → lands on `/set-password?token=…`.
+2. The token is verified, the agency picks a name + password, account is activated, JWT issued, redirected to `/agency`.
+3. The agency now sees the banks they were assigned. They have nothing to do until an agent files a lead with them.
+
+### 2.3 Agent registration
+1. Agent self-registers at `/register` (no admin involvement).
+2. Optionally enters a referral code from another agent — that agent becomes their `referredBy`.
+3. System generates a unique 8-char `referralCode` for the new agent (used to refer further agents).
+4. Account is immediately active, JWT issued, redirected to `/agent`.
+
+### 2.4 Filing a lead (Agent)
+At `/agent/leads/new`:
+1. Agent enters the customer's name and phone.
+2. Picks a **Product** (Credit Card or Loan).
+3. Picks a **Bank**.
+4. Picks a **Send to Agency** — the dropdown shows **only** active agencies whose assigned banks include the chosen bank. The agent decides who handles this lead.
+5. Optional notes for the agency.
+
+The lead is created with `status='submitted'` and the chosen `agency` set. It is **not** broadcast — only that one agency sees it.
+
+### 2.5 Working a lead (Agency)
+At `/agency/leads`, the agency sees every lead filed to them. From the actions column they walk it through:
+
+| From → To | Button | What happens |
+|---|---|---|
+| `submitted` → `under_review` | **Start Review** | Agency has picked it up |
+| `under_review` → `assigned` | **Mark Assigned** | Agency has handed the case off to the bank |
+| any non-final → `approved` | **Approve** | Lead is approved. Commission is computed from the matching CommissionRule and stored on the lead. `commissionStatus` becomes `pending`. |
+| any non-final → `rejected` | **Reject** | Commission cleared. `commissionStatus` becomes `none`. |
+| `approved` → `disbursed` | **Mark Disbursed** | Funds released. `commissionStatus` becomes `payable` — meaning the agent has earned it but hasn't been paid yet. |
+
+Agencies cannot touch leads filed to other agencies. Admins can override any status.
+
+### 2.6 Agent visibility into their own pipeline
+- `/agent` — headline numbers (commission earned, pending commission, active cases, closed deals) + recent leads + their referral code (copyable).
+- `/agent/leads` — full filterable list of every lead they've filed and the current stage.
+- `/agent/commissions` — the **ledger view**:
+  - **Paid Out** — leads where `commissionStatus = paid`
+  - **Pending Payout** — leads where `commissionStatus = payable` (disbursed, awaiting cheque)
+  - **Expected Earnings** — leads where `commissionStatus = pending` (approved, not yet disbursed)
+  - **Volume bonus banner** appears when the agent has crossed a monthly threshold this calendar month.
+  - Reference table at the bottom shows the active CommissionRules so the agent knows what each product/bank pair is worth.
+
+### 2.7 Paying the agent (Admin)
+1. Admin opens `/admin/leads`. Every lead with `commissionStatus = payable` shows a **Mark Paid** action.
+2. Clicking it sets `commissionStatus = paid` and stamps `commissionPaidAt = now`.
+3. The agent's `/agent/commissions` page now shows the lead under "Commission Payments".
+
+### 2.8 Admin oversight (today)
+- `/admin` — counts across the system (agents, agencies, banks, leads by stage, commission paid vs payable).
+- `/admin/leads` — every lead with full filters; mark-paid action on payable rows.
+- `/admin/agents` — every agent with their summary stats (`{ totalLeads, approvedLeads, paidCommission }`) and who referred them.
+- `/admin/agencies` — every agency, their assigned banks, activation status, and resend-invite for pending ones.
+- `/admin/banks`, `/admin/commission-rules`, `/admin/volume-bonuses` — master-data CRUD.
+
+### 2.9 Lead lifecycle (status diagram)
+
+```
+                ┌──────────────┐
+                │  submitted   │  ← agent files; agency is set
+                └──────┬───────┘
+                       │ Start Review
+                ┌──────▼───────┐
+                │ under_review │
+                └──────┬───────┘
+                       │ Mark Assigned
+                ┌──────▼───────┐
+                │   assigned   │  ← agency has handed off to the bank
+                └──────┬───────┘
+                       │ Approve / Reject available throughout
+            ┌──────────┴──────────┐
+            ▼                     ▼
+      ┌──────────┐          ┌──────────┐
+      │ approved │          │ rejected │  ← terminal; commission cleared
+      └────┬─────┘          └──────────┘
+           │ Mark Disbursed
+      ┌────▼─────┐
+      │ disbursed│  ← terminal
+      └──────────┘
+```
+
+### 2.10 Commission ledger lifecycle
+
+```
+   ┌──────┐    lead approved    ┌────────┐   lead disbursed   ┌─────────┐   admin marks paid   ┌──────┐
+   │ none ├────────────────────►│ pending├───────────────────►│ payable ├─────────────────────►│ paid │
+   └──────┘                     └────────┘                    └─────────┘                      └──────┘
+        ▲    rejected → cleared
+        │
+   (rejection at any time clears commission back to `none`)
+```
+
+---
+
+## 3. Backend
 
 Express REST API. JWT-based auth. Mongoose models. CommonJS.
 
@@ -23,95 +139,77 @@ Express REST API. JWT-based auth. Mongoose models. CommonJS.
 backend/
 ├── server.js               Express bootstrap, env validation, CORS, route mounts, error handler
 ├── seed.js                 Creates default admin user (run once: `npm run seed`)
-├── .env                    Secrets / config (PORT, MONGO_URI, JWT_SECRET, SMTP_*, ADMIN_*, CLIENT_URL)
+├── .env                    Secrets / config
 ├── config/
 │   └── db.js               Mongoose connection
 ├── models/
 │   ├── User.js             Unified user (role: admin | agency | agent), pre-save bcrypt
-│   ├── Bank.js             Bank entity (admin-managed)
-│   ├── Lead.js             Lead entity with `status` lifecycle and `commissionStatus` ledger field
-│   ├── CommissionRule.js   Per (productType, bank?) flat AED amount, optional tier label
-│   └── VolumeBonus.js      Monthly volume-bonus tier (threshold + amount + active)
+│   ├── Bank.js             Bank entity
+│   ├── Lead.js             Lead lifecycle + commission ledger fields
+│   ├── CommissionRule.js   (productType, bank?) → AED amount
+│   └── VolumeBonus.js      Monthly volume-bonus tier
 ├── middleware/
 │   └── auth.middleware.js  `protect` (JWT) + `requireRole(...roles)`
 ├── utils/
 │   ├── token.js            JWT signing, invite-token + referral-code generators
 │   └── email.js            Invite email via nodemailer (Gmail SMTP); console fallback if SMTP_HOST blank
 ├── services/
-│   └── commission.service.js
-│                           Resolve commission amount from rules, recalc on status change,
-│                           ledger summary, monthly volume bonus computation
+│   └── commission.service.js   rule resolution, recalc on status change, ledger summary, monthly bonus
 ├── controllers/
 │   ├── auth.controller.js          registerAgent, login, verifyInvite, setPassword, me
 │   ├── bank.controller.js          CRUD for banks
-│   ├── agency.controller.js        Invite / list / resend-invite (admin only)
+│   ├── agency.controller.js        Invite/list/resend (admin); listForBank (agent + admin)
 │   ├── lead.controller.js          create (agent), listMine/stats/ledger (agent),
 │   │                               listForAgency (agency), listAll (admin),
-│   │                               updateStatus (agency claims + admin override),
-│   │                               markCommissionPaid (admin)
+│   │                               updateStatus, markCommissionPaid (admin)
 │   ├── commissionRule.controller.js   CRUD (admin write, all roles read)
 │   ├── volumeBonus.controller.js      CRUD (admin write, all roles read)
-│   └── admin.controller.js         Admin oversight: listAgents (with stats), overview counts
+│   └── admin.controller.js         listAgents (with stats), overview counts
 └── routes/
     ├── auth.routes.js              /api/auth/*
     ├── bank.routes.js              /api/banks/*
-    ├── agency.routes.js            /api/agencies/*  (admin only)
-    ├── lead.routes.js              /api/leads/*  (mixed: agent / agency / admin per route)
+    ├── agency.routes.js            /api/agencies/*
+    ├── lead.routes.js              /api/leads/*
     ├── commissionRule.routes.js    /api/commission-rules/*
     ├── volumeBonus.routes.js       /api/volume-bonuses/*
-    └── admin.routes.js             /api/admin/*  (admin only)
+    └── admin.routes.js             /api/admin/*
 ```
 
-### 2.1 Data models
+### 3.1 Data models
 
 **User** — single collection for all roles.
 
 | Field | Type | Notes |
 |---|---|---|
-| name | String | |
-| email | String | unique, lowercased |
-| password | String | bcrypt hashed |
-| phone | String | |
+| name, email, password, phone | — | email unique, lowercased; password bcrypt-hashed |
 | role | enum | `admin` \| `agency` \| `agent` |
 | banks | ObjectId[] → Bank | agency-only |
-| referralCode | String | agent-only, unique |
-| referredBy | ObjectId → User | agent-only |
-| inviteToken / inviteTokenExpires | String / Date | agency invite flow |
-| isActive | Boolean | |
+| referralCode, referredBy | — | agent-only |
+| inviteToken, inviteTokenExpires, isActive | — | agency invite flow |
 
 **Bank** — `name` (unique), `code`, `description`.
 
 **Lead**
+
 | Field | Type | Notes |
 |---|---|---|
 | customerName, phone | String | |
 | productType | enum | `credit_card` \| `loan` |
 | bank | ObjectId → Bank | |
-| status | enum | `submitted`, `assigned_to_bank`, `under_review`, `approved`, `rejected`, `disbursed` |
+| status | enum | `submitted`, `under_review`, `assigned`, `approved`, `rejected`, `disbursed` |
 | agent | ObjectId → User | the filer |
-| agency | ObjectId → User \| null | claiming agency (set when agency takes first action) |
+| agency | ObjectId → User | chosen by the agent at submission |
 | commission | Number | AED, written by `commission.service.recalcOnStatusChange` |
 | commissionStatus | enum | `none` \| `pending` \| `payable` \| `paid` |
 | commissionPaidAt | Date | set when admin marks paid |
 | notes | String | |
 
-**Lead lifecycle**
-```
-submitted → under_review → assigned_to_bank → approved → disbursed
-                                            ↓
-                                        rejected
-```
-
-**Commission ledger lifecycle** (mirrors `commissionStatus`):
-```
-none → pending (on lead approved) → payable (on lead disbursed) → paid (admin action)
-```
-
-**CommissionRule** — `productType`, `bank` (nullable; null = default for the product), `amount` (AED), `tier` (optional label). Resolution in service: try (productType, bank), fall back to (productType, null).
+**CommissionRule** — `productType`, `bank` (nullable; null = default for the product), `amount` (AED), `tier` (optional label).
+Resolution order in `commission.service.resolveCommissionAmount`: try `(productType, bank)`, then fall back to `(productType, null)`.
 
 **VolumeBonus** — `threshold` (approved leads in month), `amount` (AED), `active` (bool). Highest matching threshold wins; bonuses don't stack.
 
-### 2.2 API endpoints
+### 3.2 API endpoints
 
 All non-public routes require `Authorization: Bearer <jwt>`.
 
@@ -125,45 +223,54 @@ All non-public routes require `Authorization: Bearer <jwt>`.
 | GET | `/api/auth/me` | any | Current user (rehydrate session) |
 
 #### Banks
+| Method | Path | Role |
+|---|---|---|
 | GET | `/api/banks` | any |
 | POST/PUT/DELETE | `/api/banks[/:id]` | admin |
 
 #### Agencies
+| Method | Path | Role | Purpose |
+|---|---|---|---|
 | POST | `/api/agencies` | admin | Invite by email + assign banks |
 | GET | `/api/agencies` | admin | List active and pending |
 | POST | `/api/agencies/:id/resend-invite` | admin | Rotate token, resend |
+| GET | `/api/agencies/for-bank/:bankId` | agent, admin | Active agencies that service this bank (used by the agent's lead form) |
 
 #### Leads
 | Method | Path | Role | Purpose |
 |---|---|---|---|
-| POST | `/api/leads` | agent | Submit a new lead (status=submitted, agency=null) |
+| POST | `/api/leads` | agent | Submit a new lead — agent picks `bank` + `agency` |
 | GET | `/api/leads/mine` | agent | Agent's own leads |
 | GET | `/api/leads/stats` | agent | Counters for dashboard |
 | GET | `/api/leads/ledger` | agent | Earnings ledger + current monthly bonus |
-| GET | `/api/leads/agency` | agency | Leads where bank ∈ self.banks AND (agency null \| self) |
+| GET | `/api/leads/agency` | agency | Leads where `agency = self` |
 | GET | `/api/leads` | admin | All leads, fully populated |
-| PATCH | `/api/leads/:id/status` | agency, admin | Update status; agency claims if unclaimed; recalcs commission |
-| POST | `/api/leads/:id/mark-paid` | admin | Move commission from `payable` → `paid` |
+| PATCH | `/api/leads/:id/status` | agency, admin | Update status; recalcs commission |
+| POST | `/api/leads/:id/mark-paid` | admin | Move commission `payable` → `paid` |
 
 #### Commission rules / volume bonuses
-| GET | `/api/commission-rules` | any | Read-only for agents/agencies (used in their UIs) |
+| Method | Path | Role |
+|---|---|---|
+| GET | `/api/commission-rules` | any |
 | POST/PUT/DELETE | `/api/commission-rules[/:id]` | admin |
 | GET | `/api/volume-bonuses` | any |
 | POST/PUT/DELETE | `/api/volume-bonuses[/:id]` | admin |
 
 #### Admin oversight
-| GET | `/api/admin/overview` | admin | Top-level counts (agents/agencies/banks/leads, paid/payable totals) |
-| GET | `/api/admin/agents` | admin | All agents with `{ total, approved, paidCommission }` stats |
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/admin/overview` | Top-level counts (agents/agencies/banks/leads, paid/payable totals) |
+| GET | `/api/admin/agents` | All agents with `{ total, approved, paidCommission }` stats |
 
-### 2.3 Email / invite handling
+### 3.3 Email / invite handling
 
-`utils/email.js` uses nodemailer with Gmail SMTP when `SMTP_HOST=smtp.gmail.com` (and creds set). If `SMTP_HOST` is blank, the invite URL is logged to the server console **and** returned in the API response (`inviteUrl`) so admins can copy it from the UI.
+`utils/email.js` uses nodemailer with Gmail SMTP when `SMTP_HOST` is set in `.env`. Otherwise, in dev, the invite URL is logged to the server console **and** returned in the API response (`inviteUrl`) so the admin can copy it from the UI.
 
 ---
 
-## 3. Frontend
+## 4. Frontend
 
-Vite + React (vanilla JS, JSX). Redux Toolkit for state. React Router v6 for routing. Ant Design for UI.
+Vite + React (vanilla JS, JSX). Redux Toolkit for state. React Router v6. Ant Design only — no custom CSS beyond the two ConfigProvider tokens noted in §4.3.
 
 ```
 frontend/
@@ -172,40 +279,29 @@ frontend/
 ├── .env                    VITE_API_URL=http://localhost:5000/api
 └── src/
     ├── main.jsx            Renders <Provider><BrowserRouter><App/>...
-    ├── App.jsx             ConfigProvider (dark sidebar + gold selected accent), route table
+    ├── App.jsx             ConfigProvider (theme tokens) + route table
     ├── index.css           Minimal global reset
     ├── api/
     │   └── client.js       axios instance, attaches Bearer token, clears on 401
     ├── store/
     │   ├── index.js        configureStore({ auth })
     │   └── slices/
-    │       └── authSlice.js  login / registerAgent / setPassword / fetchMe (with JSDoc shape docs)
+    │       └── authSlice.js  login / registerAgent / setPassword / fetchMe (with JSDoc shapes)
     ├── components/
     │   ├── ProtectedRoute.jsx  Auth + role guard
     │   └── AppLayout.jsx       Sider + Header + Outlet, role-aware menu
     └── pages/
-        ├── Login.jsx
-        ├── Register.jsx
-        ├── SetPassword.jsx
+        ├── Login.jsx, Register.jsx, SetPassword.jsx
         ├── admin/
-        │   ├── Dashboard.jsx           Overview stat tiles
-        │   ├── Banks.jsx               CRUD
-        │   ├── Agencies.jsx            Invite + list
-        │   ├── Leads.jsx               All leads, search/filter, mark-paid action
-        │   ├── Agents.jsx              All agents with summary stats
-        │   ├── CommissionRules.jsx     CRUD for the rules engine
-        │   └── VolumeBonuses.jsx       CRUD for monthly bonuses
+        │   ├── Dashboard.jsx, Banks.jsx, Agencies.jsx, Leads.jsx,
+        │   ├── Agents.jsx, CommissionRules.jsx, VolumeBonuses.jsx
         ├── agent/
-        │   ├── Dashboard.jsx           Stats + recent leads + profile/referral card
-        │   ├── SubmitLead.jsx          Sectioned form (Client Info, Product Details)
-        │   ├── MyLeads.jsx             Search + status/product filters
-        │   └── Commissions.jsx         Paid / Payable / Expected, payments history, rates reference
+        │   ├── Dashboard.jsx, SubmitLead.jsx, MyLeads.jsx, Commissions.jsx
         └── agency/
-            ├── Dashboard.jsx           Queue summary + assigned banks
-            └── Leads.jsx               Lead queue with claim + approve/reject actions
+            ├── Dashboard.jsx, Leads.jsx
 ```
 
-### 3.1 Routing
+### 4.1 Routing
 
 | Path | Role | Page |
 |---|---|---|
@@ -226,64 +322,25 @@ frontend/
 | `/agency` | agency | Dashboard |
 | `/agency/leads` | agency | Lead Queue |
 
-### 3.2 Theme
+### 4.2 State
 
-Uses `ConfigProvider` with stock Ant Design components — no custom CSS. The only deviations from antd defaults:
-- `Layout.siderBg = #0f172a` (dark navy) and `Menu.darkItemSelectedBg = #d4a847` (gold) for a financial-app feel
-- Two stat cards (the headline "Commission Earned" / "Paid Out" / "Commission Paid" cards) get a soft `#fdf6e3` cream background to match the gold accent
+`auth` Redux slice holds `{ user, status, error, hydrated }`. JWT lives in `localStorage`. On any 401 the axios response interceptor clears the token; `ProtectedRoute` calls `fetchMe()` once per session to rehydrate.
 
-Everything else is stock antd: `Card`, `Statistic`, `Table`, `Tag`, `Form`, `Modal`, `Popconfirm`, `Empty`, etc.
+### 4.3 Theme
 
----
+Stock Ant Design components throughout. Two `ConfigProvider` token overrides only:
+- `Layout.siderBg = #0f172a` and `Menu.darkItemSelectedBg = #d4a847` for the dark sidebar with gold accent.
+- A few stat tiles ("Commission Earned", "Paid Out", "Commission Paid") use a soft cream background that matches the gold accent.
 
-## 4. Feature flow
-
-### 4.1 Admin onboarding
-1. `npm run seed` creates `admin@bankcrm.local / admin123`.
-2. Admin logs in → `/admin`.
-
-### 4.2 Bank, agency, and rule setup (admin)
-1. Admin → **Banks** → adds banks.
-2. Admin → **Commission Rules** → sets AED amount per (product, bank).
-3. Admin → **Volume Bonuses** → optional monthly bonus tiers.
-4. Admin → **Agencies → Invite Agency** → email + multi-select banks.
-
-### 4.3 Agency invite acceptance
-Same as before — invite link from email (or copied from modal in dev), `SetPassword` page activates the account.
-
-### 4.4 Agent registration
-Self-serve at `/register`, optional referral code → instantly active.
-
-### 4.5 Lead submission and routing
-1. Agent submits a lead — `status='submitted'`, `agency=null`.
-2. Every agency whose `banks` include the lead's bank sees it on **/agency/leads** as "Open".
-3. First agency to take any action (mark Review / Approve / Reject) **claims** the lead — `lead.agency=self`. From that point only they (and admin) can act on it.
-4. As status moves through `under_review → assigned_to_bank → approved → disbursed`, `commission.service.recalcOnStatusChange` updates `commission` and `commissionStatus`:
-   - **approved** → commission set from the matching `CommissionRule`, `commissionStatus='pending'`
-   - **disbursed** → `commissionStatus='payable'`
-   - **rejected** → commission cleared, `commissionStatus='none'`
-5. Admin sees the payable commission on **/admin/leads** and clicks **Mark Paid** → `commissionStatus='paid'`, `commissionPaidAt` set.
-
-### 4.6 Agent earnings view
-**/agent/commissions** reads `/leads/ledger`:
-- **Paid Out** = sum of leads with `commissionStatus='paid'`
-- **Pending Payout** = sum of `'payable'`
-- **Expected Earnings** = sum of `'pending'`
-- Plus the current month's volume bonus snapshot (highest threshold met by the agent's approved-this-month count).
-
-### 4.7 Admin oversight
-- **/admin** — counts across the system
-- **/admin/leads** — every lead, full filters, mark-paid
-- **/admin/agents** — every agent with `{ total leads, approved, paid commission }`
-- **/admin/agencies** — already existed; lists agencies + banks assigned
+No custom CSS, no Google Fonts, no design libraries beyond antd.
 
 ---
 
 ## 5. Auth model
 
 - Single `/login` for all roles. JWT carries `{ id, role }`.
-- Stored in `localStorage`, attached via axios interceptor; 401s clear it.
-- Role-based authz on the backend (`requireRole(...)`) and frontend (`ProtectedRoute roles={[...]}`).
+- Stored in `localStorage`, attached via axios request interceptor; 401s clear it.
+- Role-based authorization on the backend (`requireRole(...)`) and frontend (`ProtectedRoute roles={[...]}`). Both must stay in sync.
 
 ---
 
@@ -309,10 +366,10 @@ Required env vars (validated at startup): `MONGO_URI`, `JWT_SECRET`. SMTP is opt
 ## 7. Not yet implemented (intentionally)
 
 Per the current scope:
-- **KYC** — Emirates ID / Visa Type / Nationality / Email on the customer record. Not on Lead today.
-- **Customer employment & income** — Employer, Job Title, Monthly Salary, Years in Job. Not stored.
+- **KYC** — Emirates ID / Visa Type / Nationality / Email on the customer record.
+- **Customer employment & income** — Employer, Job Title, Monthly Salary, Years in Job.
 - **Loan amount** on a Lead — useful for percentage-based commissions; today rules are flat AED only.
-- **Multiple product types** — only `credit_card` and `loan`. Mortgage / Personal Loan / Auto Loan / Business Loan are not separate types yet.
+- **More product types** — only `credit_card` and `loan`. Mortgage / Personal Loan / Auto Loan / Business Loan are not separate types yet.
 - **Quick Tips** — coaching/tip module on the agent dashboard.
 - **Notifications** — bell + activity feed.
 

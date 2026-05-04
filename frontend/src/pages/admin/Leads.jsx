@@ -6,7 +6,7 @@ import api from '../../api/client';
 const STATUSES = [
   { value: 'submitted', label: 'Submitted', color: 'default' },
   { value: 'under_review', label: 'Under Review', color: 'gold' },
-  { value: 'assigned_to_bank', label: 'Sent to Bank', color: 'cyan' },
+  { value: 'assigned', label: 'Assigned', color: 'cyan' },
   { value: 'approved', label: 'Approved', color: 'green' },
   { value: 'rejected', label: 'Rejected', color: 'red' },
   { value: 'disbursed', label: 'Disbursed', color: 'purple' },
@@ -75,7 +75,7 @@ function AdminLeads() {
       ),
     },
     { title: 'Agent', render: (_, row) => row.agent?.name || row.agent?.email || '—' },
-    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || <Typography.Text type="secondary">unclaimed</Typography.Text> },
+    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || '—' },
     { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
     {

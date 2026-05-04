@@ -63,6 +63,27 @@ exports.list = async (req, res) => {
 };
 
 /**
+ * GET /api/agencies/for-bank/:bankId  (agent, admin)
+ * Active agencies whose `banks` includes the given bankId.
+ * Used by the agent's Submit Lead form to populate the agency dropdown.
+ * Response: Array<{ _id, name, email }>
+ */
+exports.listForBank = async (req, res) => {
+  try {
+    const agencies = await User.find({
+      role: 'agency',
+      isActive: true,
+      banks: req.params.bankId,
+    })
+      .select('_id name email')
+      .sort({ name: 1, email: 1 });
+    res.json(agencies);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * POST /api/agencies/:id/resend-invite  (admin)
  * Response: { ok: true, inviteUrl?: string }
  *   inviteUrl is only returned when SMTP is unconfigured (dev mode).

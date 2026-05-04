@@ -14,8 +14,8 @@ import api from '../../api/client';
 
 const statusTag = {
   submitted: { color: 'default', label: 'Submitted' },
-  assigned_to_bank: { color: 'cyan', label: 'Assigned' },
   under_review: { color: 'gold', label: 'Under Review' },
+  assigned: { color: 'cyan', label: 'Assigned' },
   approved: { color: 'green', label: 'Approved' },
   rejected: { color: 'red', label: 'Rejected' },
   disbursed: { color: 'purple', label: 'Disbursed' },

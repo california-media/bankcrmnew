@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 
 const LEAD_STATUSES = [
   'submitted',
-  'assigned_to_bank',
   'under_review',
+  'assigned',
   'approved',
   'rejected',
   'disbursed',

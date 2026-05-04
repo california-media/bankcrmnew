@@ -6,8 +6,8 @@ import api from '../../api/client';
 
 const STATUSES = [
   { value: 'submitted', label: 'Submitted', color: 'default' },
-  { value: 'assigned_to_bank', label: 'Assigned to Bank', color: 'cyan' },
   { value: 'under_review', label: 'Under Review', color: 'gold' },
+  { value: 'assigned', label: 'Assigned', color: 'cyan' },
   { value: 'approved', label: 'Approved', color: 'green' },
   { value: 'rejected', label: 'Rejected', color: 'red' },
   { value: 'disbursed', label: 'Disbursed', color: 'purple' },

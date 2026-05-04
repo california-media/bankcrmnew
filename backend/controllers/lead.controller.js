@@ -5,24 +5,32 @@ const commissionService = require('../services/commission.service');
 
 /**
  * POST /api/leads  (agent)
- * Body: { customerName, phone, productType, bank, notes? }
- * The lead is created with status='submitted' and agency=null. Any agency
- * whose `banks` contains lead.bank may pick it up.
+ * Body: { customerName, phone, productType, bank, agency, notes? }
+ * The agent picks which agency the lead is filed with. The agency must:
+ *   - have role='agency' and be active
+ *   - have the chosen bank in their `banks` list
  */
 exports.create = async (req, res) => {
   try {
-    const { customerName, phone, productType, bank, notes } = req.body;
-    if (!customerName || !phone || !productType || !bank) {
-      return res.status(400).json({ message: 'customerName, phone, productType, and bank are required' });
+    const { customerName, phone, productType, bank, agency, notes } = req.body;
+    if (!customerName || !phone || !productType || !bank || !agency) {
+      return res.status(400).json({ message: 'customerName, phone, productType, bank, and agency are required' });
     }
+
     const bankExists = await Bank.findById(bank);
     if (!bankExists) return res.status(400).json({ message: 'Invalid bank' });
+
+    const agencyDoc = await User.findOne({ _id: agency, role: 'agency', isActive: true });
+    if (!agencyDoc) return res.status(400).json({ message: 'Invalid agency' });
+    const agencyHasBank = (agencyDoc.banks || []).some((b) => String(b) === String(bank));
+    if (!agencyHasBank) return res.status(400).json({ message: 'Selected agency does not service this bank' });
 
     const lead = await Lead.create({
       customerName,
       phone,
       productType,
       bank,
+      agency,
       notes,
       agent: req.user._id,
       status: 'submitted',
@@ -30,6 +38,7 @@ exports.create = async (req, res) => {
     const populated = await lead.populate([
       { path: 'bank', select: 'name code' },
       { path: 'agent', select: 'name email' },
+      { path: 'agency', select: 'name email' },
     ]);
     res.status(201).json(populated);
   } catch (err) {
@@ -54,7 +63,6 @@ exports.listMine = async (req, res) => {
 
 /**
  * GET /api/leads/stats  (agent)
- * Count summary used on the agent dashboard.
  */
 exports.stats = async (req, res) => {
   try {
@@ -67,7 +75,7 @@ exports.stats = async (req, res) => {
       Lead.find({ agent: agentId }).select('status commission commissionStatus'),
     ]);
 
-    const activeStatuses = ['submitted', 'assigned_to_bank', 'under_review'];
+    const activeStatuses = ['submitted', 'assigned', 'under_review'];
     const active = leads.filter((l) => activeStatuses.includes(l.status)).length;
     const pending = leads.filter((l) => l.status === 'submitted' || l.status === 'under_review').length;
     const paidEarnings = leads
@@ -88,16 +96,11 @@ exports.stats = async (req, res) => {
 
 /**
  * GET /api/leads/agency  (agency)
- * Leads where bank ∈ agency.banks AND (agency is null OR self).
+ * Leads explicitly assigned to this agency.
  */
 exports.listForAgency = async (req, res) => {
   try {
-    const me = await User.findById(req.user._id).select('banks');
-    const filter = {
-      bank: { $in: me.banks || [] },
-      $or: [{ agency: null }, { agency: req.user._id }],
-    };
-    const leads = await Lead.find(filter)
+    const leads = await Lead.find({ agency: req.user._id })
       .populate('bank', 'name code')
       .populate('agent', 'name email phone')
       .sort({ createdAt: -1 });
@@ -109,7 +112,6 @@ exports.listForAgency = async (req, res) => {
 
 /**
  * GET /api/leads  (admin)
- * All leads with full population.
  */
 exports.listAll = async (req, res) => {
   try {
@@ -125,14 +127,14 @@ exports.listAll = async (req, res) => {
 };
 
 const ALLOWED_TRANSITIONS = {
-  agency: ['under_review', 'assigned_to_bank', 'approved', 'rejected', 'disbursed'],
+  agency: ['under_review', 'assigned', 'approved', 'rejected', 'disbursed'],
   admin: Lead.STATUSES,
 };
 
 /**
  * PATCH /api/leads/:id/status  (agency, admin)
  * Body: { status: LeadStatus }
- * - Agency: claims the lead (sets agency=self) if it was unassigned. Can only act on own/unclaimed.
+ * - Agency: may only update leads assigned to them.
  * - Triggers commission recalculation via commission.service.
  */
 exports.updateStatus = async (req, res) => {
@@ -150,14 +152,9 @@ exports.updateStatus = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     if (req.user.role === 'agency') {
-      const me = await User.findById(req.user._id).select('banks');
-      const bankAllowed = (me.banks || []).some((b) => String(b) === String(lead.bank));
-      if (!bankAllowed) return res.status(403).json({ message: 'This lead is not for your banks' });
-
-      const claimed = lead.agency && String(lead.agency) !== String(req.user._id);
-      if (claimed) return res.status(409).json({ message: 'Lead has been claimed by another agency' });
-
-      lead.agency = req.user._id;
+      if (!lead.agency || String(lead.agency) !== String(req.user._id)) {
+        return res.status(403).json({ message: 'This lead is not assigned to you' });
+      }
     }
 
     lead.status = status;
@@ -177,7 +174,6 @@ exports.updateStatus = async (req, res) => {
 
 /**
  * POST /api/leads/:id/mark-paid  (admin)
- * Moves a lead's commission from 'payable' to 'paid'.
  */
 exports.markCommissionPaid = async (req, res) => {
   try {
@@ -201,7 +197,6 @@ exports.markCommissionPaid = async (req, res) => {
 
 /**
  * GET /api/leads/ledger  (agent)
- * Detailed commission ledger for the calling agent + current-month bonus snapshot.
  */
 exports.myLedger = async (req, res) => {
   try {

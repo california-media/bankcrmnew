@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space, message, Popconfirm } from 'antd';
 import { SearchOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
-import { useSelector } from 'react-redux';
 import api from '../../api/client';
 
 const STATUSES = [
   { value: 'submitted', label: 'Submitted', color: 'default' },
   { value: 'under_review', label: 'Under Review', color: 'gold' },
-  { value: 'assigned_to_bank', label: 'Sent to Bank', color: 'cyan' },
+  { value: 'assigned', label: 'Assigned', color: 'cyan' },
   { value: 'approved', label: 'Approved', color: 'green' },
   { value: 'rejected', label: 'Rejected', color: 'red' },
   { value: 'disbursed', label: 'Disbursed', color: 'purple' },
@@ -19,7 +18,6 @@ const PRODUCTS = [
 ];
 
 function AgencyLeads() {
-  const { user } = useSelector((s) => s.auth);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -75,9 +73,8 @@ function AgencyLeads() {
       ),
     },
     {
-      title: 'Agent',
-      dataIndex: ['agent', 'name'],
-      render: (_, row) => row.agent ? `${row.agent.name || row.agent.email}` : '—',
+      title: 'Filed by',
+      render: (_, row) => row.agent ? (row.agent.name || row.agent.email) : '—',
     },
     { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
@@ -90,27 +87,17 @@ function AgencyLeads() {
       },
     },
     {
-      title: 'Claim',
-      render: (_, row) => row.agency
-        ? (String(row.agency._id || row.agency) === String(user.id)
-          ? <Tag color="green">Yours</Tag>
-          : <Tag>Claimed</Tag>)
-        : <Tag color="gold">Open</Tag>,
-    },
-    {
       title: 'Actions',
       width: 320,
       render: (_, row) => {
-        const claimedByOther = row.agency && String(row.agency._id || row.agency) !== String(user.id);
-        if (claimedByOther) return null;
         const isFinal = ['approved', 'rejected', 'disbursed'].includes(row.status);
         return (
           <Space wrap>
             {row.status === 'submitted' && (
-              <Button size="small" onClick={() => updateStatus(row._id, 'under_review')}>Review</Button>
+              <Button size="small" onClick={() => updateStatus(row._id, 'under_review')}>Start Review</Button>
             )}
             {row.status === 'under_review' && (
-              <Button size="small" onClick={() => updateStatus(row._id, 'assigned_to_bank')}>Send to Bank</Button>
+              <Button size="small" onClick={() => updateStatus(row._id, 'assigned')}>Mark Assigned</Button>
             )}
             {!isFinal && (
               <>
@@ -123,7 +110,7 @@ function AgencyLeads() {
               </>
             )}
             {row.status === 'approved' && (
-              <Button size="small" onClick={() => updateStatus(row._id, 'disbursed')}>Mark disbursed</Button>
+              <Button size="small" onClick={() => updateStatus(row._id, 'disbursed')}>Mark Disbursed</Button>
             )}
           </Space>
         );
@@ -137,7 +124,7 @@ function AgencyLeads() {
         <Col>
           <Typography.Title level={3} style={{ margin: 0 }}>Lead Queue</Typography.Title>
           <Typography.Text type="secondary">
-            Review and act on leads filed for your assigned banks.
+            Leads filed to your agency. Move them through review, approval, and disbursal.
           </Typography.Text>
         </Col>
       </Row>

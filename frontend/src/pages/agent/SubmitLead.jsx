@@ -1,18 +1,39 @@
 import { useEffect, useState } from 'react';
-import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Space } from 'antd';
+import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Space, Empty } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
 function SubmitLead() {
   const [banks, setBanks] = useState([]);
+  const [agencies, setAgencies] = useState([]);
+  const [agenciesLoading, setAgenciesLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  const selectedBank = Form.useWatch('bank', form);
 
   useEffect(() => {
     api.get('/banks').then((res) => setBanks(res.data));
   }, []);
+
+  useEffect(() => {
+    if (!selectedBank) {
+      setAgencies([]);
+      form.setFieldValue('agency', undefined);
+      return;
+    }
+    setAgenciesLoading(true);
+    api.get(`/agencies/for-bank/${selectedBank}`)
+      .then((res) => {
+        setAgencies(res.data);
+        const current = form.getFieldValue('agency');
+        if (current && !res.data.some((a) => a._id === current)) {
+          form.setFieldValue('agency', undefined);
+        }
+      })
+      .finally(() => setAgenciesLoading(false));
+  }, [selectedBank, form]);
 
   const onFinish = async (values) => {
     setSubmitting(true);
@@ -33,7 +54,7 @@ function SubmitLead() {
         <Col>
           <Typography.Title level={3} style={{ margin: 0 }}>Submit New Lead</Typography.Title>
           <Typography.Text type="secondary">
-            Enter your client's details and we'll route them to the right agency.
+            Pick the bank, then the agency that will handle this lead.
           </Typography.Text>
         </Col>
         <Col>
@@ -87,6 +108,24 @@ function SubmitLead() {
               </Form.Item>
             </Col>
           </Row>
+          <Form.Item
+            name="agency"
+            label="Send to Agency"
+            rules={[{ required: true, message: 'Pick the agency that should handle this lead' }]}
+            extra={selectedBank
+              ? (agencies.length === 0 && !agenciesLoading
+                ? 'No active agency services this bank yet — ask the admin to assign one.'
+                : 'Only agencies that service the chosen bank are listed.')
+              : 'Choose a bank first.'}
+          >
+            <Select
+              loading={agenciesLoading}
+              disabled={!selectedBank}
+              placeholder={selectedBank ? 'Pick an agency' : 'Select a bank first'}
+              notFoundContent={selectedBank ? <Empty description="No agencies for this bank" image={Empty.PRESENTED_IMAGE_SIMPLE} /> : null}
+              options={agencies.map((a) => ({ value: a._id, label: a.name || a.email }))}
+            />
+          </Form.Item>
           <Form.Item name="notes" label="Notes (optional)">
             <Input.TextArea rows={3} placeholder="Anything the agency should know about this customer." />
           </Form.Item>

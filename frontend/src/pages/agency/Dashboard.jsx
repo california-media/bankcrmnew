@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, Col, Row, Typography, Statistic, Tag, Space, Skeleton, Button, Empty } from 'antd';
-import { AuditOutlined, CheckCircleOutlined, CloseCircleOutlined, FolderOpenOutlined } from '@ant-design/icons';
+import { AuditOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
@@ -16,15 +16,15 @@ function AgencyDashboard() {
   const stats = leads
     ? {
         total: leads.length,
-        unclaimed: leads.filter((l) => !l.agency).length,
+        pending: leads.filter((l) => l.status === 'submitted' || l.status === 'under_review' || l.status === 'assigned').length,
         approved: leads.filter((l) => l.status === 'approved' || l.status === 'disbursed').length,
         rejected: leads.filter((l) => l.status === 'rejected').length,
       }
     : null;
 
   const cards = [
-    { key: 'total', title: 'Leads in Queue', value: stats?.total, icon: <AuditOutlined style={{ color: '#3b82f6' }} /> },
-    { key: 'unclaimed', title: 'Unclaimed', value: stats?.unclaimed, icon: <FolderOpenOutlined style={{ color: '#f59e0b' }} /> },
+    { key: 'total', title: 'Total Leads', value: stats?.total, icon: <AuditOutlined style={{ color: '#3b82f6' }} /> },
+    { key: 'pending', title: 'Awaiting Action', value: stats?.pending, icon: <ClockCircleOutlined style={{ color: '#f59e0b' }} /> },
     { key: 'approved', title: 'Approved by you', value: stats?.approved, icon: <CheckCircleOutlined style={{ color: '#16a34a' }} /> },
     { key: 'rejected', title: 'Rejected', value: stats?.rejected, icon: <CloseCircleOutlined style={{ color: '#ef4444' }} /> },
   ];

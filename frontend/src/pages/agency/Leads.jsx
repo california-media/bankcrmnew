@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
+import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space, message, Popconfirm } from 'antd';
+import { SearchOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { useSelector } from 'react-redux';
 import api from '../../api/client';
 
 const STATUSES = [
   { value: 'submitted', label: 'Submitted', color: 'default' },
-  { value: 'assigned_to_bank', label: 'Assigned to Bank', color: 'cyan' },
   { value: 'under_review', label: 'Under Review', color: 'gold' },
+  { value: 'assigned_to_bank', label: 'Sent to Bank', color: 'cyan' },
   { value: 'approved', label: 'Approved', color: 'green' },
   { value: 'rejected', label: 'Rejected', color: 'red' },
   { value: 'disbursed', label: 'Disbursed', color: 'purple' },
@@ -18,19 +18,35 @@ const PRODUCTS = [
   { value: 'loan', label: 'Loan' },
 ];
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
-
-function MyLeads() {
+function AgencyLeads() {
+  const { user } = useSelector((s) => s.auth);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState();
   const [productFilter, setProductFilter] = useState();
 
-  useEffect(() => {
+  const load = async () => {
     setLoading(true);
-    api.get('/leads/mine').then((res) => setLeads(res.data)).finally(() => setLoading(false));
-  }, []);
+    try {
+      const { data } = await api.get('/leads/agency');
+      setLeads(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const updateStatus = async (id, status) => {
+    try {
+      await api.patch(`/leads/${id}/status`, { status });
+      message.success(`Marked as ${STATUSES.find((s) => s.value === status)?.label}`);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -59,10 +75,11 @@ function MyLeads() {
       ),
     },
     {
-      title: 'Product',
-      dataIndex: 'productType',
-      render: (v) => PRODUCTS.find((p) => p.value === v)?.label,
+      title: 'Agent',
+      dataIndex: ['agent', 'name'],
+      render: (_, row) => row.agent ? `${row.agent.name || row.agent.email}` : '—',
     },
+    { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
     {
       title: 'Stage',
@@ -73,15 +90,44 @@ function MyLeads() {
       },
     },
     {
-      title: 'Commission',
-      dataIndex: 'commission',
-      align: 'right',
-      render: (v) => <span style={{ fontWeight: 600 }}>{aed(v)}</span>,
+      title: 'Claim',
+      render: (_, row) => row.agency
+        ? (String(row.agency._id || row.agency) === String(user.id)
+          ? <Tag color="green">Yours</Tag>
+          : <Tag>Claimed</Tag>)
+        : <Tag color="gold">Open</Tag>,
     },
     {
-      title: 'Submitted',
-      dataIndex: 'createdAt',
-      render: (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' }),
+      title: 'Actions',
+      width: 320,
+      render: (_, row) => {
+        const claimedByOther = row.agency && String(row.agency._id || row.agency) !== String(user.id);
+        if (claimedByOther) return null;
+        const isFinal = ['approved', 'rejected', 'disbursed'].includes(row.status);
+        return (
+          <Space wrap>
+            {row.status === 'submitted' && (
+              <Button size="small" onClick={() => updateStatus(row._id, 'under_review')}>Review</Button>
+            )}
+            {row.status === 'under_review' && (
+              <Button size="small" onClick={() => updateStatus(row._id, 'assigned_to_bank')}>Send to Bank</Button>
+            )}
+            {!isFinal && (
+              <>
+                <Popconfirm title="Approve this lead?" onConfirm={() => updateStatus(row._id, 'approved')}>
+                  <Button size="small" type="primary" icon={<CheckOutlined />}>Approve</Button>
+                </Popconfirm>
+                <Popconfirm title="Reject this lead?" onConfirm={() => updateStatus(row._id, 'rejected')}>
+                  <Button size="small" danger icon={<CloseOutlined />}>Reject</Button>
+                </Popconfirm>
+              </>
+            )}
+            {row.status === 'approved' && (
+              <Button size="small" onClick={() => updateStatus(row._id, 'disbursed')}>Mark disbursed</Button>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -89,15 +135,10 @@ function MyLeads() {
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>My Leads</Typography.Title>
+          <Typography.Title level={3} style={{ margin: 0 }}>Lead Queue</Typography.Title>
           <Typography.Text type="secondary">
-            {leads.length} total leads · Track every case from submission to commission payout.
+            Review and act on leads filed for your assigned banks.
           </Typography.Text>
-        </Col>
-        <Col>
-          <Link to="/agent/leads/new">
-            <Button type="primary" icon={<PlusOutlined />}>Submit New Lead</Button>
-          </Link>
         </Col>
       </Row>
 
@@ -105,7 +146,7 @@ function MyLeads() {
         <Space wrap>
           <Input
             allowClear
-            placeholder="Search by client name or lead ID..."
+            placeholder="Search client or lead ID..."
             prefix={<SearchOutlined />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -136,4 +177,4 @@ function MyLeads() {
   );
 }
 
-export default MyLeads;
+export default AgencyLeads;

@@ -23,6 +23,9 @@ app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/banks', require('./routes/bank.routes'));
 app.use('/api/agencies', require('./routes/agency.routes'));
 app.use('/api/leads', require('./routes/lead.routes'));
+app.use('/api/commission-rules', require('./routes/commissionRule.routes'));
+app.use('/api/volume-bonuses', require('./routes/volumeBonus.routes'));
+app.use('/api/admin', require('./routes/admin.routes'));
 
 app.use((err, req, res, _next) => {
   console.error(err);

@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
+import { Table, Tag, Typography, Input, Select, Row, Col, Space, Button, Popconfirm, message } from 'antd';
+import { SearchOutlined, DollarOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 const STATUSES = [
   { value: 'submitted', label: 'Submitted', color: 'default' },
-  { value: 'assigned_to_bank', label: 'Assigned to Bank', color: 'cyan' },
   { value: 'under_review', label: 'Under Review', color: 'gold' },
+  { value: 'assigned_to_bank', label: 'Sent to Bank', color: 'cyan' },
   { value: 'approved', label: 'Approved', color: 'green' },
   { value: 'rejected', label: 'Rejected', color: 'red' },
   { value: 'disbursed', label: 'Disbursed', color: 'purple' },
@@ -20,17 +19,34 @@ const PRODUCTS = [
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
-function MyLeads() {
+function AdminLeads() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState();
   const [productFilter, setProductFilter] = useState();
 
-  useEffect(() => {
+  const load = async () => {
     setLoading(true);
-    api.get('/leads/mine').then((res) => setLeads(res.data)).finally(() => setLoading(false));
-  }, []);
+    try {
+      const { data } = await api.get('/leads');
+      setLeads(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const markPaid = async (id) => {
+    try {
+      await api.post(`/leads/${id}/mark-paid`);
+      message.success('Commission marked paid');
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed');
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -58,11 +74,9 @@ function MyLeads() {
         </div>
       ),
     },
-    {
-      title: 'Product',
-      dataIndex: 'productType',
-      render: (v) => PRODUCTS.find((p) => p.value === v)?.label,
-    },
+    { title: 'Agent', render: (_, row) => row.agent?.name || row.agent?.email || '—' },
+    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || <Typography.Text type="secondary">unclaimed</Typography.Text> },
+    { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
     {
       title: 'Stage',
@@ -76,36 +90,41 @@ function MyLeads() {
       title: 'Commission',
       dataIndex: 'commission',
       align: 'right',
-      render: (v) => <span style={{ fontWeight: 600 }}>{aed(v)}</span>,
+      render: (v, row) => (
+        <Space direction="vertical" size={0} style={{ alignItems: 'flex-end' }}>
+          <span style={{ fontWeight: 600 }}>{aed(v)}</span>
+          {row.commissionStatus !== 'none' && (
+            <Tag color={
+              row.commissionStatus === 'paid' ? 'green' :
+              row.commissionStatus === 'payable' ? 'cyan' : 'gold'
+            } style={{ marginInlineEnd: 0 }}>
+              {row.commissionStatus}
+            </Tag>
+          )}
+        </Space>
+      ),
     },
     {
-      title: 'Submitted',
-      dataIndex: 'createdAt',
-      render: (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' }),
+      title: 'Actions',
+      width: 160,
+      render: (_, row) => row.commissionStatus === 'payable' && (
+        <Popconfirm title="Mark this commission as paid?" onConfirm={() => markPaid(row._id)}>
+          <Button size="small" icon={<DollarOutlined />}>Mark Paid</Button>
+        </Popconfirm>
+      ),
     },
   ];
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
-        <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>My Leads</Typography.Title>
-          <Typography.Text type="secondary">
-            {leads.length} total leads · Track every case from submission to commission payout.
-          </Typography.Text>
-        </Col>
-        <Col>
-          <Link to="/agent/leads/new">
-            <Button type="primary" icon={<PlusOutlined />}>Submit New Lead</Button>
-          </Link>
-        </Col>
-      </Row>
+      <Typography.Title level={3} style={{ margin: 0 }}>All Leads</Typography.Title>
+      <Typography.Text type="secondary">{leads.length} total leads across the system.</Typography.Text>
 
       <Space wrap style={{ margin: '24px 0 16px', width: '100%', justifyContent: 'space-between' }}>
         <Space wrap>
           <Input
             allowClear
-            placeholder="Search by client name or lead ID..."
+            placeholder="Search client or lead ID..."
             prefix={<SearchOutlined />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -128,7 +147,7 @@ function MyLeads() {
             style={{ width: 180 }}
           />
         </Space>
-        <Typography.Text type="secondary">{filtered.length} leads</Typography.Text>
+        <Typography.Text type="secondary">{filtered.length} shown</Typography.Text>
       </Space>
 
       <Table rowKey="_id" loading={loading} dataSource={filtered} columns={columns} />
@@ -136,4 +155,4 @@ function MyLeads() {
   );
 }
 
-export default MyLeads;
+export default AdminLeads;

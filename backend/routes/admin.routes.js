@@ -6,5 +6,6 @@ router.use(protect, requireRole('admin'));
 
 router.get('/agents', ctrl.listAgents);
 router.get('/overview', ctrl.overview);
+router.post('/agents', ctrl.createAgent);
 
 module.exports = router;

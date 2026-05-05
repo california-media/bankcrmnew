@@ -1,5 +1,17 @@
 const User = require('../models/User');
 const Lead = require('../models/Lead');
+const { generateReferralCode } = require('../utils/token');
+
+const sanitizeAgent = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  phone: user.phone,
+  role: user.role,
+  referralCode: user.referralCode,
+  isActive: user.isActive,
+  createdAt: user.createdAt,
+});
 
 /**
  * GET /api/admin/agents  (admin)
@@ -64,6 +76,36 @@ exports.overview = async (req, res) => {
       paidCommission: paidAgg[0]?.sum || 0,
       payableCommission: payableAgg[0]?.sum || 0,
     });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/admin/agents  (admin)
+ * Body: { name, email, password, phone? }
+ * Response 201: { user }
+ */
+exports.createAgent = async (req, res) => {
+  try {
+    const { name, email, password, phone } = req.body;
+    if (!name || !email || !password)
+      return res.status(400).json({ message: 'name, email, and password are required' });
+
+    const exists = await User.findOne({ email: email.toLowerCase() });
+    if (exists) return res.status(409).json({ message: 'Email already registered' });
+
+    const agent = await User.create({
+      name,
+      email: email.toLowerCase(),
+      password,
+      phone: phone || undefined,
+      role: 'agent',
+      isActive: true,
+      referralCode: generateReferralCode(),
+    });
+
+    res.status(201).json({ user: sanitizeAgent(agent) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

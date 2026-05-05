@@ -4,6 +4,7 @@ import { PlusOutlined, SearchOutlined, SendOutlined, DeleteOutlined } from '@ant
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import SendToAgencyModal from '../../components/SendToAgencyModal';
+import EngagementStatusCell from '../../components/EngagementStatusCell';
 
 const STATUSES = [
   { value: 'draft', label: 'Draft', color: 'default' },
@@ -92,6 +93,19 @@ function MyLeads() {
         const meta = STATUSES.find((x) => x.value === s);
         return <Tag color={meta?.color}>{meta?.label || s}</Tag>;
       },
+    },
+    {
+      title: 'Status',
+      dataIndex: 'engagementStatus',
+      render: (v, row) => (
+        <EngagementStatusCell
+          leadId={row._id}
+          value={v}
+          onChange={(next) =>
+            setLeads((prev) => prev.map((l) => (l._id === row._id ? { ...l, engagementStatus: next } : l)))
+          }
+        />
+      ),
     },
     {
       title: 'Commission',

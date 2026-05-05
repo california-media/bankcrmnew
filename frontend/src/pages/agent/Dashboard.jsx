@@ -11,6 +11,7 @@ import {
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
+import EngagementStatusCell from '../../components/EngagementStatusCell';
 
 const statusTag = {
   draft: { color: 'default', label: 'Draft' },
@@ -90,6 +91,19 @@ function AgentDashboard() {
       title: 'Stage',
       dataIndex: 'status',
       render: (s) => <Tag color={statusTag[s]?.color}>{statusTag[s]?.label || s}</Tag>,
+    },
+    {
+      title: 'Status',
+      dataIndex: 'engagementStatus',
+      render: (v, row) => (
+        <EngagementStatusCell
+          leadId={row._id}
+          value={v}
+          onChange={(next) =>
+            setRecent((prev) => prev.map((l) => (l._id === row._id ? { ...l, engagementStatus: next } : l)))
+          }
+        />
+      ),
     },
     {
       title: 'Est. Commission',

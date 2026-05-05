@@ -10,6 +10,7 @@ router.get('/mine', requireRole('agent'), ctrl.listMine);
 router.get('/stats', requireRole('agent'), ctrl.stats);
 router.get('/ledger', requireRole('agent'), ctrl.myLedger);
 router.delete('/:id', requireRole('agent'), ctrl.removeDraft);
+router.patch('/:id/engagement-status', requireRole('agent'), ctrl.updateEngagementStatus);
 
 // Agent + admin
 router.post('/:id/send-to-agency', requireRole('agent', 'admin'), ctrl.sendToAgency);

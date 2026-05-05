@@ -265,6 +265,29 @@ exports.markCommissionPaid = async (req, res) => {
 };
 
 /**
+ * PATCH /api/leads/:id/engagement-status  (agent)
+ * Body: { engagementStatus: ENGAGEMENT_STATUS }
+ * Agent-managed conversation state — independent of the lifecycle `status`.
+ */
+exports.updateEngagementStatus = async (req, res) => {
+  try {
+    const { engagementStatus } = req.body;
+    if (!engagementStatus || !Lead.ENGAGEMENT_STATUSES.includes(engagementStatus)) {
+      return res.status(400).json({ message: 'Invalid engagement status' });
+    }
+    const lead = await Lead.findOneAndUpdate(
+      { _id: req.params.id, agent: req.user._id },
+      { engagementStatus },
+      { new: true }
+    );
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    res.json(lead);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * GET /api/leads/ledger  (agent)
  */
 exports.myLedger = async (req, res) => {

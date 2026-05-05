@@ -100,9 +100,9 @@ Agencies cannot touch leads filed to other agencies.
 
 ```
                 ┌──────────────┐
-                │    draft     │  ← agent created; private to agent
+                │    draft     │  ← agent created lead; private to agent (picks agency + bank)
                 └──────┬───────┘
-                       │ Send to Agency  (agent or admin picks agency + bank)
+                       │ Send to Agency 
                 ┌──────▼───────┐
                 │  submitted   │  ← agency now sees it on their queue
                 └──────┬───────┘
@@ -211,6 +211,7 @@ backend/
 | commission | Number | AED, written by `commission.service.recalcOnStatusChange` |
 | commissionStatus | enum | `none` \| `pending` \| `payable` \| `paid` |
 | commissionPaidAt | Date | set when admin marks paid |
+| engagementStatus | enum | agent's customer-conversation status: `new_lead` (default) \| `no_answer` \| `follow_up` \| `focused_follow_up` \| `meeting_scheduled` \| `not_interested` \| `junk` \| `pool` \| `closed_deal`. Independent of `status`. |
 | notes | String | |
 
 **CommissionRule** — `productType`, **`bank` (required)**, `amount` (AED), `tier` (optional label), **`agency` (required)**. Each rule is tied to a specific (bank, product) pair; there is no per-product default. If no rule exists for a lead's (bank, product) when it's approved, commission is 0 until the agency adds one.
@@ -252,6 +253,7 @@ All non-public routes require `Authorization: Bearer <jwt>`.
 | POST | `/api/leads` | agent | Create a draft. Body includes `bank`; `agency` is auto-set from the bank's owner |
 | POST | `/api/leads/:id/send-to-agency` | agent, admin | Confirmation-only flip from `draft` → `submitted` (no body) |
 | DELETE | `/api/leads/:id` | agent | Delete one of own drafts |
+| PATCH | `/api/leads/:id/engagement-status` | agent | Inline update of the conversation status (No Answer, Follow up, …) |
 | GET | `/api/leads/mine` | agent | Agent's own leads |
 | GET | `/api/leads/stats` | agent | Counters for dashboard (incl. `drafts`) |
 | GET | `/api/leads/ledger` | agent | Earnings ledger + current monthly bonus |

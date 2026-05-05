@@ -12,6 +12,21 @@ const LEAD_STATUSES = [
 
 const COMMISSION_STATUSES = ['none', 'pending', 'payable', 'paid'];
 
+// Agent-managed conversation/engagement state with the customer. Independent of
+// the agency-side lifecycle in `status`. Default `new_lead` when the lead is
+// first created.
+const ENGAGEMENT_STATUSES = [
+  'new_lead',
+  'no_answer',
+  'follow_up',
+  'focused_follow_up',
+  'meeting_scheduled',
+  'not_interested',
+  'junk',
+  'pool',
+  'closed_deal',
+];
+
 const leadSchema = new mongoose.Schema(
   {
     customerName: { type: String, required: true, trim: true },
@@ -24,6 +39,7 @@ const leadSchema = new mongoose.Schema(
     commission: { type: Number, default: 0 },
     commissionStatus: { type: String, enum: COMMISSION_STATUSES, default: 'none' },
     commissionPaidAt: { type: Date },
+    engagementStatus: { type: String, enum: ENGAGEMENT_STATUSES, default: 'new_lead' },
     notes: { type: String, trim: true },
   },
   { timestamps: true }
@@ -31,5 +47,6 @@ const leadSchema = new mongoose.Schema(
 
 leadSchema.statics.STATUSES = LEAD_STATUSES;
 leadSchema.statics.COMMISSION_STATUSES = COMMISSION_STATUSES;
+leadSchema.statics.ENGAGEMENT_STATUSES = ENGAGEMENT_STATUSES;
 
 module.exports = mongoose.model('Lead', leadSchema);

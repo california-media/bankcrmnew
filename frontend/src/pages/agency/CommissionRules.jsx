@@ -67,11 +67,7 @@ function AgencyCommissionRules() {
 
   const columns = [
     { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
-    {
-      title: 'Bank',
-      dataIndex: ['bank', 'name'],
-      render: (v) => v || <Typography.Text type="secondary">All banks (default)</Typography.Text>,
-    },
+    { title: 'Bank', dataIndex: ['bank', 'name'] },
     {
       title: 'Amount per Approval',
       dataIndex: 'amount',
@@ -103,7 +99,7 @@ function AgencyCommissionRules() {
         <div>
           <Typography.Title level={3} style={{ margin: 0 }}>Commission Rules</Typography.Title>
           <Typography.Text type="secondary">
-            What your agency pays an agent for an approved lead. Leave bank blank for a per-product default.
+            What your agency pays an agent for an approved lead. Each rule is tied to a specific bank + product pair.
           </Typography.Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Rule</Button>
@@ -123,12 +119,11 @@ function AgencyCommissionRules() {
           <Form.Item name="productType" label="Product" rules={[{ required: true }]}>
             <Select options={PRODUCTS} placeholder="Select product" />
           </Form.Item>
-          <Form.Item name="bank" label="Bank (leave blank for default)">
+          <Form.Item name="bank" label="Bank" rules={[{ required: true }]}>
             <Select
-              allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="Apply to a specific bank"
+              placeholder="Pick a bank"
               options={banks.map((b) => ({ value: b._id, label: b.name }))}
             />
           </Form.Item>

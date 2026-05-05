@@ -39,7 +39,7 @@ The admin no longer manages banks or commission rules — those moved to agencie
 2. Token verified, agency picks a name + password, account activated, JWT issued, redirected to `/agency`.
 3. The agency now sets themselves up:
    - **My Banks** — adds the banks they service (private to them).
-   - **Commission Rules** — for each (product, bank) pair, the AED amount they pay an agent per approved lead. A "default" rule (no bank set) is the fallback for that product across the agency's banks.
+   - **Commission Rules** — for each (product, bank) pair, the AED amount they pay an agent per approved lead. Each rule is bank-specific.
 
 ### 2.3 Agent registration
 - Self-serve at `/register` (optional referral code from another agent).
@@ -217,7 +217,7 @@ backend/
 | commissionPaidAt | Date | set when admin marks paid |
 | notes | String | |
 
-**CommissionRule** — `productType`, `bank` (nullable; null = agency's default for that product), `amount` (AED), `tier` (optional label), **`agency` (required)**. Resolution in service: try `(agency, productType, bank)`, fall back to `(agency, productType, null)`.
+**CommissionRule** — `productType`, **`bank` (required)**, `amount` (AED), `tier` (optional label), **`agency` (required)**. Each rule is tied to a specific (bank, product) pair; there is no per-product default. If no rule exists for a lead's (bank, product) when it's approved, commission is 0 until the agency adds one.
 
 **VolumeBonus** — `threshold`, `amount`, `active`. System-wide. Highest matching threshold wins; bonuses don't stack.
 

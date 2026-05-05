@@ -24,26 +24,24 @@ exports.list = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const { productType, bank, amount, tier } = req.body;
-    if (!productType || amount == null) {
-      return res.status(400).json({ message: 'productType and amount are required' });
+    if (!productType || !bank || amount == null) {
+      return res.status(400).json({ message: 'productType, bank, and amount are required' });
     }
     if (Number(amount) < 0) return res.status(400).json({ message: 'amount must be >= 0' });
 
-    if (bank) {
-      const owns = await Bank.findOne({ _id: bank, agency: req.user._id });
-      if (!owns) return res.status(400).json({ message: 'Bank does not belong to your agency' });
-    }
+    const owns = await Bank.findOne({ _id: bank, agency: req.user._id });
+    if (!owns) return res.status(400).json({ message: 'Bank does not belong to your agency' });
 
     const dupe = await CommissionRule.findOne({
       agency: req.user._id,
       productType,
-      bank: bank || null,
+      bank,
     });
     if (dupe) return res.status(409).json({ message: 'A rule for this product/bank already exists' });
 
     const rule = await CommissionRule.create({
       productType,
-      bank: bank || null,
+      bank,
       amount,
       tier,
       agency: req.user._id,
@@ -64,11 +62,10 @@ exports.update = async (req, res) => {
     const update = {};
     if (productType !== undefined) update.productType = productType;
     if (bank !== undefined) {
-      if (bank) {
-        const owns = await Bank.findOne({ _id: bank, agency: req.user._id });
-        if (!owns) return res.status(400).json({ message: 'Bank does not belong to your agency' });
-      }
-      update.bank = bank || null;
+      if (!bank) return res.status(400).json({ message: 'bank is required' });
+      const owns = await Bank.findOne({ _id: bank, agency: req.user._id });
+      if (!owns) return res.status(400).json({ message: 'Bank does not belong to your agency' });
+      update.bank = bank;
     }
     if (amount !== undefined) {
       if (Number(amount) < 0) return res.status(400).json({ message: 'amount must be >= 0' });

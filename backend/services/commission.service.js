@@ -3,15 +3,13 @@ const VolumeBonus = require('../models/VolumeBonus');
 const Lead = require('../models/Lead');
 
 /**
- * Look up the AED amount the given agency pays for an approved lead with
- * (productType, bank). Tries (agency, productType, bank) first, then falls
- * back to (agency, productType, null) — the agency's per-product default.
- * Returns 0 if neither matches.
+ * Look up the AED amount the given agency pays for an approved lead with the
+ * specific (productType, bank) pair. Returns 0 if no rule exists — the agency
+ * must explicitly add a rule for the bank/product combo.
  */
 async function resolveCommissionAmount({ agency, productType, bank }) {
-  if (!agency) return 0;
-  let rule = await CommissionRule.findOne({ agency, productType, bank });
-  if (!rule) rule = await CommissionRule.findOne({ agency, productType, bank: null });
+  if (!agency || !bank) return 0;
+  const rule = await CommissionRule.findOne({ agency, productType, bank });
   return rule ? rule.amount : 0;
 }
 

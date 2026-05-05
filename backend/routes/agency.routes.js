@@ -2,14 +2,10 @@ const router = require('express').Router();
 const ctrl = require('../controllers/agency.controller');
 const { protect, requireRole } = require('../middleware/auth.middleware');
 
-router.use(protect);
+router.use(protect, requireRole('admin'));
 
-// Agent + admin: lightweight active list, used by send-to-agency
-router.get('/active', requireRole('agent', 'admin'), ctrl.listActive);
-
-// Admin only
-router.post('/', requireRole('admin'), ctrl.create);
-router.get('/', requireRole('admin'), ctrl.list);
-router.post('/:id/resend-invite', requireRole('admin'), ctrl.resendInvite);
+router.post('/', ctrl.create);
+router.get('/', ctrl.list);
+router.post('/:id/resend-invite', ctrl.resendInvite);
 
 module.exports = router;

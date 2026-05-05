@@ -65,22 +65,6 @@ exports.list = async (req, res) => {
 };
 
 /**
- * GET /api/agencies/active  (agent, admin)
- * Lightweight list of active agencies — used by the agent's send-to-agency modal
- * (and by admin sending a draft on behalf of an agent).
- */
-exports.listActive = async (req, res) => {
-  try {
-    const agencies = await User.find({ role: 'agency', isActive: true })
-      .select('_id name email')
-      .sort({ name: 1, email: 1 });
-    res.json(agencies);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/**
  * POST /api/agencies/:id/resend-invite  (admin)
  */
 exports.resendInvite = async (req, res) => {

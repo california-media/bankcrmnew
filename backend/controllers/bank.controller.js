@@ -15,15 +15,18 @@ exports.list = async (req, res) => {
 };
 
 /**
- * GET /api/banks/for-agency/:agencyId  (agent, admin)
- * Read-only view of a specific agency's banks. Used by the agent's send-to-agency
- * modal and by admin sending a lead on behalf of an agent.
+ * GET /api/banks/all  (agent, admin)
+ * Every bank across active agencies, with the owning agency populated. Used by
+ * the agent's lead-creation form so they can pick a bank and have the agency
+ * auto-derived (bank names can collide across agencies — the agency label
+ * disambiguates them in the UI).
  */
-exports.listForAgency = async (req, res) => {
+exports.listAll = async (req, res) => {
   try {
-    const agency = await User.findOne({ _id: req.params.agencyId, role: 'agency', isActive: true });
-    if (!agency) return res.status(404).json({ message: 'Agency not found' });
-    const banks = await Bank.find({ agency: agency._id }).sort({ name: 1 });
+    const activeAgencyIds = await User.find({ role: 'agency', isActive: true }).distinct('_id');
+    const banks = await Bank.find({ agency: { $in: activeAgencyIds } })
+      .populate('agency', 'name email')
+      .sort({ name: 1 });
     res.json(banks);
   } catch (err) {
     res.status(500).json({ message: err.message });

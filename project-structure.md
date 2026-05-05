@@ -50,18 +50,14 @@ The admin no longer manages banks or commission rules — those moved to agencie
 **Step 1 — Create a draft.** At `/agent/leads/new`:
 1. Agent enters the customer's name and phone.
 2. Picks a **Product** (Credit Card or Loan).
-3. Optional notes.
+3. Picks a **Bank** from the global list (`/api/banks/all`). Bank options are labeled `{Bank} — {Agency}` because bank names can collide across agencies.
+4. Optional notes.
 
-The lead is saved with `status='draft'`, `agency=null`, `bank=null`. It's the agent's private record. The agent can also delete a draft from the actions column on My Leads.
+Each bank belongs to exactly one agency, so picking the bank fully determines the routing — the backend sets `lead.agency` from `bank.agency`. The lead is saved with `status='draft'`. The agent can delete a draft from the actions column on My Leads.
 
-**Step 2 — Send the draft.** From `/agent/leads`, every draft row has a **Send to Agency** action. The modal walks the agent through:
-1. Pick an active **agency** (any active agency on the platform — `/api/agencies/active`).
-2. Pick a **bank** from that agency's bank list (`/api/banks/for-agency/:agencyId`).
-3. Confirm.
+**Step 2 — Confirm and send.** From `/agent/leads`, every draft row has a **Send to Agency** action. The modal is **confirmation-only** — it shows the lead's customer, product, bank, and agency, and the agent clicks **Send**. The backend flips status to `submitted` (no body required). Only that one agency now sees the lead.
 
-The backend validates the bank belongs to the chosen agency, sets `lead.agency` + `lead.bank`, and flips status to `submitted`. Only that one agency now sees the lead.
-
-**Admin can also do step 2** on behalf of an agent. From `/admin/leads`, drafts have the same Send to Agency button — useful when an agent gets stuck or asks for routing help.
+**Admin can also do step 2** on behalf of an agent. From `/admin/leads`, drafts have the same Send to Agency button — useful when an agent gets stuck.
 
 ### 2.5 Working a lead (Agency)
 At `/agency/leads`, the agency sees every lead filed to them. From the actions column they walk it through:
@@ -208,10 +204,10 @@ backend/
 |---|---|---|
 | customerName, phone | String | |
 | productType | enum | `credit_card` \| `loan` |
-| bank | ObjectId → Bank \| null | null while in `draft`; set at send-to-agency |
+| bank | ObjectId → Bank | required from the moment the draft is created |
 | status | enum | `draft`, `submitted`, `under_review`, `assigned`, `approved`, `rejected`, `disbursed` |
 | agent | ObjectId → User | the filer |
-| agency | ObjectId → User \| null | null while in `draft`; set at send-to-agency |
+| agency | ObjectId → User | required; auto-set from the chosen bank |
 | commission | Number | AED, written by `commission.service.recalcOnStatusChange` |
 | commissionStatus | enum | `none` \| `pending` \| `payable` \| `paid` |
 | commissionPaidAt | Date | set when admin marks paid |
@@ -241,7 +237,7 @@ All non-public routes require `Authorization: Bearer <jwt>`.
 | POST | `/api/banks` | agency | Create one of the agency's banks |
 | PUT | `/api/banks/:id` | agency | Update one of the agency's banks |
 | DELETE | `/api/banks/:id` | agency | Delete one of the agency's banks |
-| GET | `/api/banks/for-agency/:agencyId` | agent, admin | Read-only view of an agency's banks (used by Send-to-Agency) |
+| GET | `/api/banks/all` | agent, admin | Every bank across active agencies, with agency populated (used by the lead-creation form) |
 
 #### Agencies
 | Method | Path | Role | Purpose |
@@ -249,13 +245,12 @@ All non-public routes require `Authorization: Bearer <jwt>`.
 | POST | `/api/agencies` | admin | Invite by email |
 | GET | `/api/agencies` | admin | List all agencies |
 | POST | `/api/agencies/:id/resend-invite` | admin | Rotate token, resend invite |
-| GET | `/api/agencies/active` | agent, admin | Lightweight active list (used by Send-to-Agency) |
 
 #### Leads
 | Method | Path | Role | Purpose |
 |---|---|---|---|
-| POST | `/api/leads` | agent | Create a draft (no agency, no bank yet) |
-| POST | `/api/leads/:id/send-to-agency` | agent, admin | Pick agency + bank → `submitted` |
+| POST | `/api/leads` | agent | Create a draft. Body includes `bank`; `agency` is auto-set from the bank's owner |
+| POST | `/api/leads/:id/send-to-agency` | agent, admin | Confirmation-only flip from `draft` → `submitted` (no body) |
 | DELETE | `/api/leads/:id` | agent | Delete one of own drafts |
 | GET | `/api/leads/mine` | agent | Agent's own leads |
 | GET | `/api/leads/stats` | agent | Counters for dashboard (incl. `drafts`) |
@@ -297,7 +292,7 @@ frontend/src/
 ├── components/
 │   ├── ProtectedRoute.jsx        Auth + role guard
 │   ├── AppLayout.jsx             Sider + Header + Outlet, role-aware menu
-│   └── SendToAgencyModal.jsx     Reusable: agency → bank picker → POST send-to-agency
+│   └── SendToAgencyModal.jsx     Reusable confirmation modal — POST send-to-agency
 └── pages/
     ├── Login.jsx, Register.jsx, SetPassword.jsx
     ├── admin/
@@ -308,7 +303,7 @@ frontend/src/
     │   └── VolumeBonuses.jsx       CRUD
     ├── agent/
     │   ├── Dashboard.jsx           Stats + recent leads + profile/referral
-    │   ├── SubmitLead.jsx          Customer + product (no bank — chosen later)
+    │   ├── SubmitLead.jsx          Customer + product + bank (with agency label)
     │   ├── MyLeads.jsx             Filters + Send-to-Agency on drafts + delete
     │   └── Commissions.jsx         Paid / Payable / Expected + payments + bonus tiers
     └── agency/

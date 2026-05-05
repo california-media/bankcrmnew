@@ -5,25 +5,38 @@ const commissionService = require('../services/commission.service');
 
 /**
  * POST /api/leads  (agent)
- * Body: { customerName, phone, productType, notes? }
- * Creates a draft lead (no agency, no bank yet — both chosen at send-to-agency).
+ * Body: { customerName, phone, productType, bank, notes? }
+ * Each bank belongs to exactly one agency, so picking the bank fully determines
+ * the routing — agency is set on the draft from bank.agency.
  */
 exports.create = async (req, res) => {
   try {
-    const { customerName, phone, productType, notes } = req.body;
-    if (!customerName || !phone || !productType) {
-      return res.status(400).json({ message: 'customerName, phone, and productType are required' });
+    const { customerName, phone, productType, bank, notes } = req.body;
+    if (!customerName || !phone || !productType || !bank) {
+      return res.status(400).json({ message: 'customerName, phone, productType, and bank are required' });
+    }
+
+    const bankDoc = await Bank.findById(bank).populate('agency', 'isActive role');
+    if (!bankDoc) return res.status(400).json({ message: 'Invalid bank' });
+    if (!bankDoc.agency || bankDoc.agency.role !== 'agency' || !bankDoc.agency.isActive) {
+      return res.status(400).json({ message: 'This bank is not currently available' });
     }
 
     const lead = await Lead.create({
       customerName,
       phone,
       productType,
+      bank: bankDoc._id,
+      agency: bankDoc.agency._id,
       notes,
       agent: req.user._id,
       status: 'draft',
     });
-    const populated = await lead.populate('agent', 'name email');
+    const populated = await lead.populate([
+      { path: 'bank', select: 'name code' },
+      { path: 'agency', select: 'name email' },
+      { path: 'agent', select: 'name email' },
+    ]);
     res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -32,31 +45,25 @@ exports.create = async (req, res) => {
 
 /**
  * POST /api/leads/:id/send-to-agency  (agent, admin)
- * Body: { agency: ObjectId, bank: ObjectId }
- * The bank must belong to the chosen agency. Agents may only send their own
- * drafts; admins may send any draft on behalf of the agent who created it.
+ * Promotes a draft to `submitted`. Agency + bank were already set at draft
+ * creation, so this is just a confirmed status flip — no body required.
  */
 exports.sendToAgency = async (req, res) => {
   try {
-    const { agency, bank } = req.body;
-    if (!agency || !bank) return res.status(400).json({ message: 'agency and bank are required' });
-
     const filter = { _id: req.params.id };
     if (req.user.role === 'agent') filter.agent = req.user._id;
     const lead = await Lead.findOne(filter);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     if (lead.status !== 'draft') {
-      return res.status(400).json({ message: 'Only draft leads can be sent to an agency' });
+      return res.status(400).json({ message: 'Only draft leads can be sent' });
+    }
+    if (!lead.agency || !lead.bank) {
+      return res.status(400).json({ message: 'Lead is missing bank or agency' });
     }
 
-    const agencyDoc = await User.findOne({ _id: agency, role: 'agency', isActive: true });
-    if (!agencyDoc) return res.status(400).json({ message: 'Invalid agency' });
+    const agencyDoc = await User.findOne({ _id: lead.agency, role: 'agency', isActive: true });
+    if (!agencyDoc) return res.status(400).json({ message: 'The target agency is no longer active' });
 
-    const bankDoc = await Bank.findOne({ _id: bank, agency: agencyDoc._id });
-    if (!bankDoc) return res.status(400).json({ message: 'Bank does not belong to that agency' });
-
-    lead.agency = agency;
-    lead.bank = bank;
     lead.status = 'submitted';
     await lead.save();
 
@@ -139,10 +146,11 @@ exports.stats = async (req, res) => {
 
 /**
  * GET /api/leads/agency  (agency)
+ * Excludes drafts — agencies only see leads that have been formally sent.
  */
 exports.listForAgency = async (req, res) => {
   try {
-    const leads = await Lead.find({ agency: req.user._id })
+    const leads = await Lead.find({ agency: req.user._id, status: { $ne: 'draft' } })
       .populate('bank', 'name code')
       .populate('agent', 'name email phone')
       .sort({ createdAt: -1 });

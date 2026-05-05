@@ -9,8 +9,10 @@ router.post('/', requireRole('agent'), ctrl.create);
 router.get('/mine', requireRole('agent'), ctrl.listMine);
 router.get('/stats', requireRole('agent'), ctrl.stats);
 router.get('/ledger', requireRole('agent'), ctrl.myLedger);
-router.post('/:id/send-to-agency', requireRole('agent'), ctrl.sendToAgency);
 router.delete('/:id', requireRole('agent'), ctrl.removeDraft);
+
+// Agent + admin
+router.post('/:id/send-to-agency', requireRole('agent', 'admin'), ctrl.sendToAgency);
 
 // Agency
 router.get('/agency', requireRole('agency'), ctrl.listForAgency);
@@ -19,7 +21,7 @@ router.get('/agency', requireRole('agency'), ctrl.listForAgency);
 router.get('/', requireRole('admin'), ctrl.listAll);
 router.post('/:id/mark-paid', requireRole('admin'), ctrl.markCommissionPaid);
 
-// Agency or admin: status updates (controller checks ownership for agency)
+// Agency or admin
 router.patch('/:id/status', requireRole('agency', 'admin'), ctrl.updateStatus);
 
 module.exports = router;

@@ -4,7 +4,7 @@ import { SearchOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons'
 import api from '../../api/client';
 
 const STATUSES = [
-  { value: 'submitted', label: 'Submitted', color: 'default' },
+  { value: 'submitted', label: 'Submitted', color: 'blue' },
   { value: 'under_review', label: 'Under Review', color: 'gold' },
   { value: 'assigned', label: 'Assigned', color: 'cyan' },
   { value: 'approved', label: 'Approved', color: 'green' },
@@ -16,6 +16,9 @@ const PRODUCTS = [
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'loan', label: 'Loan' },
 ];
+
+// Reject is allowed from any non-terminal-positive status.
+const REJECTABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
 
 function AgencyLeads() {
   const [leads, setLeads] = useState([]);
@@ -72,10 +75,7 @@ function AgencyLeads() {
         </div>
       ),
     },
-    {
-      title: 'Filed by',
-      render: (_, row) => row.agent ? (row.agent.name || row.agent.email) : '—',
-    },
+    { title: 'Filed by', render: (_, row) => row.agent ? (row.agent.name || row.agent.email) : '—' },
     { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
     {
@@ -88,9 +88,9 @@ function AgencyLeads() {
     },
     {
       title: 'Actions',
-      width: 320,
+      width: 360,
       render: (_, row) => {
-        const isFinal = ['approved', 'rejected', 'disbursed'].includes(row.status);
+        const canReject = REJECTABLE_FROM.includes(row.status);
         return (
           <Space wrap>
             {row.status === 'submitted' && (
@@ -99,18 +99,18 @@ function AgencyLeads() {
             {row.status === 'under_review' && (
               <Button size="small" onClick={() => updateStatus(row._id, 'assigned')}>Mark Assigned</Button>
             )}
-            {!isFinal && (
-              <>
-                <Popconfirm title="Approve this lead?" onConfirm={() => updateStatus(row._id, 'approved')}>
-                  <Button size="small" type="primary" icon={<CheckOutlined />}>Approve</Button>
-                </Popconfirm>
-                <Popconfirm title="Reject this lead?" onConfirm={() => updateStatus(row._id, 'rejected')}>
-                  <Button size="small" danger icon={<CloseOutlined />}>Reject</Button>
-                </Popconfirm>
-              </>
+            {row.status === 'assigned' && (
+              <Popconfirm title="Approve this lead?" onConfirm={() => updateStatus(row._id, 'approved')}>
+                <Button size="small" type="primary" icon={<CheckOutlined />}>Approve</Button>
+              </Popconfirm>
             )}
             {row.status === 'approved' && (
               <Button size="small" onClick={() => updateStatus(row._id, 'disbursed')}>Mark Disbursed</Button>
+            )}
+            {canReject && (
+              <Popconfirm title="Reject this lead?" onConfirm={() => updateStatus(row._id, 'rejected')}>
+                <Button size="small" danger icon={<CloseOutlined />}>Reject</Button>
+              </Popconfirm>
             )}
           </Space>
         );
@@ -124,7 +124,7 @@ function AgencyLeads() {
         <Col>
           <Typography.Title level={3} style={{ margin: 0 }}>Lead Queue</Typography.Title>
           <Typography.Text type="secondary">
-            Leads filed to your agency. Move them through review, approval, and disbursal.
+            Leads filed to your agency. Approve is only enabled once a lead reaches <i>Assigned</i>; reject is available throughout.
           </Typography.Text>
         </Col>
       </Row>

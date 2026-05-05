@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Table, Tag, Typography, Button, Input, Select, Row, Col, Space,
-  Modal, Form, Empty, Popconfirm, message,
-} from 'antd';
+import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space, Popconfirm, message } from 'antd';
 import { PlusOutlined, SearchOutlined, SendOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
+import SendToAgencyModal from '../../components/SendToAgencyModal';
 
 const STATUSES = [
   { value: 'draft', label: 'Draft', color: 'default' },
@@ -33,10 +31,6 @@ function MyLeads() {
 
   const [sendOpen, setSendOpen] = useState(false);
   const [sendingLead, setSendingLead] = useState(null);
-  const [agencies, setAgencies] = useState([]);
-  const [agenciesLoading, setAgenciesLoading] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [sendForm] = Form.useForm();
 
   const load = async () => {
     setLoading(true);
@@ -49,34 +43,6 @@ function MyLeads() {
   };
 
   useEffect(() => { load(); }, []);
-
-  const openSend = async (lead) => {
-    setSendingLead(lead);
-    setSendOpen(true);
-    sendForm.resetFields();
-    setAgenciesLoading(true);
-    try {
-      const { data } = await api.get(`/agencies/for-bank/${lead.bank?._id || lead.bank}`);
-      setAgencies(data);
-    } finally {
-      setAgenciesLoading(false);
-    }
-  };
-
-  const onSendSubmit = async () => {
-    const { agency } = await sendForm.validateFields();
-    setSending(true);
-    try {
-      await api.post(`/leads/${sendingLead._id}/send-to-agency`, { agency });
-      message.success('Lead sent to agency');
-      setSendOpen(false);
-      load();
-    } catch (err) {
-      message.error(err.response?.data?.message || 'Failed to send');
-    } finally {
-      setSending(false);
-    }
-  };
 
   const onDelete = async (id) => {
     try {
@@ -117,7 +83,7 @@ function MyLeads() {
       ),
     },
     { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
-    { title: 'Bank', dataIndex: ['bank', 'name'] },
+    { title: 'Bank', render: (_, row) => row.bank?.name || <Typography.Text type="secondary">—</Typography.Text> },
     { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || <Typography.Text type="secondary">—</Typography.Text> },
     {
       title: 'Stage',
@@ -143,7 +109,7 @@ function MyLeads() {
       width: 220,
       render: (_, row) => row.status === 'draft' && (
         <Space>
-          <Button size="small" type="primary" icon={<SendOutlined />} onClick={() => openSend(row)}>
+          <Button size="small" type="primary" icon={<SendOutlined />} onClick={() => { setSendingLead(row); setSendOpen(true); }}>
             Send to Agency
           </Button>
           <Popconfirm title="Delete this draft?" onConfirm={() => onDelete(row._id)}>
@@ -160,7 +126,7 @@ function MyLeads() {
         <Col>
           <Typography.Title level={3} style={{ margin: 0 }}>My Leads</Typography.Title>
           <Typography.Text type="secondary">
-            {leads.length} total leads · Track every case from submission to commission payout.
+            {leads.length} total · Track every case from submission to commission payout.
           </Typography.Text>
         </Col>
         <Col>
@@ -208,38 +174,12 @@ function MyLeads() {
 
       <Table rowKey="_id" loading={loading} dataSource={filtered} columns={columns} />
 
-      <Modal
-        title="Send Lead to Agency"
+      <SendToAgencyModal
         open={sendOpen}
-        onCancel={() => setSendOpen(false)}
-        onOk={onSendSubmit}
-        okText="Send"
-        confirmLoading={sending}
-        destroyOnClose
-      >
-        {sendingLead && (
-          <>
-            <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-              Sending <b>{sendingLead.customerName}</b> ({sendingLead.bank?.name}) to an agency.
-              Only agencies that service this bank are listed.
-            </Typography.Paragraph>
-            <Form form={sendForm} layout="vertical">
-              <Form.Item
-                name="agency"
-                label="Agency"
-                rules={[{ required: true, message: 'Pick an agency' }]}
-              >
-                <Select
-                  loading={agenciesLoading}
-                  placeholder={agenciesLoading ? 'Loading…' : 'Pick an agency'}
-                  notFoundContent={<Empty description="No agencies for this bank" image={Empty.PRESENTED_IMAGE_SIMPLE} />}
-                  options={agencies.map((a) => ({ value: a._id, label: a.name || a.email }))}
-                />
-              </Form.Item>
-            </Form>
-          </>
-        )}
-      </Modal>
+        onClose={() => setSendOpen(false)}
+        lead={sendingLead}
+        onSent={load}
+      />
     </>
   );
 }

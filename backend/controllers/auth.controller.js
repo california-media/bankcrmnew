@@ -6,8 +6,7 @@ const { signAuthToken, generateReferralCode } = require('../utils/token');
  * @typedef {{
  *   id: string, name: string, email: string, phone: string,
  *   role: 'admin'|'agency'|'agent',
- *   referralCode?: string,
- *   banks?: Array<{ _id: string, name: string, code?: string }>
+ *   referralCode?: string
  * }} SafeUser
  */
 const sanitize = (user) => ({
@@ -17,19 +16,13 @@ const sanitize = (user) => ({
   phone: user.phone,
   role: user.role,
   referralCode: user.referralCode,
-  banks: user.banks,
 });
 
-const populatedUser = async (id) =>
-  User.findById(id)
-    .select('-password -inviteToken -inviteTokenExpires')
-    .populate('banks', 'name code');
+const safeUser = async (id) =>
+  User.findById(id).select('-password -inviteToken -inviteTokenExpires');
 
 /**
  * POST /api/auth/register-agent  (public)
- * Body: { name: string, email: string, password: string, phone?: string, referralCode?: string }
- * Response 201: { token: string, user: SafeUser }
- * Errors: 400 missing fields / invalid referral, 409 email taken
  */
 exports.registerAgent = async (req, res) => {
   try {
@@ -75,9 +68,6 @@ exports.registerAgent = async (req, res) => {
 
 /**
  * POST /api/auth/login  (public — all roles)
- * Body: { email: string, password: string }
- * Response: { token: string, user: SafeUser }
- * Errors: 400 missing fields, 401 invalid credentials, 403 inactive
  */
 exports.login = async (req, res) => {
   try {
@@ -92,7 +82,7 @@ exports.login = async (req, res) => {
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
 
     const token = signAuthToken(user);
-    const full = await populatedUser(user._id);
+    const full = await safeUser(user._id);
     res.json({ token, user: sanitize(full) });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -101,8 +91,6 @@ exports.login = async (req, res) => {
 
 /**
  * GET /api/auth/invite/:token  (public)
- * Response: { email: string, role: 'agency' }
- * Errors: 400 invalid/expired
  */
 exports.verifyInvite = async (req, res) => {
   try {
@@ -120,9 +108,6 @@ exports.verifyInvite = async (req, res) => {
 
 /**
  * POST /api/auth/set-password  (public — completes invitation)
- * Body: { token: string, password: string, name?: string, phone?: string }
- * Response: { token: string, user: SafeUser }
- * Errors: 400 invalid token / missing fields
  */
 exports.setPassword = async (req, res) => {
   try {
@@ -144,7 +129,7 @@ exports.setPassword = async (req, res) => {
     await user.save();
 
     const authToken = signAuthToken(user);
-    const full = await populatedUser(user._id);
+    const full = await safeUser(user._id);
     res.json({ token: authToken, user: sanitize(full) });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -153,11 +138,10 @@ exports.setPassword = async (req, res) => {
 
 /**
  * GET /api/auth/me  (any authenticated user)
- * Response: { user: SafeUser }
  */
 exports.me = async (req, res) => {
   try {
-    const full = await populatedUser(req.user._id);
+    const full = await safeUser(req.user._id);
     res.json({ user: sanitize(full) });
   } catch (err) {
     res.status(500).json({ message: err.message });

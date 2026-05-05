@@ -17,7 +17,7 @@ const leadSchema = new mongoose.Schema(
     customerName: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
     productType: { type: String, enum: ['credit_card', 'loan'], required: true },
-    bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
+    bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', default: null },
     status: { type: String, enum: LEAD_STATUSES, default: 'draft' },
     agent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

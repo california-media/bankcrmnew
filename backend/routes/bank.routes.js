@@ -2,9 +2,15 @@ const router = require('express').Router();
 const ctrl = require('../controllers/bank.controller');
 const { protect, requireRole } = require('../middleware/auth.middleware');
 
-router.get('/', protect, ctrl.list);
-router.post('/', protect, requireRole('admin'), ctrl.create);
-router.put('/:id', protect, requireRole('admin'), ctrl.update);
-router.delete('/:id', protect, requireRole('admin'), ctrl.remove);
+router.use(protect);
+
+// Agency: own banks
+router.get('/', requireRole('agency'), ctrl.list);
+router.post('/', requireRole('agency'), ctrl.create);
+router.put('/:id', requireRole('agency'), ctrl.update);
+router.delete('/:id', requireRole('agency'), ctrl.remove);
+
+// Agent + admin: read-only view of a specific agency's banks (used by send-to-agency flow)
+router.get('/for-agency/:agencyId', requireRole('agent', 'admin'), ctrl.listForAgency);
 
 module.exports = router;

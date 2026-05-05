@@ -3,7 +3,7 @@ import { Button, Table, Modal, Form, Input, Space, Popconfirm, Typography, messa
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
-function Banks() {
+function AgencyBanks() {
   const [banks, setBanks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -33,7 +33,7 @@ function Banks() {
         message.success('Bank updated');
       } else {
         await api.post('/banks', values);
-        message.success('Bank created');
+        message.success('Bank added');
       }
       setOpen(false);
       load();
@@ -54,10 +54,11 @@ function Banks() {
 
   const columns = [
     { title: 'Name', dataIndex: 'name' },
-    { title: 'Code', dataIndex: 'code' },
-    { title: 'Description', dataIndex: 'description' },
+    { title: 'Code', dataIndex: 'code', render: (v) => v || <Typography.Text type="secondary">—</Typography.Text> },
+    { title: 'Description', dataIndex: 'description', render: (v) => v || <Typography.Text type="secondary">—</Typography.Text> },
     {
       title: 'Actions',
+      width: 220,
       render: (_, row) => (
         <Space>
           <Button icon={<EditOutlined />} onClick={() => openEdit(row)}>Edit</Button>
@@ -71,10 +72,16 @@ function Banks() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>Banks</Typography.Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+        <div>
+          <Typography.Title level={3} style={{ margin: 0 }}>My Banks</Typography.Title>
+          <Typography.Text type="secondary">
+            The banks your agency services. Agents can only file leads against these.
+          </Typography.Text>
+        </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bank</Button>
       </div>
+
       <Table rowKey="_id" loading={loading} dataSource={banks} columns={columns} />
 
       <Modal
@@ -101,4 +108,4 @@ function Banks() {
   );
 }
 
-export default Banks;
+export default AgencyBanks;

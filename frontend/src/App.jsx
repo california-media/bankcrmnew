@@ -6,11 +6,9 @@ import SetPassword from './pages/SetPassword';
 import AppLayout from './components/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './pages/admin/Dashboard';
-import Banks from './pages/admin/Banks';
 import Agencies from './pages/admin/Agencies';
 import AdminLeads from './pages/admin/Leads';
 import AdminAgents from './pages/admin/Agents';
-import CommissionRules from './pages/admin/CommissionRules';
 import VolumeBonuses from './pages/admin/VolumeBonuses';
 import AgentDashboard from './pages/agent/Dashboard';
 import SubmitLead from './pages/agent/SubmitLead';
@@ -18,6 +16,8 @@ import MyLeads from './pages/agent/MyLeads';
 import Commissions from './pages/agent/Commissions';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyLeads from './pages/agency/Leads';
+import AgencyBanks from './pages/agency/Banks';
+import AgencyCommissionRules from './pages/agency/CommissionRules';
 
 const theme = {
   algorithm: antdTheme.defaultAlgorithm,
@@ -58,11 +58,9 @@ function App() {
           }
         >
           <Route index element={<AdminDashboard />} />
-          <Route path="banks" element={<Banks />} />
           <Route path="agencies" element={<Agencies />} />
           <Route path="leads" element={<AdminLeads />} />
           <Route path="agents" element={<AdminAgents />} />
-          <Route path="commission-rules" element={<CommissionRules />} />
           <Route path="volume-bonuses" element={<VolumeBonuses />} />
         </Route>
 
@@ -90,6 +88,8 @@ function App() {
         >
           <Route index element={<AgencyDashboard />} />
           <Route path="leads" element={<AgencyLeads />} />
+          <Route path="banks" element={<AgencyBanks />} />
+          <Route path="commission-rules" element={<AgencyCommissionRules />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />

@@ -4,17 +4,14 @@ import { CheckCircleOutlined, ClockCircleOutlined, RiseOutlined } from '@ant-des
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
-
 const productLabels = { credit_card: 'Credit Card', loan: 'Loan' };
 
 function Commissions() {
   const [ledger, setLedger] = useState(null);
-  const [rules, setRules] = useState([]);
   const [bonuses, setBonuses] = useState([]);
 
   useEffect(() => {
     api.get('/leads/ledger').then((res) => setLedger(res.data));
-    api.get('/commission-rules').then((res) => setRules(res.data));
     api.get('/volume-bonuses').then((res) => setBonuses(res.data));
   }, []);
 
@@ -31,6 +28,7 @@ function Commissions() {
     { title: 'Client', dataIndex: 'customerName', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
     { title: 'Product', dataIndex: 'productType', render: (v) => productLabels[v] },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
+    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || '—' },
     {
       title: 'Commission',
       dataIndex: 'commission',
@@ -53,6 +51,7 @@ function Commissions() {
     { title: 'Client', dataIndex: 'customerName', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
     { title: 'Product', dataIndex: 'productType', render: (v) => productLabels[v] },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
+    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || '—' },
     {
       title: 'Commission',
       dataIndex: 'commission',
@@ -65,22 +64,6 @@ function Commissions() {
       render: (s) => s === 'payable'
         ? <Tag color="cyan">Awaiting payment</Tag>
         : <Tag color="gold">Pending approval</Tag>,
-    },
-  ];
-
-  const ruleColumns = [
-    { title: 'Product', dataIndex: 'productType', render: (v) => productLabels[v] },
-    { title: 'Bank', dataIndex: ['bank', 'name'], render: (v) => v || <Typography.Text type="secondary">All banks</Typography.Text> },
-    {
-      title: 'Amount per Approval',
-      dataIndex: 'amount',
-      align: 'right',
-      render: (v) => <span style={{ fontWeight: 600 }}>{aed(v)}</span>,
-    },
-    {
-      title: 'Tier',
-      dataIndex: 'tier',
-      render: (v) => v ? <Tag>{v}</Tag> : <Typography.Text type="secondary">—</Typography.Text>,
     },
   ];
 
@@ -160,31 +143,21 @@ function Commissions() {
         />
       </Card>
 
-      <Card title="Commission Rates Reference" style={{ marginTop: 16 }}>
-        <Table
-          rowKey="_id"
-          dataSource={rules}
-          columns={ruleColumns}
-          pagination={false}
-          locale={{ emptyText: <Empty description="No rules configured yet — ask the admin to set them up." /> }}
-        />
-        {bonuses.filter((b) => b.active).length > 0 && (
-          <>
-            <Typography.Title level={5} style={{ marginTop: 24 }}>Volume Bonuses</Typography.Title>
-            <Space wrap>
-              {bonuses.filter((b) => b.active).sort((a, b) => a.threshold - b.threshold).map((b) => (
-                <Card size="small" key={b._id} style={{ minWidth: 200 }}>
-                  <Statistic
-                    title={`${b.threshold}+ approvals/month`}
-                    value={aed(b.amount)}
-                    valueStyle={{ fontSize: 18 }}
-                  />
-                </Card>
-              ))}
-            </Space>
-          </>
-        )}
-      </Card>
+      {bonuses.filter((b) => b.active).length > 0 && (
+        <Card title="Volume Bonuses" style={{ marginTop: 16 }}>
+          <Space wrap>
+            {bonuses.filter((b) => b.active).sort((a, b) => a.threshold - b.threshold).map((b) => (
+              <Card size="small" key={b._id} style={{ minWidth: 200 }}>
+                <Statistic
+                  title={`${b.threshold}+ approvals/month`}
+                  value={aed(b.amount)}
+                  valueStyle={{ fontSize: 18 }}
+                />
+              </Card>
+            ))}
+          </Space>
+        </Card>
+      )}
     </>
   );
 }

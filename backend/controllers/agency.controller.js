@@ -2,20 +2,25 @@ const User = require('../models/User');
 const { generateInviteToken } = require('../utils/token');
 const { sendInviteEmail } = require('../utils/email');
 
+const sanitizeAgency = (a) => ({
+  _id: a._id,
+  id: a._id,
+  name: a.name,
+  email: a.email,
+  isActive: a.isActive,
+  createdAt: a.createdAt,
+});
+
 /**
  * POST /api/agencies  (admin)
- * Body: { name?: string, email: string (required), banks: ObjectId[] (>=1) }
- * Response 201: { agency: { id, name, email, banks: ObjectId[] }, inviteUrl?: string }
- *   inviteUrl is only returned when SMTP is unconfigured (dev mode).
- * Errors: 400 missing fields, 409 email taken
+ * Body: { name?: string, email: string }
+ * Creates an inactive agency user with an invite token. The agency adds their
+ * own banks and commission rules after activating.
  */
 exports.create = async (req, res) => {
   try {
-    const { name, email, banks } = req.body;
+    const { name, email } = req.body;
     if (!email) return res.status(400).json({ message: 'Email is required' });
-    if (!Array.isArray(banks) || banks.length === 0) {
-      return res.status(400).json({ message: 'Select at least one bank' });
-    }
 
     const lower = email.toLowerCase();
     const exists = await User.findOne({ email: lower });
@@ -28,7 +33,6 @@ exports.create = async (req, res) => {
       name,
       email: lower,
       role: 'agency',
-      banks,
       inviteToken,
       inviteTokenExpires,
       isActive: false,
@@ -38,7 +42,7 @@ exports.create = async (req, res) => {
     const result = await sendInviteEmail({ to: lower, inviteUrl });
 
     res.status(201).json({
-      agency: { id: agency._id, name: agency.name, email: agency.email, banks: agency.banks },
+      agency: sanitizeAgency(agency),
       inviteUrl: result.dev ? inviteUrl : undefined,
     });
   } catch (err) {
@@ -48,12 +52,10 @@ exports.create = async (req, res) => {
 
 /**
  * GET /api/agencies  (admin)
- * Response: Array<Agency User> with banks populated ({ name, code }), newest first.
  */
 exports.list = async (req, res) => {
   try {
     const agencies = await User.find({ role: 'agency' })
-      .populate('banks', 'name code')
       .select('-password -inviteToken -inviteTokenExpires')
       .sort({ createdAt: -1 });
     res.json(agencies);
@@ -63,18 +65,13 @@ exports.list = async (req, res) => {
 };
 
 /**
- * GET /api/agencies/for-bank/:bankId  (agent, admin)
- * Active agencies whose `banks` includes the given bankId.
- * Used by the agent's Submit Lead form to populate the agency dropdown.
- * Response: Array<{ _id, name, email }>
+ * GET /api/agencies/active  (agent, admin)
+ * Lightweight list of active agencies — used by the agent's send-to-agency modal
+ * (and by admin sending a draft on behalf of an agent).
  */
-exports.listForBank = async (req, res) => {
+exports.listActive = async (req, res) => {
   try {
-    const agencies = await User.find({
-      role: 'agency',
-      isActive: true,
-      banks: req.params.bankId,
-    })
+    const agencies = await User.find({ role: 'agency', isActive: true })
       .select('_id name email')
       .sort({ name: 1, email: 1 });
     res.json(agencies);
@@ -85,9 +82,6 @@ exports.listForBank = async (req, res) => {
 
 /**
  * POST /api/agencies/:id/resend-invite  (admin)
- * Response: { ok: true, inviteUrl?: string }
- *   inviteUrl is only returned when SMTP is unconfigured (dev mode).
- * Errors: 404 not found, 400 already activated
  */
 exports.resendInvite = async (req, res) => {
   try {

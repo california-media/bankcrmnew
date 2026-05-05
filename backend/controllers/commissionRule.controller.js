@@ -1,12 +1,15 @@
 const CommissionRule = require('../models/CommissionRule');
+const Bank = require('../models/Bank');
 
 /**
- * GET /api/commission-rules  (admin, agency, agent — read-only for non-admins)
- * Response: Array<CommissionRule with bank populated>
+ * GET /api/commission-rules  (agency)
+ * Returns rules owned by the calling agency.
  */
 exports.list = async (req, res) => {
   try {
-    const rules = await CommissionRule.find().populate('bank', 'name code').sort({ productType: 1, tier: 1 });
+    const rules = await CommissionRule.find({ agency: req.user._id })
+      .populate('bank', 'name code')
+      .sort({ productType: 1, tier: 1 });
     res.json(rules);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -14,9 +17,9 @@ exports.list = async (req, res) => {
 };
 
 /**
- * POST /api/commission-rules  (admin)
+ * POST /api/commission-rules  (agency)
  * Body: { productType: 'credit_card'|'loan', bank?: ObjectId, amount: number, tier?: string }
- * Uniqueness on (productType, bank) is enforced at the controller level.
+ * If `bank` is provided, it must belong to the calling agency.
  */
 exports.create = async (req, res) => {
   try {
@@ -26,7 +29,16 @@ exports.create = async (req, res) => {
     }
     if (Number(amount) < 0) return res.status(400).json({ message: 'amount must be >= 0' });
 
-    const dupe = await CommissionRule.findOne({ productType, bank: bank || null });
+    if (bank) {
+      const owns = await Bank.findOne({ _id: bank, agency: req.user._id });
+      if (!owns) return res.status(400).json({ message: 'Bank does not belong to your agency' });
+    }
+
+    const dupe = await CommissionRule.findOne({
+      agency: req.user._id,
+      productType,
+      bank: bank || null,
+    });
     if (dupe) return res.status(409).json({ message: 'A rule for this product/bank already exists' });
 
     const rule = await CommissionRule.create({
@@ -34,6 +46,7 @@ exports.create = async (req, res) => {
       bank: bank || null,
       amount,
       tier,
+      agency: req.user._id,
     });
     const populated = await rule.populate('bank', 'name code');
     res.status(201).json(populated);
@@ -43,25 +56,31 @@ exports.create = async (req, res) => {
 };
 
 /**
- * PUT /api/commission-rules/:id  (admin)
- * Body: { productType?, bank?, amount?, tier? }
+ * PUT /api/commission-rules/:id  (agency)
  */
 exports.update = async (req, res) => {
   try {
     const { productType, bank, amount, tier } = req.body;
     const update = {};
     if (productType !== undefined) update.productType = productType;
-    if (bank !== undefined) update.bank = bank || null;
+    if (bank !== undefined) {
+      if (bank) {
+        const owns = await Bank.findOne({ _id: bank, agency: req.user._id });
+        if (!owns) return res.status(400).json({ message: 'Bank does not belong to your agency' });
+      }
+      update.bank = bank || null;
+    }
     if (amount !== undefined) {
       if (Number(amount) < 0) return res.status(400).json({ message: 'amount must be >= 0' });
       update.amount = amount;
     }
     if (tier !== undefined) update.tier = tier;
 
-    const rule = await CommissionRule.findByIdAndUpdate(req.params.id, update, {
-      new: true,
-      runValidators: true,
-    }).populate('bank', 'name code');
+    const rule = await CommissionRule.findOneAndUpdate(
+      { _id: req.params.id, agency: req.user._id },
+      update,
+      { new: true, runValidators: true }
+    ).populate('bank', 'name code');
     if (!rule) return res.status(404).json({ message: 'Rule not found' });
     res.json(rule);
   } catch (err) {
@@ -70,11 +89,11 @@ exports.update = async (req, res) => {
 };
 
 /**
- * DELETE /api/commission-rules/:id  (admin)
+ * DELETE /api/commission-rules/:id  (agency)
  */
 exports.remove = async (req, res) => {
   try {
-    const rule = await CommissionRule.findByIdAndDelete(req.params.id);
+    const rule = await CommissionRule.findOneAndDelete({ _id: req.params.id, agency: req.user._id });
     if (!rule) return res.status(404).json({ message: 'Rule not found' });
     res.json({ ok: true });
   } catch (err) {

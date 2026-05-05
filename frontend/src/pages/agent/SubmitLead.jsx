@@ -1,24 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Space, Alert } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
 function SubmitLead() {
-  const [banks, setBanks] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const [form] = Form.useForm();
-
-  useEffect(() => {
-    api.get('/banks').then((res) => setBanks(res.data));
-  }, []);
 
   const onFinish = async (values) => {
     setSubmitting(true);
     try {
       await api.post('/leads', values);
-      message.success('Lead saved as draft. Send it to an agency from My Leads.');
+      message.success('Draft saved. Open My Leads to send it to an agency.');
       navigate('/agent/leads');
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed to save');
@@ -33,7 +28,7 @@ function SubmitLead() {
         <Col>
           <Typography.Title level={3} style={{ margin: 0 }}>New Lead</Typography.Title>
           <Typography.Text type="secondary">
-            Capture the customer's details. You'll pick which agency handles it from My Leads.
+            Capture the customer's info. You'll pick the agency and bank from My Leads.
           </Typography.Text>
         </Col>
         <Col>
@@ -47,7 +42,7 @@ function SubmitLead() {
         type="info"
         showIcon
         message="This lead is saved as a draft."
-        description="After saving, open My Leads → Send to Agency to route it to an agency that services the chosen bank."
+        description="From My Leads → Send to Agency, choose an agency and one of their banks. Banks are owned by agencies."
         style={{ margin: '16px 0 24px' }}
       />
 
@@ -67,30 +62,16 @@ function SubmitLead() {
           </Row>
         </Card>
 
-        <Card title="Product Details" style={{ marginBottom: 16 }}>
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item name="productType" label="Product Type" rules={[{ required: true }]}>
-                <Select
-                  placeholder="Select a product"
-                  options={[
-                    { value: 'credit_card', label: 'Credit Card' },
-                    { value: 'loan', label: 'Loan' },
-                  ]}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item name="bank" label="Bank" rules={[{ required: true }]}>
-                <Select
-                  showSearch
-                  optionFilterProp="label"
-                  placeholder="Select bank"
-                  options={banks.map((b) => ({ value: b._id, label: b.name }))}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
+        <Card title="Product" style={{ marginBottom: 16 }}>
+          <Form.Item name="productType" label="Product Type" rules={[{ required: true }]}>
+            <Select
+              placeholder="Select a product"
+              options={[
+                { value: 'credit_card', label: 'Credit Card' },
+                { value: 'loan', label: 'Loan' },
+              ]}
+            />
+          </Form.Item>
           <Form.Item name="notes" label="Notes (optional)">
             <Input.TextArea rows={3} placeholder="Anything the agency should know about this customer." />
           </Form.Item>

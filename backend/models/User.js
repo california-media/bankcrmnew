@@ -9,9 +9,6 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, trim: true },
     role: { type: String, enum: ['admin', 'agency', 'agent'], required: true },
 
-    // Agency-only
-    banks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Bank' }],
-
     // Agent-only
     referralCode: { type: String, unique: true, sparse: true },
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

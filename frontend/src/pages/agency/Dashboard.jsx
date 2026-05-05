@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, Col, Row, Typography, Statistic, Tag, Space, Skeleton, Button, Empty } from 'antd';
-import { AuditOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { AuditOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined, BankOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
@@ -8,9 +8,11 @@ import api from '../../api/client';
 function AgencyDashboard() {
   const { user } = useSelector((s) => s.auth);
   const [leads, setLeads] = useState(null);
+  const [banks, setBanks] = useState(null);
 
   useEffect(() => {
     api.get('/leads/agency').then((res) => setLeads(res.data));
+    api.get('/banks').then((res) => setBanks(res.data));
   }, []);
 
   const stats = leads
@@ -37,7 +39,7 @@ function AgencyDashboard() {
             Welcome, {user.name || user.email}
           </Typography.Title>
           <Typography.Text type="secondary">
-            Review incoming leads for the banks under your remit.
+            Review incoming leads, manage your bank list, and set commission rules.
           </Typography.Text>
         </Col>
         <Col>
@@ -63,13 +65,19 @@ function AgencyDashboard() {
         ))}
       </Row>
 
-      <Card title="Your assigned banks" style={{ marginTop: 24 }}>
-        {(user.banks || []).length === 0 ? (
-          <Empty description="No banks assigned yet — contact the admin." />
+      <Card
+        title="Your banks"
+        style={{ marginTop: 24 }}
+        extra={<Link to="/agency/banks"><Button icon={<BankOutlined />}>Manage</Button></Link>}
+      >
+        {banks === null ? (
+          <Skeleton active paragraph={{ rows: 1 }} />
+        ) : banks.length === 0 ? (
+          <Empty description="No banks yet — add the banks your agency services to start receiving leads." />
         ) : (
           <Space wrap>
-            {(user.banks || []).map((b) => (
-              <Tag color="blue" key={b._id || b}>{b.name || b}</Tag>
+            {banks.map((b) => (
+              <Tag color="blue" key={b._id}>{b.name}</Tag>
             ))}
           </Space>
         )}

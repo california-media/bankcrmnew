@@ -3,34 +3,39 @@ const VolumeBonus = require('../models/VolumeBonus');
 const Lead = require('../models/Lead');
 
 /**
- * Look up the AED amount earned for a given lead's product + bank.
- * Tries (productType, bank) first, falls back to (productType, null).
- * Returns 0 if no rule matches.
+ * Look up the AED amount the given agency pays for an approved lead with
+ * (productType, bank). Tries (agency, productType, bank) first, then falls
+ * back to (agency, productType, null) — the agency's per-product default.
+ * Returns 0 if neither matches.
  */
-async function resolveCommissionAmount({ productType, bank }) {
-  let rule = await CommissionRule.findOne({ productType, bank });
-  if (!rule) rule = await CommissionRule.findOne({ productType, bank: null });
+async function resolveCommissionAmount({ agency, productType, bank }) {
+  if (!agency) return 0;
+  let rule = await CommissionRule.findOne({ agency, productType, bank });
+  if (!rule) rule = await CommissionRule.findOne({ agency, productType, bank: null });
   return rule ? rule.amount : 0;
 }
 
 /**
  * Recompute commission and commissionStatus on a Lead based on its current `status`.
  * Mutates and saves the lead. Returns the lead.
- *
- *  - approved      → commission set from rule, commissionStatus = 'pending'
- *  - disbursed     → commissionStatus = 'payable' (commission stays)
- *  - rejected      → commission = 0, commissionStatus = 'none'
- *  - others        → commission untouched (no-op)
  */
 async function recalcOnStatusChange(lead) {
   if (lead.status === 'approved') {
-    lead.commission = await resolveCommissionAmount({ productType: lead.productType, bank: lead.bank });
+    lead.commission = await resolveCommissionAmount({
+      agency: lead.agency,
+      productType: lead.productType,
+      bank: lead.bank,
+    });
     if (lead.commissionStatus === 'none' || lead.commissionStatus === 'paid') {
       lead.commissionStatus = 'pending';
     }
   } else if (lead.status === 'disbursed') {
     if (!lead.commission) {
-      lead.commission = await resolveCommissionAmount({ productType: lead.productType, bank: lead.bank });
+      lead.commission = await resolveCommissionAmount({
+        agency: lead.agency,
+        productType: lead.productType,
+        bank: lead.bank,
+      });
     }
     if (lead.commissionStatus !== 'paid') lead.commissionStatus = 'payable';
   } else if (lead.status === 'rejected') {
@@ -46,6 +51,7 @@ async function recalcOnStatusChange(lead) {
 async function getAgentLedger(agentId) {
   const leads = await Lead.find({ agent: agentId, commissionStatus: { $ne: 'none' } })
     .populate('bank', 'name code')
+    .populate('agency', 'name email')
     .sort({ updatedAt: -1 });
 
   const sumBy = (s) =>
@@ -61,7 +67,6 @@ async function getAgentLedger(agentId) {
 
 /**
  * Bonus earned by an agent in a given calendar month (year, month: 0-indexed).
- * Counts leads whose status transitioned to approved/disbursed within that window.
  */
 async function getMonthlyBonus(agentId, year, month) {
   const start = new Date(year, month, 1);

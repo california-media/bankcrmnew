@@ -25,8 +25,6 @@ const menusByRole = {
     { key: '/admin/leads', icon: <AuditOutlined />, label: <Link to="/admin/leads">All Leads</Link> },
     { key: '/admin/agents', icon: <IdcardOutlined />, label: <Link to="/admin/agents">Agents</Link> },
     { key: '/admin/agencies', icon: <TeamOutlined />, label: <Link to="/admin/agencies">Agencies</Link> },
-    { key: '/admin/banks', icon: <BankOutlined />, label: <Link to="/admin/banks">Banks</Link> },
-    { key: '/admin/commission-rules', icon: <PercentageOutlined />, label: <Link to="/admin/commission-rules">Commission Rules</Link> },
     { key: '/admin/volume-bonuses', icon: <TrophyOutlined />, label: <Link to="/admin/volume-bonuses">Volume Bonuses</Link> },
   ],
   agent: [
@@ -38,6 +36,8 @@ const menusByRole = {
   agency: [
     { key: '/agency', icon: <DashboardOutlined />, label: <Link to="/agency">Dashboard</Link> },
     { key: '/agency/leads', icon: <AuditOutlined />, label: <Link to="/agency/leads">Lead Queue</Link> },
+    { key: '/agency/banks', icon: <BankOutlined />, label: <Link to="/agency/banks">My Banks</Link> },
+    { key: '/agency/commission-rules', icon: <PercentageOutlined />, label: <Link to="/agency/commission-rules">Commission Rules</Link> },
   ],
 };
 

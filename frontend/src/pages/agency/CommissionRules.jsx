@@ -10,7 +10,7 @@ const PRODUCTS = [
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
-function CommissionRules() {
+function AgencyCommissionRules() {
   const [rules, setRules] = useState([]);
   const [banks, setBanks] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -99,11 +99,11 @@ function CommissionRules() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
           <Typography.Title level={3} style={{ margin: 0 }}>Commission Rules</Typography.Title>
           <Typography.Text type="secondary">
-            Set the AED payout per approved lead for each product/bank pair. Leave bank blank for a default.
+            What your agency pays an agent for an approved lead. Leave bank blank for a per-product default.
           </Typography.Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Rule</Button>
@@ -144,4 +144,4 @@ function CommissionRules() {
   );
 }
 
-export default CommissionRules;
+export default AgencyCommissionRules;

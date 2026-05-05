@@ -2,11 +2,11 @@ const router = require('express').Router();
 const ctrl = require('../controllers/commissionRule.controller');
 const { protect, requireRole } = require('../middleware/auth.middleware');
 
-router.use(protect);
+router.use(protect, requireRole('agency'));
 
 router.get('/', ctrl.list);
-router.post('/', requireRole('admin'), ctrl.create);
-router.put('/:id', requireRole('admin'), ctrl.update);
-router.delete('/:id', requireRole('admin'), ctrl.remove);
+router.post('/', ctrl.create);
+router.put('/:id', ctrl.update);
+router.delete('/:id', ctrl.remove);
 
 module.exports = router;

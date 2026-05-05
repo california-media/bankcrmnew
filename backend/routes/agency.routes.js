@@ -4,10 +4,10 @@ const { protect, requireRole } = require('../middleware/auth.middleware');
 
 router.use(protect);
 
-// Agent + admin: read-only lookup used by the lead form
-router.get('/for-bank/:bankId', requireRole('agent', 'admin'), ctrl.listForBank);
+// Agent + admin: lightweight active list, used by send-to-agency
+router.get('/active', requireRole('agent', 'admin'), ctrl.listActive);
 
-// Admin only: agency management
+// Admin only
 router.post('/', requireRole('admin'), ctrl.create);
 router.get('/', requireRole('admin'), ctrl.list);
 router.post('/:id/resend-invite', requireRole('admin'), ctrl.resendInvite);

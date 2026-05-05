@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Table, Tag, Typography, Input, Select, Row, Col, Space, Button, Popconfirm, message } from 'antd';
-import { SearchOutlined, DollarOutlined } from '@ant-design/icons';
+import { SearchOutlined, DollarOutlined, SendOutlined } from '@ant-design/icons';
 import api from '../../api/client';
+import SendToAgencyModal from '../../components/SendToAgencyModal';
 
 const STATUSES = [
   { value: 'draft', label: 'Draft', color: 'default' },
@@ -26,6 +27,9 @@ function AdminLeads() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState();
   const [productFilter, setProductFilter] = useState();
+
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sendingLead, setSendingLead] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -76,9 +80,9 @@ function AdminLeads() {
       ),
     },
     { title: 'Agent', render: (_, row) => row.agent?.name || row.agent?.email || '—' },
-    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || '—' },
+    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || <Typography.Text type="secondary">—</Typography.Text> },
     { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
-    { title: 'Bank', dataIndex: ['bank', 'name'] },
+    { title: 'Bank', render: (_, row) => row.bank?.name || <Typography.Text type="secondary">—</Typography.Text> },
     {
       title: 'Stage',
       dataIndex: 'status',
@@ -107,12 +111,24 @@ function AdminLeads() {
     },
     {
       title: 'Actions',
-      width: 160,
-      render: (_, row) => row.commissionStatus === 'payable' && (
-        <Popconfirm title="Mark this commission as paid?" onConfirm={() => markPaid(row._id)}>
-          <Button size="small" icon={<DollarOutlined />}>Mark Paid</Button>
-        </Popconfirm>
-      ),
+      width: 220,
+      render: (_, row) => {
+        if (row.status === 'draft') {
+          return (
+            <Button size="small" type="primary" icon={<SendOutlined />} onClick={() => { setSendingLead(row); setSendOpen(true); }}>
+              Send to Agency
+            </Button>
+          );
+        }
+        if (row.commissionStatus === 'payable') {
+          return (
+            <Popconfirm title="Mark this commission as paid?" onConfirm={() => markPaid(row._id)}>
+              <Button size="small" icon={<DollarOutlined />}>Mark Paid</Button>
+            </Popconfirm>
+          );
+        }
+        return null;
+      },
     },
   ];
 
@@ -152,6 +168,13 @@ function AdminLeads() {
       </Space>
 
       <Table rowKey="_id" loading={loading} dataSource={filtered} columns={columns} />
+
+      <SendToAgencyModal
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
+        lead={sendingLead}
+        onSent={load}
+      />
     </>
   );
 }

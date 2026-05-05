@@ -3,7 +3,6 @@ import { Card, Col, Row, Typography, Statistic, Skeleton, Space } from 'antd';
 import {
   TeamOutlined,
   IdcardOutlined,
-  BankOutlined,
   AuditOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -30,7 +29,6 @@ function AdminDashboard() {
     { key: 'payableCommission', title: 'Commission Payable', value: aed(overview?.payableCommission), icon: <RiseOutlined style={{ color: '#d4a847' }} /> },
     { key: 'agents', title: 'Agents', value: overview?.agents, icon: <IdcardOutlined style={{ color: '#3b82f6' }} />, link: '/admin/agents' },
     { key: 'agencies', title: 'Agencies', value: overview?.agencies, icon: <TeamOutlined style={{ color: '#16a34a' }} />, link: '/admin/agencies' },
-    { key: 'banks', title: 'Banks', value: overview?.banks, icon: <BankOutlined style={{ color: '#0ea5e9' }} />, link: '/admin/banks' },
   ];
 
   return (

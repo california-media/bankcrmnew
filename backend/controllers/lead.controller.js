@@ -5,34 +5,25 @@ const commissionService = require('../services/commission.service');
 
 /**
  * POST /api/leads  (agent)
- * Body: { customerName, phone, productType, bank, notes? }
- * Creates a draft lead — the agent picks an agency in a separate step
- * via POST /api/leads/:id/send-to-agency.
+ * Body: { customerName, phone, productType, notes? }
+ * Creates a draft lead (no agency, no bank yet — both chosen at send-to-agency).
  */
 exports.create = async (req, res) => {
   try {
-    const { customerName, phone, productType, bank, notes } = req.body;
-    if (!customerName || !phone || !productType || !bank) {
-      return res.status(400).json({ message: 'customerName, phone, productType, and bank are required' });
+    const { customerName, phone, productType, notes } = req.body;
+    if (!customerName || !phone || !productType) {
+      return res.status(400).json({ message: 'customerName, phone, and productType are required' });
     }
-
-    const bankExists = await Bank.findById(bank);
-    if (!bankExists) return res.status(400).json({ message: 'Invalid bank' });
 
     const lead = await Lead.create({
       customerName,
       phone,
       productType,
-      bank,
       notes,
       agent: req.user._id,
       status: 'draft',
-      agency: null,
     });
-    const populated = await lead.populate([
-      { path: 'bank', select: 'name code' },
-      { path: 'agent', select: 'name email' },
-    ]);
+    const populated = await lead.populate('agent', 'name email');
     res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -40,17 +31,19 @@ exports.create = async (req, res) => {
 };
 
 /**
- * POST /api/leads/:id/send-to-agency  (agent)
- * Body: { agency: ObjectId }
- * Promotes a draft lead by attaching an agency. The agency must service
- * the lead's bank. After this, status='submitted' and the agency's queue picks it up.
+ * POST /api/leads/:id/send-to-agency  (agent, admin)
+ * Body: { agency: ObjectId, bank: ObjectId }
+ * The bank must belong to the chosen agency. Agents may only send their own
+ * drafts; admins may send any draft on behalf of the agent who created it.
  */
 exports.sendToAgency = async (req, res) => {
   try {
-    const { agency } = req.body;
-    if (!agency) return res.status(400).json({ message: 'agency is required' });
+    const { agency, bank } = req.body;
+    if (!agency || !bank) return res.status(400).json({ message: 'agency and bank are required' });
 
-    const lead = await Lead.findOne({ _id: req.params.id, agent: req.user._id });
+    const filter = { _id: req.params.id };
+    if (req.user.role === 'agent') filter.agent = req.user._id;
+    const lead = await Lead.findOne(filter);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     if (lead.status !== 'draft') {
       return res.status(400).json({ message: 'Only draft leads can be sent to an agency' });
@@ -58,10 +51,12 @@ exports.sendToAgency = async (req, res) => {
 
     const agencyDoc = await User.findOne({ _id: agency, role: 'agency', isActive: true });
     if (!agencyDoc) return res.status(400).json({ message: 'Invalid agency' });
-    const agencyHasBank = (agencyDoc.banks || []).some((b) => String(b) === String(lead.bank));
-    if (!agencyHasBank) return res.status(400).json({ message: 'Selected agency does not service this bank' });
+
+    const bankDoc = await Bank.findOne({ _id: bank, agency: agencyDoc._id });
+    if (!bankDoc) return res.status(400).json({ message: 'Bank does not belong to that agency' });
 
     lead.agency = agency;
+    lead.bank = bank;
     lead.status = 'submitted';
     await lead.save();
 
@@ -78,7 +73,6 @@ exports.sendToAgency = async (req, res) => {
 
 /**
  * DELETE /api/leads/:id  (agent)
- * Lets the agent discard one of their own draft leads.
  */
 exports.removeDraft = async (req, res) => {
   try {
@@ -111,7 +105,6 @@ exports.listMine = async (req, res) => {
 
 /**
  * GET /api/leads/stats  (agent)
- * Includes a `drafts` count so the dashboard can prompt the agent to send them.
  */
 exports.stats = async (req, res) => {
   try {
@@ -175,9 +168,24 @@ exports.listAll = async (req, res) => {
   }
 };
 
-const ALLOWED_TRANSITIONS = {
+/**
+ * Allowed FROM-states for each TO-status.
+ *  - approve: only after assigned
+ *  - reject:  any non-terminal
+ *  - others enforce sensible forward motion
+ * Admins can bypass these for anything except draft (kept agent-only).
+ */
+const FROM_STATES = {
+  under_review: ['submitted'],
+  assigned: ['under_review'],
+  approved: ['assigned'],
+  rejected: ['submitted', 'under_review', 'assigned', 'approved'],
+  disbursed: ['approved'],
+};
+
+const ROLE_TARGETS = {
   agency: ['under_review', 'assigned', 'approved', 'rejected', 'disbursed'],
-  admin: Lead.STATUSES,
+  admin: ['under_review', 'assigned', 'approved', 'rejected', 'disbursed', 'submitted'],
 };
 
 /**
@@ -189,7 +197,7 @@ exports.updateStatus = async (req, res) => {
     if (!status || !Lead.STATUSES.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
-    const allowed = ALLOWED_TRANSITIONS[req.user.role];
+    const allowed = ROLE_TARGETS[req.user.role];
     if (!allowed || !allowed.includes(status)) {
       return res.status(403).json({ message: 'You may not set this status' });
     }
@@ -201,6 +209,13 @@ exports.updateStatus = async (req, res) => {
       if (!lead.agency || String(lead.agency) !== String(req.user._id)) {
         return res.status(403).json({ message: 'This lead is not assigned to you' });
       }
+    }
+
+    const allowedFrom = FROM_STATES[status];
+    if (allowedFrom && !allowedFrom.includes(lead.status)) {
+      return res.status(400).json({
+        message: `Cannot move from "${lead.status}" to "${status}"`,
+      });
     }
 
     lead.status = status;

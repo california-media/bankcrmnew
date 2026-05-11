@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Card, Col, Row, Typography, Tag, Space, Button, Descriptions, Skeleton,
-  Timeline, Divider, message, Modal, Form, InputNumber, Input,
+  Timeline, Divider, message, Modal, Form, InputNumber, Input, Select,
 } from 'antd';
 import {
-  ArrowLeftOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, FileOutlined,
+  ArrowLeftOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, FileOutlined, UserAddOutlined,
 } from '@ant-design/icons';
 import api from '../../api/client';
 
@@ -49,6 +49,11 @@ export default function LeadDetail() {
   const [noteSubmitting, setNoteSubmitting] = useState(false);
   const [deletingNoteId, setDeletingNoteId] = useState(null);
 
+  const [employees, setEmployees] = useState([]);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignForm] = Form.useForm();
+  const [assignSaving, setAssignSaving] = useState(false);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -63,6 +68,12 @@ export default function LeadDetail() {
   };
 
   useEffect(() => { load(); }, [id]);
+
+  useEffect(() => {
+    if (role === 'agency') {
+      api.get('/employees').then((res) => setEmployees(res.data)).catch(() => {});
+    }
+  }, [role]);
 
   const openStatusModal = (status, label) => {
     statusNoteForm.resetFields();
@@ -93,6 +104,21 @@ export default function LeadDetail() {
       load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const assignEmployee = async () => {
+    const { employeeId } = await assignForm.validateFields();
+    setAssignSaving(true);
+    try {
+      const { data } = await api.patch(`/leads/${id}/assign-employee`, { employeeId });
+      setLead(data);
+      message.success('Employee assigned');
+      setAssignOpen(false);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to assign');
+    } finally {
+      setAssignSaving(false);
     }
   };
 
@@ -497,6 +523,11 @@ export default function LeadDetail() {
                     Reject
                   </Button>
                 )}
+                {!['disbursed', 'rejected'].includes(lead.status) && (
+                  <Button block icon={<UserAddOutlined />} onClick={() => { assignForm.resetFields(); setAssignOpen(true); }}>
+                    {lead.assignedEmployee ? 'Reassign Employee' : 'Assign Employee'}
+                  </Button>
+                )}
               </Space>
             </Card>
           )}
@@ -530,6 +561,32 @@ export default function LeadDetail() {
         <Form form={loanForm} layout="vertical">
           <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true }]}>
             <InputNumber min={1} step={1000} style={{ width: '100%' }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Assign employee modal */}
+      <Modal
+        title={lead?.assignedEmployee ? 'Reassign Employee' : 'Assign Employee'}
+        open={assignOpen}
+        onCancel={() => setAssignOpen(false)}
+        onOk={assignEmployee}
+        okText="Assign"
+        confirmLoading={assignSaving}
+        destroyOnClose
+      >
+        {lead?.assignedEmployee && (
+          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
+            Currently assigned: <strong>{lead.assignedEmployee.name || lead.assignedEmployee.email}</strong>
+          </Typography.Text>
+        )}
+        <Form form={assignForm} layout="vertical">
+          <Form.Item name="employeeId" label="Employee" rules={[{ required: true, message: 'Select an employee' }]}>
+            <Select
+              placeholder="Select employee"
+              options={employees.filter((e) => e.isActive).map((e) => ({ value: e._id, label: e.name || e.email }))}
+              style={{ width: '100%' }}
+            />
           </Form.Item>
         </Form>
       </Modal>

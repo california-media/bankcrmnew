@@ -1,42 +1,101 @@
 const Lead = require('../models/Lead');
 const Bank = require('../models/Bank');
 const User = require('../models/User');
+const CardProduct = require('../models/CardProduct');
+const LoanProduct = require('../models/LoanProduct');
 const commissionService = require('../services/commission.service');
+
+const POPULATE_FIELDS = [
+  { path: 'bank', select: 'name code' },
+  { path: 'agency', select: 'name email' },
+  { path: 'agent', select: 'name email' },
+  { path: 'cardProduct', select: 'name cardType commissionBrackets' },
+  { path: 'loanProduct', select: 'name loanCategory commissionBrackets' },
+];
 
 /**
  * POST /api/leads  (agent)
- * Body: { customerName, phone, productType, bank, notes? }
- * Each bank belongs to exactly one agency, so picking the bank fully determines
- * the routing — agency is set on the draft from bank.agency.
+ * Body: { customerName, phone, productType, cardProduct?, loanProduct?, loanAmount?, notes? }
+ * Bank and agency are derived from the selected card/loan product.
  */
 exports.create = async (req, res) => {
   try {
-    const { customerName, phone, productType, bank, notes } = req.body;
-    if (!customerName || !phone || !productType || !bank) {
-      return res.status(400).json({ message: 'customerName, phone, productType, and bank are required' });
+    const { customerName, phone, productType, cardProduct, loanProduct, loanAmount, customerSalary, notes, email, visaType, nationality, companyName, jobTitle, yearsOfExperience } = req.body;
+    if (!customerName || !phone || !productType) {
+      return res.status(400).json({ message: 'customerName, phone, and productType are required' });
     }
 
-    const bankDoc = await Bank.findById(bank).populate('agency', 'isActive role');
-    if (!bankDoc) return res.status(400).json({ message: 'Invalid bank' });
-    if (!bankDoc.agency || bankDoc.agency.role !== 'agency' || !bankDoc.agency.isActive) {
-      return res.status(400).json({ message: 'This bank is not currently available' });
+    let bankId, agencyId;
+
+    if (productType === 'credit_card') {
+      if (!cardProduct) return res.status(400).json({ message: 'cardProduct is required for credit card leads' });
+      const card = await CardProduct.findById(cardProduct).populate('agency', 'isActive role');
+      if (!card) return res.status(400).json({ message: 'Invalid card product' });
+      if (!card.isActive) return res.status(400).json({ message: 'This card product is not active' });
+      bankId = card.bank;
+      const agency = card.agency;
+      if (!agency || agency.role !== 'agency' || !agency.isActive) {
+        return res.status(400).json({ message: 'The agency for this card product is not currently available' });
+      }
+      agencyId = agency._id;
+    } else if (productType === 'loan') {
+      if (!loanProduct) return res.status(400).json({ message: 'loanProduct is required for loan leads' });
+      if (!loanAmount || loanAmount <= 0) return res.status(400).json({ message: 'loanAmount is required for loan leads' });
+      const loan = await LoanProduct.findById(loanProduct).populate('agency', 'isActive role');
+      if (!loan) return res.status(400).json({ message: 'Invalid loan product' });
+      if (!loan.isActive) return res.status(400).json({ message: 'This loan product is not active' });
+      bankId = loan.bank;
+      const agency = loan.agency;
+      if (!agency || agency.role !== 'agency' || !agency.isActive) {
+        return res.status(400).json({ message: 'The agency for this loan product is not currently available' });
+      }
+      agencyId = agency._id;
+    } else {
+      return res.status(400).json({ message: 'productType must be credit_card or loan' });
     }
 
-    const lead = await Lead.create({
+    const leadData = {
       customerName,
       phone,
       productType,
-      bank: bankDoc._id,
-      agency: bankDoc.agency._id,
+      bank: bankId,
+      agency: agencyId,
       notes,
       agent: req.user._id,
       status: 'draft',
+    };
+    if (customerSalary != null) leadData.customerSalary = customerSalary;
+    if (email) leadData.email = email.trim();
+    if (visaType) leadData.visaType = visaType.trim();
+    if (nationality) leadData.nationality = nationality.trim();
+    if (companyName) leadData.companyName = companyName.trim();
+    if (jobTitle) leadData.jobTitle = jobTitle.trim();
+    if (yearsOfExperience != null) leadData.yearsOfExperience = yearsOfExperience;
+    if (productType === 'credit_card') leadData.cardProduct = cardProduct;
+    if (productType === 'loan') { leadData.loanProduct = loanProduct; leadData.loanAmount = loanAmount; }
+
+    // Pre-calculate expected commissions from product brackets at creation time
+    const { receivable, payable } = await commissionService.resolveCommissions({
+      productType,
+      cardProduct,
+      loanProduct,
+      loanAmount,
+      customerSalary,
     });
-    const populated = await lead.populate([
-      { path: 'bank', select: 'name code' },
-      { path: 'agency', select: 'name email' },
-      { path: 'agent', select: 'name email' },
-    ]);
+    leadData.grossCommission = receivable;
+    leadData.commission = payable;
+
+    const agentDoc = await User.findByIdAndUpdate(
+      req.user._id,
+      { $inc: { leadCount: 1 } },
+      { new: true, select: 'leadCount' }
+    );
+    const agentShortId = String(req.user._id).slice(-6).toUpperCase();
+    const seq = String(agentDoc.leadCount).padStart(4, '0');
+    leadData.leadNumber = `LD-${agentShortId}-${seq}`;
+
+    const lead = await Lead.create(leadData);
+    const populated = await lead.populate(POPULATE_FIELDS);
     res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -45,8 +104,6 @@ exports.create = async (req, res) => {
 
 /**
  * POST /api/leads/:id/send-to-agency  (agent, admin)
- * Promotes a draft to `submitted`. Agency + bank were already set at draft
- * creation, so this is just a confirmed status flip — no body required.
  */
 exports.sendToAgency = async (req, res) => {
   try {
@@ -67,11 +124,7 @@ exports.sendToAgency = async (req, res) => {
     lead.status = 'submitted';
     await lead.save();
 
-    const populated = await lead.populate([
-      { path: 'bank', select: 'name code' },
-      { path: 'agent', select: 'name email' },
-      { path: 'agency', select: 'name email' },
-    ]);
+    const populated = await lead.populate(POPULATE_FIELDS);
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -103,6 +156,8 @@ exports.listMine = async (req, res) => {
     const leads = await Lead.find({ agent: req.user._id })
       .populate('bank', 'name code')
       .populate('agency', 'name email')
+      .populate('cardProduct', 'name cardType commissionBrackets')
+      .populate('loanProduct', 'name loanCategory commissionBrackets')
       .sort({ createdAt: -1 });
     res.json(leads);
   } catch (err) {
@@ -146,13 +201,14 @@ exports.stats = async (req, res) => {
 
 /**
  * GET /api/leads/agency  (agency)
- * Excludes drafts — agencies only see leads that have been formally sent.
  */
 exports.listForAgency = async (req, res) => {
   try {
     const leads = await Lead.find({ agency: req.user._id, status: { $ne: 'draft' } })
       .populate('bank', 'name code')
-      .populate('agent', 'name email phone')
+      .populate('assignedEmployee', 'name email')
+      .populate('cardProduct', 'name cardType commissionBrackets')
+      .populate('loanProduct', 'name loanCategory commissionBrackets')
       .sort({ createdAt: -1 });
     res.json(leads);
   } catch (err) {
@@ -169,6 +225,8 @@ exports.listAll = async (req, res) => {
       .populate('bank', 'name code')
       .populate('agent', 'name email')
       .populate('agency', 'name email')
+      .populate('cardProduct', 'name cardType commissionBrackets')
+      .populate('loanProduct', 'name loanCategory commissionBrackets')
       .sort({ createdAt: -1 });
     res.json(leads);
   } catch (err) {
@@ -176,13 +234,6 @@ exports.listAll = async (req, res) => {
   }
 };
 
-/**
- * Allowed FROM-states for each TO-status.
- *  - approve: only after assigned
- *  - reject:  any non-terminal
- *  - others enforce sensible forward motion
- * Admins can bypass these for anything except draft (kept agent-only).
- */
 const FROM_STATES = {
   under_review: ['submitted'],
   assigned: ['under_review'],
@@ -227,14 +278,87 @@ exports.updateStatus = async (req, res) => {
     }
 
     lead.status = status;
+    lead.statusHistory.push({
+      status,
+      note: req.body.note ? String(req.body.note).trim() : undefined,
+      changedBy: req.user._id,
+      changedAt: new Date(),
+    });
     await commissionService.recalcOnStatusChange(lead);
     await lead.save();
 
-    const populated = await lead.populate([
-      { path: 'bank', select: 'name code' },
-      { path: 'agent', select: 'name email phone' },
-      { path: 'agency', select: 'name email' },
-    ]);
+    const populated = await lead.populate(POPULATE_FIELDS);
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/leads/:id/loan-amount  (agency)
+ * Agency can edit the loan amount before the lead is approved.
+ */
+exports.updateLoanAmount = async (req, res) => {
+  try {
+    const { loanAmount } = req.body;
+    if (!loanAmount || loanAmount <= 0) {
+      return res.status(400).json({ message: 'loanAmount must be a positive number' });
+    }
+
+    const lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    if (lead.productType !== 'loan') {
+      return res.status(400).json({ message: 'This lead is not a loan lead' });
+    }
+    const preLockStatuses = ['submitted', 'under_review', 'assigned', 'approved'];
+    if (!preLockStatuses.includes(lead.status)) {
+      return res.status(400).json({ message: 'Loan amount can only be edited before disbursement' });
+    }
+
+    lead.loanAmount = loanAmount;
+    await lead.save();
+
+    const populated = await lead.populate(POPULATE_FIELDS);
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/leads/:id/agent-commission  (admin)
+ * Admin sets how much commission the agent receives.
+ * Body: { agentCommissionType: 'percentage'|'fixed', agentCommissionValue: number }
+ */
+exports.setAgentCommission = async (req, res) => {
+  try {
+    const { agentCommissionType, agentCommissionValue } = req.body;
+    if (!agentCommissionType || agentCommissionValue == null) {
+      return res.status(400).json({ message: 'agentCommissionType and agentCommissionValue are required' });
+    }
+    if (!['percentage', 'fixed'].includes(agentCommissionType)) {
+      return res.status(400).json({ message: 'agentCommissionType must be percentage or fixed' });
+    }
+
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    if (lead.status !== 'approved') {
+      return res.status(400).json({ message: 'Agent commission can only be adjusted before disbursement (approved stage only)' });
+    }
+
+    lead.agentCommissionType = agentCommissionType;
+    lead.agentCommissionValue = agentCommissionValue;
+
+    if (agentCommissionType === 'percentage') {
+      lead.commission = (lead.grossCommission * agentCommissionValue) / 100;
+    } else {
+      lead.commission = agentCommissionValue;
+    }
+
+    if (lead.commissionStatus === 'none') lead.commissionStatus = 'pending';
+    await lead.save();
+
+    const populated = await lead.populate(POPULATE_FIELDS);
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -243,6 +367,7 @@ exports.updateStatus = async (req, res) => {
 
 /**
  * POST /api/leads/:id/mark-paid  (admin)
+ * Sends payout to agent and records a snapshot in payoutHistory.
  */
 exports.markCommissionPaid = async (req, res) => {
   try {
@@ -251,13 +376,18 @@ exports.markCommissionPaid = async (req, res) => {
     if (lead.commissionStatus !== 'payable') {
       return res.status(400).json({ message: 'Commission is not payable' });
     }
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    lead.payoutHistory.push({
+      amount: lead.commission,
+      sentAt: now,
+      sentBy: req.user._id,
+      month,
+    });
     lead.commissionStatus = 'paid';
-    lead.commissionPaidAt = new Date();
+    lead.commissionPaidAt = now;
     await lead.save();
-    const populated = await lead.populate([
-      { path: 'bank', select: 'name code' },
-      { path: 'agent', select: 'name email' },
-    ]);
+    const populated = await lead.populate(POPULATE_FIELDS);
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -265,9 +395,88 @@ exports.markCommissionPaid = async (req, res) => {
 };
 
 /**
+ * PATCH /api/leads/:id/receipt  (agency)
+ * Agency attaches a disbursement receipt reference to a disbursed lead.
+ */
+exports.addDisbursementReceipt = async (req, res) => {
+  try {
+    const lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    if (lead.status !== 'disbursed') {
+      return res.status(400).json({ message: 'Receipt can only be added to disbursed leads' });
+    }
+
+    const { receipt } = req.body;
+    const hasFile = !!req.file;
+    if (!receipt && !hasFile) {
+      return res.status(400).json({ message: 'Provide a reference number or upload a file' });
+    }
+
+    if (receipt) lead.disbursementReceipt = String(receipt).trim();
+    if (hasFile) lead.disbursementReceiptFile = req.file.filename;
+    lead.disbursementReceiptAt = new Date();
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/leads/bulk-mark-paid  (admin)
+ * Body: { leadIds?: string[] }  — omit for all payable leads
+ */
+exports.bulkMarkPaid = async (req, res) => {
+  try {
+    const { leadIds } = req.body;
+    const filter = leadIds?.length
+      ? { _id: { $in: leadIds }, commissionStatus: 'payable' }
+      : { commissionStatus: 'payable' };
+    const leads = await Lead.find(filter);
+    if (!leads.length) return res.status(400).json({ message: 'No payable leads found' });
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    await Promise.all(leads.map((lead) => {
+      lead.payoutHistory.push({ amount: lead.commission, sentAt: now, sentBy: req.user._id, month });
+      lead.commissionStatus = 'paid';
+      lead.commissionPaidAt = now;
+      return lead.save();
+    }));
+    res.json({ count: leads.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/leads/bulk-receipt  (agency)
+ * Body: { leadIds: string[], receipt?: string } + optional file
+ */
+exports.bulkAddReceipt = async (req, res) => {
+  try {
+    const { leadIds, receipt } = req.body;
+    const hasFile = !!req.file;
+    if (!receipt && !hasFile) return res.status(400).json({ message: 'Provide a reference number or upload a file' });
+    if (!leadIds?.length) return res.status(400).json({ message: 'Select at least one lead' });
+    const ids = Array.isArray(leadIds) ? leadIds : JSON.parse(leadIds);
+    const leads = await Lead.find({ _id: { $in: ids }, agency: req.user._id, status: 'disbursed' });
+    if (!leads.length) return res.status(404).json({ message: 'No eligible leads found' });
+    const now = new Date();
+    await Promise.all(leads.map((lead) => {
+      if (receipt) lead.disbursementReceipt = String(receipt).trim();
+      if (hasFile) lead.disbursementReceiptFile = req.file.filename;
+      lead.disbursementReceiptAt = now;
+      return lead.save();
+    }));
+    res.json({ count: leads.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * PATCH /api/leads/:id/engagement-status  (agent)
- * Body: { engagementStatus: ENGAGEMENT_STATUS }
- * Agent-managed conversation state — independent of the lifecycle `status`.
  */
 exports.updateEngagementStatus = async (req, res) => {
   try {
@@ -288,6 +497,132 @@ exports.updateEngagementStatus = async (req, res) => {
 };
 
 /**
+ * GET /api/leads/:id  (admin, agency, agent, employee)
+ * Admin: any lead. Agency: only their leads. Agent: only their leads.
+ * Employee: only leads assigned to them.
+ */
+exports.getOne = async (req, res) => {
+  try {
+    const filter = { _id: req.params.id };
+    if (req.user.role === 'agent') filter.agent = req.user._id;
+    if (req.user.role === 'agency') filter.agency = req.user._id;
+    if (req.user.role === 'employee') filter.assignedEmployee = req.user._id;
+    const lead = await Lead.findOne(filter)
+      .populate('bank', 'name code')
+      .populate('agency', 'name email')
+      .populate('agent', 'name email phone')
+      .populate('cardProduct', 'name cardType commissionBrackets')
+      .populate('loanProduct', 'name loanCategory commissionBrackets')
+      .populate('assignedEmployee', 'name email')
+      .populate('payoutHistory.sentBy', 'name email')
+      .populate('statusHistory.changedBy', 'name email');
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    const out = lead.toObject();
+    if (req.user.role === 'agency') delete out.agent;
+    if (req.user.role === 'employee') {
+      delete out.commission;
+      delete out.grossCommission;
+      delete out.commissionStatus;
+      delete out.commissionPaidAt;
+    }
+    res.json(out);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/leads/:id/assign-employee  (agency)
+ * Body: { employeeId }
+ * Assigns an employee (who belongs to this agency) to the lead.
+ */
+exports.assignEmployee = async (req, res) => {
+  try {
+    const { employeeId } = req.body;
+    if (!employeeId) {
+      return res.status(400).json({ message: 'employeeId is required' });
+    }
+
+    const employee = await User.findOne({
+      _id: employeeId,
+      role: 'employee',
+      agency: req.user._id,
+    });
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found or does not belong to your agency' });
+    }
+
+    const lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.assignedEmployee = employeeId;
+    await lead.save();
+
+    const populated = await lead.populate([
+      ...POPULATE_FIELDS,
+      { path: 'assignedEmployee', select: 'name email' },
+    ]);
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/leads/bulk-assign-employee  (agency)
+ * Body: { leadIds: [], employeeId }
+ * Bulk-assigns an employee to multiple leads belonging to this agency.
+ */
+exports.bulkAssignEmployee = async (req, res) => {
+  try {
+    const { leadIds, employeeId } = req.body;
+    if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
+      return res.status(400).json({ message: 'leadIds array is required' });
+    }
+    if (!employeeId) {
+      return res.status(400).json({ message: 'employeeId is required' });
+    }
+
+    const employee = await User.findOne({
+      _id: employeeId,
+      role: 'employee',
+      agency: req.user._id,
+    });
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found or does not belong to your agency' });
+    }
+
+    const result = await Lead.updateMany(
+      { _id: { $in: leadIds }, agency: req.user._id },
+      { assignedEmployee: employeeId }
+    );
+
+    res.json({ updated: result.modifiedCount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * GET /api/leads/assigned  (employee)
+ * Returns all leads assigned to the current employee.
+ */
+exports.listAssigned = async (req, res) => {
+  try {
+    const leads = await Lead.find({ assignedEmployee: req.user._id })
+      .populate('bank', 'name code')
+      .populate('agency', 'name email')
+      .populate('agent', 'name email')
+      .populate('cardProduct', 'name cardType')
+      .populate('loanProduct', 'name loanCategory')
+      .sort({ createdAt: -1 });
+    res.json(leads);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * GET /api/leads/ledger  (agent)
  */
 exports.myLedger = async (req, res) => {
@@ -296,6 +631,42 @@ exports.myLedger = async (req, res) => {
     const now = new Date();
     const bonus = await commissionService.getMonthlyBonus(req.user._id, now.getFullYear(), now.getMonth());
     res.json({ ...ledger, monthlyBonus: bonus });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/leads/:id/notes  (all roles)
+ */
+exports.addNote = async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text || !String(text).trim()) {
+      return res.status(400).json({ message: 'text is required' });
+    }
+
+    const filter = { _id: req.params.id };
+    if (req.user.role === 'agent')    filter.agent            = req.user._id;
+    if (req.user.role === 'agency')   filter.agency           = req.user._id;
+    if (req.user.role === 'employee') filter.assignedEmployee = req.user._id;
+
+    const lead = await Lead.findOne(filter);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    lead.leadNotes.push({
+      text: String(text).trim(),
+      author: req.user._id,
+      authorRole: req.user.role,
+    });
+    await lead.save();
+
+    const populated = await lead.populate([
+      ...POPULATE_FIELDS,
+      { path: 'leadNotes.author', select: 'name email' },
+      { path: 'statusHistory.changedBy', select: 'name email' },
+    ]);
+    res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

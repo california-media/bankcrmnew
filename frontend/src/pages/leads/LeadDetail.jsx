@@ -47,6 +47,7 @@ export default function LeadDetail() {
   const [statusSaving, setStatusSaving] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [noteSubmitting, setNoteSubmitting] = useState(false);
+  const [deletingNoteId, setDeletingNoteId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -110,11 +111,15 @@ export default function LeadDetail() {
   };
 
   const deleteNote = async (noteId) => {
+    if (deletingNoteId) return;
+    setDeletingNoteId(noteId);
     try {
       const { data } = await api.delete(`/leads/${id}/notes/${noteId}`);
       setLead(data);
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed to delete note');
+    } finally {
+      setDeletingNoteId(null);
     }
   };
 
@@ -310,7 +315,7 @@ export default function LeadDetail() {
 
           {/* Notes */}
           <Card title="Notes" style={{ marginBottom: 16 }}>
-            {lead.leadNotes?.length > 0 ? (
+            {(lead.leadNotes ?? []).length > 0 ? (
               <div style={{ marginBottom: 16 }}>
                 {lead.leadNotes.map((n) => (
                   <div
@@ -341,6 +346,8 @@ export default function LeadDetail() {
                         danger
                         size="small"
                         icon={<DeleteOutlined />}
+                        loading={deletingNoteId === n._id}
+                        disabled={!!deletingNoteId}
                         style={{ position: 'absolute', top: 8, right: 8 }}
                         onClick={() => deleteNote(n._id)}
                       />

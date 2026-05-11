@@ -262,24 +262,24 @@ export default function LeadDetail() {
           {/* People */}
           {role === 'admin' && (
             <Card title="People" style={{ marginBottom: 16 }}>
-              <Descriptions column={{ xs: 1, sm: 2 }}>
+              <Descriptions column={1} size="small">
                 <Descriptions.Item label="Agent">
-                  {lead.agent?.name || lead.agent?.email || '—'}
-                  {lead.agent?.name && (
-                    <div style={{ fontSize: 12, color: '#888' }}>{lead.agent.email}</div>
+                  <span style={{ fontWeight: 600 }}>{lead.agent?.name || '—'}</span>
+                  {lead.agent?.email && (
+                    <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>{lead.agent.email}</span>
                   )}
                 </Descriptions.Item>
                 <Descriptions.Item label="Agency">
-                  {lead.agency?.name || lead.agency?.email || '—'}
-                  {lead.agency?.name && (
-                    <div style={{ fontSize: 12, color: '#888' }}>{lead.agency.email}</div>
+                  <span style={{ fontWeight: 600 }}>{lead.agency?.name || '—'}</span>
+                  {lead.agency?.email && (
+                    <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>{lead.agency.email}</span>
                   )}
                 </Descriptions.Item>
                 {lead.assignedEmployee && (
                   <Descriptions.Item label="Assigned Employee">
-                    {lead.assignedEmployee.name || lead.assignedEmployee.email}
-                    {lead.assignedEmployee.name && (
-                      <div style={{ fontSize: 12, color: '#888' }}>{lead.assignedEmployee.email}</div>
+                    <span style={{ fontWeight: 600 }}>{lead.assignedEmployee.name || '—'}</span>
+                    {lead.assignedEmployee.email && (
+                      <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>{lead.assignedEmployee.email}</span>
                     )}
                   </Descriptions.Item>
                 )}

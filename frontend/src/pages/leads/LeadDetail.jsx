@@ -347,7 +347,7 @@ export default function LeadDetail() {
                         size="small"
                         icon={<DeleteOutlined />}
                         loading={deletingNoteId === n._id}
-                        disabled={!!deletingNoteId}
+                        disabled={deletingNoteId === n._id}
                         style={{ position: 'absolute', top: 8, right: 8 }}
                         onClick={() => deleteNote(n._id)}
                       />

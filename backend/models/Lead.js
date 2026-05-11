@@ -29,18 +29,67 @@ const ENGAGEMENT_STATUSES = [
 
 const leadSchema = new mongoose.Schema(
   {
+    leadNumber: { type: String, unique: true, sparse: true },
     customerName: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
     productType: { type: String, enum: ['credit_card', 'loan'], required: true },
     bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
+    // Card or loan product selected at lead creation
+    cardProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'CardProduct' },
+    loanProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'LoanProduct' },
+    loanAmount: { type: Number, min: 0 },
+    customerSalary: { type: Number, min: 0 },
+    email: { type: String, trim: true },
+    visaType: { type: String, trim: true },
+    nationality: { type: String, trim: true },
+    companyName: { type: String, trim: true },
+    jobTitle: { type: String, trim: true },
+    yearsOfExperience: { type: Number, min: 0 },
     status: { type: String, enum: LEAD_STATUSES, default: 'draft' },
     agent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    // grossCommission = raw commission from card/loan product (admin keeps this)
+    grossCommission: { type: Number, default: 0 },
+    // commission = agent's portion (set by admin, shown in agent ledger)
     commission: { type: Number, default: 0 },
     commissionStatus: { type: String, enum: COMMISSION_STATUSES, default: 'none' },
     commissionPaidAt: { type: Date },
+    // Admin-set agent commission split
+    agentCommissionType: { type: String, enum: ['percentage', 'fixed'], default: 'fixed' },
+    agentCommissionValue: { type: Number, default: 0 },
+    assignedEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     engagementStatus: { type: String, enum: ENGAGEMENT_STATUSES, default: 'new_lead' },
     notes: { type: String, trim: true },
+    disbursementReceipt: { type: String, trim: true },
+    disbursementReceiptFile: { type: String, trim: true },
+    disbursementReceiptAt: { type: Date },
+    statusHistory: [
+      {
+        status: { type: String },
+        note: { type: String, trim: true },
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        changedAt: { type: Date, default: Date.now },
+        _id: false,
+      },
+    ],
+    payoutHistory: [
+      {
+        amount: { type: Number, required: true },
+        sentAt: { type: Date, default: Date.now },
+        sentBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        month: { type: String },
+        note: { type: String, trim: true },
+        _id: false,
+      },
+    ],
+    leadNotes: [
+      {
+        text: { type: String, required: true, trim: true },
+        author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        authorRole: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

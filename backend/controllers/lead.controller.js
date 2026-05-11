@@ -520,6 +520,7 @@ exports.getOne = async (req, res) => {
       .populate('agent', 'name email phone')
       .populate('cardProduct', 'name cardType commissionBrackets')
       .populate('loanProduct', 'name loanCategory commissionBrackets')
+      .populate('employeeStatus', 'label color')
       .populate('assignedEmployee', 'name email')
       .populate('payoutHistory.sentBy', 'name email')
       .populate('statusHistory.changedBy', 'name email')

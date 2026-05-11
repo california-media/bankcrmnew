@@ -603,7 +603,7 @@ export default function LeadDetail() {
 
           {/* Employee status for all roles (read-only) */}
           {lead.employeeStatus && role !== 'employee' && (
-            <Card title="Employee Status" style={{ marginBottom: 16 }}>
+            <Card title="Lead Status" style={{ marginBottom: 16 }}>
               <Tag color={lead.employeeStatus.color} style={{ fontSize: 13 }}>
                 {lead.employeeStatus.label}
               </Tag>

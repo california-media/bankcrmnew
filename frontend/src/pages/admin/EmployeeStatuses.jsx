@@ -139,7 +139,7 @@ function EmployeeStatuses() {
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>Employee Statuses</Typography.Title>
+          <Typography.Title level={3} style={{ margin: 0 }}>Lead Status</Typography.Title>
           <Typography.Text type="secondary">Custom status labels employees can apply to their assigned leads.</Typography.Text>
         </Col>
         <Col>

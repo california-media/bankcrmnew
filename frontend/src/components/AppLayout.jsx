@@ -31,7 +31,7 @@ const menusByRole = {
     { key: '/admin/loan-products', icon: <FundOutlined />, label: <Link to="/admin/loan-products">Loan Products</Link> },
     { key: '/admin/volume-bonuses', icon: <TrophyOutlined />, label: <Link to="/admin/volume-bonuses">Volume Bonuses</Link> },
     { key: '/admin/payouts', icon: <DollarOutlined />, label: <Link to="/admin/payouts">Payouts</Link> },
-    { key: '/admin/employee-statuses', icon: <UnorderedListOutlined />, label: <Link to="/admin/employee-statuses">Employee Statuses</Link> },
+    { key: '/admin/employee-statuses', icon: <UnorderedListOutlined />, label: <Link to="/admin/employee-statuses">Lead Status</Link> },
   ],
   agent: [
     { key: '/agent', icon: <DashboardOutlined />, label: <Link to="/agent">Dashboard</Link> },

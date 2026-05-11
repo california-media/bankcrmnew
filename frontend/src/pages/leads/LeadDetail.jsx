@@ -572,32 +572,18 @@ export default function LeadDetail() {
           {/* Employee Actions */}
           {role === 'employee' && (
             <Card title="Actions" style={{ marginBottom: 16 }}>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                {lead.status === 'assigned' && (
-                  <Button block type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>
-                    Approve
-                  </Button>
-                )}
-                {lead.status === 'approved' && (
-                  <Button block onClick={() => openStatusModal('disbursed', 'Disbursed')}>
-                    Mark Disbursed
-                  </Button>
-                )}
-                <div>
-                  <Typography.Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
-                    Status Label
-                  </Typography.Text>
-                  <Select
-                    allowClear
-                    placeholder="Set status..."
-                    value={lead.employeeStatus?._id || lead.employeeStatus || undefined}
-                    loading={empStatusSaving}
-                    onChange={(val) => updateEmpStatus(val || null)}
-                    style={{ width: '100%' }}
-                    options={empStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))}
-                  />
-                </div>
-              </Space>
+              <Typography.Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
+                Status Label
+              </Typography.Text>
+              <Select
+                allowClear
+                placeholder="Set status..."
+                value={lead.employeeStatus?._id || lead.employeeStatus || undefined}
+                loading={empStatusSaving}
+                onChange={(val) => updateEmpStatus(val || null)}
+                style={{ width: '100%' }}
+                options={empStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))}
+              />
             </Card>
           )}
 

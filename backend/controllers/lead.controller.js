@@ -246,7 +246,6 @@ const FROM_STATES = {
 const ROLE_TARGETS = {
   agency: ['under_review', 'assigned', 'approved', 'rejected', 'disbursed'],
   admin: ['under_review', 'assigned', 'approved', 'rejected', 'disbursed', 'submitted'],
-  employee: ['approved', 'disbursed'],
 };
 
 /**
@@ -268,11 +267,6 @@ exports.updateStatus = async (req, res) => {
 
     if (req.user.role === 'agency') {
       if (!lead.agency || String(lead.agency) !== String(req.user._id)) {
-        return res.status(403).json({ message: 'This lead is not assigned to you' });
-      }
-    }
-    if (req.user.role === 'employee') {
-      if (!lead.assignedEmployee || String(lead.assignedEmployee) !== String(req.user._id)) {
         return res.status(403).json({ message: 'This lead is not assigned to you' });
       }
     }

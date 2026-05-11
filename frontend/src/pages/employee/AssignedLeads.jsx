@@ -93,7 +93,7 @@ function AssignedLeads() {
       },
     },
     {
-      title: 'Emp. Status',
+      title: 'Status',
       render: (_, row) => row.employeeStatus
         ? <Tag color={row.employeeStatus.color}>{row.employeeStatus.label}</Tag>
         : <Typography.Text type="secondary">—</Typography.Text>,

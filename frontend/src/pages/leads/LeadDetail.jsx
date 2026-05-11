@@ -111,7 +111,6 @@ export default function LeadDetail() {
   };
 
   const deleteNote = async (noteId) => {
-    if (deletingNoteId) return;
     setDeletingNoteId(noteId);
     try {
       const { data } = await api.delete(`/leads/${id}/notes/${noteId}`);

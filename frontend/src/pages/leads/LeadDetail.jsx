@@ -328,12 +328,21 @@ export default function LeadDetail() {
                     }}
                   >
                     <Space size={6} style={{ marginBottom: 4 }}>
-                      <Typography.Text strong style={{ fontSize: 13 }}>
-                        {n.author?.name || n.author?.email || 'Unknown'}
-                      </Typography.Text>
-                      <Tag style={{ fontSize: 11, lineHeight: '18px', padding: '0 6px' }}>
-                        {n.authorRole}
-                      </Tag>
+                      {(() => {
+                        const hiddenFromViewer = (role === 'agent' || role === 'employee') && (n.authorRole === 'admin' || n.authorRole === 'agency');
+                        return hiddenFromViewer ? (
+                          <Typography.Text strong style={{ fontSize: 13 }}>Staff</Typography.Text>
+                        ) : (
+                          <>
+                            <Typography.Text strong style={{ fontSize: 13 }}>
+                              {n.author?.name || n.author?.email || 'Unknown'}
+                            </Typography.Text>
+                            <Tag style={{ fontSize: 11, lineHeight: '18px', padding: '0 6px' }}>
+                              {n.authorRole}
+                            </Tag>
+                          </>
+                        );
+                      })()}
                       <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                         {new Date(n.createdAt).toLocaleString()}
                       </Typography.Text>

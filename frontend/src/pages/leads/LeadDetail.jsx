@@ -330,8 +330,8 @@ export default function LeadDetail() {
                     <Space size={6} style={{ marginBottom: 4 }}>
                       {(() => {
                         const hiddenFromViewer =
-                          (role === 'agent' && (n.authorRole === 'admin' || n.authorRole === 'agency')) ||
-                          (role === 'employee' && n.authorRole === 'admin');
+                          (n.authorRole === 'admin' && role !== 'admin') ||
+                          (n.authorRole === 'agency' && role === 'agent');
                         return hiddenFromViewer ? (
                           <Typography.Text strong style={{ fontSize: 13 }}>Staff</Typography.Text>
                         ) : (

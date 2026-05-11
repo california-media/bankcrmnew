@@ -515,7 +515,8 @@ exports.getOne = async (req, res) => {
       .populate('loanProduct', 'name loanCategory commissionBrackets')
       .populate('assignedEmployee', 'name email')
       .populate('payoutHistory.sentBy', 'name email')
-      .populate('statusHistory.changedBy', 'name email');
+      .populate('statusHistory.changedBy', 'name email')
+      .populate('leadNotes.author', 'name email');
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     const out = lead.toObject();
     if (req.user.role === 'agency') delete out.agent;

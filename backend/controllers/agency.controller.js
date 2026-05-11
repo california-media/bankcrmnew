@@ -65,6 +65,59 @@ exports.list = async (req, res) => {
 };
 
 /**
+ * PATCH /api/agencies/:id  (admin)
+ * Body: { name?, email? }
+ */
+exports.update = async (req, res) => {
+  try {
+    const agency = await User.findOne({ _id: req.params.id, role: 'agency' });
+    if (!agency) return res.status(404).json({ message: 'Agency not found' });
+
+    const { name, email } = req.body;
+    if (name !== undefined) agency.name = name;
+    if (email) {
+      const lower = email.toLowerCase();
+      const conflict = await User.findOne({ email: lower, _id: { $ne: agency._id } });
+      if (conflict) return res.status(409).json({ message: 'Email already in use' });
+      agency.email = lower;
+    }
+    await agency.save();
+    res.json({ agency: sanitizeAgency(agency) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/agencies/:id/toggle-active  (admin)
+ */
+exports.toggleActive = async (req, res) => {
+  try {
+    const agency = await User.findOne({ _id: req.params.id, role: 'agency' });
+    if (!agency) return res.status(404).json({ message: 'Agency not found' });
+
+    agency.isActive = !agency.isActive;
+    await agency.save();
+    res.json({ agency: sanitizeAgency(agency) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * DELETE /api/agencies/:id  (admin)
+ */
+exports.remove = async (req, res) => {
+  try {
+    const agency = await User.findOneAndDelete({ _id: req.params.id, role: 'agency' });
+    if (!agency) return res.status(404).json({ message: 'Agency not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * POST /api/agencies/:id/resend-invite  (admin)
  */
 exports.resendInvite = async (req, res) => {

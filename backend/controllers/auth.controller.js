@@ -18,6 +18,20 @@ const sanitize = (user) => ({
   referralCode: user.referralCode,
 });
 
+const sanitizeFull = (user) => ({
+  id: user._id,
+  name: user.name,
+  email: user.email,
+  phone: user.phone,
+  role: user.role,
+  referralCode: user.referralCode,
+  leadCount: user.leadCount,
+  isActive: user.isActive,
+  createdAt: user.createdAt,
+  agency: user.agency,
+  referredBy: user.referredBy,
+});
+
 const safeUser = async (id) =>
   User.findById(id).select('-password -inviteToken -inviteTokenExpires');
 
@@ -143,6 +157,53 @@ exports.me = async (req, res) => {
   try {
     const full = await safeUser(req.user._id);
     res.json({ user: sanitize(full) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * GET /api/auth/profile  (any authenticated user) — full profile with populated refs
+ */
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('-password -inviteToken -inviteTokenExpires')
+      .populate('agency', 'name email phone')
+      .populate('referredBy', 'name email referralCode');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json({ user: sanitizeFull(user) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/auth/profile  (any authenticated user) — update name, phone, password
+ */
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, phone, currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (name !== undefined && name.trim()) user.name = name.trim();
+    if (phone !== undefined) user.phone = phone.trim();
+
+    if (newPassword) {
+      if (!currentPassword) return res.status(400).json({ message: 'Current password required' });
+      const ok = await user.comparePassword(currentPassword);
+      if (!ok) return res.status(400).json({ message: 'Current password is incorrect' });
+      if (newPassword.length < 6) return res.status(400).json({ message: 'New password must be at least 6 characters' });
+      user.password = newPassword;
+    }
+
+    await user.save();
+    const updated = await User.findById(user._id)
+      .select('-password -inviteToken -inviteTokenExpires')
+      .populate('agency', 'name email phone')
+      .populate('referredBy', 'name email referralCode');
+    res.json({ user: sanitizeFull(updated) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

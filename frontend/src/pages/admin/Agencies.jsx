@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Tag, Typography, message, Alert, Tooltip } from 'antd';
-import { PlusOutlined, MailOutlined, CopyOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Form, Input, Tag, Typography, message, Alert, Tooltip, Popconfirm, Space } from 'antd';
+import { PlusOutlined, MailOutlined, CopyOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 function Agencies() {
@@ -8,7 +8,9 @@ function Agencies() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [inviteUrl, setInviteUrl] = useState(null);
+  const [editTarget, setEditTarget] = useState(null);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const load = async () => {
     setLoading(true);
@@ -52,6 +54,43 @@ function Agencies() {
     }
   };
 
+  const openEdit = (row) => {
+    setEditTarget(row);
+    editForm.setFieldsValue({ name: row.name || '', email: row.email });
+  };
+
+  const onEdit = async () => {
+    const values = await editForm.validateFields();
+    try {
+      await api.patch(`/agencies/${editTarget._id}`, values);
+      message.success('Agency updated');
+      setEditTarget(null);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update');
+    }
+  };
+
+  const onToggleActive = async (row) => {
+    try {
+      await api.patch(`/agencies/${row._id}/toggle-active`);
+      message.success(row.isActive ? 'Agency deactivated' : 'Agency activated');
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed');
+    }
+  };
+
+  const onDelete = async (id) => {
+    try {
+      await api.delete(`/agencies/${id}`);
+      message.success('Agency deleted');
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to delete');
+    }
+  };
+
   const columns = [
     { title: 'Name', dataIndex: 'name', render: (v) => v || <Typography.Text type="secondary">—</Typography.Text> },
     { title: 'Email', dataIndex: 'email' },
@@ -62,12 +101,36 @@ function Agencies() {
     },
     {
       title: 'Actions',
-      render: (_, row) =>
-        !row.isActive && (
-          <Tooltip title="Resend invite link">
-            <Button icon={<MailOutlined />} onClick={() => onResend(row._id)}>Resend</Button>
+      render: (_, row) => (
+        <Space>
+          {!row.isActive && (
+            <Tooltip title="Resend invite link">
+              <Button size="small" icon={<MailOutlined />} onClick={() => onResend(row._id)}>Resend</Button>
+            </Tooltip>
+          )}
+          <Tooltip title="Edit">
+            <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
           </Tooltip>
-        ),
+          <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
+            <Button
+              size="small"
+              icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
+              onClick={() => onToggleActive(row)}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Delete agency?"
+            description="This cannot be undone."
+            onConfirm={() => onDelete(row._id)}
+            okText="Delete"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Delete">
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
     },
   ];
 
@@ -82,7 +145,7 @@ function Agencies() {
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Invite Agency</Button>
       </div>
-      <Table rowKey="_id" loading={loading} dataSource={agencies} columns={columns} />
+      <Table size="small" rowKey="_id" loading={loading} dataSource={agencies} columns={columns} />
 
       <Modal
         title="Invite Agency"
@@ -116,6 +179,24 @@ function Agencies() {
             </Form.Item>
           </Form>
         )}
+      </Modal>
+
+      <Modal
+        title="Edit Agency"
+        open={!!editTarget}
+        onCancel={() => setEditTarget(null)}
+        onOk={onEdit}
+        okText="Save"
+        destroyOnClose
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item name="name" label="Agency name">
+            <Input />
+          </Form.Item>
+          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
+            <Input />
+          </Form.Item>
+        </Form>
       </Modal>
     </>
   );

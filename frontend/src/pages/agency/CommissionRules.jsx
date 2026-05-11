@@ -105,7 +105,7 @@ function AgencyCommissionRules() {
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Rule</Button>
       </div>
 
-      <Table rowKey="_id" loading={loading} dataSource={rules} columns={columns} />
+      <Table size="small" rowKey="_id" loading={loading} dataSource={rules} columns={columns} />
 
       <Modal
         title={editing ? 'Edit Rule' : 'Add Rule'}

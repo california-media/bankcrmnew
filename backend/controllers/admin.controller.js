@@ -110,3 +110,56 @@ exports.createAgent = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+/**
+ * PATCH /api/admin/agents/:id  (admin)
+ * Body: { name?, email?, phone? }
+ */
+exports.updateAgent = async (req, res) => {
+  try {
+    const agent = await User.findOne({ _id: req.params.id, role: 'agent' });
+    if (!agent) return res.status(404).json({ message: 'Agent not found' });
+
+    const { name, email, phone } = req.body;
+    if (name !== undefined) agent.name = name;
+    if (phone !== undefined) agent.phone = phone;
+    if (email) {
+      const lower = email.toLowerCase();
+      const conflict = await User.findOne({ email: lower, _id: { $ne: agent._id } });
+      if (conflict) return res.status(409).json({ message: 'Email already in use' });
+      agent.email = lower;
+    }
+    await agent.save();
+    res.json({ user: sanitizeAgent(agent) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/admin/agents/:id/toggle-active  (admin)
+ */
+exports.toggleAgentActive = async (req, res) => {
+  try {
+    const agent = await User.findOne({ _id: req.params.id, role: 'agent' });
+    if (!agent) return res.status(404).json({ message: 'Agent not found' });
+    agent.isActive = !agent.isActive;
+    await agent.save();
+    res.json({ user: sanitizeAgent(agent) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * DELETE /api/admin/agents/:id  (admin)
+ */
+exports.deleteAgent = async (req, res) => {
+  try {
+    const agent = await User.findOneAndDelete({ _id: req.params.id, role: 'agent' });
+    if (!agent) return res.status(404).json({ message: 'Agent not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

@@ -1,12 +1,9 @@
 const CommissionRule = require('../models/CommissionRule');
 const VolumeBonus = require('../models/VolumeBonus');
 const Lead = require('../models/Lead');
+const CardProduct = require('../models/CardProduct');
+const LoanProduct = require('../models/LoanProduct');
 
-/**
- * Look up the AED amount the given agency pays for an approved lead with the
- * specific (productType, bank) pair. Returns 0 if no rule exists — the agency
- * must explicitly add a rule for the bank/product combo.
- */
 async function resolveCommissionAmount({ agency, productType, bank }) {
   if (!agency || !bank) return 0;
   const rule = await CommissionRule.findOne({ agency, productType, bank });
@@ -14,42 +11,84 @@ async function resolveCommissionAmount({ agency, productType, bank }) {
 }
 
 /**
- * Recompute commission and commissionStatus on a Lead based on its current `status`.
- * Mutates and saves the lead. Returns the lead.
+ * Calculate gross commission for a lead based on its product type.
+ * Card: fixed commissionAmount from CardProduct.
+ * Loan: commissionRate % of loanAmount.
+ * Falls back to CommissionRule if no product is linked.
  */
+function findBracket(brackets, salary) {
+  if (!brackets || brackets.length === 0) return null;
+  const sorted = [...brackets].sort((a, b) => a.minimumSalary - b.minimumSalary);
+  if (!salary) return sorted[0];
+  const eligible = sorted.filter((b) => b.minimumSalary <= salary);
+  return eligible.length ? eligible[eligible.length - 1] : sorted[0];
+}
+
+/**
+ * Resolve both receivable (gross/admin) and payable (agent) commissions
+ * from the current product brackets at call time. Used to lock values at
+ * disbursement so later bracket edits don't affect already-disbursed leads.
+ */
+async function resolveCommissions(lead) {
+  if (lead.productType === 'credit_card' && lead.cardProduct) {
+    const card = await CardProduct.findById(lead.cardProduct);
+    if (!card) return { receivable: 0, payable: 0 };
+    const bracket = findBracket(card.commissionBrackets, lead.customerSalary);
+    return bracket
+      ? { receivable: bracket.receivable, payable: bracket.payable }
+      : { receivable: 0, payable: 0 };
+  }
+  if (lead.productType === 'loan' && lead.loanProduct) {
+    const loan = await LoanProduct.findById(lead.loanProduct);
+    if (!loan || !lead.loanAmount) return { receivable: 0, payable: 0 };
+    const bracket = findBracket(loan.commissionBrackets, lead.customerSalary);
+    if (!bracket) return { receivable: 0, payable: 0 };
+    return {
+      receivable: (lead.loanAmount * bracket.receivable) / 100,
+      payable: (lead.loanAmount * bracket.payable) / 100,
+    };
+  }
+  const amount = await resolveCommissionAmount({
+    agency: lead.agency,
+    productType: lead.productType,
+    bank: lead.bank,
+  });
+  return { receivable: amount, payable: 0 };
+}
+
+async function resolveGrossCommission(lead) {
+  const { receivable } = await resolveCommissions(lead);
+  return receivable;
+}
+
 async function recalcOnStatusChange(lead) {
   if (lead.status === 'approved') {
-    lead.commission = await resolveCommissionAmount({
-      agency: lead.agency,
-      productType: lead.productType,
-      bank: lead.bank,
-    });
+    lead.grossCommission = await resolveGrossCommission(lead);
     if (lead.commissionStatus === 'none' || lead.commissionStatus === 'paid') {
       lead.commissionStatus = 'pending';
     }
   } else if (lead.status === 'disbursed') {
-    if (!lead.commission) {
-      lead.commission = await resolveCommissionAmount({
-        agency: lead.agency,
-        productType: lead.productType,
-        bank: lead.bank,
-      });
-    }
+    // Lock both commissions from product brackets at disbursement time.
+    // Always recalc so the snapshot reflects rates at this exact moment,
+    // not a potentially stale approved-stage value.
+    const { receivable, payable } = await resolveCommissions(lead);
+    lead.grossCommission = receivable;
+    lead.commission = payable;
     if (lead.commissionStatus !== 'paid') lead.commissionStatus = 'payable';
   } else if (lead.status === 'rejected') {
+    lead.grossCommission = 0;
     lead.commission = 0;
     lead.commissionStatus = 'none';
   }
   return lead;
 }
 
-/**
- * Ledger summary for an agent: totals by commissionStatus.
- */
 async function getAgentLedger(agentId) {
   const leads = await Lead.find({ agent: agentId, commissionStatus: { $ne: 'none' } })
     .populate('bank', 'name code')
     .populate('agency', 'name email')
+    .populate('cardProduct', 'name cardType')
+    .populate('loanProduct', 'name loanCategory')
     .sort({ updatedAt: -1 });
 
   const sumBy = (s) =>
@@ -63,9 +102,6 @@ async function getAgentLedger(agentId) {
   };
 }
 
-/**
- * Bonus earned by an agent in a given calendar month (year, month: 0-indexed).
- */
 async function getMonthlyBonus(agentId, year, month) {
   const start = new Date(year, month, 1);
   const end = new Date(year, month + 1, 1);
@@ -89,6 +125,8 @@ async function getMonthlyBonus(agentId, year, month) {
 
 module.exports = {
   resolveCommissionAmount,
+  resolveCommissions,
+  resolveGrossCommission,
   recalcOnStatusChange,
   getAgentLedger,
   getMonthlyBonus,

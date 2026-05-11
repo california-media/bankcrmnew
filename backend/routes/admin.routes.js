@@ -7,5 +7,8 @@ router.use(protect, requireRole('admin'));
 router.get('/agents', ctrl.listAgents);
 router.get('/overview', ctrl.overview);
 router.post('/agents', ctrl.createAgent);
+router.patch('/agents/:id', ctrl.updateAgent);
+router.patch('/agents/:id/toggle-active', ctrl.toggleAgentActive);
+router.delete('/agents/:id', ctrl.deleteAgent);
 
 module.exports = router;

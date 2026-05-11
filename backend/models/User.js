@@ -7,11 +7,15 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String },
     phone: { type: String, trim: true },
-    role: { type: String, enum: ['admin', 'agency', 'agent'], required: true },
+    role: { type: String, enum: ['admin', 'agency', 'agent', 'employee'], required: true },
+
+    // Employee-only: link back to the agency that created this employee
+    agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
     // Agent-only
     referralCode: { type: String, unique: true, sparse: true },
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    leadCount: { type: Number, default: 0 },
 
     // Invitation flow (agencies created by admin)
     inviteToken: { type: String },

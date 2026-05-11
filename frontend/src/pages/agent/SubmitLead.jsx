@@ -1,39 +1,171 @@
 import { useEffect, useState } from 'react';
-import { Card, Form, Input, Select, Button, Typography, Row, Col, message, Space, Alert } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import {
+  Card, Form, Input, Select, Button, Typography, Row, Col, message,
+  Space, InputNumber, Segmented, Descriptions, Modal, Alert, Divider,
+} from 'antd';
+import { ArrowLeftOutlined, CreditCardOutlined, BankOutlined, SendOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
+const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
+
+const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
+
+1. Accuracy of Information
+   You confirm that all client information provided (name, phone number, salary, and product selection) is accurate and obtained with the client's knowledge and consent.
+
+2. Client Consent
+   You confirm that the client has agreed to be contacted by the agency regarding the selected financial product.
+
+3. Data Privacy
+   Client data will be used solely for processing this lead and will be handled in accordance with applicable data protection regulations.
+
+4. No Duplicate Submissions
+   You confirm this lead has not been previously submitted through this or any other channel.
+
+5. Agent Responsibility
+   You acknowledge responsibility for the quality and authenticity of the lead. Submitting false or duplicate leads may result in account suspension.
+
+6. Commission Terms
+   Commission eligibility is subject to the agency's approval and the successful disbursement of the financial product. Rates are subject to change.
+
+7. Compliance
+   This submission must comply with all applicable UAE Central Bank regulations and the agency's internal compliance policies.
+
+By accepting these terms, you confirm all above conditions are met and authorize submission of this lead to the agency.`;
+
+function buildBracketOptions(brackets) {
+  if (!brackets || brackets.length === 0) return [];
+  return [...brackets]
+    .sort((a, b) => a.minimumSalary - b.minimumSalary)
+    .map((b) => ({
+      value: b.minimumSalary,
+      label: `Min. Salary ${aed(b.minimumSalary)}`,
+      payable: b.payable,
+    }));
+}
+
 function SubmitLead() {
   const [submitting, setSubmitting] = useState(false);
-  const [banks, setBanks] = useState([]);
-  const [loadingBanks, setLoadingBanks] = useState(false);
+  const [productType, setProductType] = useState('credit_card');
+  const [cardProducts, setCardProducts] = useState([]);
+  const [loanProducts, setLoanProducts] = useState([]);
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [selectedLoan, setSelectedLoan] = useState(null);
+  const [selectedBracket, setSelectedBracket] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [pendingValues, setPendingValues] = useState(null);
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
   useEffect(() => {
-    setLoadingBanks(true);
-    api.get('/banks/all').then((res) => setBanks(res.data)).finally(() => setLoadingBanks(false));
+    setLoading(true);
+    Promise.all([api.get('/card-products'), api.get('/loan-products')])
+      .then(([cardsRes, loansRes]) => {
+        setCardProducts(cardsRes.data.filter((c) => c.isActive));
+        setLoanProducts(loansRes.data.filter((l) => l.isActive));
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  const onFinish = async (values) => {
+  const resetProduct = () => {
+    setSelectedCard(null);
+    setSelectedLoan(null);
+    setSelectedBracket(null);
+    form.resetFields(['cardProduct', 'loanProduct', 'loanAmount', 'salaryBracket']);
+  };
+
+  const onProductTypeChange = (val) => {
+    setProductType(val);
+    resetProduct();
+  };
+
+  const autoSelectMinBracket = (brackets) => {
+    if (!brackets || brackets.length === 0) { setSelectedBracket(null); form.resetFields(['salaryBracket']); return; }
+    const min = [...brackets].sort((a, b) => a.minimumSalary - b.minimumSalary)[0];
+    setSelectedBracket(min);
+    form.setFieldValue('salaryBracket', min.minimumSalary);
+  };
+
+  const onCardSelect = (id) => {
+    const card = cardProducts.find((c) => c._id === id) || null;
+    setSelectedCard(card);
+    autoSelectMinBracket(card?.commissionBrackets);
+  };
+
+  const onLoanSelect = (id) => {
+    const loan = loanProducts.find((l) => l._id === id) || null;
+    setSelectedLoan(loan);
+    autoSelectMinBracket(loan?.commissionBrackets);
+  };
+
+  const onBracketSelect = (minSalary) => {
+    const product = productType === 'credit_card' ? selectedCard : selectedLoan;
+    const brackets = product?.commissionBrackets || [];
+    const bracket = brackets.find((b) => b.minimumSalary === minSalary) || null;
+    setSelectedBracket(bracket);
+  };
+
+  const activeBrackets = productType === 'credit_card'
+    ? buildBracketOptions(selectedCard?.commissionBrackets)
+    : buildBracketOptions(selectedLoan?.commissionBrackets);
+
+  const onFormSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      setPendingValues(values);
+      setTermsOpen(true);
+    } catch {
+      // validation errors shown inline
+    }
+  };
+
+  const onTermsConfirm = async () => {
+    setTermsOpen(false);
     setSubmitting(true);
     try {
-      await api.post('/leads', values);
-      message.success('Draft saved. Open My Leads to confirm and send it.');
+      const values = pendingValues;
+      const payload = {
+        customerName: values.customerName,
+        phone: values.phone,
+        productType,
+        notes: values.notes,
+      };
+      if (values.salaryBracket != null) payload.customerSalary = values.salaryBracket;
+      if (values.email) payload.email = values.email;
+      if (values.nationality) payload.nationality = values.nationality;
+      if (values.visaType) payload.visaType = values.visaType;
+      if (values.companyName) payload.companyName = values.companyName;
+      if (values.jobTitle) payload.jobTitle = values.jobTitle;
+      if (values.yearsOfExperience != null) payload.yearsOfExperience = values.yearsOfExperience;
+      if (productType === 'credit_card') payload.cardProduct = values.cardProduct;
+      if (productType === 'loan') {
+        payload.loanProduct = values.loanProduct;
+        payload.loanAmount = values.loanAmount;
+      }
+
+      const { data: lead } = await api.post('/leads', payload);
+      await api.post(`/leads/${lead._id}/send-to-agency`);
+      message.success('Lead submitted to agency successfully.');
       navigate('/agent/leads');
     } catch (err) {
-      message.error(err.response?.data?.message || 'Failed to save');
+      message.error(err.response?.data?.message || 'Submission failed');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Bank options labeled with agency name to disambiguate when names collide.
-  const bankOptions = banks.map((b) => ({
-    value: b._id,
-    label: `${b.name} — ${b.agency?.name || b.agency?.email || 'Unknown agency'}`,
-    searchText: `${b.name} ${b.agency?.name || ''} ${b.agency?.email || ''}`.toLowerCase(),
+  const cardOptions = cardProducts.map((c) => ({
+    value: c._id,
+    label: `${c.name} — ${c.bank?.name || ''}`,
+    searchText: `${c.name} ${c.bank?.name || ''} ${c.cardType}`.toLowerCase(),
+  }));
+
+  const loanOptions = loanProducts.map((l) => ({
+    value: l._id,
+    label: `${l.name} — ${l.bank?.name || ''}`,
+    searchText: `${l.name} ${l.bank?.name || ''} ${l.loanCategory}`.toLowerCase(),
   }));
 
   return (
@@ -41,9 +173,7 @@ function SubmitLead() {
       <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
         <Col>
           <Typography.Title level={3} style={{ margin: 0 }}>New Lead</Typography.Title>
-          <Typography.Text type="secondary">
-            Pick the bank — its agency is set automatically.
-          </Typography.Text>
+          <Typography.Text type="secondary">Select a product — bank and agency are set automatically.</Typography.Text>
         </Col>
         <Col>
           <Link to="/agent/leads">
@@ -52,15 +182,7 @@ function SubmitLead() {
         </Col>
       </Row>
 
-      <Alert
-        type="info"
-        showIcon
-        message="This lead will be saved as a draft."
-        description="From My Leads you'll see a Send to Agency action — that's just a confirmation. Bank names can repeat across agencies, so each option here shows the owning agency."
-        style={{ margin: '16px 0 24px' }}
-      />
-
-      <Form form={form} layout="vertical" onFinish={onFinish}>
+      <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
         <Card title="Client Information" style={{ marginBottom: 16 }}>
           <Row gutter={16}>
             <Col xs={24} md={12}>
@@ -73,47 +195,191 @@ function SubmitLead() {
                 <Input placeholder="+971 50 xxx xxxx" />
               </Form.Item>
             </Col>
+            <Col xs={24} md={12}>
+              <Form.Item name="email" label="Email (optional)">
+                <Input placeholder="client@email.com" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item name="nationality" label="Nationality (optional)">
+                <Input placeholder="e.g. Pakistani" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item name="visaType" label="Visa Type (optional)">
+                <Select allowClear placeholder="Select visa type" options={[
+                  { value: 'employment', label: 'Employment Visa' },
+                  { value: 'residence', label: 'Residence Visa' },
+                  { value: 'investor', label: 'Investor Visa' },
+                  { value: 'golden', label: 'Golden Visa' },
+                  { value: 'freelance', label: 'Freelance Visa' },
+                  { value: 'tourist', label: 'Tourist Visa' },
+                  { value: 'other', label: 'Other' },
+                ]} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Divider style={{ margin: '4px 0 16px' }} />
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item name="companyName" label="Company Name (optional)">
+                <Input placeholder="e.g. Emirates NBD" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item name="jobTitle" label="Job Title (optional)">
+                <Input placeholder="e.g. Sales Manager" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item name="yearsOfExperience" label="Years of Experience (optional)">
+                <InputNumber min={0} max={60} style={{ width: '100%' }} placeholder="0" />
+              </Form.Item>
+            </Col>
           </Row>
         </Card>
 
-        <Card title="Product &amp; Bank" style={{ marginBottom: 16 }}>
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item name="productType" label="Product Type" rules={[{ required: true }]}>
+        <Card title="Product" style={{ marginBottom: 16 }}>
+          <Form.Item label="Product Type">
+            <Segmented
+              value={productType}
+              onChange={onProductTypeChange}
+              options={[
+                { value: 'credit_card', label: 'Credit Card', icon: <CreditCardOutlined /> },
+                { value: 'loan', label: 'Loan', icon: <BankOutlined /> },
+              ]}
+            />
+          </Form.Item>
+
+          {productType === 'credit_card' && (
+            <>
+              <Form.Item name="cardProduct" label="Card Product" rules={[{ required: true, message: 'Please select a card product' }]}>
                 <Select
-                  placeholder="Select a product"
-                  options={[
-                    { value: 'credit_card', label: 'Credit Card' },
-                    { value: 'loan', label: 'Loan' },
-                  ]}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item name="bank" label="Bank (and agency)" rules={[{ required: true }]}>
-                <Select
-                  loading={loadingBanks}
+                  loading={loading}
                   showSearch
-                  filterOption={(input, option) => option.searchText.includes(input.toLowerCase())}
-                  placeholder="Pick a bank — agency is shown next to it"
-                  options={bankOptions}
-                  optionLabelProp="label"
+                  filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())}
+                  placeholder="Select card product"
+                  options={cardOptions}
+                  onChange={onCardSelect}
                 />
               </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item name="notes" label="Notes (optional)">
+              {selectedCard && (
+                <Descriptions size="small" bordered style={{ marginBottom: 12 }}>
+                  <Descriptions.Item label="Bank">{selectedCard.bank?.name}</Descriptions.Item>
+                  <Descriptions.Item label="Card Type">
+                    {({ regular: 'Regular', premium: 'Premium', rewards_lifestyle: 'Rewards & Lifestyle', travel: 'Travel', ecommerce: 'E-Commerce', legacy: 'Legacy' })[selectedCard.cardType] || selectedCard.cardType}
+                  </Descriptions.Item>
+                </Descriptions>
+              )}
+              {selectedCard && activeBrackets.length > 0 && (
+                <Form.Item
+                  name="salaryBracket"
+                  label="Salary Bracket"
+                  rules={[{ required: true, message: 'Please select a salary bracket' }]}
+                >
+                  <Select
+                    placeholder="Select minimum salary tier"
+                    options={activeBrackets}
+                    onChange={onBracketSelect}
+                  />
+                </Form.Item>
+              )}
+              {selectedBracket && (
+                <Alert
+                  type="success"
+                  showIcon
+                  message={<span>Expected Payout: <strong>{aed(selectedBracket.payable)}</strong></span>}
+                  style={{ marginBottom: 12 }}
+                />
+              )}
+            </>
+          )}
+
+          {productType === 'loan' && (
+            <>
+              <Form.Item name="loanProduct" label="Loan Product" rules={[{ required: true, message: 'Please select a loan product' }]}>
+                <Select
+                  loading={loading}
+                  showSearch
+                  filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())}
+                  placeholder="Select loan product"
+                  options={loanOptions}
+                  onChange={onLoanSelect}
+                />
+              </Form.Item>
+              {selectedLoan && (
+                <Descriptions size="small" bordered style={{ marginBottom: 12 }}>
+                  <Descriptions.Item label="Bank">{selectedLoan.bank?.name}</Descriptions.Item>
+                  <Descriptions.Item label="Category">
+                    {selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal Loan'}
+                  </Descriptions.Item>
+                </Descriptions>
+              )}
+              {selectedLoan && activeBrackets.length > 0 && (
+                <Form.Item
+                  name="salaryBracket"
+                  label="Salary Bracket"
+                  rules={[{ required: true, message: 'Please select a salary bracket' }]}
+                >
+                  <Select
+                    placeholder="Select minimum salary tier"
+                    options={activeBrackets}
+                    onChange={onBracketSelect}
+                  />
+                </Form.Item>
+              )}
+              {selectedBracket && (
+                <Alert
+                  type="success"
+                  showIcon
+                  message={<span>Expected Payout: <strong>{selectedBracket.payable}%</strong> of loan amount</span>}
+                  style={{ marginBottom: 12 }}
+                />
+              )}
+              <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount is required' }]}>
+                <InputNumber min={1} step={1000} style={{ width: '100%' }} placeholder="e.g. 100000" />
+              </Form.Item>
+            </>
+          )}
+
+          <Form.Item name="notes" label="Notes (optional)" style={{ marginTop: 8 }}>
             <Input.TextArea rows={3} placeholder="Anything the agency should know about this customer." />
           </Form.Item>
         </Card>
 
         <Space>
-          <Button type="primary" htmlType="submit" loading={submitting}>
-            Save Draft
+          <Button type="primary" icon={<SendOutlined />} loading={submitting} onClick={onFormSubmit}>
+            Submit Lead
           </Button>
-          <Button onClick={() => form.resetFields()}>Reset</Button>
+          <Button onClick={() => { form.resetFields(); resetProduct(); }}>Reset</Button>
         </Space>
       </Form>
+
+      <Modal
+        title="Terms & Conditions"
+        open={termsOpen}
+        onCancel={() => setTermsOpen(false)}
+        onOk={onTermsConfirm}
+        okText="Submit"
+        cancelText="Cancel"
+        okButtonProps={{ type: 'primary' }}
+        width={600}
+      >
+        <div
+          style={{
+            background: '#f9fafb',
+            border: '1px solid #e5e7eb',
+            borderRadius: 6,
+            padding: 16,
+            maxHeight: 320,
+            overflowY: 'auto',
+          }}
+        >
+          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 13, margin: 0, color: '#374151' }}>
+            {TERMS}
+          </pre>
+        </div>
+      </Modal>
     </>
   );
 }

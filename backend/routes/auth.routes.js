@@ -7,5 +7,7 @@ router.post('/login', ctrl.login);
 router.get('/invite/:token', ctrl.verifyInvite);
 router.post('/set-password', ctrl.setPassword);
 router.get('/me', protect, ctrl.me);
+router.get('/profile', protect, ctrl.getProfile);
+router.patch('/profile', protect, ctrl.updateProfile);
 
 module.exports = router;

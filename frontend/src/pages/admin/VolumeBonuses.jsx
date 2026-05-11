@@ -93,7 +93,7 @@ function VolumeBonuses() {
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bonus</Button>
       </div>
 
-      <Table rowKey="_id" loading={loading} dataSource={bonuses} columns={columns} />
+      <Table size="small" rowKey="_id" loading={loading} dataSource={bonuses} columns={columns} />
 
       <Modal
         title={editing ? 'Edit Bonus' : 'Add Bonus'}

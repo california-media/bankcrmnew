@@ -22,13 +22,12 @@ function Commissions() {
   const paidColumns = [
     {
       title: 'Reference',
-      dataIndex: '_id',
-      render: (id) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace' }}>LD-{String(id).slice(-6)}</Typography.Text>,
+      dataIndex: 'leadNumber',
+      render: (leadNumber) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace', width: 130, whiteSpace: 'nowrap' }}>{leadNumber || '—'}</Typography.Text>,
     },
     { title: 'Client', dataIndex: 'customerName', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
     { title: 'Product', dataIndex: 'productType', render: (v) => productLabels[v] },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
-    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || '—' },
     {
       title: 'Commission',
       dataIndex: 'commission',
@@ -45,13 +44,12 @@ function Commissions() {
   const pendingColumns = [
     {
       title: 'Reference',
-      dataIndex: '_id',
-      render: (id) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace' }}>LD-{String(id).slice(-6)}</Typography.Text>,
+      dataIndex: 'leadNumber',
+      render: (leadNumber) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace', width: 130, whiteSpace: 'nowrap' }}>{leadNumber || '—'}</Typography.Text>,
     },
     { title: 'Client', dataIndex: 'customerName', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
     { title: 'Product', dataIndex: 'productType', render: (v) => productLabels[v] },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
-    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || '—' },
     {
       title: 'Commission',
       dataIndex: 'commission',
@@ -125,9 +123,11 @@ function Commissions() {
 
       <Card title="Commission Payments" style={{ marginTop: 24 }} extra={<Typography.Text type="secondary">{paidLeads.length} payments received</Typography.Text>}>
         <Table
+          size="small"
           rowKey="_id"
           dataSource={paidLeads}
           columns={paidColumns}
+          scroll={{ x: 'max-content' }}
           pagination={{ pageSize: 10 }}
           locale={{ emptyText: <Empty description="No payouts yet" /> }}
         />
@@ -135,9 +135,11 @@ function Commissions() {
 
       <Card title="Pending Payouts" style={{ marginTop: 16 }} extra={<Typography.Text type="secondary">Cases awaiting commission settlement</Typography.Text>}>
         <Table
+          size="small"
           rowKey="_id"
           dataSource={[...payableLeads, ...pendingLeads]}
           columns={pendingColumns}
+          scroll={{ x: 'max-content' }}
           pagination={{ pageSize: 10 }}
           locale={{ emptyText: <Empty description="No pending payouts" /> }}
         />

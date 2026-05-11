@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space, Popconfirm, message } from 'antd';
+import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space, Popconfirm, message, Tabs } from 'antd';
 import { PlusOutlined, SearchOutlined, SendOutlined, DeleteOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import SendToAgencyModal from '../../components/SendToAgencyModal';
-import EngagementStatusCell from '../../components/EngagementStatusCell';
 
 const STATUSES = [
   { value: 'draft', label: 'Draft', color: 'default' },
@@ -24,11 +23,14 @@ const PRODUCTS = [
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 function MyLeads() {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState();
   const [productFilter, setProductFilter] = useState();
+
+  const [leadsTab, setLeadsTab] = useState('active');
 
   const [sendOpen, setSendOpen] = useState(false);
   const [sendingLead, setSendingLead] = useState(null);
@@ -58,20 +60,27 @@ function MyLeads() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return leads.filter((l) => {
-      if (q && !l.customerName.toLowerCase().includes(q) && !String(l._id).toLowerCase().includes(q)) return false;
+      if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
+      if (leadsTab === 'active' && l.status === 'disbursed') return false;
+      if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
       if (statusFilter && l.status !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
       return true;
     });
-  }, [leads, search, statusFilter, productFilter]);
+  }, [leads, search, statusFilter, productFilter, leadsTab]);
+
+  const activeCount = leads.filter(l => l.status !== 'disbursed').length;
+  const archiveCount = leads.filter(l => l.status === 'disbursed').length;
 
   const draftCount = leads.filter((l) => l.status === 'draft').length;
 
   const columns = [
     {
       title: 'Lead ID',
-      dataIndex: '_id',
-      render: (id) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace' }}>LD-{String(id).slice(-6)}</Typography.Text>,
+      dataIndex: 'leadNumber',
+      render: (leadNumber) => (
+        <Typography.Text type="secondary" style={{ fontFamily: 'monospace', width: 130, whiteSpace: 'nowrap' }}>{leadNumber || '—'}</Typography.Text>
+      ),
     },
     {
       title: 'Client',
@@ -85,7 +94,6 @@ function MyLeads() {
     },
     { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
     { title: 'Bank', render: (_, row) => row.bank?.name || <Typography.Text type="secondary">—</Typography.Text> },
-    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || <Typography.Text type="secondary">—</Typography.Text> },
     {
       title: 'Stage',
       dataIndex: 'status',
@@ -95,23 +103,19 @@ function MyLeads() {
       },
     },
     {
-      title: 'Status',
-      dataIndex: 'engagementStatus',
-      render: (v, row) => (
-        <EngagementStatusCell
-          leadId={row._id}
-          value={v}
-          onChange={(next) =>
-            setLeads((prev) => prev.map((l) => (l._id === row._id ? { ...l, engagementStatus: next } : l)))
-          }
-        />
-      ),
-    },
-    {
       title: 'Commission',
-      dataIndex: 'commission',
       align: 'right',
-      render: (v) => <span style={{ fontWeight: 600 }}>{aed(v)}</span>,
+      render: (_, row) => {
+        if (row.commissionStatus === 'paid') {
+          return (
+            <div>
+              <div style={{ fontWeight: 700, color: '#16a34a' }}>{aed(row.commission)}</div>
+              <div style={{ fontSize: 11, color: '#16a34a' }}>Received</div>
+            </div>
+          );
+        }
+        return <span style={{ fontWeight: 600 }}>{aed(row.commission)}</span>;
+      },
     },
     {
       title: 'Submitted',
@@ -120,17 +124,20 @@ function MyLeads() {
     },
     {
       title: 'Actions',
-      width: 220,
-      render: (_, row) => row.status === 'draft' && (
-        <Space>
-          <Button size="small" type="primary" icon={<SendOutlined />} onClick={() => { setSendingLead(row); setSendOpen(true); }}>
-            Send to Agency
-          </Button>
-          <Popconfirm title="Delete this draft?" onConfirm={() => onDelete(row._id)}>
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
-      ),
+      width: 160,
+      render: (_, row) => {
+        if (row.status !== 'draft') return null;
+        return (
+          <Space>
+            <Button size="small" type="primary" icon={<SendOutlined />} onClick={() => { setSendingLead(row); setSendOpen(true); }}>
+              Send to Agency
+            </Button>
+            <Popconfirm title="Delete this draft?" onConfirm={() => onDelete(row._id)}>
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -186,7 +193,17 @@ function MyLeads() {
         <Typography.Text type="secondary">{filtered.length} leads</Typography.Text>
       </Space>
 
-      <Table rowKey="_id" loading={loading} dataSource={filtered} columns={columns} />
+      <Tabs
+        activeKey={leadsTab}
+        onChange={setLeadsTab}
+        style={{ marginBottom: 8 }}
+        items={[
+          { key: 'active', label: `Active (${activeCount})` },
+          { key: 'archive', label: `Archive (${archiveCount})` },
+        ]}
+      />
+
+      <Table size="small" rowKey="_id" loading={loading} dataSource={filtered} columns={columns} scroll={{ x: 'max-content' }} onRow={(row) => ({ onClick: () => navigate(`/agent/leads/${row._id}`), style: { cursor: 'pointer' } })} />
 
       <SendToAgencyModal
         open={sendOpen}

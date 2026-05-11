@@ -56,6 +56,20 @@ export const setPassword = createAsyncThunk('auth/setPassword', async (payload, 
 });
 
 /**
+ * PATCH /auth/profile — update name / phone / password.
+ * @param {{ name?: string, phone?: string, currentPassword?: string, newPassword?: string }} payload
+ * @returns {Promise<SafeUser>}
+ */
+export const updateProfile = createAsyncThunk('auth/updateProfile', async (payload, { rejectWithValue }) => {
+  try {
+    const { data } = await api.patch('/auth/profile', payload);
+    return data.user;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || 'Update failed');
+  }
+});
+
+/**
  * GET /auth/me — rehydrate the current user from a stored token.
  * @returns {Promise<SafeUser>}
  */
@@ -100,6 +114,13 @@ const authSlice = createSlice({
         state.user = null;
         state.status = 'idle';
         state.hydrated = true;
+      });
+
+    builder
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        if (state.user) {
+          state.user = { ...state.user, name: action.payload.name, phone: action.payload.phone };
+        }
       });
 
     [login, registerAgent, setPassword].forEach((thunk) => {

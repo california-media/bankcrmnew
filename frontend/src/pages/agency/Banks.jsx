@@ -82,7 +82,7 @@ function AgencyBanks() {
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bank</Button>
       </div>
 
-      <Table rowKey="_id" loading={loading} dataSource={banks} columns={columns} />
+      <Table size="small" rowKey="_id" loading={loading} dataSource={banks} columns={columns} />
 
       <Modal
         title={editing ? 'Edit Bank' : 'Add Bank'}

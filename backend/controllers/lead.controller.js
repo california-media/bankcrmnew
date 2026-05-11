@@ -564,6 +564,10 @@ exports.assignEmployee = async (req, res) => {
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     lead.assignedEmployee = employeeId;
+    if (['submitted', 'under_review'].includes(lead.status)) {
+      lead.status = 'assigned';
+      lead.statusHistory.push({ status: 'assigned', changedBy: req.user._id, note: 'Auto-assigned to employee' });
+    }
     await lead.save();
 
     const populated = await lead.populate([
@@ -600,12 +604,17 @@ exports.bulkAssignEmployee = async (req, res) => {
       return res.status(404).json({ message: 'Employee not found or does not belong to your agency' });
     }
 
-    const result = await Lead.updateMany(
-      { _id: { $in: leadIds }, agency: req.user._id },
-      { assignedEmployee: employeeId }
-    );
+    const leads = await Lead.find({ _id: { $in: leadIds }, agency: req.user._id });
+    await Promise.all(leads.map(async (lead) => {
+      lead.assignedEmployee = employeeId;
+      if (['submitted', 'under_review'].includes(lead.status)) {
+        lead.status = 'assigned';
+        lead.statusHistory.push({ status: 'assigned', changedBy: req.user._id, note: 'Auto-assigned to employee' });
+      }
+      return lead.save();
+    }));
 
-    res.json({ updated: result.modifiedCount });
+    res.json({ updated: leads.length });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

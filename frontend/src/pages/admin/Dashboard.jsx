@@ -57,7 +57,7 @@ function AdminDashboard() {
     { key: 'approvedLeads', title: 'Approved', value: overview?.approvedLeads, icon: <CheckCircleOutlined />, iconColor: '#16a34a', iconBg: '#f0fdf4' },
     { key: 'pendingLeads', title: 'Pending Review', value: overview?.pendingLeads, icon: <ClockCircleOutlined />, iconColor: '#d97706', iconBg: '#fffbeb' },
     { key: 'paidCommission', title: 'Commission Paid', value: aed(overview?.paidCommission), icon: <DollarOutlined />, iconColor: '#16a34a', iconBg: '#f0fdf4' },
-    { key: 'payableCommission', title: 'Commission Payable', value: aed(overview?.payableCommission), icon: <RiseOutlined />, iconColor: '#d4a847', iconBg: '#fdf6e3' },
+    { key: 'payableCommission', title: 'Commission Payable', value: aed(overview?.payableCommission), icon: <RiseOutlined />, iconColor: '#0891b2', iconBg: '#ecfeff' },
     { key: 'agents', title: 'Agents', value: overview?.agents, icon: <IdcardOutlined />, iconColor: '#7c3aed', iconBg: '#f5f3ff', link: '/admin/agents' },
     { key: 'agencies', title: 'Agencies', value: overview?.agencies, icon: <TeamOutlined />, iconColor: '#0e7490', iconBg: '#ecfeff', link: '/admin/agencies' },
   ];

@@ -83,67 +83,79 @@ function AppLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0" theme="dark" width={240}>
+      <Sider breakpoint="lg" collapsedWidth="0" theme="dark" width={240}
+        style={{ background: '#0d1117' }}
+      >
         {/* Logo */}
-        <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ padding: '20px 20px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 9,
-              background: 'linear-gradient(135deg, #d4a847 0%, #b8892e 100%)',
-              color: '#0f172a',
+              width: 38, height: 38, borderRadius: 10,
+              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+              color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontWeight: 800, fontSize: 13, letterSpacing: 0.5,
-              boxShadow: '0 2px 8px rgba(212,168,71,0.4)',
+              boxShadow: '0 4px 12px rgba(99,102,241,0.45)',
             }}>
               BC
             </div>
             <div>
-              <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>Bank CRM</div>
-              <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 1 }}>
+              <div style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 14, lineHeight: 1.2, letterSpacing: 0.1 }}>Bank CRM</div>
+              <div style={{ fontSize: 9.5, color: '#475569', textTransform: 'uppercase', letterSpacing: 1.4, marginTop: 2 }}>
                 {titleByRole[user.role]} Portal
               </div>
             </div>
           </div>
         </div>
 
-        {/* User badge in sidebar */}
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Avatar
-              size={32}
-              style={{ background: roleColor, fontWeight: 700, fontSize: 13, flexShrink: 0 }}
-            >
+        {/* Divider */}
+        <div style={{ height: 1, background: 'rgba(255,255,255,0.05)', margin: '0 16px 8px' }} />
+
+        {/* User badge */}
+        <div style={{ padding: '10px 16px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.04)' }}>
+            <Avatar size={30} style={{ background: roleColor, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
               {(user.name || user.email)[0].toUpperCase()}
             </Avatar>
             <div style={{ minWidth: 0 }}>
-              <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ color: '#cbd5e1', fontSize: 12, fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.name || user.email}
               </div>
-              <div style={{ color: '#64748b', fontSize: 10, lineHeight: 1 }}>{titleByRole[user.role]}</div>
+              <div style={{ color: '#475569', fontSize: 10 }}>{titleByRole[user.role]}</div>
             </div>
           </div>
         </div>
 
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={items}
-          style={{ borderInlineEnd: 0, marginTop: 8, background: 'transparent' }}
-        />
+        <div style={{ padding: '0 8px' }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#334155', padding: '0 8px', marginBottom: 6 }}>
+            Navigation
+          </div>
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={items}
+            style={{
+              borderInlineEnd: 0,
+              background: 'transparent',
+              '--ant-menu-item-border-radius': '8px',
+            }}
+          />
+        </div>
       </Sider>
 
       <Layout>
         <Header style={{
-          padding: '0 24px',
+          padding: '0 28px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          boxShadow: '0 1px 6px rgba(15,23,42,0.06)',
+          borderBottom: '1px solid #e2e8f0',
+          boxShadow: '0 1px 8px rgba(15,23,42,0.05)',
           position: 'sticky',
           top: 0,
           zIndex: 100,
+          background: '#ffffff',
         }}>
           <div>
             <Typography.Text style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>

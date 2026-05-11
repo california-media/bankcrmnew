@@ -67,7 +67,7 @@ function AgentDashboard() {
   }, []);
 
   const cards = [
-    { key: 'paid', title: 'Commission Earned', value: aed(stats?.paidEarnings), sub: 'Lifetime payout', icon: <DollarOutlined />, iconColor: '#d4a847', iconBg: '#fdf6e3' },
+    { key: 'paid', title: 'Commission Earned', value: aed(stats?.paidEarnings), sub: 'Lifetime payout', icon: <DollarOutlined />, iconColor: '#16a34a', iconBg: '#f0fdf4' },
     { key: 'pending', title: 'Pending Commission', value: aed(stats?.pendingEarnings), sub: `Across ${stats?.active || 0} active cases`, icon: <ClockCircleOutlined />, iconColor: '#3b82f6', iconBg: '#eff6ff' },
     { key: 'active', title: 'Active Cases', value: stats?.active ?? 0, sub: 'In pipeline', icon: <FolderOpenOutlined />, iconColor: '#d97706', iconBg: '#fffbeb' },
     { key: 'closed', title: 'Closed Deals', value: stats?.disbursed ?? 0, sub: 'Successfully disbursed', icon: <CheckCircleOutlined />, iconColor: '#16a34a', iconBg: '#f0fdf4' },

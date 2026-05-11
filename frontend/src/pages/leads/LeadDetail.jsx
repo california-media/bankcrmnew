@@ -54,6 +54,9 @@ export default function LeadDetail() {
   const [assignForm] = Form.useForm();
   const [assignSaving, setAssignSaving] = useState(false);
 
+  const [empStatuses, setEmpStatuses] = useState([]);
+  const [empStatusSaving, setEmpStatusSaving] = useState(false);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -72,6 +75,9 @@ export default function LeadDetail() {
   useEffect(() => {
     if (role === 'agency') {
       api.get('/employees').then((res) => setEmployees(res.data)).catch(() => {});
+    }
+    if (role === 'employee') {
+      api.get('/employee-statuses').then((res) => setEmpStatuses(res.data.filter((s) => s.isActive))).catch(() => {});
     }
   }, [role]);
 
@@ -119,6 +125,19 @@ export default function LeadDetail() {
       message.error(err.response?.data?.message || 'Failed to assign');
     } finally {
       setAssignSaving(false);
+    }
+  };
+
+  const updateEmpStatus = async (employeeStatusId) => {
+    setEmpStatusSaving(true);
+    try {
+      const { data } = await api.patch(`/leads/${id}/employee-status`, { employeeStatusId: employeeStatusId || null });
+      setLead(data);
+      message.success('Status updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update status');
+    } finally {
+      setEmpStatusSaving(false);
     }
   };
 
@@ -551,7 +570,7 @@ export default function LeadDetail() {
           )}
 
           {/* Employee Actions */}
-          {role === 'employee' && (lead.status === 'assigned' || lead.status === 'approved') && (
+          {role === 'employee' && (
             <Card title="Actions" style={{ marginBottom: 16 }}>
               <Space direction="vertical" style={{ width: '100%' }}>
                 {lead.status === 'assigned' && (
@@ -564,7 +583,30 @@ export default function LeadDetail() {
                     Mark Disbursed
                   </Button>
                 )}
+                <div>
+                  <Typography.Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
+                    Status Label
+                  </Typography.Text>
+                  <Select
+                    allowClear
+                    placeholder="Set status..."
+                    value={lead.employeeStatus?._id || lead.employeeStatus || undefined}
+                    loading={empStatusSaving}
+                    onChange={(val) => updateEmpStatus(val || null)}
+                    style={{ width: '100%' }}
+                    options={empStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))}
+                  />
+                </div>
               </Space>
+            </Card>
+          )}
+
+          {/* Employee status for all roles (read-only) */}
+          {lead.employeeStatus && role !== 'employee' && (
+            <Card title="Employee Status" style={{ marginBottom: 16 }}>
+              <Tag color={lead.employeeStatus.color} style={{ fontSize: 13 }}>
+                {lead.employeeStatus.label}
+              </Tag>
             </Card>
           )}
 

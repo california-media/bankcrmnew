@@ -10,12 +10,17 @@ if (missing.length) {
   process.exit(1);
 }
 
+const path = require('path');
+
 const app = express();
 
 connectDB();
 
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+// app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+
+app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => res.json({ message: 'Bank CRM API' }));
 
@@ -26,6 +31,10 @@ app.use('/api/leads', require('./routes/lead.routes'));
 app.use('/api/commission-rules', require('./routes/commissionRule.routes'));
 app.use('/api/volume-bonuses', require('./routes/volumeBonus.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
+app.use('/api/card-products', require('./routes/cardProduct.routes'));
+app.use('/api/loan-products', require('./routes/loanProduct.routes'));
+app.use('/api/employees', require('./routes/employee.routes'));
+app.use('/api/employee-statuses', require('./routes/employeeStatus.routes'));
 
 app.use((err, req, res, _next) => {
   console.error(err);

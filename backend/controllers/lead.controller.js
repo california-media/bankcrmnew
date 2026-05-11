@@ -11,6 +11,7 @@ const POPULATE_FIELDS = [
   { path: 'agent', select: 'name email' },
   { path: 'cardProduct', select: 'name cardType commissionBrackets' },
   { path: 'loanProduct', select: 'name loanCategory commissionBrackets' },
+  { path: 'employeeStatus', select: 'label color' },
 ];
 
 /**

@@ -8,10 +8,11 @@ import {
   LogoutOutlined,
   UserOutlined,
   DollarOutlined,
-  PercentageOutlined,
   TrophyOutlined,
   AuditOutlined,
   IdcardOutlined,
+  CreditCardOutlined,
+  FundOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -25,7 +26,12 @@ const menusByRole = {
     { key: '/admin/leads', icon: <AuditOutlined />, label: <Link to="/admin/leads">All Leads</Link> },
     { key: '/admin/agents', icon: <IdcardOutlined />, label: <Link to="/admin/agents">Agents</Link> },
     { key: '/admin/agencies', icon: <TeamOutlined />, label: <Link to="/admin/agencies">Agencies</Link> },
+    { key: '/admin/banks', icon: <BankOutlined />, label: <Link to="/admin/banks">Banks</Link> },
+    { key: '/admin/card-products', icon: <CreditCardOutlined />, label: <Link to="/admin/card-products">Card Products</Link> },
+    { key: '/admin/loan-products', icon: <FundOutlined />, label: <Link to="/admin/loan-products">Loan Products</Link> },
     { key: '/admin/volume-bonuses', icon: <TrophyOutlined />, label: <Link to="/admin/volume-bonuses">Volume Bonuses</Link> },
+    { key: '/admin/payouts', icon: <DollarOutlined />, label: <Link to="/admin/payouts">Payouts</Link> },
+    { key: '/admin/employee-statuses', icon: <UnorderedListOutlined />, label: <Link to="/admin/employee-statuses">Employee Statuses</Link> },
   ],
   agent: [
     { key: '/agent', icon: <DashboardOutlined />, label: <Link to="/agent">Dashboard</Link> },
@@ -36,12 +42,16 @@ const menusByRole = {
   agency: [
     { key: '/agency', icon: <DashboardOutlined />, label: <Link to="/agency">Dashboard</Link> },
     { key: '/agency/leads', icon: <AuditOutlined />, label: <Link to="/agency/leads">Lead Queue</Link> },
-    { key: '/agency/banks', icon: <BankOutlined />, label: <Link to="/agency/banks">My Banks</Link> },
-    { key: '/agency/commission-rules', icon: <PercentageOutlined />, label: <Link to="/agency/commission-rules">Commission Rules</Link> },
+    { key: '/agency/employees', icon: <TeamOutlined />, label: <Link to="/agency/employees">Employees</Link> },
+    { key: '/agency/receipts', icon: <FileAddOutlined />, label: <Link to="/agency/receipts">Receipts</Link> },
+  ],
+  employee: [
+    { key: '/employee', icon: <DashboardOutlined />, label: <Link to="/employee">Dashboard</Link> },
+    { key: '/employee/leads', icon: <UnorderedListOutlined />, label: <Link to="/employee/leads">My Leads</Link> },
   ],
 };
 
-const titleByRole = { admin: 'Admin', agency: 'Agency', agent: 'Agent' };
+const titleByRole = { admin: 'Admin', agency: 'Agency', agent: 'Agent', employee: 'Employee' };
 
 function AppLayout() {
   const { user } = useSelector((s) => s.auth);
@@ -56,6 +66,9 @@ function AppLayout() {
     if (key === 'logout') {
       dispatch(logout());
       navigate('/login');
+    }
+    if (key === 'profile') {
+      navigate(`/${user.role}/profile`);
     }
   };
 
@@ -110,7 +123,7 @@ function AppLayout() {
           <Dropdown
             menu={{
               items: [
-                { key: 'profile', icon: <UserOutlined />, label: user.email, disabled: true },
+                { key: 'profile', icon: <UserOutlined />, label: 'My Profile' },
                 { type: 'divider' },
                 { key: 'logout', icon: <LogoutOutlined />, label: 'Logout' },
               ],

@@ -59,6 +59,7 @@ const leadSchema = new mongoose.Schema(
     agentCommissionValue: { type: Number, default: 0 },
     assignedEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     engagementStatus: { type: String, enum: ENGAGEMENT_STATUSES, default: 'new_lead' },
+    employeeStatus: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeStatus' },
     notes: { type: String, trim: true },
     disbursementReceipt: { type: String, trim: true },
     disbursementReceiptFile: { type: String, trim: true },

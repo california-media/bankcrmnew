@@ -1,9 +1,19 @@
 import { useEffect, useState } from 'react';
 import {
-  Table, Button, Modal, Form, Input, Select, Tag, Space, Typography, Row, Col, message, Popconfirm, Switch,
+  Table, Button, Modal, Form, Input, Select, Tag, Space, Typography, Row, Col, message, Popconfirm, Switch, Divider,
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../../api/client';
+
+const SYSTEM_STAGES = [
+  { value: 'draft',        label: 'Draft',        color: 'default' },
+  { value: 'submitted',    label: 'Submitted',    color: 'blue' },
+  { value: 'under_review', label: 'Under Review', color: 'gold' },
+  { value: 'assigned',     label: 'Assigned',     color: 'cyan' },
+  { value: 'approved',     label: 'Approved',     color: 'green' },
+  { value: 'rejected',     label: 'Rejected',     color: 'red' },
+  { value: 'disbursed',    label: 'Disbursed',    color: 'purple' },
+];
 
 const COLOR_OPTIONS = [
   { value: 'default', label: 'Grey' },
@@ -140,7 +150,6 @@ function EmployeeStatuses() {
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
           <Typography.Title level={3} style={{ margin: 0 }}>Lead Status</Typography.Title>
-          <Typography.Text type="secondary">Custom status labels employees can apply to their assigned leads.</Typography.Text>
         </Col>
         <Col>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => { addForm.resetFields(); setAddOpen(true); }}>
@@ -148,6 +157,24 @@ function EmployeeStatuses() {
           </Button>
         </Col>
       </Row>
+
+      {/* System stages */}
+      <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>System Stages</Typography.Text>
+      <Space wrap style={{ marginBottom: 4 }}>
+        {SYSTEM_STAGES.map((s) => (
+          <Tag key={s.value} color={s.color} style={{ fontSize: 13, padding: '2px 10px' }}>{s.label}</Tag>
+        ))}
+      </Space>
+      <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 16 }}>
+        Built-in workflow stages — not editable.
+      </Typography.Text>
+
+      <Divider style={{ margin: '8px 0 16px' }} />
+
+      <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>Custom Labels</Typography.Text>
+      <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 12 }}>
+        Employees apply these labels to their assigned leads.
+      </Typography.Text>
 
       <Table size="small" rowKey="_id" loading={loading} dataSource={statuses} columns={columns} />
 

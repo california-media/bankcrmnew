@@ -671,3 +671,28 @@ exports.addNote = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+/**
+ * DELETE /api/leads/:id/notes/:noteId  (admin only)
+ */
+exports.deleteNote = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    const note = lead.leadNotes.id(req.params.noteId);
+    if (!note) return res.status(404).json({ message: 'Note not found' });
+
+    note.deleteOne();
+    await lead.save();
+
+    const populated = await lead.populate([
+      ...POPULATE_FIELDS,
+      { path: 'leadNotes.author', select: 'name email' },
+      { path: 'statusHistory.changedBy', select: 'name email' },
+    ]);
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

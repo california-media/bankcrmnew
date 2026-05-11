@@ -37,8 +37,8 @@ router.post('/:id/mark-paid', requireRole('admin'), ctrl.markCommissionPaid);
 router.patch('/:id/agent-commission', requireRole('admin'), ctrl.setAgentCommission);
 router.delete('/:id/notes/:noteId', requireRole('admin'), ctrl.deleteNote);
 
-// Agency or admin
-router.patch('/:id/status', requireRole('agency', 'admin'), ctrl.updateStatus);
+// Agency, admin, or employee
+router.patch('/:id/status', requireRole('agency', 'admin', 'employee'), ctrl.updateStatus);
 
 // All roles — single lead detail (must be last to avoid shadowing named routes)
 router.get('/:id', requireRole('admin', 'agency', 'agent', 'employee'), ctrl.getOne);

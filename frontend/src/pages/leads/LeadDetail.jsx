@@ -550,6 +550,24 @@ export default function LeadDetail() {
             </Card>
           )}
 
+          {/* Employee Actions */}
+          {role === 'employee' && (lead.status === 'assigned' || lead.status === 'approved') && (
+            <Card title="Actions" style={{ marginBottom: 16 }}>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {lead.status === 'assigned' && (
+                  <Button block type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>
+                    Approve
+                  </Button>
+                )}
+                {lead.status === 'approved' && (
+                  <Button block onClick={() => openStatusModal('disbursed', 'Disbursed')}>
+                    Mark Disbursed
+                  </Button>
+                )}
+              </Space>
+            </Card>
+          )}
+
         </Col>
       </Row>
 

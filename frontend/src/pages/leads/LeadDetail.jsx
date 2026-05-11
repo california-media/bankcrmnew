@@ -275,6 +275,14 @@ export default function LeadDetail() {
                     <div style={{ fontSize: 12, color: '#888' }}>{lead.agency.email}</div>
                   )}
                 </Descriptions.Item>
+                {lead.assignedEmployee && (
+                  <Descriptions.Item label="Assigned Employee">
+                    {lead.assignedEmployee.name || lead.assignedEmployee.email}
+                    {lead.assignedEmployee.name && (
+                      <div style={{ fontSize: 12, color: '#888' }}>{lead.assignedEmployee.email}</div>
+                    )}
+                  </Descriptions.Item>
+                )}
               </Descriptions>
             </Card>
           )}
@@ -495,6 +503,16 @@ export default function LeadDetail() {
           {/* Agency Actions */}
           {role === 'agency' && (
             <Card title="Actions" style={{ marginBottom: 16 }}>
+              {lead.assignedEmployee && (
+                <div style={{ marginBottom: 12, padding: '8px 10px', background: '#f0f7ff', borderRadius: 6 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    Assigned To
+                  </Typography.Text>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>
+                    {lead.assignedEmployee.name || lead.assignedEmployee.email}
+                  </div>
+                </div>
+              )}
               <Space direction="vertical" style={{ width: '100%' }}>
                 {lead.status === 'submitted' && (
                   <Button block onClick={() => openStatusModal('under_review', 'Under Review')}>Start Review</Button>

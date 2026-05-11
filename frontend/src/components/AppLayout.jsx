@@ -13,6 +13,7 @@ import {
   IdcardOutlined,
   CreditCardOutlined,
   FundOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -53,6 +54,13 @@ const menusByRole = {
 
 const titleByRole = { admin: 'Admin', agency: 'Agency', agent: 'Agent', employee: 'Employee' };
 
+const ROLE_COLORS = {
+  admin: '#7c3aed',
+  agency: '#1e40af',
+  agent: '#0f766e',
+  employee: '#b45309',
+};
+
 function AppLayout() {
   const { user } = useSelector((s) => s.auth);
   const location = useLocation();
@@ -61,6 +69,7 @@ function AppLayout() {
   const { token } = theme.useToken();
 
   const items = menusByRole[user.role] || [];
+  const roleColor = ROLE_COLORS[user.role] || '#1e40af';
 
   const onMenuAction = ({ key }) => {
     if (key === 'logout') {
@@ -74,74 +83,100 @@ function AppLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0" theme="dark" width={232}>
-        <div style={{ padding: '20px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              background: '#d4a847',
+      <Sider breakpoint="lg" collapsedWidth="0" theme="dark" width={240}>
+        {/* Logo */}
+        <div style={{ padding: '18px 20px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 9,
+              background: 'linear-gradient(135deg, #d4a847 0%, #b8892e 100%)',
               color: '#0f172a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            BC
-          </div>
-          <div style={{ color: '#fff', lineHeight: 1.1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>Bank CRM</div>
-            <div style={{ fontSize: 11, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>
-              {titleByRole[user.role]} Portal
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 800, fontSize: 13, letterSpacing: 0.5,
+              boxShadow: '0 2px 8px rgba(212,168,71,0.4)',
+            }}>
+              BC
+            </div>
+            <div>
+              <div style={{ color: '#f8fafc', fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>Bank CRM</div>
+              <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 1 }}>
+                {titleByRole[user.role]} Portal
+              </div>
             </div>
           </div>
         </div>
+
+        {/* User badge in sidebar */}
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Avatar
+              size={32}
+              style={{ background: roleColor, fontWeight: 700, fontSize: 13, flexShrink: 0 }}
+            >
+              {(user.name || user.email)[0].toUpperCase()}
+            </Avatar>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: '#e2e8f0', fontSize: 12, fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.name || user.email}
+              </div>
+              <div style={{ color: '#64748b', fontSize: 10, lineHeight: 1 }}>{titleByRole[user.role]}</div>
+            </div>
+          </div>
+        </div>
+
         <Menu
           theme="dark"
           mode="inline"
           selectedKeys={[location.pathname]}
           items={items}
-          style={{ borderInlineEnd: 0 }}
+          style={{ borderInlineEnd: 0, marginTop: 8, background: 'transparent' }}
         />
       </Sider>
+
       <Layout>
-        <Header
-          style={{
-            padding: '0 24px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          }}
-        >
-          <Typography.Title level={4} style={{ margin: 0 }}>
-            {titleByRole[user.role]} Panel
-          </Typography.Title>
+        <Header style={{
+          padding: '0 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: `1px solid ${token.colorBorderSecondary}`,
+          boxShadow: '0 1px 6px rgba(15,23,42,0.06)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+        }}>
+          <div>
+            <Typography.Text style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
+              {titleByRole[user.role]} Panel
+            </Typography.Text>
+          </div>
           <Dropdown
             menu={{
               items: [
                 { key: 'profile', icon: <UserOutlined />, label: 'My Profile' },
                 { type: 'divider' },
-                { key: 'logout', icon: <LogoutOutlined />, label: 'Logout' },
+                { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true },
               ],
               onClick: onMenuAction,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-              <Avatar style={{ backgroundColor: '#1677ff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 10px', borderRadius: 8, transition: 'background 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Avatar style={{ backgroundColor: roleColor, fontWeight: 700 }}>
                 {(user.name || user.email)[0].toUpperCase()}
               </Avatar>
-              <div style={{ lineHeight: 1.1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{user.name || user.email}</div>
-                <div style={{ fontSize: 12, color: token.colorTextSecondary }}>{titleByRole[user.role]}</div>
+              <div style={{ lineHeight: 1.2 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>{user.name || user.email}</div>
+                <div style={{ fontSize: 11, color: token.colorTextSecondary }}>{titleByRole[user.role]}</div>
               </div>
+              <DownOutlined style={{ fontSize: 10, color: '#94a3b8', marginLeft: 2 }} />
             </div>
           </Dropdown>
         </Header>
-        <Content style={{ margin: 24, padding: 24, background: '#fff', borderRadius: 8 }}>
+
+        <Content style={{ margin: 24, padding: 24, background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(15,23,42,0.06)', minHeight: 280 }}>
           <Outlet />
         </Content>
       </Layout>

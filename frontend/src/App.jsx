@@ -31,23 +31,26 @@ import Profile from './pages/Profile';
 const theme = {
   algorithm: antdTheme.defaultAlgorithm,
   token: {
-    colorPrimary: '#1f2937',
-    colorInfo: '#1f2937',
-    borderRadius: 8,
-    colorBgLayout: '#fafaf7',
+    colorPrimary: '#1e40af',
+    colorInfo: '#3b82f6',
+    borderRadius: 10,
+    colorBgLayout: '#eef2f7',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
   components: {
-    Layout: { siderBg: '#0f172a', headerBg: '#ffffff', bodyBg: '#fafaf7' },
+    Layout: { siderBg: '#0f172a', headerBg: '#ffffff', bodyBg: '#eef2f7' },
+    Card: { borderRadiusLG: 12 },
     Menu: {
       darkItemBg: '#0f172a',
       darkSubMenuItemBg: '#0f172a',
       darkItemSelectedBg: '#d4a847',
       darkItemSelectedColor: '#0f172a',
       darkItemHoverBg: '#1e293b',
-      darkItemColor: '#cbd5e1',
+      darkItemColor: '#94a3b8',
     },
-    Statistic: { titleFontSize: 13 },
-    Table: { rowSelectedBg: '#f0f7ff', rowSelectedHoverBg: '#e0efff' },
+    Statistic: { titleFontSize: 12 },
+    Table: { rowSelectedBg: '#eff6ff', rowSelectedHoverBg: '#dbeafe', borderRadius: 12 },
+    Button: { fontWeight: 500 },
   },
 };
 

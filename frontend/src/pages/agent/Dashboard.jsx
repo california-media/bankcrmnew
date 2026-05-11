@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Col, Row, Typography, Statistic, Tag, Space, Table, Button, Skeleton } from 'antd';
+import { Card, Col, Row, Typography, Tag, Space, Table, Button, Skeleton } from 'antd';
 import {
   DollarOutlined,
   ClockCircleOutlined,
@@ -11,7 +11,6 @@ import {
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
-import EngagementStatusCell from '../../components/EngagementStatusCell';
 
 const statusTag = {
   draft: { color: 'default', label: 'Draft' },
@@ -24,8 +23,37 @@ const statusTag = {
 };
 
 const productLabels = { credit_card: 'Credit Card', loan: 'Loan' };
-
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
+
+const StatCard = ({ title, value, sub, icon, iconColor, iconBg, loading }) => (
+  <Card
+    styles={{ body: { padding: '22px 24px' } }}
+    style={{ borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(15,23,42,0.06)', height: '100%' }}
+  >
+    {loading ? <Skeleton active paragraph={{ rows: 2 }} /> : (
+      <>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: sub ? 8 : 0 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, color: '#94a3b8', marginBottom: 10 }}>
+              {title}
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
+              {value}
+            </div>
+          </div>
+          <div style={{
+            width: 50, height: 50, borderRadius: 13, background: iconBg,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 22, color: iconColor, flexShrink: 0, marginLeft: 12,
+          }}>
+            {icon}
+          </div>
+        </div>
+        {sub && <Typography.Text type="secondary" style={{ fontSize: 12 }}>{sub}</Typography.Text>}
+      </>
+    )}
+  </Card>
+);
 
 function AgentDashboard() {
   const { user } = useSelector((s) => s.auth);
@@ -39,42 +67,17 @@ function AgentDashboard() {
   }, []);
 
   const cards = [
-    {
-      key: 'paid',
-      title: 'Commission Earned',
-      value: aed(stats?.paidEarnings),
-      sub: 'Lifetime payout',
-      icon: <DollarOutlined style={{ color: '#d4a847' }} />,
-      highlighted: true,
-    },
-    {
-      key: 'pending',
-      title: 'Pending Commission',
-      value: aed(stats?.pendingEarnings),
-      sub: `Across ${stats?.active || 0} active cases`,
-      icon: <ClockCircleOutlined style={{ color: '#3b82f6' }} />,
-    },
-    {
-      key: 'active',
-      title: 'Active Cases',
-      value: stats?.active ?? 0,
-      sub: 'In pipeline',
-      icon: <FolderOpenOutlined style={{ color: '#f59e0b' }} />,
-    },
-    {
-      key: 'closed',
-      title: 'Closed Deals',
-      value: stats?.disbursed ?? 0,
-      sub: 'Successfully paid',
-      icon: <CheckCircleOutlined style={{ color: '#16a34a' }} />,
-    },
+    { key: 'paid', title: 'Commission Earned', value: aed(stats?.paidEarnings), sub: 'Lifetime payout', icon: <DollarOutlined />, iconColor: '#d4a847', iconBg: '#fdf6e3' },
+    { key: 'pending', title: 'Pending Commission', value: aed(stats?.pendingEarnings), sub: `Across ${stats?.active || 0} active cases`, icon: <ClockCircleOutlined />, iconColor: '#3b82f6', iconBg: '#eff6ff' },
+    { key: 'active', title: 'Active Cases', value: stats?.active ?? 0, sub: 'In pipeline', icon: <FolderOpenOutlined />, iconColor: '#d97706', iconBg: '#fffbeb' },
+    { key: 'closed', title: 'Closed Deals', value: stats?.disbursed ?? 0, sub: 'Successfully disbursed', icon: <CheckCircleOutlined />, iconColor: '#16a34a', iconBg: '#f0fdf4' },
   ];
 
   const columns = [
     {
       title: 'Lead ID',
-      dataIndex: '_id',
-      render: (id) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace' }}>LD-{String(id).slice(-6)}</Typography.Text>,
+      dataIndex: 'leadNumber',
+      render: (v) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace' }}>{v || '—'}</Typography.Text>,
     },
     {
       title: 'Client',
@@ -86,114 +89,101 @@ function AgentDashboard() {
         </div>
       ),
     },
-    { title: 'Product', dataIndex: 'productType', render: (v) => productLabels[v] },
+    { title: 'Product', dataIndex: 'productType', render: (v) => productLabels[v] || v },
     {
       title: 'Stage',
       dataIndex: 'status',
       render: (s) => <Tag color={statusTag[s]?.color}>{statusTag[s]?.label || s}</Tag>,
     },
     {
-      title: 'Status',
-      dataIndex: 'engagementStatus',
-      render: (v, row) => (
-        <EngagementStatusCell
-          leadId={row._id}
-          value={v}
-          onChange={(next) =>
-            setRecent((prev) => prev.map((l) => (l._id === row._id ? { ...l, engagementStatus: next } : l)))
-          }
-        />
-      ),
-    },
-    {
-      title: 'Est. Commission',
-      dataIndex: 'commission',
+      title: 'Commission',
       align: 'right',
-      render: (v) => <span style={{ fontWeight: 600 }}>{aed(v)}</span>,
+      render: (_, row) => (
+        <Space direction="vertical" size={0} style={{ alignItems: 'flex-end' }}>
+          <span style={{ fontWeight: 600 }}>{aed(row.commission)}</span>
+          {row.commissionStatus !== 'none' && (
+            <Tag
+              color={row.commissionStatus === 'paid' ? 'green' : row.commissionStatus === 'payable' ? 'cyan' : 'gold'}
+              style={{ marginInlineEnd: 0, marginTop: 2 }}
+            >
+              {row.commissionStatus === 'paid' ? 'Paid' : row.commissionStatus === 'payable' ? 'Payout Ready' : 'Pending'}
+            </Tag>
+          )}
+        </Space>
+      ),
     },
   ];
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>
+          <Typography.Title level={3} style={{ margin: 0, color: '#0f172a' }}>
             Welcome back, {(user.name || user.email).split(' ')[0]} 👋
           </Typography.Title>
-          <Typography.Text type="secondary">Here's what's happening with your portfolio today.</Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+            Here's what's happening with your portfolio today.
+          </Typography.Text>
         </Col>
         <Col>
           <Link to="/agent/leads/new">
-            <Button type="primary" icon={<PlusOutlined />}>Submit New Lead</Button>
+            <Button type="primary" icon={<PlusOutlined />} size="middle">Submit New Lead</Button>
           </Link>
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {cards.map((c) => (
           <Col xs={24} sm={12} lg={6} key={c.key}>
-            <Card
-              style={c.highlighted ? { background: '#fdf6e3', borderColor: '#d4a847' } : undefined}
-            >
-              {!stats ? (
-                <Skeleton active paragraph={{ rows: 1 }} />
-              ) : (
-                <Statistic
-                  title={
-                    <Space>
-                      {c.icon}
-                      <span style={{ textTransform: 'uppercase', fontSize: 11, letterSpacing: 0.5 }}>{c.title}</span>
-                    </Space>
-                  }
-                  value={c.value}
-                  valueStyle={{ fontSize: 24, fontWeight: 700 }}
-                />
-              )}
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>{c.sub}</Typography.Text>
-            </Card>
+            <StatCard {...c} loading={!stats} />
           </Col>
         ))}
       </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+      <Row gutter={[16, 16]}>
         <Col xs={24} lg={16}>
           <Card
-            title="Recent Leads"
-            extra={<Link to="/agent/leads">View all →</Link>}
+            title={<span style={{ fontWeight: 700 }}>Recent Leads</span>}
+            extra={<Link to="/agent/leads" style={{ fontSize: 13 }}>View all →</Link>}
+            style={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
           >
             <Table
+              size="small"
               rowKey="_id"
               loading={loadingRecent}
               dataSource={recent}
               columns={columns}
               pagination={false}
-              size="middle"
             />
           </Card>
         </Col>
         <Col xs={24} lg={8}>
-          <Card title="Your Profile">
+          <Card
+            title={<span style={{ fontWeight: 700 }}>Your Profile</span>}
+            style={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
+          >
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-              <div style={{ textAlign: 'center', padding: '16px 0' }}>
-                <div
-                  style={{
-                    width: 64, height: 64, borderRadius: '50%', background: '#1f2937', color: '#fff',
-                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 24, fontWeight: 700,
-                  }}
-                >
+              <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                <div style={{
+                  width: 68, height: 68, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                  color: '#fff',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 26, fontWeight: 700,
+                  boxShadow: '0 4px 12px rgba(59,130,246,0.35)',
+                }}>
                   {(user.name || user.email)[0].toUpperCase()}
                 </div>
-                <div style={{ fontWeight: 700, marginTop: 8 }}>{user.name || user.email}</div>
+                <div style={{ fontWeight: 700, marginTop: 10, fontSize: 15 }}>{user.name || user.email}</div>
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>{user.email}</Typography.Text>
               </div>
-              <Card size="small" style={{ background: '#fafafa' }}>
-                <div style={{ fontSize: 11, textTransform: 'uppercase', color: '#888', marginBottom: 4 }}>
+              <Card size="small" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10 }}>
+                <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>
                   Referral Code
                 </div>
                 <Typography.Text
                   copyable={{ icon: <CopyOutlined />, text: user.referralCode }}
-                  style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700 }}
+                  style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 800, color: '#1e40af' }}
                 >
                   {user.referralCode}
                 </Typography.Text>

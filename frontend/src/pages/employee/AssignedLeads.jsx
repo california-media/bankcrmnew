@@ -93,6 +93,12 @@ function AssignedLeads() {
       },
     },
     {
+      title: 'Emp. Status',
+      render: (_, row) => row.employeeStatus
+        ? <Tag color={row.employeeStatus.color}>{row.employeeStatus.label}</Tag>
+        : <Typography.Text type="secondary">—</Typography.Text>,
+    },
+    {
       title: 'Engagement',
       dataIndex: 'engagementStatus',
       render: (v) =>

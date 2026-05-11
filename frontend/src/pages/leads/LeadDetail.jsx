@@ -167,7 +167,7 @@ export default function LeadDetail() {
     }
   };
 
-  const backPath = role === 'admin' ? '/admin/leads' : role === 'agency' ? '/agency/leads' : '/agent/leads';
+  const backPath = role === 'admin' ? '/admin/leads' : role === 'agency' ? '/agency/leads' : role === 'employee' ? '/employee/leads' : '/agent/leads';
 
   if (loading) {
     return (
@@ -581,6 +581,11 @@ export default function LeadDetail() {
                 {lead.status === 'approved' && (
                   <Button block onClick={() => openStatusModal('disbursed', 'Disbursed')}>
                     Mark Disbursed
+                  </Button>
+                )}
+                {['assigned', 'approved'].includes(lead.status) && (
+                  <Button block danger icon={<CloseOutlined />} onClick={() => openStatusModal('rejected', 'Rejected')}>
+                    Reject
                   </Button>
                 )}
                 <div>

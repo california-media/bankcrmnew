@@ -246,7 +246,7 @@ const FROM_STATES = {
 const ROLE_TARGETS = {
   agency: ['under_review', 'assigned', 'approved', 'rejected', 'disbursed'],
   admin: ['under_review', 'assigned', 'approved', 'rejected', 'disbursed', 'submitted'],
-  employee: ['approved', 'disbursed'],
+  employee: ['approved', 'disbursed', 'rejected'],
 };
 
 /**

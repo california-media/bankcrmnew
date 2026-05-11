@@ -34,6 +34,7 @@ router.patch('/:id/assign-employee', requireRole('agency'), ctrl.assignEmployee)
 // Admin
 router.get('/', requireRole('admin'), ctrl.listAll);
 router.post('/bulk-mark-paid', requireRole('admin'), ctrl.bulkMarkPaid);
+router.post('/bulk-mark-received', requireRole('admin'), ctrl.bulkMarkReceived);
 router.post('/:id/mark-paid', requireRole('admin'), ctrl.markCommissionPaid);
 router.patch('/:id/agent-commission', requireRole('admin'), ctrl.setAgentCommission);
 router.delete('/:id/notes/:noteId', requireRole('admin'), ctrl.deleteNote);

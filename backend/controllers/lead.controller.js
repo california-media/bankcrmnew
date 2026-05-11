@@ -457,6 +457,28 @@ exports.bulkMarkPaid = async (req, res) => {
 };
 
 /**
+ * POST /api/leads/bulk-mark-received  (admin)
+ * Body: { leadIds?: string[], note?: string }
+ * Marks gross commission as received from agency.
+ */
+exports.bulkMarkReceived = async (req, res) => {
+  try {
+    const { leadIds, note } = req.body;
+    const filter = leadIds?.length
+      ? { _id: { $in: leadIds }, agencyPaymentStatus: 'pending', grossCommission: { $gt: 0 } }
+      : { agencyPaymentStatus: 'pending', grossCommission: { $gt: 0 } };
+    const result = await Lead.updateMany(filter, {
+      agencyPaymentStatus: 'received',
+      agencyPaymentReceivedAt: new Date(),
+      ...(note ? { agencyPaymentNote: note.trim() } : {}),
+    });
+    res.json({ count: result.modifiedCount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * POST /api/leads/bulk-receipt  (agency)
  * Body: { leadIds: string[], receipt?: string } + optional file
  */

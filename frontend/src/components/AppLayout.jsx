@@ -14,6 +14,7 @@ import {
   CreditCardOutlined,
   FundOutlined,
   DownOutlined,
+  InboxOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -32,6 +33,7 @@ const menusByRole = {
     { key: '/admin/loan-products', icon: <FundOutlined />, label: <Link to="/admin/loan-products">Loan Products</Link> },
     { key: '/admin/volume-bonuses', icon: <TrophyOutlined />, label: <Link to="/admin/volume-bonuses">Volume Bonuses</Link> },
     { key: '/admin/payouts', icon: <DollarOutlined />, label: <Link to="/admin/payouts">Payouts</Link> },
+    { key: '/admin/receive', icon: <InboxOutlined />, label: <Link to="/admin/receive">Receive</Link> },
     { key: '/admin/employee-statuses', icon: <UnorderedListOutlined />, label: <Link to="/admin/employee-statuses">Lead Status</Link> },
   ],
   agent: [

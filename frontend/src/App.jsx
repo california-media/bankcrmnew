@@ -22,6 +22,7 @@ import AgencyLeads from './pages/agency/Leads';
 import AgencyEmployees from './pages/agency/Employees';
 import AgencyReceipts from './pages/agency/Receipts';
 import Payouts from './pages/admin/Payouts';
+import Receive from './pages/admin/Receive';
 import EmployeeStatuses from './pages/admin/EmployeeStatuses';
 import EmployeeDashboard from './pages/employee/Dashboard';
 import EmployeeLeads from './pages/employee/AssignedLeads';
@@ -82,6 +83,7 @@ function App() {
           <Route path="loan-products" element={<LoanProducts />} />
           <Route path="banks" element={<AdminBanks />} />
           <Route path="payouts" element={<Payouts />} />
+          <Route path="receive" element={<Receive />} />
           <Route path="employee-statuses" element={<EmployeeStatuses />} />
           <Route path="profile" element={<Profile />} />
         </Route>

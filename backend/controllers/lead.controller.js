@@ -683,7 +683,7 @@ exports.deleteNote = async (req, res) => {
     const note = lead.leadNotes.id(req.params.noteId);
     if (!note) return res.status(404).json({ message: 'Note not found' });
 
-    note.deleteOne();
+    await note.deleteOne();
     await lead.save();
 
     const populated = await lead.populate([

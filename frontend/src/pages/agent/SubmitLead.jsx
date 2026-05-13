@@ -9,6 +9,43 @@ import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+const NATIONALITIES = [
+  'Afghan', 'Albanian', 'Algerian', 'American', 'Andorran', 'Angolan', 'Antiguan',
+  'Argentine', 'Armenian', 'Australian', 'Austrian', 'Azerbaijani', 'Bahamian',
+  'Bahraini', 'Bangladeshi', 'Barbadian', 'Belarusian', 'Belgian', 'Belizean',
+  'Beninese', 'Bhutanese', 'Bolivian', 'Bosnian', 'Botswanan', 'Brazilian',
+  'British', 'Bruneian', 'Bulgarian', 'Burkinabe', 'Burundian', 'Cambodian',
+  'Cameroonian', 'Canadian', 'Cape Verdean', 'Central African', 'Chadian',
+  'Chilean', 'Chinese', 'Colombian', 'Comorian', 'Congolese', 'Costa Rican',
+  'Croatian', 'Cuban', 'Cypriot', 'Czech', 'Danish', 'Djiboutian', 'Dominican',
+  'Dutch', 'East Timorese', 'Ecuadorian', 'Egyptian', 'Emirati', 'Equatorial Guinean',
+  'Eritrean', 'Estonian', 'Eswatini', 'Ethiopian', 'Fijian', 'Finnish', 'French',
+  'Gabonese', 'Gambian', 'Georgian', 'German', 'Ghanaian', 'Greek', 'Grenadian',
+  'Guatemalan', 'Guinean', 'Guinea-Bissauan', 'Guyanese', 'Haitian', 'Honduran',
+  'Hungarian', 'Icelandic', 'Indian', 'Indonesian', 'Iranian', 'Iraqi', 'Irish',
+  'Israeli', 'Italian', 'Ivorian', 'Jamaican', 'Japanese', 'Jordanian',
+  'Kazakhstani', 'Kenyan', 'Kiribati', 'Korean', 'Kuwaiti', 'Kyrgyzstani',
+  'Laotian', 'Latvian', 'Lebanese', 'Lesotho', 'Liberian', 'Libyan',
+  'Liechtenstein', 'Lithuanian', 'Luxembourgish', 'Macedonian', 'Malagasy',
+  'Malawian', 'Malaysian', 'Maldivian', 'Malian', 'Maltese', 'Marshallese',
+  'Mauritanian', 'Mauritian', 'Mexican', 'Micronesian', 'Moldovan', 'Monacan',
+  'Mongolian', 'Montenegrin', 'Moroccan', 'Mozambican', 'Myanmar', 'Namibian',
+  'Nauruan', 'Nepali', 'New Zealander', 'Nicaraguan', 'Nigerian', 'Nigerien',
+  'Norwegian', 'Omani', 'Pakistani', 'Palauan', 'Palestinian', 'Panamanian',
+  'Papua New Guinean', 'Paraguayan', 'Peruvian', 'Philippine', 'Polish',
+  'Portuguese', 'Qatari', 'Romanian', 'Russian', 'Rwandan', 'Salvadoran',
+  'Samoan', 'Saudi Arabian', 'Senegalese', 'Serbian', 'Seychellois',
+  'Sierra Leonean', 'Singaporean', 'Slovak', 'Slovenian', 'Solomon Islander',
+  'Somali', 'South African', 'South Sudanese', 'Spanish', 'Sri Lankan',
+  'Sudanese', 'Surinamese', 'Swedish', 'Swiss', 'Syrian', 'Taiwanese',
+  'Tajikistani', 'Tanzanian', 'Thai', 'Togolese', 'Tongan', 'Trinidadian',
+  'Tunisian', 'Turkish', 'Turkmenistani', 'Tuvaluan', 'Ugandan', 'Ukrainian',
+  'Uruguayan', 'Uzbekistani', 'Vanuatuan', 'Venezuelan', 'Vietnamese', 'Yemeni',
+  'Zambian', 'Zimbabwean',
+].map((n) => ({ value: n, label: n }));
+
 const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
 
 1. Accuracy of Information
@@ -202,7 +239,15 @@ function SubmitLead() {
             </Col>
             <Col xs={24} md={12}>
               <Form.Item name="nationality" label="Nationality (optional)">
-                <Input placeholder="e.g. Pakistani" />
+                <Select
+                  showSearch
+                  allowClear
+                  placeholder="Select nationality"
+                  options={NATIONALITIES}
+                  filterOption={(input, opt) =>
+                    opt.label.toLowerCase().includes(input.toLowerCase())
+                  }
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>

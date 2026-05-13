@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Card, Col, Row, Typography, Tag, Space, Button, Descriptions, Skeleton,
-  Timeline, Divider, message, Modal, Form, InputNumber, Input, Select,
+  Timeline, Divider, message, Modal, Form, InputNumber, Input, Select, Image,
 } from 'antd';
 import {
   ArrowLeftOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, FileOutlined, UserAddOutlined,
@@ -260,6 +260,22 @@ export default function LeadDetail() {
                       return <Tag color={colors[t] || 'default'}>{labels[t] || t}</Tag>;
                     })()}
                   </Descriptions.Item>
+                  {lead.cardProduct.cardImage && (
+                    <Descriptions.Item label="Card Image" span={2}>
+                      <Image
+                        src={`${API_BASE}/uploads/card-images/${lead.cardProduct.cardImage}`}
+                        alt={lead.cardProduct.name}
+                        style={{
+                          width: 200,
+                          height: 126,
+                          objectFit: 'cover',
+                          borderRadius: 10,
+                          border: '1px solid #e2e8f0',
+                        }}
+                        preview={{ mask: 'View' }}
+                      />
+                    </Descriptions.Item>
+                  )}
                 </>
               )}
               {isLoan && lead.loanProduct && (

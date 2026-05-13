@@ -309,12 +309,30 @@ function SubmitLead() {
                 />
               </Form.Item>
               {selectedCard && (
-                <Descriptions size="small" bordered style={{ marginBottom: 12 }}>
-                  <Descriptions.Item label="Bank">{selectedCard.bank?.name}</Descriptions.Item>
-                  <Descriptions.Item label="Card Type">
-                    {({ regular: 'Regular', premium: 'Premium', rewards_lifestyle: 'Rewards & Lifestyle', travel: 'Travel', ecommerce: 'E-Commerce', legacy: 'Legacy' })[selectedCard.cardType] || selectedCard.cardType}
-                  </Descriptions.Item>
-                </Descriptions>
+                <>
+                  {selectedCard.cardImage && (
+                    <div style={{ marginBottom: 12 }}>
+                      <img
+                        src={`${API_BASE}/uploads/card-images/${selectedCard.cardImage}`}
+                        alt={selectedCard.name}
+                        style={{
+                          width: 200,
+                          height: 126,
+                          objectFit: 'cover',
+                          borderRadius: 10,
+                          border: '1px solid #e2e8f0',
+                          display: 'block',
+                        }}
+                      />
+                    </div>
+                  )}
+                  <Descriptions size="small" bordered style={{ marginBottom: 12 }}>
+                    <Descriptions.Item label="Bank">{selectedCard.bank?.name}</Descriptions.Item>
+                    <Descriptions.Item label="Card Type">
+                      {({ regular: 'Regular', premium: 'Premium', rewards_lifestyle: 'Rewards & Lifestyle', travel: 'Travel', ecommerce: 'E-Commerce', legacy: 'Legacy' })[selectedCard.cardType] || selectedCard.cardType}
+                    </Descriptions.Item>
+                  </Descriptions>
+                </>
               )}
               {selectedCard && activeBrackets.length > 0 && (
                 <Form.Item

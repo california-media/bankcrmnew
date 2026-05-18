@@ -75,7 +75,7 @@ function ProductCard({ product }) {
               <Typography.Text style={{ fontSize: 12, flex: 1 }}>
                 ≥ {aed(b.minimumSalary)} → <strong style={{ color: '#16a34a' }}>{aed(b.payable)}</strong>
               </Typography.Text>
-              {b.feeType && (
+              {product.productType === 'credit_card' && b.feeType && (
                 <Tag color={b.feeType === 'free' ? 'green' : 'blue'} style={{ fontSize: 10, margin: 0 }}>
                   {b.feeType === 'free' ? 'Free' : 'Paid'}
                 </Tag>
@@ -85,7 +85,7 @@ function ProductCard({ product }) {
         </div>
       )}
 
-      {product.cardImage && (
+      {product.productType === 'credit_card' && product.cardImage && (
         <div style={{ marginTop: 10 }}>
           <img
             src={`${UPLOADS_BASE}/card-images/${product.cardImage}`}

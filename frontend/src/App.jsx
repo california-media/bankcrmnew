@@ -9,7 +9,6 @@ import AdminDashboard from './pages/admin/Dashboard';
 import Agencies from './pages/admin/Agencies';
 import AdminLeads from './pages/admin/Leads';
 import AdminAgents from './pages/admin/Agents';
-import VolumeBonuses from './pages/admin/VolumeBonuses';
 import CardProducts from './pages/admin/CardProducts';
 import LoanProducts from './pages/admin/LoanProducts';
 import AdminBanks from './pages/admin/Banks';
@@ -17,10 +16,11 @@ import AgentDashboard from './pages/agent/Dashboard';
 import SubmitLead from './pages/agent/SubmitLead';
 import MyLeads from './pages/agent/MyLeads';
 import Commissions from './pages/agent/Commissions';
+import AgentProducts from './pages/agent/Products';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyLeads from './pages/agency/Leads';
 import AgencyEmployees from './pages/agency/Employees';
-import AgencyReceipts from './pages/agency/Receipts';
+import AgencyPayouts from './pages/agency/Payouts';
 import Payouts from './pages/admin/Payouts';
 import Receive from './pages/admin/Receive';
 import EmployeeStatuses from './pages/admin/EmployeeStatuses';
@@ -28,6 +28,7 @@ import EmployeeDashboard from './pages/employee/Dashboard';
 import EmployeeLeads from './pages/employee/AssignedLeads';
 import LeadDetail from './pages/leads/LeadDetail';
 import Profile from './pages/Profile';
+import TermsAndConditions from './pages/TermsAndConditions';
 
 const theme = {
   algorithm: antdTheme.defaultAlgorithm,
@@ -64,6 +65,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
 
         <Route
           path="/admin"
@@ -78,7 +80,6 @@ function App() {
           <Route path="leads" element={<AdminLeads />} />
           <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="agents" element={<AdminAgents />} />
-          <Route path="volume-bonuses" element={<VolumeBonuses />} />
           <Route path="card-products" element={<CardProducts />} />
           <Route path="loan-products" element={<LoanProducts />} />
           <Route path="banks" element={<AdminBanks />} />
@@ -101,6 +102,7 @@ function App() {
           <Route path="leads/new" element={<SubmitLead />} />
           <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="commissions" element={<Commissions />} />
+          <Route path="products" element={<AgentProducts />} />
           <Route path="profile" element={<Profile />} />
         </Route>
 
@@ -116,7 +118,7 @@ function App() {
           <Route path="leads" element={<AgencyLeads />} />
           <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="employees" element={<AgencyEmployees />} />
-          <Route path="receipts" element={<AgencyReceipts />} />
+<Route path="payouts" element={<AgencyPayouts />} />
           <Route path="profile" element={<Profile />} />
         </Route>
 

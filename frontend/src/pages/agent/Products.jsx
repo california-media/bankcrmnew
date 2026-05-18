@@ -91,6 +91,7 @@ function ProductCard({ product }) {
             src={`${UPLOADS_BASE}/card-images/${product.cardImage}`}
             alt=""
             style={{ width: 80, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }}
+            onError={(e) => { e.target.style.display = 'none'; }}
           />
         </div>
       )}
@@ -109,8 +110,8 @@ function Products() {
     setLoading(true);
     Promise.all([api.get('/card-products'), api.get('/loan-products')])
       .then(([cardsRes, loansRes]) => {
-        setCards(cardsRes.data.map((c) => ({ ...c, productType: 'credit_card' })));
-        setLoans(loansRes.data.map((l) => ({ ...l, productType: 'loan' })));
+        setCards(cardsRes.data.filter((c) => c.isActive).map((c) => ({ ...c, productType: 'credit_card' })));
+        setLoans(loansRes.data.filter((l) => l.isActive).map((l) => ({ ...l, productType: 'loan' })));
       })
       .catch(() => message.error('Failed to load products'))
       .finally(() => setLoading(false));

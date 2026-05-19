@@ -29,6 +29,7 @@ import EmployeeLeads from './pages/employee/AssignedLeads';
 import LeadDetail from './pages/leads/LeadDetail';
 import Profile from './pages/Profile';
 import TermsAndConditions from './pages/TermsAndConditions';
+import Notifications from './pages/Notifications';
 
 const theme = {
   algorithm: antdTheme.defaultAlgorithm,
@@ -87,6 +88,7 @@ function App() {
           <Route path="receive" element={<Receive />} />
           <Route path="employee-statuses" element={<EmployeeStatuses />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
         <Route
@@ -104,6 +106,7 @@ function App() {
           <Route path="commissions" element={<Commissions />} />
           <Route path="products" element={<AgentProducts />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
         <Route
@@ -120,6 +123,7 @@ function App() {
           <Route path="employees" element={<AgencyEmployees />} />
 <Route path="payouts" element={<AgencyPayouts />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
         <Route
@@ -134,6 +138,7 @@ function App() {
           <Route path="leads" element={<EmployeeLeads />} />
           <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="notifications" element={<Notifications />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />

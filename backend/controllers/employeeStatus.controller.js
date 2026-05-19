@@ -102,7 +102,7 @@ exports.setOnLead = async (req, res) => {
         ? (lead.employeeStatus?.label || String(employeeStatusId))
         : 'cleared';
       await createAndEmit(
-        [...adminIds, String(lead.agency?._id || lead.agency), String(lead.agent?._id || lead.agent)],
+        [...adminIds, String(lead.agency), String(lead.agent)],
         {
           type: 'employee_status_updated',
           title: 'Status Updated',

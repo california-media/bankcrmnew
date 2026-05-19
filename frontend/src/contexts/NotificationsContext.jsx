@@ -43,10 +43,11 @@ export function NotificationsProvider({ children }) {
   const markRead = useCallback(async (ids) => {
     try {
       await api.patch('/notifications/read', { ids });
-      setNotifications((prev) =>
-        prev.map((n) => (ids.includes(String(n._id)) ? { ...n, isRead: true } : n))
-      );
-      setUnreadCount((c) => Math.max(0, c - ids.length));
+      setNotifications((prev) => {
+        const actuallyMarked = prev.filter((n) => ids.includes(String(n._id)) && !n.isRead).length;
+        setUnreadCount((c) => Math.max(0, c - actuallyMarked));
+        return prev.map((n) => (ids.includes(String(n._id)) ? { ...n, isRead: true } : n));
+      });
     } catch (_) {}
   }, []);
 

@@ -19,17 +19,20 @@ const app        = express();
 const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {
-  cors: { origin: '*', methods: ['GET', 'POST'] },
+  cors: { origin: process.env.CLIENT_URL || 'http://localhost:5173', methods: ['GET', 'POST'] },
 });
 
 setIO(io);
 
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error('Unauthorized'));
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    socket.userId = decoded.id;
+    const User = require('./models/User');
+    const user = await User.findById(decoded.id).select('_id isActive').lean();
+    if (!user || !user.isActive) return next(new Error('Unauthorized'));
+    socket.userId = String(decoded.id);
     next();
   } catch {
     next(new Error('Unauthorized'));

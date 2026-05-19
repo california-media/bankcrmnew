@@ -108,7 +108,7 @@ exports.create = async (req, res) => {
         ? (populated.cardProduct?.name || 'Card')
         : (populated.loanProduct?.name || 'Loan');
       await createAndEmit(
-        [...adminIds, String(lead.agency)],
+        [...adminIds, String(populated.agency?._id || populated.agency)],
         {
           type: 'lead_created',
           title: 'New Lead Submitted',
@@ -331,7 +331,7 @@ exports.updateStatus = async (req, res) => {
     try {
       const adminIds = await getAdminIds();
       await createAndEmit(
-        [...adminIds, String(lead.agency), String(lead.agent)],
+        [...adminIds, String(populated.agency?._id || populated.agency), String(populated.agent?._id || populated.agent)],
         {
           type: 'status_changed',
           title: `Lead ${formatStatus(status)}`,
@@ -575,6 +575,7 @@ exports.bulkMarkReceived = async (req, res) => {
               body: `${l.customerName} — AED ${Number(l.commission || 0).toLocaleString()} now payable`,
               lead: l._id,
             },
+            req.user._id,
           )
         )
       );
@@ -709,9 +710,11 @@ exports.assignEmployee = async (req, res) => {
       if (employeeId) {
         const adminIds = await getAdminIds();
         const typeLabel = type === 'cpv' ? 'CPV' : type === 'sales' ? 'Sales' : 'employee';
-        const empName = populated.assignedCpvEmployee?.name
-          || populated.assignedSalesEmployee?.name
-          || 'employee';
+        const empName = type === 'cpv'
+          ? (populated.assignedCpvEmployee?.name || 'employee')
+          : type === 'sales'
+            ? (populated.assignedSalesEmployee?.name || 'employee')
+            : (populated.assignedEmployee?.name || 'employee');
         await createAndEmit(
           [...adminIds, String(lead.agency), String(employeeId)],
           {
@@ -843,9 +846,9 @@ exports.addNote = async (req, res) => {
     ]);
     try {
       const adminIds = await getAdminIds();
-      const recipients = [...adminIds, String(lead.agency), String(lead.agent)];
-      if (lead.assignedCpvEmployee) recipients.push(String(lead.assignedCpvEmployee));
-      if (lead.assignedSalesEmployee) recipients.push(String(lead.assignedSalesEmployee));
+      const recipients = [...adminIds, String(populated.agency?._id || populated.agency), String(populated.agent?._id || populated.agent)];
+      if (populated.assignedCpvEmployee) recipients.push(String(populated.assignedCpvEmployee?._id || populated.assignedCpvEmployee));
+      if (populated.assignedSalesEmployee) recipients.push(String(populated.assignedSalesEmployee?._id || populated.assignedSalesEmployee));
       const truncated = String(text).trim().slice(0, 60) + (String(text).trim().length > 60 ? '…' : '');
       await createAndEmit(
         recipients,

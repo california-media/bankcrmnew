@@ -1,7 +1,12 @@
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+const express   = require('express');
+const http      = require('http');
+const { Server } = require('socket.io');
+const jwt       = require('jsonwebtoken');
+const cors      = require('cors');
+const path      = require('path');
 const connectDB = require('./config/db');
+const { setIO } = require('./utils/io');
 
 const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET'];
 const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
@@ -10,13 +15,33 @@ if (missing.length) {
   process.exit(1);
 }
 
-const path = require('path');
+const app        = express();
+const httpServer = http.createServer(app);
 
-const app = express();
+const io = new Server(httpServer, {
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+});
+
+setIO(io);
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error('Unauthorized'));
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+    next();
+  } catch {
+    next(new Error('Unauthorized'));
+  }
+});
+
+io.on('connection', (socket) => {
+  socket.join(String(socket.userId));
+  socket.on('disconnect', () => {});
+});
 
 connectDB();
-
-// app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
 
 app.use(cors());
 app.use(express.json());
@@ -24,17 +49,19 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => res.json({ message: 'Bank CRM API' }));
 
-app.use('/api/auth', require('./routes/auth.routes'));
-app.use('/api/banks', require('./routes/bank.routes'));
-app.use('/api/agencies', require('./routes/agency.routes'));
-app.use('/api/leads', require('./routes/lead.routes'));
-app.use('/api/commission-rules', require('./routes/commissionRule.routes'));
-app.use('/api/volume-bonuses', require('./routes/volumeBonus.routes'));
-app.use('/api/admin', require('./routes/admin.routes'));
-app.use('/api/card-products', require('./routes/cardProduct.routes'));
-app.use('/api/loan-products', require('./routes/loanProduct.routes'));
-app.use('/api/employees', require('./routes/employee.routes'));
+app.use('/api/auth',              require('./routes/auth.routes'));
+app.use('/api/banks',             require('./routes/bank.routes'));
+app.use('/api/agencies',          require('./routes/agency.routes'));
+app.use('/api/leads',             require('./routes/lead.routes'));
+app.use('/api/commission-rules',  require('./routes/commissionRule.routes'));
+app.use('/api/volume-bonuses',    require('./routes/volumeBonus.routes'));
+app.use('/api/admin',             require('./routes/admin.routes'));
+app.use('/api/card-products',     require('./routes/cardProduct.routes'));
+app.use('/api/loan-products',     require('./routes/loanProduct.routes'));
+app.use('/api/employees',         require('./routes/employee.routes'));
 app.use('/api/employee-statuses', require('./routes/employeeStatus.routes'));
+app.use('/api/agency-payouts',    require('./routes/agencyPayout.routes'));
+app.use('/api/notifications',     require('./routes/notification.routes'));
 
 app.use((err, req, res, _next) => {
   console.error(err);
@@ -42,4 +69,4 @@ app.use((err, req, res, _next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+httpServer.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -51,8 +51,8 @@ export default function Notifications() {
   }, [notifications, tab]);
 
   const handleRow = (n) => {
-    if (n.lead) navigate(`/${user.role}/leads/${n.lead}`);
     if (!n.isRead) markRead([String(n._id)]);
+    if (n.lead) navigate(`/${user.role}/leads/${n.lead}`);
   };
 
   return (

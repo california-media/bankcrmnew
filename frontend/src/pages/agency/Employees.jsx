@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Table, Tag, Typography, Button, Modal, Form, Input, message, Space, Row, Col, Popconfirm } from 'antd';
+import { Table, Tag, Typography, Button, Modal, Form, Input, Select, message, Space, Row, Col, Popconfirm } from 'antd';
 import { EditOutlined, DeleteOutlined, LockOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
@@ -61,7 +61,7 @@ function Employees() {
 
   const openEdit = (row) => {
     setEditTarget(row);
-    editForm.setFieldsValue({ name: row.name, email: row.email });
+    editForm.setFieldsValue({ name: row.name, email: row.email, employeeType: row.employeeType });
     setEditOpen(true);
   };
 
@@ -117,6 +117,11 @@ function Employees() {
       render: (v) => v || <Typography.Text type="secondary">—</Typography.Text>,
     },
     { title: 'Email', dataIndex: 'email' },
+    {
+      title: 'Type',
+      dataIndex: 'employeeType',
+      render: (v) => v === 'cpv' ? <Tag color="blue">CPV</Tag> : v === 'sales' ? <Tag color="purple">Sales</Tag> : <Typography.Text type="secondary">—</Typography.Text>,
+    },
     {
       title: 'Status',
       dataIndex: 'isActive',
@@ -178,6 +183,9 @@ function Employees() {
           <Form.Item name="password" label="Password" rules={[{ required: true, message: 'Password is required' }]}>
             <Input.Password placeholder="Password" />
           </Form.Item>
+          <Form.Item name="employeeType" label="Employee Type" rules={[{ required: true, message: 'Select a type' }]}>
+            <Select placeholder="Select type" options={[{ value: 'cpv', label: 'CPV' }, { value: 'sales', label: 'Sales' }]} />
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -189,6 +197,9 @@ function Employees() {
           </Form.Item>
           <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Email is required' }, { type: 'email', message: 'Enter a valid email' }]}>
             <Input placeholder="email@example.com" />
+          </Form.Item>
+          <Form.Item name="employeeType" label="Employee Type">
+            <Select placeholder="Select type" allowClear options={[{ value: 'cpv', label: 'CPV' }, { value: 'sales', label: 'Sales' }]} />
           </Form.Item>
         </Form>
       </Modal>

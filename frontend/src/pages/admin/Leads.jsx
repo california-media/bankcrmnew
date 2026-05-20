@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Select, DatePicker, Row, Col, Space, Button, message, Modal, Descriptions, Timeline, Tabs } from 'antd';
-import { SearchOutlined, SendOutlined, HistoryOutlined } from '@ant-design/icons';
+import { Table, Tag, Typography, Input, Select, DatePicker, Space, Button, Tabs, Tooltip } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
-import SendToAgencyModal from '../../components/SendToAgencyModal';
 
 const STATUSES = [
   { value: 'draft', label: 'Draft', color: 'default' },
@@ -34,13 +33,6 @@ function AdminLeads() {
 
   const [leadsTab, setLeadsTab] = useState('active');
 
-  const [sendOpen, setSendOpen] = useState(false);
-  const [sendingLead, setSendingLead] = useState(null);
-
-  // Payout history modal
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historyLead, setHistoryLead] = useState(null);
-
   const load = async () => {
     setLoading(true);
     try {
@@ -53,7 +45,8 @@ function AdminLeads() {
 
   useEffect(() => { load(); }, []);
 
-  const activeCount = leads.filter(l => l.status !== 'disbursed').length;
+  const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected').length;
+  const rejectedCount = leads.filter(l => l.status === 'rejected').length;
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
 
   const filtered = useMemo(() => {
@@ -61,7 +54,8 @@ function AdminLeads() {
     const [from, to] = dateRange || [];
     return leads.filter((l) => {
       if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
-      if (leadsTab === 'active' && l.status === 'disbursed') return false;
+      if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
+      if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected')) return false;
       if (q && !l.customerName.toLowerCase().includes(q) && !String(l._id).toLowerCase().includes(q)) return false;
       if (statusFilter && l.status !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
@@ -72,105 +66,95 @@ function AdminLeads() {
   }, [leads, search, statusFilter, productFilter, dateRange, leadsTab]);
 
   const renderProduct = (row) => {
-    if (row.productType === 'credit_card' && row.cardProduct) {
-      return (
+    const name = row.productType === 'credit_card' ? row.cardProduct?.name : row.loanProduct?.name;
+    const sub = row.productType === 'credit_card'
+      ? (row.cardProduct?.cardType === 'premium' ? 'Premium' : 'Regular')
+      : (row.loanProduct?.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal');
+    if (!name) return PRODUCTS.find((p) => p.value === row.productType)?.label || row.productType;
+    return (
+      <Tooltip title={name}>
         <div>
-          <div style={{ fontWeight: 600 }}>{row.cardProduct.name}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>
-            {row.cardProduct.cardType === 'premium' ? 'Premium' : 'Regular'} · {aed(row.cardProduct.commissionAmount)}
-          </div>
+          <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+          <div style={{ fontSize: 11, color: '#888' }}>{sub}</div>
         </div>
-      );
-    }
-    if (row.productType === 'loan' && row.loanProduct) {
-      return (
-        <div>
-          <div style={{ fontWeight: 600 }}>{row.loanProduct.name}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>
-            {row.loanProduct.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal'} · {aed(row.loanAmount)} · {row.loanProduct.commissionRate}%
-          </div>
-        </div>
-      );
-    }
-    return PRODUCTS.find((p) => p.value === row.productType)?.label || row.productType;
+      </Tooltip>
+    );
   };
 
   const columns = [
     {
       title: 'Lead ID',
       dataIndex: 'leadNumber',
-      render: (leadNumber) => (
-        <Typography.Text type="secondary" style={{ fontFamily: 'monospace', width: 130, whiteSpace: 'nowrap' }}>{leadNumber || '—'}</Typography.Text>
+      width: 128,
+      render: (v) => (
+        <Typography.Text type="secondary" style={{ fontFamily: 'monospace', fontSize: 12 }}>{v || '—'}</Typography.Text>
       ),
     },
     {
       title: 'Client',
-      dataIndex: 'customerName',
-      render: (v, row) => (
+      width: 140,
+      ellipsis: true,
+      render: (_, row) => (
         <div>
-          <div style={{ fontWeight: 600 }}>{v}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>{row.phone}</div>
+          <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.customerName}</div>
+          <div style={{ fontSize: 11, color: '#888' }}>{row.phone}</div>
         </div>
       ),
     },
-    { title: 'Agent', render: (_, row) => row.agent?.name || row.agent?.email || '—' },
-    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || <Typography.Text type="secondary">—</Typography.Text> },
-    { title: 'Product', render: (_, row) => renderProduct(row) },
-    { title: 'Bank', render: (_, row) => row.bank?.name || <Typography.Text type="secondary">—</Typography.Text> },
+    {
+      title: 'Agent',
+      width: 90,
+      ellipsis: true,
+      render: (_, row) => row.agent?.name || row.agent?.email || '—',
+    },
+    {
+      title: 'Agency',
+      width: 90,
+      ellipsis: true,
+      render: (_, row) => row.agency?.name || row.agency?.email || '—',
+    },
+    {
+      title: 'Product',
+      width: 170,
+      ellipsis: true,
+      render: (_, row) => renderProduct(row),
+    },
+    {
+      title: 'Bank',
+      width: 110,
+      ellipsis: true,
+      render: (_, row) => row.bank?.name || '—',
+    },
     {
       title: 'Stage',
-      dataIndex: 'status',
-      render: (s) => {
-        const meta = STATUSES.find((x) => x.value === s);
-        return <Tag color={meta?.color}>{meta?.label || s}</Tag>;
+      width: 108,
+      render: (_, row) => {
+        const meta = STATUSES.find((x) => x.value === row.status);
+        return <Tag color={meta?.color}>{meta?.label || row.status}</Tag>;
       },
     },
     {
       title: 'Emp. Status',
+      width: 108,
       render: (_, row) => row.employeeStatus
         ? <Tag color={row.employeeStatus.color}>{row.employeeStatus.label}</Tag>
         : <Typography.Text type="secondary">—</Typography.Text>,
     },
     {
       title: 'Commission',
+      width: 118,
       align: 'right',
       render: (_, row) => (
         <Space direction="vertical" size={0} style={{ alignItems: 'flex-end' }}>
-          {row.grossCommission > 0 && (
-            <div style={{ fontSize: 11, color: '#888' }}>Gross: {aed(row.grossCommission)}</div>
-          )}
+          {row.grossCommission > 0 && <div style={{ fontSize: 11, color: '#888' }}>Gross: {aed(row.grossCommission)}</div>}
           <span style={{ fontWeight: 600 }}>{aed(row.commission)}</span>
           {row.commissionStatus !== 'none' && (
-            <Tag color={
-              row.commissionStatus === 'paid' ? 'green' :
-              row.commissionStatus === 'payable' ? 'cyan' : 'gold'
-            } style={{ marginInlineEnd: 0 }}>
+            <Tag color={row.commissionStatus === 'paid' ? 'green' : row.commissionStatus === 'payable' ? 'cyan' : 'gold'} style={{ marginInlineEnd: 0 }}>
               {row.commissionStatus}
             </Tag>
           )}
         </Space>
       ),
-    },
-    {
-      title: 'Actions',
-      width: 240,
-      render: (_, row) => {
-        if (row.status === 'draft') {
-          return (
-            <Button size="small" type="primary" icon={<SendOutlined />} onClick={() => { setSendingLead(row); setSendOpen(true); }}>
-              Send to Agency
-            </Button>
-          );
-        }
-        if (row.payoutHistory?.length > 0) {
-          return (
-            <Button size="small" icon={<HistoryOutlined />} onClick={(e) => { e.stopPropagation(); setHistoryLead(row); setHistoryOpen(true); }}>
-              Payout History ({row.payoutHistory.length})
-            </Button>
-          );
-        }
-        return null;
-      },
     },
   ];
 
@@ -226,55 +210,11 @@ function AdminLeads() {
         style={{ marginBottom: 8 }}
         items={[
           { key: 'active', label: `Active (${activeCount})` },
-          { key: 'archive', label: `Archive (${archiveCount})` },
+          { key: 'rejected', label: `Rejected (${rejectedCount})` },
+          { key: 'archive', label: `Approved (${archiveCount})` },
         ]}
       />
-      <Table size="small" rowKey="_id" loading={loading} dataSource={filtered} columns={columns} scroll={{ x: 'max-content' }} onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })} />
-
-      <SendToAgencyModal
-        open={sendOpen}
-        onClose={() => setSendOpen(false)}
-        lead={sendingLead}
-        onSent={load}
-      />
-
-      <Modal
-        title="Payout History"
-        open={historyOpen}
-        onCancel={() => setHistoryOpen(false)}
-        footer={<Button onClick={() => setHistoryOpen(false)}>Close</Button>}
-        width={520}
-      >
-        {historyLead && (
-          <>
-            <Descriptions size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="Client">{historyLead.customerName}</Descriptions.Item>
-              <Descriptions.Item label="Agent">{historyLead.agent?.name || historyLead.agent?.email}</Descriptions.Item>
-              {historyLead.disbursementReceipt && (
-                <Descriptions.Item label="Receipt Ref" span={2}>{historyLead.disbursementReceipt}</Descriptions.Item>
-              )}
-            </Descriptions>
-            {historyLead.payoutHistory?.length > 0 ? (
-              <Timeline
-                items={[...historyLead.payoutHistory].reverse().map((p) => ({
-                  color: 'green',
-                  children: (
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{aed(p.amount)}</div>
-                      <div style={{ fontSize: 12, color: '#888' }}>
-                        {new Date(p.sentAt).toLocaleString()} · {p.month}
-                      </div>
-                    </div>
-                  ),
-                }))}
-              />
-            ) : (
-              <Typography.Text type="secondary">No payout history yet.</Typography.Text>
-            )}
-          </>
-        )}
-      </Modal>
-
+      <Table size="small" rowKey="_id" loading={loading} dataSource={filtered} columns={columns} tableLayout="fixed" onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })} />
     </>
   );
 }

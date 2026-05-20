@@ -40,7 +40,7 @@ const safeUser = async (id) =>
  */
 exports.registerAgent = async (req, res) => {
   try {
-    const { name, email, password, phone, referralCode } = req.body;
+    const { name, email, password, phone, referralCode, emiratesId } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
     }
@@ -71,6 +71,7 @@ exports.registerAgent = async (req, res) => {
       referralCode: code,
       referredBy,
       isActive: true,
+      ...(emiratesId ? { emiratesId } : {}),
     });
 
     const token = signAuthToken(agent);

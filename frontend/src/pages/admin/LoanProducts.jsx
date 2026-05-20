@@ -1,17 +1,36 @@
 import { useEffect, useState } from 'react';
 import {
   Button, Table, Modal, Form, Input, InputNumber, Select, Space,
-  Popconfirm, Typography, Tag, message, Divider,
+  Popconfirm, Typography, Tag, message, Divider, Tabs,
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import QuillEditor from '../../components/QuillEditor';
 import api from '../../api/client';
+
 
 const pct = (n) => `${Number(n || 0)}%`;
 
 const LOAN_CATEGORIES = [
-  { value: 'personal', label: 'Personal Loan' },
-  { value: 'mortgage', label: 'Mortgage' },
+  { value: 'personal',  label: 'Personal Loan' },
+  { value: 'mortgage',  label: 'Mortgage Loan' },
+  { value: 'investor',  label: 'Investor Loan' },
+  { value: 'business',  label: 'Business Loan' },
+  { value: 'auto_loan', label: 'Auto Loan' },
+  { value: 'buyout',    label: 'Buyout Loan' },
+  { value: 'fresh',     label: 'Fresh Loan' },
+  { value: 'pdc',       label: 'PDC Loans' },
 ];
+
+const CATEGORY_COLOR = {
+  personal:  'cyan',
+  mortgage:  'purple',
+  investor:  'gold',
+  business:  'blue',
+  auto_loan: 'green',
+  buyout:    'volcano',
+  fresh:     'lime',
+  pdc:       'geekblue',
+};
 
 function LoanProducts() {
   const [loans, setLoans] = useState([]);
@@ -20,6 +39,8 @@ function LoanProducts() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [benefitsHtml, setBenefitsHtml] = useState('');
+  const [feesHtml, setFeesHtml] = useState('');
   const [form] = Form.useForm();
 
   const load = async () => {
@@ -40,7 +61,7 @@ function LoanProducts() {
 
   useEffect(() => { load(); }, []);
 
-  const openCreate = () => { setEditing(null); form.resetFields(); setOpen(true); };
+  const openCreate = () => { setEditing(null); form.resetFields(); setBenefitsHtml(''); setFeesHtml(''); setOpen(true); };
   const openEdit = (l) => {
     setEditing(l);
     form.setFieldsValue({
@@ -50,18 +71,26 @@ function LoanProducts() {
       agency: l.agency?._id,
       isActive: l.isActive,
       commissionBrackets: l.commissionBrackets || [],
+      interestRateRange: l.interestRateRange,
+      minSalary: l.minSalary,
+      maxLoanAmount: l.maxLoanAmount,
+      maxTenure: l.maxTenure,
+      keyNotes: l.keyNotes,
     });
+    setBenefitsHtml(l.benefits || '');
+    setFeesHtml(l.feesEligibility || '');
     setOpen(true);
   };
 
   const onSubmit = async () => {
     const values = await form.validateFields();
     try {
+      const payload = { ...values, benefits: benefitsHtml, feesEligibility: feesHtml };
       if (editing) {
-        await api.put(`/loan-products/${editing._id}`, values);
+        await api.put(`/loan-products/${editing._id}`, payload);
         message.success('Loan product updated');
       } else {
-        await api.post('/loan-products', values);
+        await api.post('/loan-products', payload);
         message.success('Loan product created');
       }
       setOpen(false);
@@ -89,7 +118,10 @@ function LoanProducts() {
     {
       title: 'Category',
       dataIndex: 'loanCategory',
-      render: (v) => <Tag color={v === 'mortgage' ? 'purple' : 'cyan'}>{v === 'mortgage' ? 'Mortgage' : 'Personal Loan'}</Tag>,
+      render: (v) => {
+        const cat = LOAN_CATEGORIES.find((c) => c.value === v);
+        return <Tag color={CATEGORY_COLOR[v] || 'default'}>{cat?.label || v}</Tag>;
+      },
     },
     { title: 'Bank', render: (_, row) => row.bank?.name || '—' },
     { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || '—' },
@@ -175,6 +207,22 @@ function LoanProducts() {
             />
           </Form.Item>
 
+          <Divider orientation="left" style={{ fontSize: 13 }}>Bank Product Info</Divider>
+          <Form.Item name="interestRateRange" label="Interest Rate Range">
+            <Input placeholder="e.g. 5.99% – 18.99% reducing" />
+          </Form.Item>
+          <Space style={{ width: '100%' }} size={16}>
+            <Form.Item name="maxTenure" label="Max Tenure" style={{ flex: 1 }}>
+              <Input placeholder="e.g. Up to 48 months" />
+            </Form.Item>
+            <Form.Item name="maxLoanAmount" label="Max Loan Amount" style={{ flex: 1 }}>
+              <Input placeholder="e.g. Up to AED 2M" />
+            </Form.Item>
+          </Space>
+          <Form.Item name="keyNotes" label="Key Notes">
+            <Input.TextArea rows={2} placeholder="Key product notes..." />
+          </Form.Item>
+
           <Divider orientation="left" style={{ fontSize: 13 }}>Commission Brackets</Divider>
           <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 12, fontSize: 12 }}>
             Receivable = % of loan amount agency receives from bank. Payable = % of loan amount paid to agent. Highest eligible bracket applies.
@@ -224,6 +272,34 @@ function LoanProducts() {
               </>
             )}
           </Form.List>
+
+          <Divider orientation="left" style={{ fontSize: 13 }}>Product Content</Divider>
+          <Tabs
+            items={[
+              {
+                key: 'benefits',
+                label: 'Product Benefits',
+                children: (
+                  <QuillEditor
+                    value={benefitsHtml}
+                    onChange={setBenefitsHtml}
+                    style={{ height: 260, marginBottom: 42 }}
+                  />
+                ),
+              },
+              {
+                key: 'fees',
+                label: 'Fees & Eligibility',
+                children: (
+                  <QuillEditor
+                    value={feesHtml}
+                    onChange={setFeesHtml}
+                    style={{ height: 260, marginBottom: 42 }}
+                  />
+                ),
+              },
+            ]}
+          />
         </Form>
       </Modal>
     </>

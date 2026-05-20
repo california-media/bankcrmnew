@@ -1,5 +1,15 @@
 const User = require('../models/User');
 
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const genEmployeeId = async () => {
+  let id, exists;
+  do {
+    id = 'EMP-' + Array.from({ length: 6 }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('');
+    exists = await User.findOne({ employeeId: id });
+  } while (exists);
+  return id;
+};
+
 /**
  * POST /api/employees  (agency)
  * Agency creates an employee account.
@@ -7,7 +17,7 @@ const User = require('../models/User');
  */
 exports.create = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, employeeType } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'name, email, and password are required' });
     }
@@ -17,6 +27,7 @@ exports.create = async (req, res) => {
       return res.status(409).json({ message: 'Email already in use' });
     }
 
+    const employeeId = await genEmployeeId();
     const employee = await User.create({
       name,
       email,
@@ -24,6 +35,8 @@ exports.create = async (req, res) => {
       role: 'employee',
       agency: req.user._id,
       isActive: true,
+      employeeId,
+      ...(employeeType && { employeeType }),
     });
 
     // Return sanitized user (no password)
@@ -82,7 +95,7 @@ exports.toggleActive = async (req, res) => {
  */
 exports.update = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, employeeType } = req.body;
     const employee = await User.findOne({ _id: req.params.id, role: 'employee', agency: req.user._id });
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
@@ -92,6 +105,7 @@ exports.update = async (req, res) => {
       if (existing) return res.status(409).json({ message: 'Email already in use' });
       employee.email = email.toLowerCase().trim();
     }
+    if (employeeType !== undefined) employee.employeeType = employeeType;
     await employee.save();
 
     const sanitized = employee.toObject();

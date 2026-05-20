@@ -11,11 +11,17 @@ const userSchema = new mongoose.Schema(
 
     // Employee-only: link back to the agency that created this employee
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    employeeId: { type: String, unique: true, sparse: true },
+    employeeType: { type: String, enum: ['cpv', 'sales'] },
 
     // Agent-only
     referralCode: { type: String, unique: true, sparse: true },
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     leadCount: { type: Number, default: 0 },
+    emiratesId: { type: String, default: null },
+
+    // Agency-only: overpayment credit pool
+    bucketBalance: { type: Number, default: 0 },
 
     // Invitation flow (agencies created by admin)
     inviteToken: { type: String },

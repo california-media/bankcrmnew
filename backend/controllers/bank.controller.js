@@ -3,7 +3,8 @@ const User = require('../models/User');
 
 exports.list = async (req, res) => {
   try {
-    const banks = await Bank.find().sort({ name: 1 });
+    const filter = req.user.role === 'admin' ? {} : { isActive: true };
+    const banks = await Bank.find(filter).sort({ name: 1 });
     res.json(banks);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -27,11 +28,12 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, code, description } = req.body;
+    const { name, code, description, isActive } = req.body;
     const update = {};
     if (name !== undefined) update.name = name;
     if (code !== undefined) update.code = code;
     if (description !== undefined) update.description = description;
+    if (isActive !== undefined) update.isActive = isActive;
 
     const bank = await Bank.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!bank) return res.status(404).json({ message: 'Bank not found' });

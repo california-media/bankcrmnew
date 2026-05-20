@@ -1,19 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Row, Col, Card, Typography, Input, Select, Tag, message, Skeleton, Empty } from 'antd';
+import { Row, Col, Card, Typography, Input, Select, Tag, message, Skeleton, Empty, Modal, Tabs } from 'antd';
+import 'quill/dist/quill.core.css';
 import { CreditCardOutlined, FundOutlined, RiseOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../../api/client';
-
-const BANK_COLORS = ['#4f46e5', '#0891b2', '#16a34a', '#dc2626', '#d97706', '#7c3aed', '#0f766e', '#be185d'];
-
-function bankColor(name) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return BANK_COLORS[Math.abs(hash) % BANK_COLORS.length];
-}
-
-function bankInitials(name) {
-  return name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-}
 
 const UPLOADS_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace('/api', '/uploads');
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
@@ -33,33 +22,31 @@ function StatCard({ icon, iconColor, label, value, borderColor, bg }) {
   );
 }
 
-function ProductCard({ product }) {
-  const bankName = product.bank?.name || 'Unknown Bank';
-  const color = bankColor(bankName);
-  const initials = bankInitials(bankName);
-  const brackets = product.commissionBrackets || [];
+function HtmlContent({ html }) {
+  if (!html) return <Empty description="No information added yet" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+  return (
+    <div
+      className="ql-editor"
+      style={{ fontSize: 13, color: '#374151', padding: 0 }}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
+function ProductCard({ product, onClick }) {
+  const firstBracket = (product.commissionBrackets || [])[0];
+  const hasImage = product.productType === 'credit_card' && product.cardImage;
 
   return (
     <Card
       size="small"
-      style={{ borderRadius: 12, border: '1px solid #e2e8f0', height: '100%' }}
+      onClick={onClick}
+      style={{ borderRadius: 12, border: '1px solid #e2e8f0', height: '100%', cursor: 'pointer' }}
       styles={{ body: { padding: '16px' } }}
+      hoverable
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: 10, background: color,
-          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 700, fontSize: 13, flexShrink: 0,
-        }}>
-          {initials}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', lineHeight: 1.3, marginBottom: 2 }}>{product.name}</div>
-          <div style={{ fontSize: 12, color: '#64748b' }}>{bankName}</div>
-        </div>
-        <Tag color={product.productType === 'credit_card' ? 'blue' : 'purple'} style={{ flexShrink: 0 }}>
-          {product.productType === 'credit_card' ? 'Credit Card' : 'Personal Loan'}
-        </Tag>
+      <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', lineHeight: 1.3, marginBottom: 8 }}>
+        {product.name}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
@@ -67,32 +54,46 @@ function ProductCard({ product }) {
         <Typography.Text style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>Authorized</Typography.Text>
       </div>
 
-      {brackets.length > 0 && (
-        <div style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 12px', marginBottom: product.cardImage ? 10 : 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>Commission Brackets</div>
-          {brackets.map((b, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: i < brackets.length - 1 ? 4 : 0 }}>
-              <Typography.Text style={{ fontSize: 12, flex: 1 }}>
-                ≥ {aed(b.minimumSalary)} → <strong style={{ color: '#16a34a' }}>{aed(b.payable)}</strong>
-              </Typography.Text>
-              {product.productType === 'credit_card' && b.feeType && (
-                <Tag color={b.feeType === 'free' ? 'green' : 'blue'} style={{ fontSize: 10, margin: 0 }}>
-                  {b.feeType === 'free' ? 'Free' : 'Paid'}
-                </Tag>
+      {firstBracket && (
+        <div style={{ background: '#f8fafc', borderRadius: 8, padding: '12px 14px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>Min Salary</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{aed(firstBracket.minimumSalary)}</div>
+            </div>
+            <div style={{ color: '#cbd5e1', fontSize: 18, fontWeight: 300 }}>→</div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>Payout</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#16a34a' }}>
+                {product.productType === 'loan' ? `${Number(firstBracket.payable || 0)}%` : aed(firstBracket.payable)}
+              </div>
+            </div>
+          </div>
+          {product.productType === 'credit_card' && firstBracket.feeType && (
+            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Tag color={firstBracket.feeType === 'free' ? 'green' : 'blue'} style={{ fontSize: 10, margin: 0 }}>
+                {firstBracket.feeType === 'free' ? 'Free' : 'Paid'}
+              </Tag>
+              {hasImage && (
+                <img
+                  src={`${UPLOADS_BASE}/card-images/${product.cardImage}`}
+                  alt=""
+                  style={{ width: 80, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
               )}
             </div>
-          ))}
-        </div>
-      )}
-
-      {product.productType === 'credit_card' && product.cardImage && (
-        <div style={{ marginTop: 10 }}>
-          <img
-            src={`${UPLOADS_BASE}/card-images/${product.cardImage}`}
-            alt=""
-            style={{ width: 80, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }}
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
+          )}
+          {(!firstBracket.feeType || product.productType !== 'credit_card') && hasImage && (
+            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+              <img
+                src={`${UPLOADS_BASE}/card-images/${product.cardImage}`}
+                alt=""
+                style={{ width: 80, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            </div>
+          )}
         </div>
       )}
     </Card>
@@ -105,6 +106,7 @@ function Products() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -120,12 +122,13 @@ function Products() {
   const allProducts = useMemo(() => [...cards, ...loans], [cards, loans]);
 
   const stats = useMemo(() => {
-    const allPayables = allProducts.flatMap((p) => (p.commissionBrackets || []).map((b) => b.payable));
+    const cardPayables = cards.flatMap((p) => (p.commissionBrackets || []).map((b) => b.payable));
+    const topCardPayout = cardPayables.length ? Math.max(...cardPayables) : 0;
     return {
       total: allProducts.length,
       cardCount: cards.length,
       loanCount: loans.length,
-      topPayout: allPayables.length ? Math.max(...allPayables) : 0,
+      topCardPayout,
     };
   }, [allProducts, cards, loans]);
 
@@ -157,7 +160,7 @@ function Products() {
           <StatCard icon={<FundOutlined />} iconColor="#7c3aed" label="Loan Products" value={stats.loanCount} borderColor="#7c3aed" bg="#f5f3ff" />
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <StatCard icon={<RiseOutlined />} iconColor="#16a34a" label="Top Payout" value={aed(stats.topPayout)} borderColor="#22c55e" bg="#f0fdf4" />
+          <StatCard icon={<RiseOutlined />} iconColor="#16a34a" label="Top Card Payout" value={aed(stats.topCardPayout)} borderColor="#22c55e" bg="#f0fdf4" />
         </Col>
       </Row>
 
@@ -196,12 +199,51 @@ function Products() {
       ) : (
         <Row gutter={[16, 16]}>
           {filtered.map((p) => (
-            <Col key={p._id} xs={24} sm={12} lg={8}>
-              <ProductCard product={p} />
+            <Col key={p._id} xs={24} sm={12} lg={6}>
+              <ProductCard product={p} onClick={() => setSelectedProduct(p)} />
             </Col>
           ))}
         </Row>
       )}
+
+      <Modal
+        open={!!selectedProduct}
+        onCancel={() => setSelectedProduct(null)}
+        footer={null}
+        width={600}
+        destroyOnClose
+        title={null}
+      >
+        {selectedProduct && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+              {selectedProduct.productType === 'credit_card' && selectedProduct.cardImage && (
+                <img
+                  src={`${UPLOADS_BASE}/card-images/${selectedProduct.cardImage}`}
+                  alt=""
+                  style={{ width: 100, height: 65, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0', flexShrink: 0 }}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+              )}
+              <Typography.Title level={4} style={{ margin: 0 }}>{selectedProduct.name}</Typography.Title>
+            </div>
+            <Tabs
+              items={[
+                {
+                  key: 'benefits',
+                  label: 'Product Benefits',
+                  children: <HtmlContent html={selectedProduct.benefits} />,
+                },
+                {
+                  key: 'fees',
+                  label: 'Fees & Eligibility',
+                  children: <HtmlContent html={selectedProduct.feesEligibility} />,
+                },
+              ]}
+            />
+          </>
+        )}
+      </Modal>
     </>
   );
 }

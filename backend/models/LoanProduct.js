@@ -12,11 +12,18 @@ const bracketSchema = new mongoose.Schema(
 const loanProductSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    loanCategory: { type: String, enum: ['personal', 'mortgage'], required: true },
+    loanCategory: { type: String, enum: ['personal', 'mortgage', 'investor', 'business', 'auto_loan', 'buyout', 'fresh', 'pdc'], required: true },
     bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
-    agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     commissionBrackets: { type: [bracketSchema], default: [] },
+    benefits: { type: String, default: '' },
+    feesEligibility: { type: String, default: '' },
     isActive: { type: Boolean, default: true },
+    interestRateRange: { type: String, trim: true },
+    minSalary: { type: Number },
+    maxLoanAmount: { type: String, trim: true },
+    maxTenure: { type: String, trim: true },
+    keyNotes: { type: String, trim: true },
   },
   { timestamps: true }
 );

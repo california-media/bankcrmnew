@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Table, Tag, Typography, Button, Input, Tabs, Space, message, Popconfirm, Row, Col, Statistic, Card, Modal, Form,
+  Table, Tag, Typography, Button, Input, Tabs, Space, message, Popconfirm, Row, Col, Card, Modal, Form,
 } from 'antd';
-import { SearchOutlined, InboxOutlined } from '@ant-design/icons';
+import {
+  SearchOutlined, InboxOutlined, ClockCircleOutlined, CheckCircleOutlined, BarChartOutlined, FileOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 export default function Receive() {
   const navigate = useNavigate();
@@ -18,14 +21,14 @@ export default function Receive() {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
   const [noteModal, setNoteModal] = useState(false);
-  const [noteTarget, setNoteTarget] = useState(null); // null = all
+  const [noteTarget, setNoteTarget] = useState(null); // array of IDs or null = all
   const [noteForm] = Form.useForm();
 
   const load = async () => {
     setLoading(true);
     try {
       const { data } = await api.get('/leads');
-      setLeads(data.filter((l) => l.grossCommission > 0));
+      setLeads(data.filter((l) => l.status === 'disbursed'));
     } finally {
       setLoading(false);
     }
@@ -36,8 +39,7 @@ export default function Receive() {
   const markReceived = async (leadIds, note) => {
     setSaving(true);
     try {
-      const body = {};
-      if (leadIds) body.leadIds = leadIds;
+      const body = { leadIds };
       if (note) body.note = note;
       const { data } = await api.post('/leads/bulk-mark-received', body);
       message.success(`${data.count} payment(s) marked as received`);
@@ -58,33 +60,51 @@ export default function Receive() {
     setNoteModal(true);
   };
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return leads.filter((l) => {
-      if (tab === 'pending' && l.agencyPaymentStatus !== 'pending') return false;
-      if (tab === 'received' && l.agencyPaymentStatus !== 'received') return false;
-      if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)
-        && !(l.agency?.name || '').toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [leads, search, tab]);
-
-  const pendingLeads = useMemo(() => leads.filter((l) => l.agencyPaymentStatus === 'pending'), [leads]);
-  const receivedLeads = useMemo(() => leads.filter((l) => l.agencyPaymentStatus === 'received'), [leads]);
-
-  const stats = useMemo(() => ({
-    pendingCount: pendingLeads.length,
-    pendingAmount: pendingLeads.reduce((s, l) => s + (l.grossCommission || 0), 0),
-    receivedCount: receivedLeads.length,
-    receivedAmount: receivedLeads.reduce((s, l) => s + (l.grossCommission || 0), 0),
-  }), [pendingLeads, receivedLeads]);
-
-  const selectedPending = useMemo(
-    () => selectedRowKeys.filter((id) => pendingLeads.some((l) => l._id === id)),
-    [selectedRowKeys, pendingLeads],
+  // Tab 1: disbursed, agency hasn't submitted payment yet
+  const pendingLeads = useMemo(
+    () => leads.filter((l) => l.agencyPaymentStatus === 'pending'),
+    [leads],
+  );
+  // Tab 2: agency submitted payment, admin hasn't confirmed yet
+  const receiptLeads = useMemo(
+    () => leads.filter((l) => l.agencyPaymentStatus === 'agency_paid'),
+    [leads],
+  );
+  // Tab 3: admin confirmed received
+  const confirmedLeads = useMemo(
+    () => leads.filter((l) => l.agencyPaymentStatus === 'received'),
+    [leads],
   );
 
-  const columns = [
+  const stats = useMemo(() => ({
+    pendingCount:   pendingLeads.length,
+    pendingAmount:  pendingLeads.reduce((s, l) => s + (l.grossCommission || 0), 0),
+    receiptCount:   receiptLeads.length,
+    receiptAmount:  receiptLeads.reduce((s, l) => s + (l.grossCommission || 0), 0),
+    confirmedCount: confirmedLeads.length,
+    confirmedAmount:confirmedLeads.reduce((s, l) => s + (l.grossCommission || 0), 0),
+  }), [pendingLeads, receiptLeads, confirmedLeads]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let base;
+    if (tab === 'pending')   base = pendingLeads;
+    else if (tab === 'receipt') base = receiptLeads;
+    else base = confirmedLeads;
+    if (!q) return base;
+    return base.filter((l) =>
+      l.customerName.toLowerCase().includes(q) ||
+      (l.leadNumber || '').toLowerCase().includes(q) ||
+      (l.agency?.name || '').toLowerCase().includes(q),
+    );
+  }, [leads, search, tab, pendingLeads, receiptLeads, confirmedLeads]);
+
+  const selectedReceipt = useMemo(
+    () => selectedRowKeys.filter((id) => receiptLeads.some((l) => l._id === id)),
+    [selectedRowKeys, receiptLeads],
+  );
+
+  const baseColumns = [
     {
       title: 'Lead ID',
       dataIndex: 'leadNumber',
@@ -96,7 +116,7 @@ export default function Receive() {
       render: (v, row) => (
         <div>
           <div style={{ fontWeight: 600 }}>{v}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>{row.phone}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.phone}</div>
         </div>
       ),
     },
@@ -105,60 +125,94 @@ export default function Receive() {
       render: (_, row) => (
         <div>
           <div style={{ fontWeight: 600 }}>{row.agency?.name || '—'}</div>
-          {row.agency?.email && <div style={{ fontSize: 12, color: '#888' }}>{row.agency.email}</div>}
+          {row.agency?.email && <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.agency.email}</div>}
         </div>
       ),
     },
     { title: 'Bank', render: (_, row) => row.bank?.name || '—' },
     {
-      title: 'Lead Stage',
-      dataIndex: 'status',
-      render: (s) => {
-        const map = { draft: 'default', submitted: 'blue', under_review: 'gold', assigned: 'cyan', approved: 'green', rejected: 'red', disbursed: 'purple' };
-        const label = { draft: 'Draft', submitted: 'Submitted', under_review: 'Under Review', assigned: 'Assigned', approved: 'Approved', rejected: 'Rejected', disbursed: 'Disbursed' };
-        return <Tag color={map[s]}>{label[s] || s}</Tag>;
-      },
-    },
-    {
       title: 'Gross Commission',
       align: 'right',
       render: (_, row) => <span style={{ fontWeight: 700, fontSize: 14 }}>{aed(row.grossCommission)}</span>,
     },
-    {
-      title: 'Status',
-      dataIndex: 'agencyPaymentStatus',
-      render: (s, row) => (
-        <Space direction="vertical" size={0}>
-          <Tag color={s === 'received' ? 'green' : 'orange'}>{s === 'received' ? 'Received' : 'Pending'}</Tag>
-          {s === 'received' && row.agencyPaymentReceivedAt && (
-            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-              {new Date(row.agencyPaymentReceivedAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
-            </Typography.Text>
-          )}
-          {s === 'received' && row.agencyPaymentNote && (
-            <Typography.Text type="secondary" style={{ fontSize: 11 }}>{row.agencyPaymentNote}</Typography.Text>
-          )}
-        </Space>
-      ),
-    },
-    ...(tab === 'pending' ? [{
-      title: 'Action',
-      render: (_, row) => (
-        <Button
-          size="small"
-          type="primary"
-          icon={<InboxOutlined />}
-          onClick={(e) => { e.stopPropagation(); openNoteModal([row._id]); }}
-        >
-          Mark Received
-        </Button>
-      ),
-    }] : []),
   ];
 
+  const receiptColumn = {
+    title: 'Agency Receipt',
+    render: (_, row) => {
+      if (!row.disbursementReceiptAt) return <Typography.Text type="secondary">—</Typography.Text>;
+      return (
+        <Space direction="vertical" size={0}>
+          {row.disbursementReceipt && (
+            <Typography.Text style={{ fontSize: 12, fontFamily: 'monospace' }}>{row.disbursementReceipt}</Typography.Text>
+          )}
+          {row.disbursementReceiptFile && (
+            <a
+              href={`${API_BASE}/uploads/receipts/${row.disbursementReceiptFile}`}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <FileOutlined /> View file
+            </a>
+          )}
+          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+            {new Date(row.disbursementReceiptAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+          </Typography.Text>
+        </Space>
+      );
+    },
+  };
+
+  const confirmedColumn = {
+    title: 'Confirmed',
+    render: (_, row) => (
+      <Space direction="vertical" size={0}>
+        <Tag color="green">Received</Tag>
+        {row.agencyPaymentReceivedAt && (
+          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+            {new Date(row.agencyPaymentReceivedAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+          </Typography.Text>
+        )}
+        {row.agencyPaymentNote && (
+          <Typography.Text type="secondary" style={{ fontSize: 11 }}>{row.agencyPaymentNote}</Typography.Text>
+        )}
+      </Space>
+    ),
+  };
+
+  const actionColumn = {
+    title: 'Action',
+    render: (_, row) => (
+      <Button
+        size="small"
+        type="primary"
+        icon={<InboxOutlined />}
+        onClick={(e) => { e.stopPropagation(); openNoteModal([row._id]); }}
+      >
+        Mark Received
+      </Button>
+    ),
+  };
+
+  const columns =
+    tab === 'pending'  ? [...baseColumns] :
+    tab === 'receipt'  ? [...baseColumns, receiptColumn, actionColumn] :
+                         [...baseColumns, confirmedColumn];
+
   const tabItems = [
-    { key: 'pending', label: `Pending (${stats.pendingCount})` },
-    { key: 'received', label: `Received (${stats.receivedCount})` },
+    {
+      key: 'pending',
+      label: <span><ClockCircleOutlined style={{ color: '#d97706', marginRight: 5 }} />Pending ({stats.pendingCount})</span>,
+    },
+    {
+      key: 'receipt',
+      label: <span><InboxOutlined style={{ color: '#2563eb', marginRight: 5 }} />Received ({stats.receiptCount})</span>,
+    },
+    {
+      key: 'confirmed',
+      label: <span><CheckCircleOutlined style={{ color: '#16a34a', marginRight: 5 }} />Marked Received ({stats.confirmedCount})</span>,
+    },
   ];
 
   return (
@@ -170,15 +224,15 @@ export default function Receive() {
         </Col>
         <Col>
           <Space>
-            {selectedPending.length > 0 && (
-              <Button type="primary" icon={<InboxOutlined />} onClick={() => openNoteModal(selectedPending)}>
-                Mark Received ({selectedPending.length} selected)
+            {tab === 'receipt' && selectedReceipt.length > 0 && (
+              <Button type="primary" icon={<InboxOutlined />} onClick={() => openNoteModal(selectedReceipt)}>
+                Mark Received ({selectedReceipt.length} selected)
               </Button>
             )}
-            {stats.pendingCount > 0 && (
+            {tab === 'receipt' && stats.receiptCount > 0 && (
               <Popconfirm
-                title={`Mark all ${stats.pendingCount} pending payments as received?`}
-                onConfirm={() => markReceived(null, null)}
+                title={`Mark all ${stats.receiptCount} receipt(s) as confirmed received?`}
+                onConfirm={() => openNoteModal(receiptLeads.map((l) => l._id))}
                 okText="Confirm"
               >
                 <Button icon={<InboxOutlined />} loading={saving}>
@@ -192,72 +246,81 @@ export default function Receive() {
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Pending from Agencies"
-              value={aed(stats.pendingAmount)}
-              valueStyle={{ color: '#d97706', fontWeight: 700 }}
-              suffix={<Typography.Text type="secondary" style={{ fontSize: 13 }}>{stats.pendingCount} leads</Typography.Text>}
-            />
+          <Card
+            size="small"
+            style={{ borderRadius: 12, borderLeft: '4px solid #f59e0b', background: '#fffbeb', border: '1px solid #f59e0b22' }}
+            styles={{ body: { padding: '18px 20px' } }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#b45309', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <ClockCircleOutlined /> Awaiting Receipt
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#92400e', lineHeight: 1.2 }}>{aed(stats.pendingAmount)}</div>
+            <div style={{ fontSize: 12, color: '#b45309', marginTop: 6, opacity: 0.8 }}>{stats.pendingCount} lead{stats.pendingCount !== 1 ? 's' : ''} — no agency receipt yet</div>
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Total Received"
-              value={aed(stats.receivedAmount)}
-              valueStyle={{ color: '#16a34a', fontWeight: 700 }}
-              suffix={<Typography.Text type="secondary" style={{ fontSize: 13 }}>{stats.receivedCount} leads</Typography.Text>}
-            />
+          <Card
+            size="small"
+            style={{ borderRadius: 12, borderLeft: '4px solid #2563eb', background: '#eff6ff', border: '1px solid #2563eb22' }}
+            styles={{ body: { padding: '18px 20px' } }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1d4ed8', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <InboxOutlined /> Receipt Submitted
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#1e40af', lineHeight: 1.2 }}>{aed(stats.receiptAmount)}</div>
+            <div style={{ fontSize: 12, color: '#2563eb', marginTop: 6, opacity: 0.8 }}>{stats.receiptCount} lead{stats.receiptCount !== 1 ? 's' : ''} — awaiting your confirmation</div>
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Total Gross Commission"
-              value={aed(stats.pendingAmount + stats.receivedAmount)}
-              valueStyle={{ fontWeight: 700 }}
-            />
+          <Card
+            size="small"
+            style={{ borderRadius: 12, borderLeft: '4px solid #22c55e', background: '#f0fdf4', border: '1px solid #22c55e22' }}
+            styles={{ body: { padding: '18px 20px' } }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#16a34a', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CheckCircleOutlined /> Confirmed Received
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#15803d', lineHeight: 1.2 }}>{aed(stats.confirmedAmount)}</div>
+            <div style={{ fontSize: 12, color: '#16a34a', marginTop: 6, opacity: 0.8 }}>{stats.confirmedCount} payment{stats.confirmedCount !== 1 ? 's' : ''} confirmed → agent payout ready</div>
           </Card>
         </Col>
       </Row>
 
-      <Tabs
-        activeKey={tab}
-        onChange={(k) => { setTab(k); setSelectedRowKeys([]); }}
-        items={tabItems}
-        style={{ marginBottom: 8 }}
-      />
-
-      <Space style={{ marginBottom: 16 }}>
-        <Input
-          allowClear
-          placeholder="Search client, lead ID, or agency..."
-          prefix={<SearchOutlined />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 300 }}
+      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '0 24px 24px' }}>
+        <Tabs
+          activeKey={tab}
+          onChange={(k) => { setTab(k); setSelectedRowKeys([]); }}
+          items={tabItems}
+          style={{ marginBottom: 0 }}
         />
-        <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
-      </Space>
-
-      <Table
-        size="small"
-        rowKey="_id"
-        loading={loading}
-        dataSource={filtered}
-        columns={columns}
-        scroll={{ x: 'max-content' }}
-        rowSelection={
-          tab === 'pending'
-            ? { selectedRowKeys, onChange: setSelectedRowKeys }
-            : undefined
-        }
-        onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })}
-      />
+        <Space style={{ marginBottom: 16 }}>
+          <Input
+            allowClear
+            placeholder="Search client, lead ID, or agency..."
+            prefix={<SearchOutlined />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: 300 }}
+          />
+          <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
+        </Space>
+        <Table
+          size="small"
+          rowKey="_id"
+          loading={loading}
+          dataSource={filtered}
+          columns={columns}
+          rowSelection={
+            tab === 'receipt'
+              ? { selectedRowKeys, onChange: setSelectedRowKeys }
+              : undefined
+          }
+          onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })}
+        />
+      </div>
 
       <Modal
-        title="Mark as Received"
+        title="Confirm Payment Received"
         open={noteModal}
         onCancel={() => { setNoteModal(false); noteForm.resetFields(); }}
         onOk={async () => {
@@ -269,7 +332,7 @@ export default function Receive() {
         destroyOnClose
       >
         <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
-          {noteTarget ? `Marking ${noteTarget.length} lead(s) as payment received from agency.` : 'Marking all pending as received.'}
+          Confirming payment received from agency for {noteTarget?.length} lead(s). This will mark the agent commission as payable.
         </Typography.Text>
         <Form form={noteForm} layout="vertical">
           <Form.Item name="note" label="Note (optional)">

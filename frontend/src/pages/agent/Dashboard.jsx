@@ -25,35 +25,28 @@ const statusTag = {
 const productLabels = { credit_card: 'Credit Card', loan: 'Loan' };
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
-const StatCard = ({ title, value, sub, icon, iconColor, iconBg, loading }) => (
-  <Card
-    styles={{ body: { padding: '22px 24px' } }}
-    style={{ borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(15,23,42,0.06)', height: '100%' }}
-  >
-    {loading ? <Skeleton active paragraph={{ rows: 2 }} /> : (
-      <>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: sub ? 8 : 0 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, color: '#94a3b8', marginBottom: 10 }}>
-              {title}
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
-              {value}
-            </div>
-          </div>
-          <div style={{
-            width: 50, height: 50, borderRadius: 13, background: iconBg,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 22, color: iconColor, flexShrink: 0, marginLeft: 12,
-          }}>
-            {icon}
-          </div>
-        </div>
-        {sub && <Typography.Text type="secondary" style={{ fontSize: 12 }}>{sub}</Typography.Text>}
-      </>
-    )}
-  </Card>
-);
+const StatCard = ({ title, value, sub, icon, gradient, loading }) =>
+  loading ? (
+    <Card styles={{ body: { padding: '22px 24px' } }} style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}>
+      <Skeleton active paragraph={{ rows: 2 }} />
+    </Card>
+  ) : (
+    <Card
+      styles={{ body: { padding: '24px', position: 'relative', overflow: 'hidden' } }}
+      style={{ borderRadius: 16, border: 'none', background: gradient, boxShadow: '0 6px 24px rgba(0,0,0,0.13)', height: '100%', overflow: 'hidden' }}
+    >
+      <div style={{ position: 'absolute', right: -12, top: -12, fontSize: 88, color: 'rgba(255,255,255,0.13)', lineHeight: 1, pointerEvents: 'none' }}>
+        {icon}
+      </div>
+      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'rgba(255,255,255,0.72)', marginBottom: 12 }}>
+        {title}
+      </div>
+      <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', lineHeight: 1, marginBottom: sub ? 8 : 0 }}>
+        {value}
+      </div>
+      {sub && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>{sub}</div>}
+    </Card>
+  );
 
 function AgentDashboard() {
   const { user } = useSelector((s) => s.auth);
@@ -67,10 +60,10 @@ function AgentDashboard() {
   }, []);
 
   const cards = [
-    { key: 'paid', title: 'Commission Earned', value: aed(stats?.paidEarnings), sub: 'Lifetime payout', icon: <DollarOutlined />, iconColor: '#16a34a', iconBg: '#f0fdf4' },
-    { key: 'pending', title: 'Pending Commission', value: aed(stats?.pendingEarnings), sub: `Across ${stats?.active || 0} active cases`, icon: <ClockCircleOutlined />, iconColor: '#3b82f6', iconBg: '#eff6ff' },
-    { key: 'active', title: 'Active Cases', value: stats?.active ?? 0, sub: 'In pipeline', icon: <FolderOpenOutlined />, iconColor: '#d97706', iconBg: '#fffbeb' },
-    { key: 'closed', title: 'Closed Deals', value: stats?.disbursed ?? 0, sub: 'Successfully disbursed', icon: <CheckCircleOutlined />, iconColor: '#16a34a', iconBg: '#f0fdf4' },
+    { key: 'paid', title: 'Payout Earned', value: aed(stats?.paidEarnings), sub: 'Lifetime payout', icon: <DollarOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)' },
+    { key: 'pending', title: 'Pending Payout', value: aed(stats?.pendingEarnings), sub: `Across ${stats?.active || 0} active cases`, icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)' },
+    { key: 'active', title: 'Active Cases', value: stats?.active ?? 0, sub: 'In pipeline', icon: <FolderOpenOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)' },
+    { key: 'closed', title: 'Closed Deals', value: stats?.disbursed ?? 0, sub: 'Successfully disbursed', icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)' },
   ];
 
   const columns = [
@@ -96,7 +89,7 @@ function AgentDashboard() {
       render: (s) => <Tag color={statusTag[s]?.color}>{statusTag[s]?.label || s}</Tag>,
     },
     {
-      title: 'Commission',
+      title: 'Expected Payout',
       align: 'right',
       render: (_, row) => (
         <Space direction="vertical" size={0} style={{ alignItems: 'flex-end' }}>
@@ -116,22 +109,41 @@ function AgentDashboard() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-        <Col>
-          <Typography.Title level={3} style={{ margin: 0, color: '#0f172a' }}>
+      {/* Hero Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #1d4ed8 100%)',
+        borderRadius: 16,
+        padding: '28px 32px',
+        marginBottom: 24,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        boxShadow: '0 8px 32px rgba(29,78,216,0.22)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', right: -50, top: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+        <div style={{ position: 'absolute', right: 100, bottom: -70, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
             Welcome back, {(user.name || user.email).split(' ')[0]} 👋
-          </Typography.Title>
-          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+          </div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.68)' }}>
             Here's what's happening with your portfolio today.
-          </Typography.Text>
-        </Col>
-        <Col>
-          <Link to="/agent/leads/new">
-            <Button type="primary" icon={<PlusOutlined />} size="middle">Submit New Lead</Button>
-          </Link>
-        </Col>
-      </Row>
+          </div>
+        </div>
+        <Link to="/agent/leads/new">
+          <Button
+            icon={<PlusOutlined />}
+            size="middle"
+            style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', color: '#fff', borderRadius: 8, fontWeight: 600 }}
+          >
+            Submit New Lead
+          </Button>
+        </Link>
+      </div>
 
+      {/* Stat Cards */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {cards.map((c) => (
           <Col xs={24} sm={12} lg={6} key={c.key}>
@@ -140,12 +152,14 @@ function AgentDashboard() {
         ))}
       </Row>
 
+      {/* Recent Leads + Profile */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={16}>
           <Card
-            title={<span style={{ fontWeight: 700 }}>Recent Leads</span>}
-            extra={<Link to="/agent/leads" style={{ fontSize: 13 }}>View all →</Link>}
-            style={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
+            title={<span style={{ fontWeight: 700, fontSize: 15 }}>Recent Leads</span>}
+            extra={<Link to="/agent/leads" style={{ fontSize: 13, color: '#3b82f6' }}>View all →</Link>}
+            style={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+            styles={{ header: { borderBottom: '2px solid #f1f5f9' } }}
           >
             <Table
               size="small"
@@ -159,36 +173,42 @@ function AgentDashboard() {
         </Col>
         <Col xs={24} lg={8}>
           <Card
-            title={<span style={{ fontWeight: 700 }}>Your Profile</span>}
-            style={{ borderRadius: 12, border: '1px solid #e2e8f0' }}
+            style={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', overflow: 'hidden' }}
+            styles={{ body: { padding: 0 } }}
           >
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-              <div style={{ textAlign: 'center', padding: '12px 0' }}>
-                <div style={{
-                  width: 68, height: 68, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
-                  color: '#fff',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 26, fontWeight: 700,
-                  boxShadow: '0 4px 12px rgba(59,130,246,0.35)',
-                }}>
-                  {(user.name || user.email)[0].toUpperCase()}
-                </div>
-                <div style={{ fontWeight: 700, marginTop: 10, fontSize: 15 }}>{user.name || user.email}</div>
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>{user.email}</Typography.Text>
+            <div style={{
+              background: 'linear-gradient(135deg, #1e1b4b 0%, #1d4ed8 100%)',
+              padding: '28px 24px 52px',
+              textAlign: 'center',
+              position: 'relative',
+            }}>
+              <div style={{ position: 'absolute', right: -20, top: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+              <div style={{
+                width: 72, height: 72, borderRadius: '50%',
+                background: 'rgba(255,255,255,0.2)',
+                border: '3px solid rgba(255,255,255,0.4)',
+                color: '#fff',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 28, fontWeight: 700,
+              }}>
+                {(user.name || user.email)[0].toUpperCase()}
               </div>
-              <Card size="small" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10 }}>
-                <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>
+              <div style={{ fontWeight: 700, marginTop: 10, fontSize: 16, color: '#fff' }}>{user.name || user.email}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>{user.email}</div>
+            </div>
+            <div style={{ padding: '0 24px 20px', marginTop: -28 }}>
+              <Card size="small" style={{ borderRadius: 12, border: '1px solid #e2e8f0', background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 1, marginBottom: 6, fontWeight: 700 }}>
                   Referral Code
                 </div>
                 <Typography.Text
                   copyable={{ icon: <CopyOutlined />, text: user.referralCode }}
-                  style={{ fontFamily: 'monospace', fontSize: 20, fontWeight: 800, color: '#1e40af' }}
+                  style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 800, color: '#1d4ed8' }}
                 >
                   {user.referralCode}
                 </Typography.Text>
               </Card>
-            </Space>
+            </div>
           </Card>
         </Col>
       </Row>

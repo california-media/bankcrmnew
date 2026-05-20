@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Card, Form, Input, Button, Typography, Alert } from 'antd';
+import { Card, Form, Input, Button, Typography, Alert, Checkbox } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerAgent, clearError } from '../store/slices/authSlice';
@@ -38,6 +38,18 @@ function Register() {
           </Form.Item>
           <Form.Item name="referralCode" label="Referral code (optional)">
             <Input placeholder="From an existing agent" />
+          </Form.Item>
+          <Form.Item name="emiratesId" label="Emirates ID (optional)">
+            <Input placeholder="e.g. 784-XXXX-XXXXXXX-X" />
+          </Form.Item>
+          <Form.Item
+            name="agreeToTerms"
+            valuePropName="checked"
+            rules={[{ validator: (_, value) => value ? Promise.resolve() : Promise.reject('You must accept the Terms and Conditions') }]}
+          >
+            <Checkbox>
+              I agree to the <Link to="/terms" target="_blank">Terms and Conditions</Link>
+            </Checkbox>
           </Form.Item>
           <Button type="primary" htmlType="submit" loading={status === 'loading'} block>
             Register

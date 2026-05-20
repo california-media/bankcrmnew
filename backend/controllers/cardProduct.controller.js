@@ -4,7 +4,7 @@ const CardProduct = require('../models/CardProduct');
 const User = require('../models/User');
 
 const POPULATE = [
-  { path: 'bank', select: 'name code' },
+  { path: 'bank', select: 'name code isActive' },
   { path: 'agency', select: 'name email' },
 ];
 
@@ -13,7 +13,7 @@ const deleteCardImage = (filename) => {
   fs.unlink(path.join(__dirname, `../uploads/card-images/${filename}`), () => {});
 };
 
-const parseBrackets = (raw) => {
+const parseJsonField = (raw) => {
   if (!raw) return [];
   if (typeof raw === 'string') return JSON.parse(raw);
   return raw;
@@ -43,13 +43,17 @@ exports.create = async (req, res) => {
       }
     }
 
-    const commissionBrackets = parseBrackets(req.body.commissionBrackets);
+    const commissionBrackets = parseJsonField(req.body.commissionBrackets);
+    const benefits = req.body.benefits || '';
+    const feesEligibility = req.body.feesEligibility || '';
     const card = await CardProduct.create({
       name,
       cardType,
       bank,
       agency: agency || undefined,
       commissionBrackets,
+      benefits,
+      feesEligibility,
       isActive: isActive === undefined ? true : isActive !== 'false' && isActive !== false,
       cardImage: req.file ? req.file.filename : undefined,
     });
@@ -77,8 +81,10 @@ exports.update = async (req, res) => {
       update.agency = agency;
     }
     if (req.body.commissionBrackets !== undefined) {
-      update.commissionBrackets = parseBrackets(req.body.commissionBrackets);
+      update.commissionBrackets = parseJsonField(req.body.commissionBrackets);
     }
+    if (req.body.benefits !== undefined) update.benefits = req.body.benefits || '';
+    if (req.body.feesEligibility !== undefined) update.feesEligibility = req.body.feesEligibility || '';
     if (isActive !== undefined) update.isActive = isActive !== 'false' && isActive !== false;
 
     if (req.file) {

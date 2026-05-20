@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Col, Row, Typography, Skeleton, Button } from 'antd';
+import { Card, Col, Row, Skeleton, Button } from 'antd';
 import {
   AuditOutlined,
   CheckCircleOutlined,
@@ -11,32 +11,27 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 
-const StatCard = ({ title, value, icon, iconColor, iconBg, loading }) => (
-  <Card
-    styles={{ body: { padding: '22px 24px' } }}
-    style={{ borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(15,23,42,0.06)', height: '100%' }}
-  >
-    {loading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, color: '#94a3b8', marginBottom: 10 }}>
-            {title}
-          </div>
-          <div style={{ fontSize: 30, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
-            {value ?? '—'}
-          </div>
-        </div>
-        <div style={{
-          width: 50, height: 50, borderRadius: 13, background: iconBg,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, color: iconColor, flexShrink: 0, marginLeft: 12,
-        }}>
-          {icon}
-        </div>
+const StatCard = ({ title, value, icon, gradient, loading }) =>
+  loading ? (
+    <Card styles={{ body: { padding: '22px 24px' } }} style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}>
+      <Skeleton active paragraph={{ rows: 1 }} />
+    </Card>
+  ) : (
+    <Card
+      styles={{ body: { padding: '24px', position: 'relative', overflow: 'hidden' } }}
+      style={{ borderRadius: 16, border: 'none', background: gradient, boxShadow: '0 6px 24px rgba(0,0,0,0.13)', height: '100%', overflow: 'hidden' }}
+    >
+      <div style={{ position: 'absolute', right: -12, top: -12, fontSize: 88, color: 'rgba(255,255,255,0.13)', lineHeight: 1, pointerEvents: 'none' }}>
+        {icon}
       </div>
-    )}
-  </Card>
-);
+      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'rgba(255,255,255,0.72)', marginBottom: 12 }}>
+        {title}
+      </div>
+      <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
+        {value ?? '—'}
+      </div>
+    </Card>
+  );
 
 function EmployeeDashboard() {
   const { user } = useSelector((s) => s.auth);
@@ -56,30 +51,49 @@ function EmployeeDashboard() {
     : null;
 
   const cards = [
-    { key: 'total', title: 'Total Assigned', value: stats?.total, icon: <AuditOutlined />, iconColor: '#3b82f6', iconBg: '#eff6ff' },
-    { key: 'pending', title: 'In Progress', value: stats?.pending, icon: <ClockCircleOutlined />, iconColor: '#d97706', iconBg: '#fffbeb' },
-    { key: 'approved', title: 'Approved / Disbursed', value: stats?.approved, icon: <CheckCircleOutlined />, iconColor: '#16a34a', iconBg: '#f0fdf4' },
-    { key: 'rejected', title: 'Rejected', value: stats?.rejected, icon: <CloseCircleOutlined />, iconColor: '#ef4444', iconBg: '#fef2f2' },
+    { key: 'total', title: 'Total Assigned', value: stats?.total, icon: <AuditOutlined />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)' },
+    { key: 'pending', title: 'In Progress', value: stats?.pending, icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)' },
+    { key: 'approved', title: 'Approved / Disbursed', value: stats?.approved, icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)' },
+    { key: 'rejected', title: 'Rejected', value: stats?.rejected, icon: <CloseCircleOutlined />, gradient: 'linear-gradient(135deg, #b91c1c 0%, #f87171 100%)' },
   ];
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-        <Col>
-          <Typography.Title level={3} style={{ margin: 0, color: '#0f172a' }}>
-            Welcome, {user.name || user.email}
-          </Typography.Title>
-          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+      {/* Hero Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0c4a6e 0%, #0369a1 55%, #0ea5e9 100%)',
+        borderRadius: 16,
+        padding: '28px 32px',
+        marginBottom: 24,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        boxShadow: '0 8px 32px rgba(3,105,161,0.25)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', right: -50, top: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+        <div style={{ position: 'absolute', right: 100, bottom: -70, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+            Welcome, {user.name || user.email} 👋
+          </div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.68)' }}>
             Your assigned leads overview.
-          </Typography.Text>
-        </Col>
-        <Col>
-          <Link to="/employee/leads">
-            <Button type="primary" icon={<UnorderedListOutlined />}>View My Leads</Button>
-          </Link>
-        </Col>
-      </Row>
+          </div>
+        </div>
+        <Link to="/employee/leads">
+          <Button
+            icon={<UnorderedListOutlined />}
+            size="middle"
+            style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', color: '#fff', borderRadius: 8, fontWeight: 600 }}
+          >
+            View My Leads
+          </Button>
+        </Link>
+      </div>
 
+      {/* Stat Cards */}
       <Row gutter={[16, 16]}>
         {cards.map((c) => (
           <Col xs={24} sm={12} lg={6} key={c.key}>

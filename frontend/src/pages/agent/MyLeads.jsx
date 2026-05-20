@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space, Popconfirm, message, Tabs } from 'antd';
-import { PlusOutlined, SearchOutlined, SendOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space, Tabs, Card, Empty } from 'antd';
+import { PlusOutlined, SearchOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
-import SendToAgencyModal from '../../components/SendToAgencyModal';
 
 const STATUSES = [
   { value: 'draft', label: 'Draft', color: 'default' },
@@ -29,11 +28,8 @@ function MyLeads() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState();
   const [productFilter, setProductFilter] = useState();
-
   const [leadsTab, setLeadsTab] = useState('active');
-
-  const [sendOpen, setSendOpen] = useState(false);
-  const [sendingLead, setSendingLead] = useState(null);
+  const [viewMode, setViewMode] = useState('table');
 
   const load = async () => {
     setLoading(true);
@@ -47,21 +43,12 @@ function MyLeads() {
 
   useEffect(() => { load(); }, []);
 
-  const onDelete = async (id) => {
-    try {
-      await api.delete(`/leads/${id}`);
-      message.success('Draft deleted');
-      load();
-    } catch (err) {
-      message.error(err.response?.data?.message || 'Failed to delete');
-    }
-  };
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return leads.filter((l) => {
       if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
-      if (leadsTab === 'active' && l.status === 'disbursed') return false;
+      if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
+      if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected')) return false;
       if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
       if (statusFilter && l.status !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
@@ -69,10 +56,15 @@ function MyLeads() {
     });
   }, [leads, search, statusFilter, productFilter, leadsTab]);
 
-  const activeCount = leads.filter(l => l.status !== 'disbursed').length;
+  const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected').length;
+  const rejectedCount = leads.filter(l => l.status === 'rejected').length;
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
 
-  const draftCount = leads.filter((l) => l.status === 'draft').length;
+  const renderProduct = (row) => {
+    if (row.productType === 'credit_card' && row.cardProduct) return row.cardProduct.name || 'Credit Card';
+    if (row.productType === 'loan' && row.loanProduct) return row.loanProduct.name || 'Loan';
+    return PRODUCTS.find((p) => p.value === row.productType)?.label || row.productType;
+  };
 
   const columns = [
     {
@@ -103,7 +95,14 @@ function MyLeads() {
       },
     },
     {
-      title: 'Commission',
+      title: 'Emp. Status',
+      dataIndex: 'employeeStatus',
+      render: (s) => s
+        ? <Tag color={s.color}>{s.label}</Tag>
+        : <Typography.Text type="secondary">—</Typography.Text>,
+    },
+    {
+      title: 'Expected Payout',
       align: 'right',
       render: (_, row) => {
         if (row.commissionStatus === 'paid') {
@@ -122,23 +121,6 @@ function MyLeads() {
       dataIndex: 'createdAt',
       render: (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' }),
     },
-    {
-      title: 'Actions',
-      width: 160,
-      render: (_, row) => {
-        if (row.status !== 'draft') return null;
-        return (
-          <Space>
-            <Button size="small" type="primary" icon={<SendOutlined />} onClick={() => { setSendingLead(row); setSendOpen(true); }}>
-              Send to Agency
-            </Button>
-            <Popconfirm title="Delete this draft?" onConfirm={() => onDelete(row._id)}>
-              <Button size="small" danger icon={<DeleteOutlined />} />
-            </Popconfirm>
-          </Space>
-        );
-      },
-    },
   ];
 
   return (
@@ -151,17 +133,23 @@ function MyLeads() {
           </Typography.Text>
         </Col>
         <Col>
-          <Link to="/agent/leads/new">
-            <Button type="primary" icon={<PlusOutlined />}>New Lead</Button>
-          </Link>
+          <Space>
+            <Button
+              icon={<TableOutlined />}
+              type={viewMode === 'table' ? 'primary' : 'default'}
+              onClick={() => setViewMode('table')}
+            >Table</Button>
+            <Button
+              icon={<AppstoreOutlined />}
+              type={viewMode === 'card' ? 'primary' : 'default'}
+              onClick={() => setViewMode('card')}
+            >Cards</Button>
+            <Link to="/agent/leads/new">
+              <Button type="primary" icon={<PlusOutlined />}>New Lead</Button>
+            </Link>
+          </Space>
         </Col>
       </Row>
-
-      {draftCount > 0 && !statusFilter && (
-        <Typography.Text type="warning" style={{ display: 'block', marginTop: 12 }}>
-          You have {draftCount} draft {draftCount === 1 ? 'lead' : 'leads'} not yet sent to an agency.
-        </Typography.Text>
-      )}
 
       <Space wrap style={{ margin: '24px 0 16px', width: '100%', justifyContent: 'space-between' }}>
         <Space wrap>
@@ -199,18 +187,73 @@ function MyLeads() {
         style={{ marginBottom: 8 }}
         items={[
           { key: 'active', label: `Active (${activeCount})` },
-          { key: 'archive', label: `Archive (${archiveCount})` },
+          { key: 'rejected', label: `Rejected (${rejectedCount})` },
+          { key: 'archive', label: `Approved (${archiveCount})` },
         ]}
       />
 
-      <Table size="small" rowKey="_id" loading={loading} dataSource={filtered} columns={columns} scroll={{ x: 'max-content' }} onRow={(row) => ({ onClick: () => navigate(`/agent/leads/${row._id}`), style: { cursor: 'pointer' } })} />
+      {viewMode === 'table' ? (
+        <Table
+          size="small"
+          rowKey="_id"
+          loading={loading}
+          dataSource={filtered}
+          columns={columns}
+          scroll={{ x: 'max-content' }}
+          onRow={(row) => ({ onClick: () => navigate(`/agent/leads/${row._id}`), style: { cursor: 'pointer' } })}
+        />
+      ) : (
+        <Row gutter={[14, 14]}>
+          {filtered.map((row) => {
+            const statusMeta = STATUSES.find((x) => x.value === row.status);
+            return (
+              <Col key={row._id} xs={24} sm={12} lg={8} xl={6}>
+                <Card
+                  size="small"
+                  hoverable
+                  onClick={() => navigate(`/agent/leads/${row._id}`)}
+                  style={{ borderRadius: 12, border: '1px solid #e2e8f0', cursor: 'pointer', height: '100%' }}
+                  styles={{ body: { padding: '14px 16px' } }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <Typography.Text type="secondary" style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                      {row.leadNumber || '—'}
+                    </Typography.Text>
+                    <Tag color={statusMeta?.color} style={{ margin: 0 }}>{statusMeta?.label || row.status}</Tag>
+                  </div>
 
-      <SendToAgencyModal
-        open={sendOpen}
-        onClose={() => setSendOpen(false)}
-        lead={sendingLead}
-        onSent={load}
-      />
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', lineHeight: 1.3, marginBottom: 2 }}>
+                    {row.customerName}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>{row.phone}</div>
+
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>{renderProduct(row)}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 10 }}>{row.bank?.name || '—'}</div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4 }}>
+                    <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                      {new Date(row.createdAt).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' })}
+                    </Typography.Text>
+                    <div style={{ textAlign: 'right' }}>
+                      {row.commissionStatus === 'paid' ? (
+                        <>
+                          <div style={{ fontWeight: 700, fontSize: 13, color: '#16a34a' }}>{aed(row.commission)}</div>
+                          <div style={{ fontSize: 10, color: '#16a34a' }}>Received</div>
+                        </>
+                      ) : (
+                        <span style={{ fontWeight: 700, fontSize: 13 }}>{aed(row.commission)}</span>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+            );
+          })}
+          {filtered.length === 0 && (
+            <Col span={24}><Empty description="No leads found" /></Col>
+          )}
+        </Row>
+      )}
     </>
   );
 }

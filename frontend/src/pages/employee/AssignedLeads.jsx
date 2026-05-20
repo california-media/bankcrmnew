@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Tabs } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Modal, Space } from 'antd';
+import { SearchOutlined, CheckOutlined, CloseOutlined, DollarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
@@ -21,6 +21,10 @@ function AssignedLeads() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [leadsTab, setLeadsTab] = useState('active');
+  const [empStatuses, setEmpStatuses] = useState([]);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [statusModal, setStatusModal] = useState({ open: false, leadId: null, status: null, label: '', note: '' });
+  const [statusSaving, setStatusSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -32,17 +36,56 @@ function AssignedLeads() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.get('/employee-statuses').then((res) => setEmpStatuses(res.data.filter((s) => s.isActive)));
+  }, []);
 
-  const activeCount = leads.filter(l => l.status !== 'disbursed').length;
+  const openStatusModal = (leadId, status, label) =>
+    setStatusModal({ open: true, leadId, status, label, note: '' });
+
+  const confirmStatusChange = async () => {
+    setStatusSaving(true);
+    try {
+      const { data } = await api.patch(`/leads/${statusModal.leadId}/status`, {
+        status: statusModal.status,
+        note: statusModal.note || undefined,
+      });
+      setLeads((prev) => prev.map((l) => (l._id === statusModal.leadId ? data : l)));
+      message.success(`Lead marked as ${statusModal.label}`);
+      setStatusModal({ open: false, leadId: null, status: null, label: '', note: '' });
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update status');
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const updateEmpStatus = async (leadId, employeeStatusId) => {
+    setUpdatingStatus(leadId);
+    try {
+      const { data } = await api.patch(`/leads/${leadId}/employee-status`, { employeeStatusId: employeeStatusId || null });
+      setLeads((prev) => prev.map((l) => (l._id === leadId ? data : l)));
+      message.success('Status updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update status');
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected').length;
+  const rejectedCount = leads.filter(l => l.status === 'rejected').length;
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
 
   const filtered = useMemo(() => {
     let result = leads;
     if (leadsTab === 'archive') {
       result = result.filter(l => l.status === 'disbursed');
+    } else if (leadsTab === 'rejected') {
+      result = result.filter(l => l.status === 'rejected');
     } else {
-      result = result.filter(l => l.status !== 'disbursed');
+      result = result.filter(l => l.status !== 'disbursed' && l.status !== 'rejected');
     }
     const q = search.trim().toLowerCase();
     if (!q) return result;
@@ -93,10 +136,24 @@ function AssignedLeads() {
       },
     },
     {
-      title: 'Status',
-      render: (_, row) => row.employeeStatus
-        ? <Tag color={row.employeeStatus.color}>{row.employeeStatus.label}</Tag>
-        : <Typography.Text type="secondary">—</Typography.Text>,
+      title: 'Emp. Status',
+      render: (_, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Select
+            size="small"
+            allowClear
+            placeholder="Set status"
+            loading={updatingStatus === row._id}
+            value={row.employeeStatus?._id || undefined}
+            onChange={(val) => updateEmpStatus(row._id, val)}
+            style={{ minWidth: 140 }}
+            options={empStatuses.map((s) => ({
+              value: s._id,
+              label: <Tag color={s.color} style={{ margin: 0 }}>{s.label}</Tag>,
+            }))}
+          />
+        </div>
+      ),
     },
     {
       title: 'Engagement',
@@ -108,6 +165,49 @@ function AssignedLeads() {
       title: 'Submitted',
       dataIndex: 'createdAt',
       render: (v) => v ? new Date(v).toLocaleDateString() : '—',
+    },
+    {
+      title: 'Actions',
+      render: (_, row) => {
+        const canApprove = row.status === 'assigned';
+        const canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
+        const canReject = ['assigned', 'approved'].includes(row.status);
+        if (!canApprove && !canDisburse && !canReject) return null;
+        return (
+          <Space size={4} onClick={(e) => e.stopPropagation()}>
+            {canApprove && (
+              <Button
+                size="small"
+                type="primary"
+                icon={<CheckOutlined />}
+                onClick={() => openStatusModal(row._id, 'approved', 'Approved')}
+              >
+                Approve
+              </Button>
+            )}
+            {canDisburse && (
+              <Button
+                size="small"
+                icon={<DollarOutlined />}
+                style={{ background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }}
+                onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}
+              >
+                Disburse
+              </Button>
+            )}
+            {canReject && (
+              <Button
+                size="small"
+                danger
+                icon={<CloseOutlined />}
+                onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}
+              >
+                Reject
+              </Button>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -133,7 +233,8 @@ function AssignedLeads() {
         style={{ marginBottom: 8 }}
         items={[
           { key: 'active', label: `Active (${activeCount})` },
-          { key: 'archive', label: `Archive (${archiveCount})` },
+          { key: 'rejected', label: `Rejected (${rejectedCount})` },
+          { key: 'archive', label: `Approved (${archiveCount})` },
         ]}
       />
 
@@ -149,6 +250,23 @@ function AssignedLeads() {
           style: { cursor: 'pointer' },
         })}
       />
+
+      <Modal
+        title={`Move to: ${statusModal.label}`}
+        open={statusModal.open}
+        onCancel={() => setStatusModal({ open: false, leadId: null, status: null, label: '', note: '' })}
+        onOk={confirmStatusChange}
+        okText="Confirm"
+        okButtonProps={{ danger: statusModal.status === 'rejected', loading: statusSaving }}
+      >
+        <Input.TextArea
+          rows={3}
+          placeholder="Add a note (optional)..."
+          value={statusModal.note}
+          onChange={(e) => setStatusModal((prev) => ({ ...prev, note: e.target.value }))}
+          style={{ marginTop: 8 }}
+        />
+      </Modal>
     </>
   );
 }

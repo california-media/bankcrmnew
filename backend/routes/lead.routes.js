@@ -28,6 +28,8 @@ router.get('/agency', requireRole('agency'), ctrl.listForAgency);
 router.post('/bulk-assign-employee', requireRole('agency'), ctrl.bulkAssignEmployee);
 router.post('/bulk-receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.bulkAddReceipt);
 router.patch('/:id/loan-amount', requireRole('agency'), ctrl.updateLoanAmount);
+router.patch('/:id/cpv', requireRole('agency'), ctrl.updateCpv);
+router.patch('/:id/activate', requireRole('agency'), ctrl.updateActivate);
 router.patch('/:id/receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.addDisbursementReceipt);
 router.patch('/:id/assign-employee', requireRole('agency'), ctrl.assignEmployee);
 

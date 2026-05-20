@@ -180,6 +180,7 @@ exports.listMine = async (req, res) => {
       .populate('agency', 'name email')
       .populate('cardProduct', 'name cardType commissionBrackets')
       .populate('loanProduct', 'name loanCategory commissionBrackets')
+      .populate('employeeStatus', 'label color')
       .sort({ createdAt: -1 });
     res.json(leads);
   } catch (err) {
@@ -392,6 +393,14 @@ exports.updateCpv = async (req, res) => {
     lead.statusHistory.push({ status: 'cpv_done', note: cpvNote, changedBy: req.user._id, changedAt: new Date() });
     await lead.save();
     const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      await createAndEmit(
+        [...adminIds, String(populated.agent?._id || populated.agent)],
+        { type: 'cpv_done', title: 'CPV Completed', body: `${lead.customerName} — CPV completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -412,6 +421,14 @@ exports.updateActivate = async (req, res) => {
     lead.statusHistory.push({ status: 'activate_done', note: activateNote, changedBy: req.user._id, changedAt: new Date() });
     await lead.save();
     const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      await createAndEmit(
+        [...adminIds, String(populated.agent?._id || populated.agent)],
+        { type: 'activate_done', title: 'Activation Completed', body: `${lead.customerName} — Activation completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -481,6 +498,18 @@ exports.markCommissionPaid = async (req, res) => {
     lead.commissionPaidAt = now;
     await lead.save();
     const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      await createAndEmit(
+        [String(populated.agent?._id || populated.agent)],
+        {
+          type: 'commission_paid',
+          title: 'Commission Paid',
+          body: `${lead.customerName} — AED ${Number(lead.commission || 0).toLocaleString()} commission paid`,
+          lead: lead._id,
+        },
+        req.user._id,
+      );
+    } catch (_) {}
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -536,6 +565,28 @@ exports.bulkMarkPaid = async (req, res) => {
       lead.commissionPaidAt = now;
       return lead.save();
     }));
+    try {
+      const agentMap = {};
+      for (const l of leads) {
+        const id = String(l.agent);
+        if (!agentMap[id]) agentMap[id] = { count: 0, total: 0 };
+        agentMap[id].count += 1;
+        agentMap[id].total += l.commission || 0;
+      }
+      await Promise.all(
+        Object.entries(agentMap).map(([agentId, { count, total }]) =>
+          createAndEmit(
+            [agentId],
+            {
+              type: 'commission_paid',
+              title: 'Commission Paid',
+              body: `${count} commission(s) paid — AED ${Number(total).toLocaleString()} total`,
+            },
+            req.user._id,
+          )
+        )
+      );
+    } catch (_) {}
     res.json({ count: leads.length });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -704,6 +755,12 @@ exports.assignEmployee = async (req, res) => {
       lead.assignedEmployee = employeeId || undefined;
     }
 
+    // Auto-advance status to 'assigned' when any employee is assigned
+    if (employeeId && ['submitted', 'under_review'].includes(lead.status)) {
+      lead.status = 'assigned';
+      lead.statusHistory.push({ status: 'assigned', note: 'Employee assigned', changedBy: req.user._id, changedAt: new Date() });
+    }
+
     await lead.save();
     const populated = await lead.populate(POPULATE_FIELDS);
     try {
@@ -716,7 +773,7 @@ exports.assignEmployee = async (req, res) => {
             ? (populated.assignedSalesEmployee?.name || 'employee')
             : (populated.assignedEmployee?.name || 'employee');
         await createAndEmit(
-          [...adminIds, String(lead.agency), String(employeeId)],
+          [...adminIds, String(populated.agency?._id || populated.agency), String(employeeId)],
           {
             type: 'lead_assigned',
             title: 'Lead Assigned',
@@ -759,9 +816,28 @@ exports.bulkAssignEmployee = async (req, res) => {
       } else {
         lead.assignedEmployee = employeeId || undefined;
       }
+      if (employeeId && ['submitted', 'under_review'].includes(lead.status)) {
+        lead.status = 'assigned';
+        lead.statusHistory.push({ status: 'assigned', note: 'Employee assigned', changedBy: req.user._id, changedAt: new Date() });
+      }
       return lead.save();
     }));
-
+    try {
+      if (employeeId && leads.length) {
+        const adminIds = await getAdminIds();
+        const emp = await User.findById(employeeId).select('name').lean();
+        const typeLabel = type === 'cpv' ? 'CPV' : type === 'sales' ? 'Sales' : 'employee';
+        await createAndEmit(
+          [...adminIds, String(employeeId)],
+          {
+            type: 'lead_assigned',
+            title: 'Leads Assigned',
+            body: `${leads.length} lead(s) assigned to ${emp?.name || 'employee'} (${typeLabel})`,
+          },
+          req.user._id,
+        );
+      }
+    } catch (_) {}
     res.json({ updated: leads.length });
   } catch (err) {
     res.status(500).json({ message: err.message });

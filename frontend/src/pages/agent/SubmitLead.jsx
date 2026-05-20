@@ -77,8 +77,23 @@ function buildBracketOptions(brackets) {
     .sort((a, b) => a.minimumSalary - b.minimumSalary)
     .map((b) => ({
       value: b.minimumSalary,
-      label: `Min. Salary ${aed(b.minimumSalary)}`,
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>Min. Salary {aed(b.minimumSalary)}</span>
+          {b.feeType && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 10,
+              background: b.feeType === 'free' ? '#f0fdf4' : '#eff6ff',
+              color: b.feeType === 'free' ? '#16a34a' : '#2563eb',
+              border: `1px solid ${b.feeType === 'free' ? '#bbf7d0' : '#bfdbfe'}`,
+            }}>
+              {b.feeType === 'free' ? 'Free' : 'Paid'}
+            </span>
+          )}
+        </span>
+      ),
       payable: b.payable,
+      feeType: b.feeType,
     }));
 }
 
@@ -100,8 +115,8 @@ function SubmitLead() {
     setLoading(true);
     Promise.all([api.get('/card-products'), api.get('/loan-products')])
       .then(([cardsRes, loansRes]) => {
-        setCardProducts(cardsRes.data.filter((c) => c.isActive));
-        setLoanProducts(loansRes.data.filter((l) => l.isActive));
+        setCardProducts(cardsRes.data.filter((c) => c.isActive && c.bank?.isActive !== false));
+        setLoanProducts(loansRes.data.filter((l) => l.isActive && l.bank?.isActive !== false));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -331,6 +346,16 @@ function SubmitLead() {
                     <Descriptions.Item label="Card Type">
                       {({ regular: 'Regular', premium: 'Premium', rewards_lifestyle: 'Rewards & Lifestyle', travel: 'Travel', ecommerce: 'E-Commerce', legacy: 'Legacy' })[selectedCard.cardType] || selectedCard.cardType}
                     </Descriptions.Item>
+                    {selectedBracket?.feeType && (
+                      <Descriptions.Item label="Card Fee">
+                        <span style={{
+                          fontWeight: 700,
+                          color: selectedBracket.feeType === 'free' ? '#16a34a' : '#2563eb',
+                        }}>
+                          {selectedBracket.feeType === 'free' ? 'Free' : 'Paid'}
+                        </span>
+                      </Descriptions.Item>
+                    )}
                   </Descriptions>
                 </>
               )}

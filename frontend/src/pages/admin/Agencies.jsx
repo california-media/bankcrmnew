@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Tag, Typography, message, Alert, Tooltip, Popconfirm, Space } from 'antd';
-import { PlusOutlined, MailOutlined, CopyOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Form, Input, Tag, Typography, message, Alert, Tooltip, Popconfirm, Space, Row, Col, Card } from 'antd';
+import { PlusOutlined, MailOutlined, CopyOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 function Agencies() {
@@ -11,6 +11,7 @@ function Agencies() {
   const [editTarget, setEditTarget] = useState(null);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
+  const [viewMode, setViewMode] = useState('table');
 
   const load = async () => {
     setLoading(true);
@@ -91,6 +92,37 @@ function Agencies() {
     }
   };
 
+  const renderActions = (row) => (
+    <Space size={4}>
+      {!row.isActive && (
+        <Tooltip title="Resend invite link">
+          <Button size="small" icon={<MailOutlined />} onClick={() => onResend(row._id)}>Resend</Button>
+        </Tooltip>
+      )}
+      <Tooltip title="Edit">
+        <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
+      </Tooltip>
+      <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
+        <Button
+          size="small"
+          icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
+          onClick={() => onToggleActive(row)}
+        />
+      </Tooltip>
+      <Popconfirm
+        title="Delete agency?"
+        description="This cannot be undone."
+        onConfirm={() => onDelete(row._id)}
+        okText="Delete"
+        okButtonProps={{ danger: true }}
+      >
+        <Tooltip title="Delete">
+          <Button size="small" danger icon={<DeleteOutlined />} />
+        </Tooltip>
+      </Popconfirm>
+    </Space>
+  );
+
   const columns = [
     { title: 'Name', dataIndex: 'name', render: (v) => v || <Typography.Text type="secondary">—</Typography.Text> },
     { title: 'Email', dataIndex: 'email' },
@@ -99,39 +131,7 @@ function Agencies() {
       dataIndex: 'isActive',
       render: (v) => v ? <Tag color="green">Active</Tag> : <Tag color="orange">Pending invite</Tag>,
     },
-    {
-      title: 'Actions',
-      render: (_, row) => (
-        <Space>
-          {!row.isActive && (
-            <Tooltip title="Resend invite link">
-              <Button size="small" icon={<MailOutlined />} onClick={() => onResend(row._id)}>Resend</Button>
-            </Tooltip>
-          )}
-          <Tooltip title="Edit">
-            <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
-          </Tooltip>
-          <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
-            <Button
-              size="small"
-              icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
-              onClick={() => onToggleActive(row)}
-            />
-          </Tooltip>
-          <Popconfirm
-            title="Delete agency?"
-            description="This cannot be undone."
-            onConfirm={() => onDelete(row._id)}
-            okText="Delete"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Delete">
-              <Button size="small" danger icon={<DeleteOutlined />} />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
-    },
+    { title: 'Actions', render: (_, row) => renderActions(row) },
   ];
 
   return (
@@ -143,9 +143,51 @@ function Agencies() {
             Each agency manages their own banks and commission rules after activating.
           </Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Invite Agency</Button>
+        <Space>
+          <Button
+            icon={<TableOutlined />}
+            type={viewMode === 'table' ? 'primary' : 'default'}
+            onClick={() => setViewMode('table')}
+          >Table</Button>
+          <Button
+            icon={<AppstoreOutlined />}
+            type={viewMode === 'card' ? 'primary' : 'default'}
+            onClick={() => setViewMode('card')}
+          >Cards</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Invite Agency</Button>
+        </Space>
       </div>
-      <Table size="small" rowKey="_id" loading={loading} dataSource={agencies} columns={columns} />
+
+      {viewMode === 'table' ? (
+        <Table size="small" rowKey="_id" loading={loading} dataSource={agencies} columns={columns} />
+      ) : (
+        <Row gutter={[14, 14]}>
+          {agencies.map((row) => (
+            <Col key={row._id} xs={24} sm={12} lg={8} xl={6}>
+              <Card
+                size="small"
+                hoverable
+                style={{ borderRadius: 12, border: '1px solid #e2e8f0', height: '100%' }}
+                styles={{ body: { padding: '14px 16px' } }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>
+                      {row.name || <Typography.Text type="secondary">No name set</Typography.Text>}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{row.email}</div>
+                  </div>
+                  {row.isActive ? <Tag color="green">Active</Tag> : <Tag color="orange">Pending</Tag>}
+                </div>
+
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                  {renderActions(row)}
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
 
       <Modal
         title="Invite Agency"

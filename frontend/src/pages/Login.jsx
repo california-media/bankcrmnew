@@ -20,7 +20,7 @@ function Login() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5' }}>
       <Card style={{ width: 400 }}>
-        <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 4 }}>Bank CRM</Typography.Title>
+        <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 4 }}>Bank Portal</Typography.Title>
         <Typography.Paragraph style={{ textAlign: 'center', color: '#888' }}>Sign in to your account</Typography.Paragraph>
         {error && <Alert type="error" message={error} style={{ marginBottom: 16 }} />}
         <Form layout="vertical" onFinish={onFinish}>

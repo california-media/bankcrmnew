@@ -5,6 +5,7 @@ const bracketSchema = new mongoose.Schema(
     minimumSalary: { type: Number, required: true, min: 0 },
     receivable: { type: Number, required: true, min: 0 },
     payable: { type: Number, required: true, min: 0 },
+    feeType: { type: String, enum: ['free', 'paid'], default: 'free' },
   },
   { _id: false }
 );
@@ -16,6 +17,8 @@ const cardProductSchema = new mongoose.Schema(
     bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     commissionBrackets: { type: [bracketSchema], default: [] },
+    benefits: { type: String, default: '' },
+    feesEligibility: { type: String, default: '' },
     isActive: { type: Boolean, default: true },
     cardImage: { type: String, trim: true },
   },

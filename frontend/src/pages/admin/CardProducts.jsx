@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import {
   Button, Table, Modal, Form, Input, InputNumber, Select, Space,
-  Popconfirm, Typography, Tag, message, Divider, Upload,
+  Popconfirm, Typography, Tag, message, Divider, Upload, Tabs,
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
+import QuillEditor from '../../components/QuillEditor';
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
@@ -21,6 +22,7 @@ const CARD_TYPES = [
 
 const CARD_TYPE_LABEL = Object.fromEntries(CARD_TYPES.map((t) => [t.value, t.label]));
 
+
 function CardProducts() {
   const [cards, setCards] = useState([]);
   const [banks, setBanks] = useState([]);
@@ -30,6 +32,8 @@ function CardProducts() {
   const [editing, setEditing] = useState(null);
   const [cardSearch, setCardSearch] = useState('');
   const [fileList, setFileList] = useState([]);
+  const [benefitsHtml, setBenefitsHtml] = useState('');
+  const [feesHtml, setFeesHtml] = useState('');
   const [form] = Form.useForm();
 
   const load = async () => {
@@ -54,6 +58,8 @@ function CardProducts() {
     setEditing(null);
     form.resetFields();
     setFileList([]);
+    setBenefitsHtml('');
+    setFeesHtml('');
     setOpen(true);
   };
 
@@ -67,6 +73,8 @@ function CardProducts() {
       isActive: c.isActive,
       commissionBrackets: c.commissionBrackets || [],
     });
+    setBenefitsHtml(c.benefits || '');
+    setFeesHtml(c.feesEligibility || '');
     setFileList(
       c.cardImage
         ? [{ uid: '-1', name: c.cardImage, status: 'done', url: `${UPLOADS_BASE}/card-images/${c.cardImage}` }]
@@ -84,6 +92,8 @@ function CardProducts() {
       fd.append('bank', values.bank);
       if (values.agency) fd.append('agency', values.agency);
       fd.append('commissionBrackets', JSON.stringify(values.commissionBrackets || []));
+      fd.append('benefits', benefitsHtml);
+      fd.append('feesEligibility', feesHtml);
       fd.append('isActive', values.isActive !== false ? 'true' : 'false');
 
       const newFile = fileList.find((f) => f.originFileObj);
@@ -145,6 +155,7 @@ function CardProducts() {
             {b.map((br, i) => (
               <Typography.Text key={i} style={{ fontSize: 12 }}>
                 ≥ AED {Number(br.minimumSalary).toLocaleString()} → R: {aed(br.receivable)} / P: {aed(br.payable)}
+                {br.feeType && <Tag color={br.feeType === 'free' ? 'green' : 'blue'} style={{ marginLeft: 4, fontSize: 10 }}>{br.feeType === 'free' ? 'Free' : 'Paid'}</Tag>}
               </Typography.Text>
             ))}
           </Space>
@@ -294,6 +305,18 @@ function CardProducts() {
                     >
                       <InputNumber min={0} step={50} placeholder="500" style={{ width: 130 }} />
                     </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'feeType']}
+                      label="Card Fee"
+                      initialValue="free"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Select style={{ width: 100 }} options={[
+                        { value: 'free', label: 'Free' },
+                        { value: 'paid', label: 'Paid' },
+                      ]} />
+                    </Form.Item>
                     <MinusCircleOutlined
                       onClick={() => remove(name)}
                       style={{ color: '#ff4d4f', marginTop: 28, cursor: 'pointer' }}
@@ -306,6 +329,34 @@ function CardProducts() {
               </>
             )}
           </Form.List>
+
+          <Divider orientation="left" style={{ fontSize: 13 }}>Product Content</Divider>
+          <Tabs
+            items={[
+              {
+                key: 'benefits',
+                label: 'Product Benefits',
+                children: (
+                  <QuillEditor
+                    value={benefitsHtml}
+                    onChange={setBenefitsHtml}
+                    style={{ height: 260, marginBottom: 42 }}
+                  />
+                ),
+              },
+              {
+                key: 'fees',
+                label: 'Fees & Eligibility',
+                children: (
+                  <QuillEditor
+                    value={feesHtml}
+                    onChange={setFeesHtml}
+                    style={{ height: 260, marginBottom: 42 }}
+                  />
+                ),
+              },
+            ]}
+          />
         </Form>
       </Modal>
     </>

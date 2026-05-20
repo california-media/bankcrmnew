@@ -56,7 +56,7 @@ exports.listAgents = async (req, res) => {
  */
 exports.overview = async (req, res) => {
   try {
-    const [agents, agencies, banks, totalLeads, approvedLeads, pendingLeads, paidAgg, payableAgg] = await Promise.all([
+    const [agents, agencies, banks, totalLeads, approvedLeads, pendingLeads, paidAgg, payableAgg, pipelineAgg, topAgentsAgg] = await Promise.all([
       User.countDocuments({ role: 'agent' }),
       User.countDocuments({ role: 'agency' }),
       require('../models/Bank').countDocuments(),
@@ -65,7 +65,29 @@ exports.overview = async (req, res) => {
       Lead.countDocuments({ status: { $in: ['submitted', 'under_review'] } }),
       Lead.aggregate([{ $match: { commissionStatus: 'paid' } }, { $group: { _id: null, sum: { $sum: '$commission' } } }]),
       Lead.aggregate([{ $match: { commissionStatus: 'payable' } }, { $group: { _id: null, sum: { $sum: '$commission' } } }]),
+      Lead.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      Lead.aggregate([
+        { $match: { commissionStatus: 'paid' } },
+        { $group: { _id: '$agent', paid: { $sum: '$commission' } } },
+        { $sort: { paid: -1 } },
+        { $limit: 5 },
+        { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'agentDoc' } },
+        { $unwind: '$agentDoc' },
+        { $project: { _id: 1, name: '$agentDoc.name', email: '$agentDoc.email', paid: 1 } },
+      ]),
     ]);
+
+    const pipelineMap = Object.fromEntries(pipelineAgg.map((p) => [p._id, p.count]));
+    const pipeline = [
+      { status: 'draft', label: 'Draft', count: pipelineMap.draft || 0 },
+      { status: 'submitted', label: 'Submitted', count: pipelineMap.submitted || 0 },
+      { status: 'under_review', label: 'Under Review', count: pipelineMap.under_review || 0 },
+      { status: 'assigned', label: 'Assigned', count: pipelineMap.assigned || 0 },
+      { status: 'approved', label: 'Approved', count: pipelineMap.approved || 0 },
+      { status: 'disbursed', label: 'Disbursed', count: pipelineMap.disbursed || 0 },
+      { status: 'rejected', label: 'Rejected', count: pipelineMap.rejected || 0 },
+    ];
+
     res.json({
       agents,
       agencies,
@@ -75,6 +97,8 @@ exports.overview = async (req, res) => {
       pendingLeads,
       paidCommission: paidAgg[0]?.sum || 0,
       payableCommission: payableAgg[0]?.sum || 0,
+      pipeline,
+      topAgents: topAgentsAgg,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

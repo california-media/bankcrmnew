@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Table, Tag, Typography, Button, Input, Tabs, Space, message, Popconfirm, Row, Col, Statistic, Card,
+  Table, Tag, Typography, Button, Input, Tabs, Space, message, Popconfirm, Row, Col, Card,
 } from 'antd';
-import { SearchOutlined, DollarOutlined } from '@ant-design/icons';
+import {
+  SearchOutlined, DollarOutlined, CheckCircleOutlined, RiseOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const COMM_COLORS = { payable: 'cyan', pending: 'gold', paid: 'green', none: 'default' };
-const COMM_LABELS = { payable: 'Payout Ready', pending: 'Pending', paid: 'Paid', none: '—' };
+const COMM_LABELS = { payable: 'Payout Ready for Agent', pending: 'Pending', paid: 'Paid', none: '—' };
 
 export default function Payouts() {
   const navigate = useNavigate();
@@ -52,7 +54,6 @@ export default function Payouts() {
     return leads.filter((l) => {
       if (tab === 'payable' && l.commissionStatus !== 'payable') return false;
       if (tab === 'paid' && l.commissionStatus !== 'paid') return false;
-      if (tab === 'pending' && l.commissionStatus !== 'pending') return false;
       if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
       return true;
     });
@@ -62,7 +63,6 @@ export default function Payouts() {
 
   const stats = useMemo(() => ({
     payable: payableLeads.length,
-    pending: leads.filter((l) => l.commissionStatus === 'pending').length,
     paid:    leads.filter((l) => l.commissionStatus === 'paid').length,
     totalPayable: payableLeads.reduce((s, l) => s + (l.commission || 0), 0),
     totalPaid: leads.filter((l) => l.commissionStatus === 'paid').reduce((s, l) => s + (l.commission || 0), 0),
@@ -85,7 +85,7 @@ export default function Payouts() {
       render: (v, row) => (
         <div>
           <div style={{ fontWeight: 600 }}>{v}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>{row.phone}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.phone}</div>
         </div>
       ),
     },
@@ -93,8 +93,8 @@ export default function Payouts() {
       title: 'Agent',
       render: (_, row) => (
         <div>
-          <div>{row.agent?.name || row.agent?.email || '—'}</div>
-          {row.agent?.name && <div style={{ fontSize: 12, color: '#888' }}>{row.agent.email}</div>}
+          <div style={{ fontWeight: 500 }}>{row.agent?.name || row.agent?.email || '—'}</div>
+          {row.agent?.name && <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.agent.email}</div>}
         </div>
       ),
     },
@@ -105,9 +105,9 @@ export default function Payouts() {
       align: 'right',
       render: (_, row) => (
         <div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>{aed(row.commission)}</div>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>{aed(row.commission)}</div>
           {row.grossCommission > 0 && (
-            <div style={{ fontSize: 11, color: '#888' }}>Gross: {aed(row.grossCommission)}</div>
+            <div style={{ fontSize: 11, color: '#94a3b8' }}>Gross: {aed(row.grossCommission)}</div>
           )}
         </div>
       ),
@@ -125,16 +125,21 @@ export default function Payouts() {
   ];
 
   const tabItems = [
-    { key: 'payable', label: `Payout Ready (${stats.payable})` },
-    { key: 'pending', label: `Pending (${stats.pending})` },
-    { key: 'paid',    label: `Paid (${stats.paid})` },
+    {
+      key: 'payable',
+      label: <span><DollarOutlined style={{ color: '#0891b2', marginRight: 5 }} />Payout Ready for Agent ({stats.payable})</span>,
+    },
+    {
+      key: 'paid',
+      label: <span><CheckCircleOutlined style={{ color: '#16a34a', marginRight: 5 }} />Paid ({stats.paid})</span>,
+    },
   ];
 
   return (
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>Payouts</Typography.Title>
+          <Typography.Title level={3} style={{ margin: 0 }}>Payouts to Agents</Typography.Title>
           <Typography.Text type="secondary">Send commission payouts to agents in bulk.</Typography.Text>
         </Col>
         <Col>
@@ -164,56 +169,66 @@ export default function Payouts() {
       </Row>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Payout Ready"
-              value={aed(stats.totalPayable)}
-              valueStyle={{ color: '#0891b2', fontWeight: 700 }}
-              suffix={<Typography.Text type="secondary" style={{ fontSize: 13 }}>{stats.payable} leads</Typography.Text>}
-            />
+        <Col xs={24} sm={12}>
+          <Card
+            size="small"
+            style={{ borderRadius: 12, borderLeft: '4px solid #06b6d4', background: '#ecfeff', border: '1px solid #06b6d422' }}
+            styles={{ body: { padding: '18px 20px' } }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0891b2', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <DollarOutlined />Payout Ready for Agent
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#0e7490', lineHeight: 1.2 }}>{aed(stats.totalPayable)}</div>
+            <div style={{ fontSize: 12, color: '#0891b2', marginTop: 6, opacity: 0.8 }}>{stats.payable} lead{stats.payable !== 1 ? 's' : ''} ready to pay</div>
           </Card>
         </Col>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic title="Pending Commission" value={stats.pending} valueStyle={{ fontWeight: 700 }} suffix="leads" />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic title="Total Paid Out" value={aed(stats.totalPaid)} valueStyle={{ color: '#16a34a', fontWeight: 700 }} />
+        <Col xs={24} sm={12}>
+          <Card
+            size="small"
+            style={{ borderRadius: 12, borderLeft: '4px solid #22c55e', background: '#f0fdf4', border: '1px solid #22c55e22' }}
+            styles={{ body: { padding: '18px 20px' } }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#16a34a', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CheckCircleOutlined />Total Paid Out to Agent
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#15803d', lineHeight: 1.2 }}>{aed(stats.totalPaid)}</div>
+            <div style={{ fontSize: 12, color: '#16a34a', marginTop: 6, opacity: 0.8 }}>{stats.paid} payout{stats.paid !== 1 ? 's' : ''} completed</div>
           </Card>
         </Col>
       </Row>
 
-      <Tabs activeKey={tab} onChange={(k) => { setTab(k); setSelectedRowKeys([]); }} items={tabItems} style={{ marginBottom: 8 }} />
-
-      <Space style={{ marginBottom: 16 }}>
-        <Input
-          allowClear
-          placeholder="Search client or lead ID..."
-          prefix={<SearchOutlined />}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 280 }}
+      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '0 24px 24px' }}>
+        <Tabs
+          activeKey={tab}
+          onChange={(k) => { setTab(k); setSelectedRowKeys([]); }}
+          items={tabItems}
+          style={{ marginBottom: 0 }}
         />
-        <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
-      </Space>
-
-      <Table
-        size="small"
-        rowKey="_id"
-        loading={loading}
-        dataSource={filtered}
-        columns={columns}
-        scroll={{ x: 'max-content' }}
-        rowSelection={
-          tab === 'payable'
-            ? { selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (row) => ({ disabled: row.commissionStatus !== 'payable' }) }
-            : undefined
-        }
-        onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })}
-      />
+        <Space style={{ marginBottom: 16 }}>
+          <Input
+            allowClear
+            placeholder="Search client or lead ID..."
+            prefix={<SearchOutlined />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: 280 }}
+          />
+          <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
+        </Space>
+        <Table
+          size="small"
+          rowKey="_id"
+          loading={loading}
+          dataSource={filtered}
+          columns={columns}
+          rowSelection={
+            tab === 'payable'
+              ? { selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (row) => ({ disabled: row.commissionStatus !== 'payable' }) }
+              : undefined
+          }
+          onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })}
+        />
+      </div>
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Space, Popconfirm, Typography, message } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Form, Input, Space, Popconfirm, Typography, message, Switch, Tag } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 function AdminBanks() {
@@ -8,6 +8,8 @@ function AdminBanks() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [toggling, setToggling] = useState(null);
+  const [search, setSearch] = useState('');
   const [form] = Form.useForm();
 
   const load = async () => {
@@ -22,7 +24,7 @@ function AdminBanks() {
 
   useEffect(() => { load(); }, []);
 
-  const openCreate = () => { setEditing(null); form.resetFields(); setOpen(true); };
+  const openCreate = () => { setEditing(null); form.resetFields(); form.setFieldsValue({ isActive: true }); setOpen(true); };
   const openEdit = (bank) => { setEditing(bank); form.setFieldsValue(bank); setOpen(true); };
 
   const onSubmit = async () => {
@@ -52,15 +54,51 @@ function AdminBanks() {
     }
   };
 
+  const toggleActive = async (bank) => {
+    setToggling(bank._id);
+    try {
+      await api.put(`/banks/${bank._id}`, { isActive: !bank.isActive });
+      message.success(`Bank marked ${!bank.isActive ? 'active' : 'inactive'}`);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Toggle failed');
+    } finally {
+      setToggling(null);
+    }
+  };
+
   const columns = [
-    { title: 'Name', dataIndex: 'name', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      render: (v, row) => (
+        <span style={{ fontWeight: 600, color: row.isActive === false ? '#94a3b8' : undefined }}>{v}</span>
+      ),
+    },
     { title: 'Code', dataIndex: 'code', render: (v) => v || <Typography.Text type="secondary">—</Typography.Text> },
     { title: 'Description', dataIndex: 'description', render: (v) => v || <Typography.Text type="secondary">—</Typography.Text> },
     {
+      title: 'Status',
+      width: 120,
+      render: (_, row) => (
+        <Tag color={row.isActive !== false ? 'green' : 'default'}>
+          {row.isActive !== false ? 'Active' : 'Inactive'}
+        </Tag>
+      ),
+    },
+    {
       title: 'Actions',
-      width: 220,
+      width: 260,
       render: (_, row) => (
         <Space>
+          <Switch
+            size="small"
+            checked={row.isActive !== false}
+            loading={toggling === row._id}
+            onChange={() => toggleActive(row)}
+            checkedChildren="Active"
+            unCheckedChildren="Inactive"
+          />
           <Button icon={<EditOutlined />} onClick={() => openEdit(row)}>Edit</Button>
           <Popconfirm title="Delete this bank?" onConfirm={() => onDelete(row._id)}>
             <Button danger icon={<DeleteOutlined />}>Delete</Button>
@@ -75,12 +113,30 @@ function AdminBanks() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
           <Typography.Title level={3} style={{ margin: 0 }}>Banks</Typography.Title>
-          <Typography.Text type="secondary">Global bank list. Assign banks to products when creating card or loan products.</Typography.Text>
+          <Typography.Text type="secondary">Inactive banks hide all their card and loan products from agents.</Typography.Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bank</Button>
       </div>
 
-      <Table size="small" rowKey="_id" loading={loading} dataSource={banks} columns={columns} />
+      <Input
+        allowClear
+        placeholder="Search banks..."
+        prefix={<SearchOutlined />}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ width: 280, marginBottom: 16 }}
+      />
+
+      <Table
+        size="small"
+        rowKey="_id"
+        loading={loading}
+        dataSource={banks.filter((b) => {
+          const q = search.trim().toLowerCase();
+          return !q || b.name.toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q);
+        })}
+        columns={columns}
+      />
 
       <Modal
         title={editing ? 'Edit Bank' : 'Add Bank'}
@@ -99,6 +155,9 @@ function AdminBanks() {
           </Form.Item>
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={3} />
+          </Form.Item>
+          <Form.Item name="isActive" label="Status" valuePropName="checked">
+            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
           </Form.Item>
         </Form>
       </Modal>

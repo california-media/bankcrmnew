@@ -63,18 +63,22 @@ async function resolveGrossCommission(lead) {
 
 async function recalcOnStatusChange(lead) {
   if (lead.status === 'approved') {
-    lead.grossCommission = await resolveGrossCommission(lead);
+    // Lock both gross and agent commission at approval time so figures are
+    // visible in admin Payouts immediately. Disbursement re-locks them in
+    // case loan amount changed between approval and disbursal.
+    const { receivable, payable } = await resolveCommissions(lead);
+    lead.grossCommission = receivable;
+    lead.commission = payable;
     if (lead.commissionStatus === 'none' || lead.commissionStatus === 'paid') {
       lead.commissionStatus = 'pending';
     }
   } else if (lead.status === 'disbursed') {
-    // Lock both commissions from product brackets at disbursement time.
-    // Always recalc so the snapshot reflects rates at this exact moment,
-    // not a potentially stale approved-stage value.
+    // Re-lock both values at disbursement (loan amount may have changed).
+    // Do NOT flip commissionStatus to payable here — that happens when
+    // admin marks gross commission as received from the agency.
     const { receivable, payable } = await resolveCommissions(lead);
     lead.grossCommission = receivable;
     lead.commission = payable;
-    if (lead.commissionStatus !== 'paid') lead.commissionStatus = 'payable';
   } else if (lead.status === 'rejected') {
     lead.grossCommission = 0;
     lead.commission = 0;

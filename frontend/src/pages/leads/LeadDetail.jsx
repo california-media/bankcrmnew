@@ -6,18 +6,26 @@ import {
   Timeline, Divider, message, Modal, Form, InputNumber, Input, Select, Image,
 } from 'antd';
 import {
-  ArrowLeftOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, FileOutlined, UserAddOutlined,
+  ArrowLeftOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, FileOutlined, DollarOutlined,
 } from '@ant-design/icons';
 import api from '../../api/client';
 
 const STATUSES = {
-  draft:        { color: 'default',  label: 'Draft' },
-  submitted:    { color: 'blue',     label: 'Submitted' },
-  under_review: { color: 'gold',     label: 'Under Review' },
-  assigned:     { color: 'cyan',     label: 'Assigned' },
-  approved:     { color: 'green',    label: 'Approved' },
-  rejected:     { color: 'red',      label: 'Rejected' },
-  disbursed:    { color: 'purple',   label: 'Disbursed' },
+  draft:           { color: 'default',  label: 'Draft' },
+  submitted:       { color: 'blue',     label: 'Submitted' },
+  under_review:    { color: 'gold',     label: 'Under Review' },
+  assigned:        { color: 'cyan',     label: 'Assigned' },
+  approved:        { color: 'green',    label: 'Approved' },
+  rejected:        { color: 'red',      label: 'Rejected' },
+  disbursed:       { color: 'purple',   label: 'Disbursed' },
+  cpv_done:        { color: 'teal',     label: 'CPV Done' },
+  activate_done:   { color: 'lime',     label: 'Activate Done' },
+  employee_status: { color: 'orange',   label: 'Employee Status' },
+};
+
+const AGENCY_STATUSES = {
+  ...STATUSES,
+  submitted: { color: 'blue', label: 'New Lead' },
 };
 
 const COMM_COLORS = { paid: 'green', payable: 'cyan', pending: 'gold', none: 'default' };
@@ -50,9 +58,11 @@ export default function LeadDetail() {
   const [deletingNoteId, setDeletingNoteId] = useState(null);
 
   const [employees, setEmployees] = useState([]);
-  const [assignOpen, setAssignOpen] = useState(false);
-  const [assignForm] = Form.useForm();
-  const [assignSaving, setAssignSaving] = useState(false);
+  const [assigningEmployee, setAssigningEmployee] = useState(null); // 'cpv' | 'sales'
+
+  const [actionModal, setActionModal] = useState({ open: false, type: null }); // type: 'cpv' | 'activate'
+  const [actionForm] = Form.useForm();
+  const [actionSaving, setActionSaving] = useState(false);
 
   const [empStatuses, setEmpStatuses] = useState([]);
   const [empStatusSaving, setEmpStatusSaving] = useState(false);
@@ -113,18 +123,31 @@ export default function LeadDetail() {
     }
   };
 
-  const assignEmployee = async () => {
-    const { employeeId } = await assignForm.validateFields();
-    setAssignSaving(true);
+  const assignEmployee = async (employeeId, type) => {
+    setAssigningEmployee(type);
     try {
-      const { data } = await api.patch(`/leads/${id}/assign-employee`, { employeeId });
+      const { data } = await api.patch(`/leads/${id}/assign-employee`, { employeeId: employeeId || null, type });
       setLead(data);
-      message.success('Employee assigned');
-      setAssignOpen(false);
+      message.success(employeeId ? `${type === 'cpv' ? 'CPV' : 'Sales'} employee assigned` : 'Assignment cleared');
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed to assign');
     } finally {
-      setAssignSaving(false);
+      setAssigningEmployee(null);
+    }
+  };
+
+  const confirmAction = async () => {
+    setActionSaving(true);
+    try {
+      const { note } = actionForm.getFieldsValue();
+      const { data } = await api.patch(`/leads/${id}/${actionModal.type}`, { note: note || undefined });
+      setLead(data);
+      message.success(actionModal.type === 'cpv' ? 'CPV marked done' : 'Activate marked done');
+      setActionModal({ open: false, type: null });
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Action failed');
+    } finally {
+      setActionSaving(false);
     }
   };
 
@@ -179,7 +202,8 @@ export default function LeadDetail() {
 
   if (!lead) return null;
 
-  const statusMeta = STATUSES[lead.status] || { color: 'default', label: lead.status };
+  const statusMap = role === 'agency' ? AGENCY_STATUSES : STATUSES;
+  const statusMeta = statusMap[lead.status] || { color: 'default', label: lead.status };
   const isLoan = lead.productType === 'loan';
 
   return (
@@ -310,11 +334,19 @@ export default function LeadDetail() {
                     <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>{lead.agency.email}</span>
                   )}
                 </Descriptions.Item>
-                {lead.assignedEmployee && (
-                  <Descriptions.Item label="Assigned Employee">
-                    <span style={{ fontWeight: 600 }}>{lead.assignedEmployee.name || '—'}</span>
-                    {lead.assignedEmployee.email && (
-                      <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>{lead.assignedEmployee.email}</span>
+                {lead.assignedCpvEmployee && (
+                  <Descriptions.Item label="CPV Employee">
+                    <span style={{ fontWeight: 600 }}>{lead.assignedCpvEmployee.name || '—'}</span>
+                    {lead.assignedCpvEmployee.email && (
+                      <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>{lead.assignedCpvEmployee.email}</span>
+                    )}
+                  </Descriptions.Item>
+                )}
+                {lead.assignedSalesEmployee && (
+                  <Descriptions.Item label="Sales Employee">
+                    <span style={{ fontWeight: 600 }}>{lead.assignedSalesEmployee.name || '—'}</span>
+                    {lead.assignedSalesEmployee.email && (
+                      <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>{lead.assignedSalesEmployee.email}</span>
                     )}
                   </Descriptions.Item>
                 )}
@@ -360,7 +392,7 @@ export default function LeadDetail() {
             <Card title="Status History" style={{ marginBottom: 16 }}>
               <Timeline
                 items={[...lead.statusHistory].reverse().map((h) => {
-                  const meta = STATUSES[h.status] || { color: 'default', label: h.status };
+                  const meta = statusMap[h.status] || { color: 'default', label: h.status };
                   return {
                     color: meta.color === 'default' ? 'gray' : meta.color,
                     children: (
@@ -401,8 +433,16 @@ export default function LeadDetail() {
                         const hiddenFromViewer =
                           (n.authorRole === 'admin' && role !== 'admin') ||
                           (n.authorRole === 'agency' && role === 'agent');
+                        const employeeAnonymised = n.authorRole === 'employee' && role === 'agent';
                         return hiddenFromViewer ? (
                           <Typography.Text strong style={{ fontSize: 13 }}>Staff</Typography.Text>
+                        ) : employeeAnonymised ? (
+                          <>
+                            <Typography.Text strong style={{ fontSize: 13, fontFamily: 'monospace' }}>
+                              {n.author?.employeeId || 'Staff'}
+                            </Typography.Text>
+                            <Tag style={{ fontSize: 11, lineHeight: '18px', padding: '0 6px' }}>employee</Tag>
+                          </>
                         ) : (
                           <>
                             <Typography.Text strong style={{ fontSize: 13 }}>
@@ -538,29 +578,42 @@ export default function LeadDetail() {
           {/* Agency Actions */}
           {role === 'agency' && (
             <Card title="Actions" style={{ marginBottom: 16 }}>
-              {lead.assignedEmployee && (
+              {(lead.assignedCpvEmployee || lead.assignedSalesEmployee) && (
                 <div style={{ marginBottom: 12, padding: '8px 10px', background: '#f0f7ff', borderRadius: 6 }}>
-                  <Typography.Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    Assigned To
-                  </Typography.Text>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>
-                    {lead.assignedEmployee.name || lead.assignedEmployee.email}
-                  </div>
+                  {lead.assignedCpvEmployee && (
+                    <div style={{ marginBottom: lead.assignedSalesEmployee ? 6 : 0 }}>
+                      <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>CPV</Typography.Text>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{lead.assignedCpvEmployee.name || lead.assignedCpvEmployee.email}</div>
+                    </div>
+                  )}
+                  {lead.assignedSalesEmployee && (
+                    <div>
+                      <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Sales</Typography.Text>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{lead.assignedSalesEmployee.name || lead.assignedSalesEmployee.email}</div>
+                    </div>
+                  )}
                 </div>
               )}
+              {/* CPV / Activate status indicators */}
+              {(lead.cpvDone || lead.activateDone) && (
+                <Space style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+                  {lead.cpvDone && <Tag color="green">CPV ✓</Tag>}
+                  {lead.activateDone && <Tag color="green">Activate ✓</Tag>}
+                </Space>
+              )}
               <Space direction="vertical" style={{ width: '100%' }}>
-                {lead.status === 'submitted' && (
-                  <Button block onClick={() => openStatusModal('under_review', 'Under Review')}>Start Review</Button>
-                )}
-                {lead.status === 'under_review' && (
-                  <Button block onClick={() => openStatusModal('assigned', 'Assigned')}>Mark Assigned</Button>
-                )}
-                {lead.status === 'assigned' && (
+                {['submitted', 'under_review', 'assigned'].includes(lead.status) && (
                   <Button block type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>
                     Approve
                   </Button>
                 )}
-                {lead.status === 'approved' && (
+                {lead.status === 'approved' && !lead.cpvDone && (
+                  <Button block onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'cpv' }); }}>CPV</Button>
+                )}
+                {lead.status === 'approved' && !lead.activateDone && (
+                  <Button block onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'activate' }); }}>Activate</Button>
+                )}
+                {lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
                   <Button block onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
                 )}
                 {isLoan && LOAN_EDITABLE_FROM.includes(lead.status) && (
@@ -577,9 +630,29 @@ export default function LeadDetail() {
                   </Button>
                 )}
                 {!['disbursed', 'rejected'].includes(lead.status) && (
-                  <Button block icon={<UserAddOutlined />} onClick={() => { assignForm.resetFields(); setAssignOpen(true); }}>
-                    {lead.assignedEmployee ? 'Reassign Employee' : 'Assign Employee'}
-                  </Button>
+                  <div>
+                    <Typography.Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, display: 'block', marginBottom: 4 }}>
+                      Assign Employees
+                    </Typography.Text>
+                    <Select
+                      allowClear
+                      placeholder="CPV employee"
+                      loading={assigningEmployee === 'cpv'}
+                      value={lead.assignedCpvEmployee?._id || undefined}
+                      onChange={(val) => assignEmployee(val || null, 'cpv')}
+                      style={{ width: '100%', marginBottom: 6 }}
+                      options={employees.filter((e) => e.isActive && e.employeeType === 'cpv').map((e) => ({ value: e._id, label: e.name || e.email }))}
+                    />
+                    <Select
+                      allowClear
+                      placeholder="Sales employee"
+                      loading={assigningEmployee === 'sales'}
+                      value={lead.assignedSalesEmployee?._id || undefined}
+                      onChange={(val) => assignEmployee(val || null, 'sales')}
+                      style={{ width: '100%' }}
+                      options={employees.filter((e) => e.isActive && e.employeeType === 'sales').map((e) => ({ value: e._id, label: e.name || e.email }))}
+                    />
+                  </div>
                 )}
               </Space>
             </Card>
@@ -594,10 +667,20 @@ export default function LeadDetail() {
                     Approve
                   </Button>
                 )}
-                {lead.status === 'approved' && (
-                  <Button block onClick={() => openStatusModal('disbursed', 'Disbursed')}>
+                {lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
+                  <Button
+                    block
+                    icon={<DollarOutlined />}
+                    style={{ background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }}
+                    onClick={() => openStatusModal('disbursed', 'Disbursed')}
+                  >
                     Mark Disbursed
                   </Button>
+                )}
+                {lead.status === 'approved' && !(lead.cpvDone && lead.activateDone) && (
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    Waiting for{!lead.cpvDone ? ' CPV' : ''}{!lead.cpvDone && !lead.activateDone ? ' &' : ''}{!lead.activateDone ? ' Activation' : ''} to enable Disburse
+                  </Typography.Text>
                 )}
                 {['assigned', 'approved'].includes(lead.status) && (
                   <Button block danger icon={<CloseOutlined />} onClick={() => openStatusModal('rejected', 'Rejected')}>
@@ -664,32 +747,24 @@ export default function LeadDetail() {
         </Form>
       </Modal>
 
-      {/* Assign employee modal */}
+      {/* CPV / Activate modal */}
       <Modal
-        title={lead?.assignedEmployee ? 'Reassign Employee' : 'Assign Employee'}
-        open={assignOpen}
-        onCancel={() => setAssignOpen(false)}
-        onOk={assignEmployee}
-        okText="Assign"
-        confirmLoading={assignSaving}
+        title={actionModal.type === 'cpv' ? 'Mark CPV Done' : 'Mark Activate Done'}
+        open={actionModal.open}
+        onCancel={() => setActionModal({ open: false, type: null })}
+        onOk={confirmAction}
+        okText="Confirm"
+        confirmLoading={actionSaving}
         destroyOnClose
       >
-        {lead?.assignedEmployee && (
-          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
-            Currently assigned: <strong>{lead.assignedEmployee.name || lead.assignedEmployee.email}</strong>
-          </Typography.Text>
-        )}
-        <Form form={assignForm} layout="vertical">
-          <Form.Item name="employeeId" label="Employee" rules={[{ required: true, message: 'Select an employee' }]}>
-            <Select
-              placeholder="Select employee"
-              options={employees.filter((e) => e.isActive).map((e) => ({ value: e._id, label: e.name || e.email }))}
-              style={{ width: '100%' }}
-            />
+        <Form form={actionForm} layout="vertical">
+          <Form.Item name="note" label="Note (optional)">
+            <Input.TextArea rows={3} placeholder="Add a note..." />
           </Form.Item>
         </Form>
       </Modal>
 
-    </>
+
+</>
   );
 }

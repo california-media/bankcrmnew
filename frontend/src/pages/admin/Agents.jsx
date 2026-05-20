@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Table, Typography, Tag, Button, Modal, Form, Input, message, Space, Popconfirm, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Table, Typography, Tag, Button, Modal, Form, Input, message, Space, Popconfirm, Tooltip, Row, Col, Card } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, StopOutlined, CheckCircleOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
@@ -13,6 +13,7 @@ function AdminAgents() {
   const [editTarget, setEditTarget] = useState(null);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
+  const [viewMode, setViewMode] = useState('table');
 
   const load = () => {
     setLoading(true);
@@ -154,12 +155,107 @@ function AdminAgents() {
           <Typography.Title level={3} style={{ margin: 0 }}>Agents</Typography.Title>
           <Typography.Text type="secondary">All registered agents and their lead/commission summary.</Typography.Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setOpen(true); }}>
-          Add Agent
-        </Button>
+        <Space>
+          <Button
+            icon={<TableOutlined />}
+            type={viewMode === 'table' ? 'primary' : 'default'}
+            onClick={() => setViewMode('table')}
+          >Table</Button>
+          <Button
+            icon={<AppstoreOutlined />}
+            type={viewMode === 'card' ? 'primary' : 'default'}
+            onClick={() => setViewMode('card')}
+          >Cards</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setOpen(true); }}>
+            Add Agent
+          </Button>
+        </Space>
       </div>
 
-      <Table size="small" rowKey="_id" loading={loading} dataSource={agents} columns={columns} />
+      {viewMode === 'table' ? (
+        <Table size="small" rowKey="_id" loading={loading} dataSource={agents} columns={columns} />
+      ) : (
+        <Row gutter={[14, 14]}>
+          {agents.map((row) => (
+            <Col key={row._id} xs={24} sm={12} lg={8} xl={6}>
+              <Card
+                size="small"
+                hoverable
+                style={{ borderRadius: 12, border: '1px solid #e2e8f0', height: '100%' }}
+                styles={{ body: { padding: '14px 16px' } }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.name || '—'}</div>
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{row.email}</div>
+                  </div>
+                  {row.isActive ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>}
+                </div>
+
+                {row.phone && (
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>{row.phone}</div>
+                )}
+
+                {row.referralCode && (
+                  <div style={{ marginBottom: 8 }}>
+                    <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Referral Code</Typography.Text>
+                    <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 600 }}>{row.referralCode}</div>
+                  </div>
+                )}
+
+                {row.referredBy && (
+                  <div style={{ marginBottom: 8 }}>
+                    <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Referred By</Typography.Text>
+                    <div><Tag color="blue" style={{ marginTop: 2 }}>{row.referredBy.name || row.referredBy.email}</Tag></div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+                  <div>
+                    <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Leads</Typography.Text>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{row.stats?.total || 0}</div>
+                  </div>
+                  <div>
+                    <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Approved</Typography.Text>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#16a34a' }}>{row.stats?.approved || 0}</div>
+                  </div>
+                  <div>
+                    <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Paid</Typography.Text>
+                    <div style={{ fontWeight: 700, fontSize: 13 }}>{aed(row.stats?.paidCommission)}</div>
+                  </div>
+                </div>
+
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                    {new Date(row.createdAt).toLocaleDateString()}
+                  </Typography.Text>
+                  <Space size={4}>
+                    <Tooltip title="Edit">
+                      <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
+                    </Tooltip>
+                    <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
+                      <Button
+                        size="small"
+                        icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
+                        onClick={() => onToggleActive(row)}
+                      />
+                    </Tooltip>
+                    <Popconfirm
+                      title="Delete agent?"
+                      description="This cannot be undone."
+                      onConfirm={() => onDelete(row._id)}
+                      okText="Delete"
+                      okButtonProps={{ danger: true }}
+                    >
+                      <Button size="small" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </Space>
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
 
       {/* Create modal */}
       <Modal

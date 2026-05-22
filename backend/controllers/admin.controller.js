@@ -56,13 +56,16 @@ exports.listAgents = async (req, res) => {
  */
 exports.overview = async (req, res) => {
   try {
-    const [agents, agencies, banks, totalLeads, approvedLeads, pendingLeads, paidAgg, payableAgg, pipelineAgg, topAgentsAgg] = await Promise.all([
+    const [agents, agencies, banks, totalLeads, approvedLeads, pendingLeads, activeLeads, cpvDoneLeads, activateDoneLeads, paidAgg, payableAgg, pipelineAgg, topAgentsAgg, productPayoutsAgg] = await Promise.all([
       User.countDocuments({ role: 'agent' }),
       User.countDocuments({ role: 'agency' }),
       require('../models/Bank').countDocuments(),
       Lead.countDocuments(),
       Lead.countDocuments({ status: 'approved' }),
       Lead.countDocuments({ status: { $in: ['submitted', 'under_review'] } }),
+      Lead.countDocuments({ status: { $in: ['submitted', 'under_review', 'assigned', 'approved'] } }),
+      Lead.countDocuments({ cpvDone: true }),
+      Lead.countDocuments({ activateDone: true }),
       Lead.aggregate([{ $match: { commissionStatus: 'paid' } }, { $group: { _id: null, sum: { $sum: '$commission' } } }]),
       Lead.aggregate([{ $match: { commissionStatus: 'payable' } }, { $group: { _id: null, sum: { $sum: '$commission' } } }]),
       Lead.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
@@ -74,6 +77,10 @@ exports.overview = async (req, res) => {
         { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'agentDoc' } },
         { $unwind: '$agentDoc' },
         { $project: { _id: 1, name: '$agentDoc.name', email: '$agentDoc.email', paid: 1 } },
+      ]),
+      Lead.aggregate([
+        { $match: { commissionStatus: 'paid' } },
+        { $group: { _id: '$productType', paid: { $sum: '$commission' }, count: { $sum: 1 } } },
       ]),
     ]);
 
@@ -88,6 +95,14 @@ exports.overview = async (req, res) => {
       { status: 'rejected', label: 'Rejected', count: pipelineMap.rejected || 0 },
     ];
 
+    const PRODUCT_LABELS = { credit_card: 'Credit Card', loan: 'Loan' };
+    const productPayouts = productPayoutsAgg.map((p) => ({
+      type: p._id,
+      label: PRODUCT_LABELS[p._id] || p._id,
+      paid: p.paid,
+      count: p.count,
+    }));
+
     res.json({
       agents,
       agencies,
@@ -95,10 +110,14 @@ exports.overview = async (req, res) => {
       totalLeads,
       approvedLeads,
       pendingLeads,
+      activeLeads,
+      cpvDoneLeads,
+      activateDoneLeads,
       paidCommission: paidAgg[0]?.sum || 0,
       payableCommission: payableAgg[0]?.sum || 0,
       pipeline,
       topAgents: topAgentsAgg,
+      productPayouts,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

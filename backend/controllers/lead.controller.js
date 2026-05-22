@@ -3,6 +3,7 @@ const Bank = require('../models/Bank');
 const User = require('../models/User');
 const CardProduct = require('../models/CardProduct');
 const LoanProduct = require('../models/LoanProduct');
+const EmployeeStatus = require('../models/EmployeeStatus');
 const commissionService = require('../services/commission.service');
 const { createAndEmit, getAdminIds, formatStatus } = require('../utils/notify');
 
@@ -100,6 +101,9 @@ exports.create = async (req, res) => {
     const seq = String(agentDoc.leadCount).padStart(4, '0');
     leadData.leadNumber = `LD-${agentShortId}-${seq}`;
 
+    const newLeadStatus = await EmployeeStatus.findOne({ label: /^new lead$/i, isActive: true });
+    if (newLeadStatus) leadData.employeeStatus = newLeadStatus._id;
+
     const lead = await Lead.create(leadData);
     const populated = await lead.populate(POPULATE_FIELDS);
     try {
@@ -194,18 +198,23 @@ exports.listMine = async (req, res) => {
 exports.stats = async (req, res) => {
   try {
     const agentId = req.user._id;
-    const [total, approved, rejected, disbursed, leads] = await Promise.all([
+    const [total, approved, rejected, disbursed, cpvDoneCount, activateDoneCount, leads] = await Promise.all([
       Lead.countDocuments({ agent: agentId }),
       Lead.countDocuments({ agent: agentId, status: 'approved' }),
       Lead.countDocuments({ agent: agentId, status: 'rejected' }),
       Lead.countDocuments({ agent: agentId, status: 'disbursed' }),
+      Lead.countDocuments({ agent: agentId, cpvDone: true }),
+      Lead.countDocuments({ agent: agentId, activateDone: true }),
       Lead.find({ agent: agentId }).select('status commission commissionStatus'),
     ]);
 
     const activeStatuses = ['draft', 'submitted', 'under_review', 'assigned'];
     const active = leads.filter((l) => activeStatuses.includes(l.status)).length;
     const drafts = leads.filter((l) => l.status === 'draft').length;
-    const pending = leads.filter((l) => l.status === 'submitted' || l.status === 'under_review').length;
+    const submitted = leads.filter((l) => l.status === 'submitted').length;
+    const underReview = leads.filter((l) => l.status === 'under_review').length;
+    const assigned = leads.filter((l) => l.status === 'assigned').length;
+    const pending = submitted + underReview;
     const paidEarnings = leads
       .filter((l) => l.commissionStatus === 'paid')
       .reduce((s, l) => s + (l.commission || 0), 0);
@@ -214,7 +223,9 @@ exports.stats = async (req, res) => {
       .reduce((s, l) => s + (l.commission || 0), 0);
 
     res.json({
-      total, active, drafts, approved, rejected, pending, disbursed,
+      total, active, drafts, submitted, underReview, assigned,
+      approved, rejected, pending, disbursed,
+      cpvDone: cpvDoneCount, activateDone: activateDoneCount,
       paidEarnings, pendingEarnings,
     });
   } catch (err) {
@@ -229,6 +240,7 @@ exports.listForAgency = async (req, res) => {
   try {
     const leads = await Lead.find({ agency: req.user._id, status: { $ne: 'draft' } })
       .populate('bank', 'name code')
+      .populate('agent', 'name email')
       .populate('assignedEmployee', 'name email')
       .populate('assignedCpvEmployee', 'name email employeeType')
       .populate('assignedSalesEmployee', 'name email employeeType')

@@ -21,6 +21,45 @@ const PRODUCTS = [
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
+const STATUS_PILL = {
+  draft:        { bg: '#f8fafc', border: '#e2e8f0', dot: '#94a3b8', text: '#475569', label: 'DRAFT' },
+  submitted:    { bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6', text: '#1d4ed8', label: 'SUBMITTED' },
+  under_review: { bg: '#fefce8', border: '#fde68a', dot: '#eab308', text: '#a16207', label: 'REVIEWING' },
+  assigned:     { bg: '#ecfdf5', border: '#6ee7b7', dot: '#10b981', text: '#047857', label: 'ASSIGNED' },
+  approved:     { bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e', text: '#15803d', label: 'APPROVED' },
+  rejected:     { bg: '#fef2f2', border: '#fecaca', dot: '#ef4444', text: '#b91c1c', label: 'REJECTED' },
+  disbursed:    { bg: '#faf5ff', border: '#e9d5ff', dot: '#a855f7', text: '#7e22ce', label: 'DISBURSED' },
+};
+
+const relTime = (date) => {
+  const diff = Date.now() - new Date(date);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+};
+
+const ColHead = ({ children }) => (
+  <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.8, textTransform: 'uppercase' }}>{children}</span>
+);
+
+const StatusPill = ({ status }) => {
+  const p = STATUS_PILL[status] || { bg: '#f1f5f9', border: '#e2e8f0', dot: '#94a3b8', text: '#475569', label: (status || '').toUpperCase() };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: p.bg, border: `1px solid ${p.border}`, fontSize: 11, fontWeight: 700, color: p.text, whiteSpace: 'nowrap' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.dot, flexShrink: 0 }} />
+      {p.label}
+    </span>
+  );
+};
+
 function MyLeads() {
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
@@ -68,58 +107,60 @@ function MyLeads() {
 
   const columns = [
     {
-      title: 'Lead ID',
-      dataIndex: 'leadNumber',
-      render: (leadNumber) => (
-        <Typography.Text type="secondary" style={{ fontFamily: 'monospace', width: 130, whiteSpace: 'nowrap' }}>{leadNumber || '—'}</Typography.Text>
-      ),
-    },
-    {
-      title: 'Client',
-      dataIndex: 'customerName',
-      render: (v, row) => (
-        <div>
-          <div style={{ fontWeight: 600 }}>{v}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>{row.phone}</div>
+      title: <ColHead>Lead</ColHead>,
+      width: 175,
+      render: (_, row) => (
+        <div style={{ lineHeight: 1.5 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.customerName}</div>
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>{row.leadNumber || '—'}</div>
+          <div style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' }}>{row.phone}</div>
         </div>
       ),
     },
-    { title: 'Product', dataIndex: 'productType', render: (v) => PRODUCTS.find((p) => p.value === v)?.label },
-    { title: 'Bank', render: (_, row) => row.bank?.name || <Typography.Text type="secondary">—</Typography.Text> },
     {
-      title: 'Stage',
-      dataIndex: 'status',
-      render: (s) => {
-        const meta = STATUSES.find((x) => x.value === s);
-        return <Tag color={meta?.color}>{meta?.label || s}</Tag>;
-      },
-    },
-    {
-      title: 'Emp. Status',
-      dataIndex: 'employeeStatus',
-      render: (s) => s
-        ? <Tag color={s.color}>{s.label}</Tag>
-        : <Typography.Text type="secondary">—</Typography.Text>,
-    },
-    {
-      title: 'Expected Payout',
-      align: 'right',
+      title: <ColHead>Product</ColHead>,
       render: (_, row) => {
-        if (row.commissionStatus === 'paid') {
-          return (
-            <div>
-              <div style={{ fontWeight: 700, color: '#16a34a' }}>{aed(row.commission)}</div>
-              <div style={{ fontSize: 11, color: '#16a34a' }}>Received</div>
-            </div>
-          );
-        }
-        return <span style={{ fontWeight: 600 }}>{aed(row.commission)}</span>;
+        const name = renderProduct(row);
+        return <span style={{ fontSize: 12, color: '#334155' }}>{name}</span>;
       },
     },
     {
-      title: 'Submitted',
-      dataIndex: 'createdAt',
-      render: (d) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' }),
+      title: <ColHead>Bank</ColHead>,
+      render: (_, row) => <span style={{ fontSize: 12, color: '#334155' }}>{row.bank?.name || '—'}</span>,
+    },
+    {
+      title: <ColHead>Status</ColHead>,
+      dataIndex: 'status',
+      render: (s) => <StatusPill status={s} />,
+    },
+    {
+      title: <ColHead>Consent</ColHead>,
+      dataIndex: 'employeeStatus',
+      render: (s) => {
+        if (!s) return <span style={{ color: '#cbd5e1' }}>—</span>;
+        const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
+        const c = COLOR_MAP[s.color] || '#94a3b8';
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, border: `1.5px solid ${c}`, fontSize: 11, fontWeight: 700, color: c, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+            {s.label}
+          </span>
+        );
+      },
+    },
+    {
+      title: <ColHead>Updated</ColHead>,
+      dataIndex: 'updatedAt',
+      render: (d) => <span style={{ fontSize: 12, color: '#64748b' }}>{d ? relTime(d) : '—'}</span>,
+    },
+    {
+      title: <ColHead>Payout</ColHead>,
+      align: 'right',
+      render: (_, row) => (
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: row.commissionStatus === 'paid' ? '#16a34a' : '#4f46e5' }}>{aed(row.commission)}</div>
+          {row.commissionStatus === 'paid' && <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>PAID</div>}
+        </div>
+      ),
     },
   ];
 
@@ -127,7 +168,7 @@ function MyLeads() {
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>My Leads</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>My Leads</Typography.Title>
           <Typography.Text type="secondary">
             {leads.length} total · Track every case from submission to commission payout.
           </Typography.Text>
@@ -151,7 +192,7 @@ function MyLeads() {
         </Col>
       </Row>
 
-      <Space wrap style={{ margin: '24px 0 16px', width: '100%', justifyContent: 'space-between' }}>
+      <Space wrap style={{ margin: '8px 0 12px', width: '100%', justifyContent: 'space-between' }}>
         <Space wrap>
           <Input
             allowClear
@@ -232,7 +273,7 @@ function MyLeads() {
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4 }}>
                     <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                      {new Date(row.createdAt).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' })}
+                      {new Date(row.updatedAt || row.createdAt).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' })}
                     </Typography.Text>
                     <div style={{ textAlign: 'right' }}>
                       {row.commissionStatus === 'paid' ? (

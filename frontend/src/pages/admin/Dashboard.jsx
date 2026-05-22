@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Avatar, Card, Col, Row, Skeleton, Typography } from 'antd';
+import { Card, Col, Row, Skeleton, Divider } from 'antd';
 import {
-  TeamOutlined,
-  IdcardOutlined,
   AuditOutlined,
-  CheckCircleOutlined,
   ClockCircleOutlined,
   DollarOutlined,
   RiseOutlined,
@@ -15,44 +12,84 @@ import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
-const StatCard = ({ title, value, icon, gradient, link, loading }) => {
-  const card = loading ? (
-    <Card styles={{ body: { padding: '22px 24px' } }} style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}>
-      <Skeleton active paragraph={{ rows: 1 }} />
+/* ── Light stat card (reference style) ────────────────────────── */
+const StatCard = ({ title, value, icon, iconColor = '#4f46e5', loading, link }) => {
+  const inner = loading ? (
+    <Card style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}
+      styles={{ body: { padding: '22px 24px' } }}>
+      <Skeleton active paragraph={{ rows: 2 }} />
     </Card>
   ) : (
     <Card
-      hoverable={!!link}
-      styles={{ body: { padding: '24px', position: 'relative', overflow: 'hidden' } }}
-      style={{ borderRadius: 16, border: 'none', background: gradient, boxShadow: '0 6px 24px rgba(0,0,0,0.13)', height: '100%', overflow: 'hidden', cursor: link ? 'pointer' : 'default' }}
+      style={{
+        borderRadius: 16,
+        border: '1px solid #e2e8f0',
+        background: 'linear-gradient(135deg, #ffffff 55%, #f0f4ff 100%)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+        height: '100%',
+        cursor: link ? 'pointer' : 'default',
+      }}
+      styles={{ body: { padding: '22px 24px' } }}
     >
-      <div style={{ position: 'absolute', right: -12, top: -12, fontSize: 88, color: 'rgba(255,255,255,0.13)', lineHeight: 1, pointerEvents: 'none' }}>
-        {icon}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.1, color: '#94a3b8' }}>
+          {title}
+        </div>
+        <div style={{
+          width: 42, height: 42, borderRadius: 12,
+          background: `${iconColor}18`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 20, color: iconColor,
+        }}>
+          {icon}
+        </div>
       </div>
-      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'rgba(255,255,255,0.72)', marginBottom: 12 }}>
-        {title}
-      </div>
-      <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
+      <div style={{ fontSize: 30, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
         {value ?? '—'}
       </div>
     </Card>
   );
-  return link ? <Link to={link} style={{ display: 'block', height: '100%' }}>{card}</Link> : card;
+  return link ? <Link to={link} style={{ display: 'block', height: '100%' }}>{inner}</Link> : inner;
 };
 
-const STAGE_COLORS = {
-  draft:        { bg: '#f1f5f9', color: '#64748b', dot: '#94a3b8' },
-  submitted:    { bg: '#eff6ff', color: '#2563eb', dot: '#3b82f6' },
-  under_review: { bg: '#fefce8', color: '#ca8a04', dot: '#eab308' },
-  assigned:     { bg: '#f0fdf4', color: '#16a34a', dot: '#22c55e' },
-  approved:     { bg: '#f0fdf4', color: '#15803d', dot: '#16a34a' },
-  disbursed:    { bg: '#f0f9ff', color: '#0369a1', dot: '#0ea5e9' },
-  rejected:     { bg: '#fff1f2', color: '#be123c', dot: '#f43f5e' },
+/* ── Mini secondary stat ───────────────────────────────────────── */
+const MiniStat = ({ label, value, color = '#6366f1', link }) => {
+  const inner = (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '12px 18px',
+      background: '#fff',
+      borderRadius: 12,
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+      borderLeft: `4px solid ${color}`,
+      cursor: link ? 'pointer' : 'default',
+      flex: 1,
+    }}>
+      <div>
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.9, color: '#94a3b8', marginBottom: 2 }}>
+          {label}
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>
+          {value ?? '—'}
+        </div>
+      </div>
+    </div>
+  );
+  return link ? <Link to={link} style={{ flex: 1, display: 'block' }}>{inner}</Link> : <div style={{ flex: 1 }}>{inner}</div>;
 };
 
+/* ── Pipeline stage map (5 display stages) ─────────────────────── */
+const STAGE_MAP = [
+  { status: 'submitted',    label: 'NEW',       bg: '#e0f7fa', border: '#a5f3fc', dot: '#06b6d4', text: '#0e7490' },
+  { status: 'approved',     label: 'APPROVED',  bg: '#f3e8ff', border: '#d8b4fe', dot: '#a855f7', text: '#7e22ce' },
+  { status: 'cpvDone',      label: 'CPV DONE',  bg: '#fef9c3', border: '#fde047', dot: '#eab308', text: '#a16207' },
+  { status: 'activateDone', label: 'ACTIVATED', bg: '#e0f2fe', border: '#7dd3fc', dot: '#0ea5e9', text: '#0369a1' },
+  { status: 'disbursed',    label: 'PAID',      bg: '#dcfce7', border: '#86efac', dot: '#22c55e', text: '#15803d' },
+];
+
+/* ── Lead Pipeline ─────────────────────────────────────────────── */
 function LeadPipeline({ pipeline }) {
-  const max = Math.max(...((pipeline || []).map((s) => s.count)), 1);
-
   if (!pipeline) {
     return (
       <Card style={{ height: '100%', borderRadius: 16, border: '1px solid #e2e8f0' }}>
@@ -61,74 +98,65 @@ function LeadPipeline({ pipeline }) {
     );
   }
 
+  const displayStages = STAGE_MAP.map((s) => {
+    const found = pipeline.find((p) => p.status === s.status);
+    return { ...s, count: found?.count || 0 };
+  });
+  const max = Math.max(1, ...displayStages.map((s) => s.count));
+
   return (
     <Card
       style={{ height: '100%', borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
       styles={{ body: { padding: '24px 28px' } }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
         <div>
-          <Typography.Title level={5} style={{ margin: 0, fontWeight: 700 }}>Lead Pipeline</Typography.Title>
-          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-            Draft → Submitted → Under Review → Assigned → Approved → Disbursed
-          </Typography.Text>
+          <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a', marginBottom: 3 }}>Lead Pipeline</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>
+            New → Approved → CPV Done → Activated → Paid
+          </div>
         </div>
-        <Link to="/admin/leads" style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: 14, color: '#0f172a', whiteSpace: 'nowrap' }}>
+        <Link to="/admin/leads" style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 600, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap' }}>
           View all <ArrowRightOutlined />
         </Link>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {(pipeline || []).map((stage) => {
-          const c = STAGE_COLORS[stage.status] || STAGE_COLORS.draft;
-          const pct = (stage.count / max) * 100;
-          // bar is "wide enough" to show count inside if > 20%
-          const countInside = pct > 20;
-          // minimum visual bar width: 18px pill cap for 0, proportional otherwise
-          const barStyle = stage.count === 0
-            ? { width: 18, minWidth: 18 }
-            : { width: `${pct}%`, minWidth: 48 };
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {displayStages.map((stage) => {
+          const pct = Math.max(stage.count === 0 ? 2 : (stage.count / max) * 100, 2);
+          const countInside = pct > 16;
 
           return (
-            <div key={stage.status} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              {/* pill */}
+            <div key={stage.status} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
-                width: 128, padding: '5px 12px', borderRadius: 999, flexShrink: 0,
-                background: c.bg, border: `1px solid ${c.dot}40`,
-                display: 'flex', alignItems: 'center', gap: 7,
-                fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.9,
-                color: c.color,
+                width: 100, padding: '5px 10px', borderRadius: 999, flexShrink: 0,
+                background: stage.bg, border: `1.5px solid ${stage.border}`,
+                display: 'flex', alignItems: 'center', gap: 6,
+                fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.7,
+                color: stage.text,
               }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: c.dot, flexShrink: 0 }} />
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: stage.dot, flexShrink: 0 }} />
                 {stage.label}
               </div>
 
-              {/* track */}
-              <div style={{ flex: 1, height: 38, background: '#f1f5f9', borderRadius: 999, position: 'relative' }}>
-                {/* filled bar */}
+              <div style={{ flex: 1, height: 22, background: '#f1f5f9', borderRadius: 999, overflow: 'hidden', position: 'relative' }}>
                 <div style={{
-                  ...barStyle,
+                  width: `${pct}%`,
                   height: '100%',
                   borderRadius: 999,
-                  background: 'linear-gradient(90deg, #6366f1 0%, #3b82f6 100%)',
-                  transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)',
+                  background: 'linear-gradient(90deg, #7c3aed 0%, #4f46e5 45%, #3b82f6 100%)',
+                  transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)',
                   display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-                  paddingRight: countInside ? 14 : 0,
+                  paddingRight: countInside ? 12 : 0,
                 }}>
                   {countInside && (
                     <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>{stage.count}</span>
                   )}
                 </div>
+              </div>
 
-                {/* count outside (right of track) when bar too short */}
-                {!countInside && (
-                  <span style={{
-                    position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-                    fontSize: 13, fontWeight: 700, color: '#374151',
-                  }}>
-                    {stage.count}
-                  </span>
-                )}
+              <div style={{ width: 24, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#334155', flexShrink: 0 }}>
+                {!countInside ? stage.count : ''}
               </div>
             </div>
           );
@@ -138,78 +166,130 @@ function LeadPipeline({ pipeline }) {
   );
 }
 
-const AVATAR_GRADIENTS = [
-  'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-  'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-  'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)',
-  'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-  'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
-];
+/* ── Product Payouts ───────────────────────────────────────────── */
+const PRODUCT_ICONS = {
+  credit_card: '💳',
+  loan: '🏦',
+};
 
-function TopAgents({ agents }) {
-  if (!agents) {
+function ProductPayouts({ payouts, topAgents, loading }) {
+  if (loading) {
     return (
-      <Card style={{ height: '100%', borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-        <Skeleton active avatar paragraph={{ rows: 4 }} />
+      <Card style={{ height: '100%', borderRadius: 16, border: '1px solid #e2e8f0' }}>
+        <Skeleton active paragraph={{ rows: 5 }} />
       </Card>
     );
   }
 
-  const initials = (name) => (name || '?').split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+  const allProducts = [
+    { type: 'credit_card', label: 'Credit Card' },
+    { type: 'loan', label: 'Loan' },
+  ];
+  const byType = Object.fromEntries((payouts || []).map((p) => [p.type, p]));
 
   return (
     <Card
       style={{ height: '100%', borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-      styles={{ body: { padding: '24px 20px' } }}
+      styles={{ body: { padding: '24px' } }}
     >
-      <div style={{ marginBottom: 20 }}>
-        <Typography.Title level={5} style={{ margin: 0, fontWeight: 700 }}>Top Agents</Typography.Title>
-        <Typography.Text type="secondary" style={{ fontSize: 13 }}>By paid commission</Typography.Text>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a', marginBottom: 3 }}>Product Payouts</div>
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>Paid commissions by product</div>
       </div>
 
-      {agents.length === 0 && (
-        <Typography.Text type="secondary" style={{ fontSize: 13 }}>No paid commissions yet.</Typography.Text>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {agents.map((agent, i) => (
-          <div key={agent._id} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* rank */}
-            <div style={{
-              width: 28, height: 28, borderRadius: '50%',
-              border: '1.5px solid #e2e8f0',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 700, color: '#64748b', flexShrink: 0,
-            }}>
-              {i + 1}
-            </div>
-            {/* avatar */}
-            <Avatar
-              size={40}
-              style={{ background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length], fontWeight: 700, fontSize: 14, flexShrink: 0 }}
-            >
-              {initials(agent.name)}
-            </Avatar>
-            {/* name + email */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {agent.name || 'Unknown'}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {allProducts.map((p, i) => {
+          const data = byType[p.type];
+          const paid = data?.paid || 0;
+          const count = data?.count || 0;
+          return (
+            <div key={p.type}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    background: p.type === 'credit_card' ? '#eff6ff' : '#f0fdf4',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 18,
+                  }}>
+                    {PRODUCT_ICONS[p.type]}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{p.label}</div>
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{count} paid lead{count !== 1 ? 's' : ''}</div>
+                  </div>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 15, color: paid > 0 ? '#15803d' : '#94a3b8' }}>
+                  {aed(paid)}
+                </div>
               </div>
-              <div style={{ fontSize: 12, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {agent.email}
-              </div>
+              {i < allProducts.length - 1 && <Divider style={{ margin: 0, borderColor: '#f1f5f9' }} />}
             </div>
-            {/* amount */}
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', flexShrink: 0 }}>
-              {aed(agent.paid)}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {/* Top Agents section folded into this card */}
+      <Divider style={{ margin: '16px 0 14px', borderColor: '#e2e8f0' }} />
+      <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', marginBottom: 4 }}>Top Agents</div>
+      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>By paid commission</div>
+      <TopAgentsList agents={topAgents} />
     </Card>
   );
 }
 
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+  'linear-gradient(135deg, #7c3aed 0%, #6366f1 100%)',
+  'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+  'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)',
+  'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+];
+
+function TopAgentsList({ agents }) {
+  if (!agents) return <Skeleton active paragraph={{ rows: 3 }} avatar={false} />;
+  if (agents.length === 0) return <div style={{ fontSize: 13, color: '#94a3b8' }}>No paid commissions yet.</div>;
+
+  const initials = (name) => (name || '?').split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {agents.map((agent, i) => (
+        <div key={agent._id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 26, height: 26, borderRadius: '50%',
+            border: '1.5px solid #e2e8f0',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700, color: '#64748b', flexShrink: 0,
+          }}>
+            {i + 1}
+          </div>
+          <div style={{
+            width: 34, height: 34, borderRadius: '50%',
+            background: AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length],
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0,
+          }}>
+            {initials(agent.name)}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {agent.name || 'Unknown'}
+            </div>
+            <div style={{ fontSize: 11, color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {agent.email}
+            </div>
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', flexShrink: 0 }}>
+            {aed(agent.paid)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Main Dashboard ────────────────────────────────────────────── */
 function AdminDashboard() {
   const [overview, setOverview] = useState(null);
 
@@ -217,49 +297,68 @@ function AdminDashboard() {
     api.get('/admin/overview').then((res) => setOverview(res.data));
   }, []);
 
-  const cards = [
-    { key: 'totalLeads',       title: 'Total Leads',        value: overview?.totalLeads,             icon: <AuditOutlined />,       gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)', link: '/admin/leads' },
-    { key: 'approvedLeads',    title: 'Approved',           value: overview?.approvedLeads,          icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)' },
-    { key: 'pendingLeads',     title: 'Pending Review',     value: overview?.pendingLeads,           icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)' },
-    { key: 'paidCommission',   title: 'Commission Paid',    value: aed(overview?.paidCommission),    icon: <DollarOutlined />,      gradient: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)' },
-    { key: 'payableCommission',title: 'Commission Payable', value: aed(overview?.payableCommission), icon: <RiseOutlined />,        gradient: 'linear-gradient(135deg, #0369a1 0%, #38bdf8 100%)' },
-    { key: 'agents',           title: 'Agents',             value: overview?.agents,                 icon: <IdcardOutlined />,      gradient: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)', link: '/admin/agents' },
-    { key: 'agencies',         title: 'Agencies',           value: overview?.agencies,               icon: <TeamOutlined />,        gradient: 'linear-gradient(135deg, #0e7490 0%, #22d3ee 100%)', link: '/admin/agencies' },
+  const primaryCards = [
+    {
+      key: 'totalLeads',
+      title: 'Total Leads',
+      value: overview?.totalLeads,
+      icon: <AuditOutlined />,
+      iconColor: '#4f46e5',
+      link: '/admin/leads',
+    },
+    {
+      key: 'activeLeads',
+      title: 'In Pipeline',
+      value: overview?.activeLeads,
+      icon: <RiseOutlined />,
+      iconColor: '#0ea5e9',
+    },
+    {
+      key: 'paidCommission',
+      title: 'Commission Paid',
+      value: aed(overview?.paidCommission),
+      icon: <DollarOutlined />,
+      iconColor: '#16a34a',
+    },
+    {
+      key: 'payableCommission',
+      title: 'Pending Payout',
+      value: aed(overview?.payableCommission),
+      icon: <ClockCircleOutlined />,
+      iconColor: '#f97316',
+    },
   ];
 
   return (
     <>
-      {/* Page header */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginBottom: 2 }}>Admin Overview</div>
-        <div style={{ fontSize: 13, color: '#94a3b8' }}>Network-wide performance across all agents and agencies.</div>
-      </div>
-
-      {/* Stat Cards — row 1: 4 cards */}
-      <Row gutter={[14, 14]}>
-        {cards.slice(0, 4).map((c) => (
+      {/* Primary Stat Cards */}
+      <Row gutter={[14, 14]} style={{ marginBottom: 14 }}>
+        {primaryCards.map((c) => (
           <Col xs={24} sm={12} lg={6} key={c.key}>
             <StatCard {...c} loading={!overview} />
           </Col>
         ))}
       </Row>
 
-      {/* Stat Cards — row 2: 3 cards, each wider */}
-      <Row gutter={[14, 14]} style={{ marginTop: 14 }}>
-        {cards.slice(4).map((c) => (
-          <Col xs={24} sm={8} lg={8} key={c.key}>
-            <StatCard {...c} loading={!overview} />
-          </Col>
-        ))}
-      </Row>
+      {/* Secondary Stats */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+        <MiniStat label="Approved Leads" value={overview?.approvedLeads} color="#22c55e" />
+        <MiniStat label="Agents" value={overview?.agents} color="#6366f1" link="/admin/agents" />
+        <MiniStat label="Agencies" value={overview?.agencies} color="#0ea5e9" link="/admin/agencies" />
+        <MiniStat label="Banks" value={overview?.banks} color="#f97316" link="/admin/banks" />
+      </div>
 
-      {/* Lead Pipeline + Top Agents */}
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col xs={24} lg={16}>
-          <LeadPipeline pipeline={overview?.pipeline} />
+      {/* Lead Pipeline + Product Payouts */}
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={15}>
+          <LeadPipeline pipeline={overview ? [
+            ...(overview.pipeline || []),
+            { status: 'cpvDone',      label: 'CPV Done',  count: overview.cpvDoneLeads || 0 },
+            { status: 'activateDone', label: 'Activated', count: overview.activateDoneLeads || 0 },
+          ] : null} />
         </Col>
-        <Col xs={24} lg={8}>
-          <TopAgents agents={overview?.topAgents} />
+        <Col xs={24} lg={9}>
+          <ProductPayouts payouts={overview?.productPayouts} topAgents={overview?.topAgents} loading={!overview} />
         </Col>
       </Row>
     </>

@@ -57,10 +57,10 @@ export default function Notifications() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Typography.Title level={3} style={{ margin: 0 }}>Notifications</Typography.Title>
+            <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Notifications</Typography.Title>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: connected ? '#22c55e' : '#94a3b8' }} />
               <span style={{ fontSize: 12, color: connected ? '#16a34a' : '#94a3b8' }}>{connected ? 'Live' : 'Offline'}</span>

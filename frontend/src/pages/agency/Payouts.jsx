@@ -245,7 +245,7 @@ function AgencyPayouts() {
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>Payouts to Admin</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Payouts to Admin</Typography.Title>
           <Typography.Text type="secondary">
             Pay outstanding gross commissions for disbursed leads. Overpayments go into your bucket.
           </Typography.Text>
@@ -262,7 +262,7 @@ function AgencyPayouts() {
         </Col>
       </Row>
 
-      <Row gutter={16} style={{ marginBottom: 20 }}>
+      <Row gutter={16} style={{ marginBottom: 12 }}>
         <Col xs={24} sm={12} md={6}>
           <Card
             size="small"

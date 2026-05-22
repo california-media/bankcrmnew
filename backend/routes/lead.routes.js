@@ -21,7 +21,7 @@ router.post('/:id/send-to-agency', requireRole('agent', 'admin'), ctrl.sendToAge
 
 // Employee
 router.get('/assigned', requireRole('employee'), ctrl.listAssigned);
-router.patch('/:id/employee-status', requireRole('employee'), require('../controllers/employeeStatus.controller').setOnLead);
+router.patch('/:id/employee-status', requireRole('employee', 'agency'), require('../controllers/employeeStatus.controller').setOnLead);
 
 // Agency
 router.get('/agency', requireRole('agency'), ctrl.listForAgency);

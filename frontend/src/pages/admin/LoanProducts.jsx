@@ -164,7 +164,7 @@ function LoanProducts() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <Typography.Title level={3} style={{ margin: 0 }}>Loan Products</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Loan Products</Typography.Title>
           <Typography.Text type="secondary">
             Manage loan products. Commission brackets define receivable and payable rates (% of loan amount) per salary tier.
           </Typography.Text>

@@ -7,7 +7,7 @@ const { createAndEmit, getAdminIds } = require('../utils/notify');
  */
 exports.list = async (req, res) => {
   try {
-    const statuses = await EmployeeStatus.find().sort({ createdAt: 1 });
+    const statuses = await EmployeeStatus.find().sort({ order: 1, createdAt: 1 });
     res.json(statuses);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -39,13 +39,13 @@ exports.create = async (req, res) => {
  */
 exports.update = async (req, res) => {
   try {
-    const { label, color, isActive } = req.body;
+    const { label, color, isActive, order } = req.body;
     const status = await EmployeeStatus.findById(req.params.id);
     if (!status) return res.status(404).json({ message: 'Status not found' });
-
     if (label != null) status.label = String(label).trim();
     if (color != null) status.color = String(color).trim();
     if (isActive != null) status.isActive = Boolean(isActive);
+    if (order != null) status.order = Number(order);
     await status.save();
     res.json(status);
   } catch (err) {
@@ -77,11 +77,16 @@ exports.setOnLead = async (req, res) => {
   try {
     const { employeeStatusId } = req.body;
 
-    const empId = req.user._id;
-    const lead = await Lead.findOne({
-      _id: req.params.id,
-      $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }],
-    });
+    let lead;
+    if (req.user.role === 'agency') {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    } else {
+      const empId = req.user._id;
+      lead = await Lead.findOne({
+        _id: req.params.id,
+        $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }],
+      });
+    }
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     if (employeeStatusId) {

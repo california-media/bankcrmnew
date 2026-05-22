@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Modal, Space } from 'antd';
-import { SearchOutlined, CheckOutlined, CloseOutlined, DollarOutlined } from '@ant-design/icons';
+import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Modal, Space, Card, Row, Col } from 'antd';
+import { SearchOutlined, CheckOutlined, CloseOutlined, DollarOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
@@ -15,6 +15,77 @@ const STATUSES = [
 
 const PRODUCT_LABELS = { credit_card: 'Credit Card', loan: 'Loan' };
 
+const STATUS_PILL = {
+  submitted:    { bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6', text: '#1d4ed8', label: 'SUBMITTED' },
+  under_review: { bg: '#fefce8', border: '#fde68a', dot: '#eab308', text: '#a16207', label: 'REVIEWING' },
+  assigned:     { bg: '#ecfdf5', border: '#6ee7b7', dot: '#10b981', text: '#047857', label: 'ASSIGNED' },
+  approved:     { bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e', text: '#15803d', label: 'APPROVED' },
+  rejected:     { bg: '#fef2f2', border: '#fecaca', dot: '#ef4444', text: '#b91c1c', label: 'REJECTED' },
+  disbursed:    { bg: '#faf5ff', border: '#e9d5ff', dot: '#a855f7', text: '#7e22ce', label: 'DISBURSED' },
+};
+
+const relTime = (date) => {
+  const diff = Date.now() - new Date(date);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+};
+
+const ColHead = ({ children }) => (
+  <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.8, textTransform: 'uppercase' }}>{children}</span>
+);
+
+const StatusPill = ({ status }) => {
+  const p = STATUS_PILL[status] || { bg: '#f1f5f9', border: '#e2e8f0', dot: '#94a3b8', text: '#475569', label: (status || '').toUpperCase() };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: p.bg, border: `1px solid ${p.border}`, fontSize: 11, fontWeight: 700, color: p.text, whiteSpace: 'nowrap' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.dot, flexShrink: 0 }} />
+      {p.label}
+    </span>
+  );
+};
+
+const WaIcon = () => (
+  <svg viewBox="0 0 32 32" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="16" cy="16" r="15" fill="#fff"/>
+    <path fill="#25D366" d="M22.9 9.1A9.77 9.77 0 0016 6.5C10.76 6.5 6.5 10.76 6.5 16c0 1.67.44 3.3 1.27 4.74L6.4 25.5l4.9-1.35A9.76 9.76 0 0016 25.5c5.24 0 9.5-4.26 9.5-9.5 0-2.54-.99-4.93-2.6-6.9zm-6.9 14.6c-1.42 0-2.8-.38-4.01-1.1l-.29-.17-2.9.8.78-2.84-.19-.3A7.85 7.85 0 018.35 16c0-4.22 3.43-7.65 7.65-7.65 2.04 0 3.96.8 5.4 2.24a7.62 7.62 0 012.25 5.42c0 4.22-3.43 7.65-7.65 7.65zm4.2-5.73c-.23-.12-1.36-.67-1.57-.75-.21-.08-.36-.12-.52.12-.15.23-.6.75-.73.9-.13.16-.27.17-.5.06a6.27 6.27 0 01-1.85-1.14 6.93 6.93 0 01-1.28-1.6c-.13-.23-.01-.35.1-.47.1-.1.23-.27.35-.4.11-.13.15-.23.23-.38.08-.15.04-.29-.02-.4-.06-.12-.52-1.25-.71-1.71-.19-.45-.38-.39-.52-.4h-.44c-.15 0-.4.06-.61.29-.21.23-.8.78-.8 1.91s.82 2.22.93 2.37c.12.16 1.62 2.48 3.94 3.48.55.24.98.38 1.31.48.55.18 1.05.15 1.45.09.44-.07 1.36-.56 1.55-1.1.19-.54.19-1 .13-1.1-.05-.1-.2-.15-.43-.27z"/>
+  </svg>
+);
+
+const buildWhatsAppUrl = (row) => {
+  const customer = row.customerName;
+  const bank = row.bank?.name || 'the bank';
+  const product = row.productType === 'credit_card'
+    ? (row.cardProduct?.name || 'Credit Card')
+    : (row.loanProduct?.name || 'Loan');
+  const amountPart = row.productType === 'loan' && row.loanAmount
+    ? ` of AED ${Number(row.loanAmount).toLocaleString()}`
+    : '';
+  const msg = `Hi ${customer}, Inizio Global here on behalf of ${bank}. Please confirm you authorize us to process your ${product} application${amountPart}. Reply YES to consent or STOP to cancel.`;
+  const phone = (row.phone || '').replace(/[^0-9]/g, '');
+  return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+};
+
+const ENGAGEMENT_LABELS = {
+  new_lead: 'New Lead',
+  no_answer: 'No Answer',
+  follow_up: 'Follow Up',
+  focused_follow_up: 'Focused Follow Up',
+  meeting_scheduled: 'Meeting Scheduled',
+  not_interested: 'Not Interested',
+  junk: 'Junk',
+  pool: 'Pool',
+  closed_deal: 'Closed Deal',
+};
+
 function AssignedLeads() {
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
@@ -25,6 +96,7 @@ function AssignedLeads() {
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const [statusModal, setStatusModal] = useState({ open: false, leadId: null, status: null, label: '', note: '' });
   const [statusSaving, setStatusSaving] = useState(false);
+  const [viewMode, setViewMode] = useState('table');
 
   const load = async () => {
     setLoading(true);
@@ -98,45 +170,40 @@ function AssignedLeads() {
 
   const columns = [
     {
-      title: 'Lead ID',
-      dataIndex: 'leadNumber',
-      render: (v) => (
-        <Typography.Text type="secondary" style={{ fontFamily: 'monospace', width: 130, whiteSpace: 'nowrap' }}>
-          {v || '—'}
-        </Typography.Text>
-      ),
-    },
-    {
-      title: 'Client',
-      dataIndex: 'customerName',
-      render: (v, row) => (
-        <div>
-          <div style={{ fontWeight: 600 }}>{v}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>{row.phone}</div>
+      title: <ColHead>Lead</ColHead>,
+      render: (_, row) => (
+        <div style={{ lineHeight: 1.5 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.customerName}</div>
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>{row.leadNumber || '—'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+            <span style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' }}>{row.phone}</span>
+            {row.phone && (
+              <a href={buildWhatsAppUrl(row)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, lineHeight: 0 }}
+                title="WhatsApp consent"><WaIcon /></a>
+            )}
+          </div>
         </div>
       ),
     },
     {
-      title: 'Product',
+      title: <ColHead>Product</ColHead>,
       dataIndex: 'productType',
-      render: (v) => (
-        <Tag>{PRODUCT_LABELS[v] || v}</Tag>
-      ),
+      render: (v) => <span style={{ fontSize: 12, color: '#334155' }}>{PRODUCT_LABELS[v] || v}</span>,
     },
     {
-      title: 'Bank',
+      title: <ColHead>Bank</ColHead>,
       dataIndex: ['bank', 'name'],
+      render: (v) => <span style={{ fontSize: 12, color: '#334155' }}>{v || '—'}</span>,
     },
     {
-      title: 'Stage',
+      title: <ColHead>Status</ColHead>,
       dataIndex: 'status',
-      render: (s) => {
-        const meta = STATUSES.find((x) => x.value === s);
-        return <Tag color={meta?.color}>{meta?.label || s}</Tag>;
-      },
+      render: (s) => <StatusPill status={s} />,
     },
     {
-      title: 'Emp. Status',
+      title: <ColHead>Consent</ColHead>,
+      width: 160,
       render: (_, row) => (
         <div onClick={(e) => e.stopPropagation()}>
           <Select
@@ -146,7 +213,7 @@ function AssignedLeads() {
             loading={updatingStatus === row._id}
             value={row.employeeStatus?._id || undefined}
             onChange={(val) => updateEmpStatus(row._id, val)}
-            style={{ minWidth: 140 }}
+            style={{ width: '100%' }}
             options={empStatuses.map((s) => ({
               value: s._id,
               label: <Tag color={s.color} style={{ margin: 0 }}>{s.label}</Tag>,
@@ -156,54 +223,28 @@ function AssignedLeads() {
       ),
     },
     {
-      title: 'Engagement',
-      dataIndex: 'engagementStatus',
-      render: (v) =>
-        v ? <Tag>{v}</Tag> : <Typography.Text type="secondary">—</Typography.Text>,
+      title: <ColHead>Updated</ColHead>,
+      dataIndex: 'updatedAt',
+      render: (v) => <span style={{ fontSize: 12, color: '#64748b' }}>{v ? relTime(v) : '—'}</span>,
     },
     {
-      title: 'Submitted',
-      dataIndex: 'createdAt',
-      render: (v) => v ? new Date(v).toLocaleDateString() : '—',
-    },
-    {
-      title: 'Actions',
+      title: <ColHead>Actions</ColHead>,
+      width: 160,
       render: (_, row) => {
-        const canApprove = row.status === 'assigned';
-        const canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
-        const canReject = ['assigned', 'approved'].includes(row.status);
+        const canApprove = ['submitted', 'under_review', 'assigned'].includes(row.status);
+        const canDisburse = row.status === 'approved';
+        const canReject = ['submitted', 'under_review', 'assigned', 'approved'].includes(row.status);
         if (!canApprove && !canDisburse && !canReject) return null;
         return (
-          <Space size={4} onClick={(e) => e.stopPropagation()}>
+          <Space size={4} onClick={(e) => e.stopPropagation()} style={{ flexWrap: 'nowrap' }}>
             {canApprove && (
-              <Button
-                size="small"
-                type="primary"
-                icon={<CheckOutlined />}
-                onClick={() => openStatusModal(row._id, 'approved', 'Approved')}
-              >
-                Approve
-              </Button>
+              <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>
             )}
             {canDisburse && (
-              <Button
-                size="small"
-                icon={<DollarOutlined />}
-                style={{ background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }}
-                onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}
-              >
-                Disburse
-              </Button>
+              <Button size="small" icon={<DollarOutlined />} style={{ background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }} onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>
             )}
             {canReject && (
-              <Button
-                size="small"
-                danger
-                icon={<CloseOutlined />}
-                onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}
-              >
-                Reject
-              </Button>
+              <Button size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')} />
             )}
           </Space>
         );
@@ -213,10 +254,16 @@ function AssignedLeads() {
 
   return (
     <>
-      <Typography.Title level={3} style={{ margin: '0 0 8px' }}>My Leads</Typography.Title>
-      <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-        Leads assigned to you.
-      </Typography.Text>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <div>
+          <Typography.Title level={4} style={{ margin: '0 0 4px', fontWeight: 500 }}>My Leads</Typography.Title>
+          <Typography.Text type="secondary">Leads assigned to you.</Typography.Text>
+        </div>
+        <Space>
+          <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+          <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+        </Space>
+      </div>
 
       <Input
         allowClear
@@ -238,18 +285,53 @@ function AssignedLeads() {
         ]}
       />
 
-      <Table
-        size="small"
-        rowKey="_id"
-        loading={loading}
-        dataSource={filtered}
-        columns={columns}
-        scroll={{ x: 'max-content' }}
-        onRow={(row) => ({
-          onClick: () => navigate(`/employee/leads/${row._id}`),
-          style: { cursor: 'pointer' },
-        })}
-      />
+      {viewMode === 'table' ? (
+        <Table
+          size="small"
+          rowKey="_id"
+          loading={loading}
+          dataSource={filtered}
+          columns={columns}
+          onRow={(row) => ({
+            onClick: () => navigate(`/employee/leads/${row._id}`),
+            style: { cursor: 'pointer' },
+          })}
+        />
+      ) : (
+        <Row gutter={[14, 14]}>
+          {filtered.map((row) => (
+            <Col key={row._id} xs={24} sm={12} lg={8}>
+              <Card
+                size="small"
+                hoverable
+                onClick={() => navigate(`/employee/leads/${row._id}`)}
+                style={{ borderRadius: 12, border: '1px solid #e2e8f0', cursor: 'pointer', height: '100%' }}
+                styles={{ body: { padding: '14px 16px' } }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.customerName}</div>
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{row.leadNumber || '—'}</div>
+                    <div style={{ fontSize: 11, color: '#64748b' }}>{row.phone}</div>
+                  </div>
+                  <StatusPill status={row.status} />
+                </div>
+                <div style={{ fontSize: 12, color: '#334155', marginBottom: 4 }}>{PRODUCT_LABELS[row.productType] || row.productType}</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>{row.bank?.name || '—'}</div>
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{row.updatedAt ? relTime(row.updatedAt) : '—'}</span>
+                  {row.employeeStatus && (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>{row.employeeStatus.label}</span>
+                  )}
+                </div>
+              </Card>
+            </Col>
+          ))}
+          {filtered.length === 0 && (
+            <Col span={24}><div style={{ textAlign: 'center', color: '#94a3b8', padding: '40px 0' }}>No leads found</div></Col>
+          )}
+        </Row>
+      )}
 
       <Modal
         title={`Move to: ${statusModal.label}`}

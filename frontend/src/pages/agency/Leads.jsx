@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, DatePicker, Row, Col, Space, message, Modal, Form, InputNumber, Descriptions, Tabs, Card, Empty } from 'antd';
+import { Table, Tag, Typography, Button, Input, Select, DatePicker, Row, Col, Space, message, Modal, Form, InputNumber, Descriptions, Tabs, Card, Empty, Tooltip } from 'antd';
 import { SearchOutlined, CheckOutlined, CloseOutlined, EditOutlined, UserAddOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
@@ -25,9 +25,55 @@ const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved']
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
+const STATUS_PILL = {
+  submitted:    { bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6', text: '#1d4ed8', label: 'NEW LEAD' },
+  under_review: { bg: '#fefce8', border: '#fde68a', dot: '#eab308', text: '#a16207', label: 'REVIEWING' },
+  assigned:     { bg: '#ecfdf5', border: '#6ee7b7', dot: '#10b981', text: '#047857', label: 'ASSIGNED' },
+  approved:     { bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e', text: '#15803d', label: 'APPROVED' },
+  rejected:     { bg: '#fef2f2', border: '#fecaca', dot: '#ef4444', text: '#b91c1c', label: 'REJECTED' },
+  disbursed:    { bg: '#faf5ff', border: '#e9d5ff', dot: '#a855f7', text: '#7e22ce', label: 'DISBURSED' },
+};
+
+const relTime = (date) => {
+  const diff = Date.now() - new Date(date);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.floor(hrs / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+};
+
+const avatarBg = (name) => {
+  const palette = ['#6366f1','#ec4899','#14b8a6','#f59e0b','#8b5cf6','#06b6d4','#10b981','#f43f5e'];
+  let h = 0; for (const c of (name || '')) h = h * 31 + c.charCodeAt(0);
+  return palette[Math.abs(h) % palette.length];
+};
+const initials = (name) => (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+const ColHead = ({ children }) => (
+  <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.8, textTransform: 'uppercase' }}>{children}</span>
+);
+
+const StatusPill = ({ status }) => {
+  const p = STATUS_PILL[status] || { bg: '#f1f5f9', border: '#e2e8f0', dot: '#94a3b8', text: '#475569', label: status?.toUpperCase() };
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: p.bg, border: `1px solid ${p.border}`, fontSize: 11, fontWeight: 700, color: p.text, whiteSpace: 'nowrap' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.dot, flexShrink: 0 }} />
+      {p.label}
+    </span>
+  );
+};
+
 const WaIcon = () => (
-  <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+  <svg viewBox="0 0 32 32" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="16" cy="16" r="15" fill="#fff"/>
+    <path fill="#25D366" d="M22.9 9.1A9.77 9.77 0 0016 6.5C10.76 6.5 6.5 10.76 6.5 16c0 1.67.44 3.3 1.27 4.74L6.4 25.5l4.9-1.35A9.76 9.76 0 0016 25.5c5.24 0 9.5-4.26 9.5-9.5 0-2.54-.99-4.93-2.6-6.9zm-6.9 14.6c-1.42 0-2.8-.38-4.01-1.1l-.29-.17-2.9.8.78-2.84-.19-.3A7.85 7.85 0 018.35 16c0-4.22 3.43-7.65 7.65-7.65 2.04 0 3.96.8 5.4 2.24a7.62 7.62 0 012.25 5.42c0 4.22-3.43 7.65-7.65 7.65zm4.2-5.73c-.23-.12-1.36-.67-1.57-.75-.21-.08-.36-.12-.52.12-.15.23-.6.75-.73.9-.13.16-.27.17-.5.06a6.27 6.27 0 01-1.85-1.14 6.93 6.93 0 01-1.28-1.6c-.13-.23-.01-.35.1-.47.1-.1.23-.27.35-.4.11-.13.15-.23.23-.38.08-.15.04-.29-.02-.4-.06-.12-.52-1.25-.71-1.71-.19-.45-.38-.39-.52-.4h-.44c-.15 0-.4.06-.61.29-.21.23-.8.78-.8 1.91s.82 2.22.93 2.37c.12.16 1.62 2.48 3.94 3.48.55.24.98.38 1.31.48.55.18 1.05.15 1.45.09.44-.07 1.36-.56 1.55-1.1.19-.54.19-1 .13-1.1-.05-.1-.2-.15-.43-.27z"/>
   </svg>
 );
 
@@ -95,9 +141,9 @@ function AgencyLeads() {
   }, []);
 
   const bulkAssign = async () => {
-    const { employeeId } = await bulkAssignForm.validateFields();
+    const { employeeId, type } = await bulkAssignForm.validateFields();
     try {
-      const { data } = await api.post('/leads/bulk-assign-employee', { leadIds: selectedRowKeys, employeeId });
+      const { data } = await api.post('/leads/bulk-assign-employee', { leadIds: selectedRowKeys, employeeId, type });
       message.success(`Assigned ${data.updated} lead(s)`);
       setSelectedRowKeys([]);
       setBulkAssignOpen(false);
@@ -202,18 +248,18 @@ function AgencyLeads() {
     if (row.productType === 'credit_card' && row.cardProduct) {
       const name = row.cardProduct.name;
       return (
-        <div style={{ maxWidth: 180 }}>
-          <Typography.Text ellipsis={{ tooltip: name }} style={{ fontWeight: 600, fontSize: 12, display: 'block' }}>{name}</Typography.Text>
-          <span style={{ fontSize: 11, color: '#94a3b8' }}>{row.cardProduct.cardType === 'premium' ? 'Premium' : 'Regular'}</span>
+        <div>
+          <Typography.Text ellipsis={{ tooltip: name }} style={{ fontWeight: 600, fontSize: 11, display: 'block', maxWidth: 90 }}>{name}</Typography.Text>
+          <span style={{ fontSize: 10, color: '#94a3b8' }}>{row.cardProduct.cardType === 'premium' ? 'Premium' : 'Regular'}</span>
         </div>
       );
     }
     if (row.productType === 'loan' && row.loanProduct) {
       const name = row.loanProduct.name;
       return (
-        <div style={{ maxWidth: 180 }}>
-          <Typography.Text ellipsis={{ tooltip: name }} style={{ fontWeight: 600, fontSize: 12, display: 'block' }}>{name}</Typography.Text>
-          <span style={{ fontSize: 11, color: '#94a3b8' }}>{row.loanProduct.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal'} · {aed(row.loanAmount)}</span>
+        <div>
+          <Typography.Text ellipsis={{ tooltip: name }} style={{ fontWeight: 600, fontSize: 11, display: 'block', maxWidth: 90 }}>{name}</Typography.Text>
+          <span style={{ fontSize: 10, color: '#94a3b8' }}>{row.loanProduct.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal'}</span>
         </div>
       );
     }
@@ -221,107 +267,79 @@ function AgencyLeads() {
   };
 
   const columns = [
-    { title: 'Lead ID', dataIndex: 'leadNumber', width: 130,
-      render: (leadNumber) => (
-        <Typography.Text type="secondary" style={{ fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{leadNumber || '—'}</Typography.Text>
-      ),
-    },
     {
-      title: 'Client',
-      dataIndex: 'customerName',
-      render: (v, row) => (
-        <div style={{ lineHeight: 1.3 }}>
-          <div style={{ fontWeight: 600, fontSize: 13 }}>{v}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>{row.phone}</span>
+      title: <ColHead>Lead</ColHead>,
+      width: 185,
+      render: (_, row) => (
+        <div style={{ lineHeight: 1.5 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.customerName}</div>
+          <div style={{ fontSize: 11, color: '#94a3b8' }}>{row.leadNumber || '—'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+            <span style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' }}>{row.phone}</span>
             {row.phone && (
-              <a
-                href={buildWhatsAppUrl(row)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  width: 20, height: 20, borderRadius: '50%',
-                  background: '#25d366', color: '#fff',
-                  flexShrink: 0, lineHeight: 1,
-                }}
-                title="Send WhatsApp consent message"
-              >
-                <WaIcon />
-              </a>
+              <a href={buildWhatsAppUrl(row)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, lineHeight: 0 }}
+                title="WhatsApp consent"><WaIcon /></a>
             )}
           </div>
         </div>
       ),
     },
-    { title: 'Product', render: (_, row) => renderProduct(row) },
-    { title: 'Bank', dataIndex: ['bank', 'name'] },
     {
-      title: 'Stage',
+      title: <ColHead>Product</ColHead>,
+      width: 105,
+      render: (_, row) => (
+        <div style={{ maxWidth: 100 }}>{renderProduct(row)}</div>
+      ),
+    },
+    {
+      title: <ColHead>Bank</ColHead>,
+      dataIndex: ['bank', 'name'],
+      width: 80,
+      render: (v) => <span style={{ fontSize: 12, color: '#334155' }}>{v || '—'}</span>,
+    },
+    {
+      title: <ColHead>Status</ColHead>,
       dataIndex: 'status',
-      render: (s) => {
-        const meta = STATUSES.find((x) => x.value === s);
-        return <Tag color={meta?.color}>{meta?.label || s}</Tag>;
+      width: 120,
+      render: (s) => <StatusPill status={s} />,
+    },
+    {
+      title: <ColHead>Consent</ColHead>,
+      width: 120,
+      render: (_, row) => {
+        if (!row.employeeStatus) return <span style={{ color: '#cbd5e1', fontSize: 13 }}>—</span>;
+        const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
+        const c = COLOR_MAP[row.employeeStatus.color] || '#94a3b8';
+        return (
+          <Tooltip title={row.employeeStatus.label}>
+            <span style={{ display: 'inline-block', maxWidth: 100, padding: '3px 8px', borderRadius: 999, border: `1.5px solid ${c}`, fontSize: 10, fontWeight: 700, color: c, textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {row.employeeStatus.label}
+            </span>
+          </Tooltip>
+        );
       },
     },
     {
-      title: 'Emp. Status',
-      render: (_, row) => row.employeeStatus
-        ? <Tag color={row.employeeStatus.color}>{row.employeeStatus.label}</Tag>
-        : <Typography.Text type="secondary">—</Typography.Text>,
-    },
-    {
-      title: 'CPV',
-      width: 150,
+      title: <ColHead>Agent</ColHead>,
+      width: 120,
       render: (_, row) => {
-        const canAssign = !TERMINAL_STATUSES.includes(row.status);
-        const cpvEmployees = employees.filter((e) => e.isActive && e.employeeType === 'cpv');
-        if (!canAssign) {
-          return row.assignedCpvEmployee
-            ? <Typography.Text style={{ fontSize: 12 }}>{row.assignedCpvEmployee.name || row.assignedCpvEmployee.email}</Typography.Text>
-            : <Typography.Text type="secondary">—</Typography.Text>;
-        }
+        const emp = row.assignedSalesEmployee || row.assignedCpvEmployee || row.assignedEmployee;
+        if (!emp) return <span style={{ color: '#cbd5e1', fontSize: 13 }}>—</span>;
+        const name = emp.name || emp.email;
         return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <Select size="small" allowClear placeholder="CPV employee"
-              loading={assigningLead === `${row._id}-cpv`}
-              value={row.assignedCpvEmployee?._id || undefined}
-              onChange={(val) => assignSingle(row._id, val || null, 'cpv')}
-              style={{ width: '100%', minWidth: 130 }}
-              options={cpvEmployees.map((e) => ({ value: e._id, label: e.name || e.email }))}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: avatarBg(name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+              {initials(name)}
+            </div>
+            <span style={{ fontSize: 12, color: '#334155', fontWeight: 500 }}>{name.split(' ')[0]}</span>
           </div>
         );
       },
     },
     {
-      title: 'Sales',
-      width: 150,
-      render: (_, row) => {
-        const canAssign = !TERMINAL_STATUSES.includes(row.status);
-        const salesEmployees = employees.filter((e) => e.isActive && e.employeeType === 'sales');
-        if (!canAssign) {
-          return row.assignedSalesEmployee
-            ? <Typography.Text style={{ fontSize: 12 }}>{row.assignedSalesEmployee.name || row.assignedSalesEmployee.email}</Typography.Text>
-            : <Typography.Text type="secondary">—</Typography.Text>;
-        }
-        return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <Select size="small" allowClear placeholder="Sales employee"
-              loading={assigningLead === `${row._id}-sales`}
-              value={row.assignedSalesEmployee?._id || undefined}
-              onChange={(val) => assignSingle(row._id, val || null, 'sales')}
-              style={{ width: '100%', minWidth: 130 }}
-              options={salesEmployees.map((e) => ({ value: e._id, label: e.name || e.email }))}
-            />
-          </div>
-        );
-      },
-    },
-    {
-      title: 'Actions',
-      width: 'auto',
+      title: <ColHead>Actions</ColHead>,
+      width: 110,
       render: (_, row) => {
         const canReject   = REJECTABLE_FROM.includes(row.status);
         const canEditLoan = row.productType === 'loan' && LOAN_EDITABLE_FROM.includes(row.status);
@@ -332,28 +350,57 @@ function AgencyLeads() {
         const hasActions  = canApprove || canCpv || canActivate || canDisburse || canEditLoan || canReject;
         if (!hasActions) return null;
         return (
-          <Space size={4} onClick={(e) => e.stopPropagation()} style={{ flexWrap: 'nowrap' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }} onClick={(e) => e.stopPropagation()}>
             {canApprove && (
-              <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>
+              <span onClick={() => openStatusModal(row._id, 'approved', 'Approved')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, background: '#dcfce7', border: '1px solid #86efac', color: '#15803d', fontSize: 11, fontWeight: 700 }}>
+                <CheckOutlined style={{ fontSize: 9 }} /> Approve
+              </span>
             )}
             {canCpv && (
-              <Button size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV</Button>
+              <span onClick={() => openActionModal(row._id, 'cpv')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, background: '#dbeafe', border: '1px solid #93c5fd', color: '#1d4ed8', fontSize: 11, fontWeight: 700 }}>
+                CPV
+              </span>
             )}
             {canActivate && (
-              <Button size="small" onClick={() => openActionModal(row._id, 'activate')}>Activate</Button>
+              <span onClick={() => openActionModal(row._id, 'activate')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, background: '#ccfbf1', border: '1px solid #5eead4', color: '#0f766e', fontSize: 11, fontWeight: 700 }}>
+                Activate
+              </span>
             )}
             {canDisburse && (
-              <Button size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>
+              <span onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, background: '#ede9fe', border: '1px solid #c4b5fd', color: '#6d28d9', fontSize: 11, fontWeight: 700 }}>
+                Disburse
+              </span>
             )}
             {canEditLoan && (
-              <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />
+              <span onClick={() => openLoanEdit(row)} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', padding: '3px 7px', borderRadius: 999, background: '#fef9c3', border: '1px solid #fde047', color: '#a16207', fontSize: 11 }}>
+                <EditOutlined style={{ fontSize: 10 }} />
+              </span>
             )}
             {canReject && (
-              <Button size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>
+              <span onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', padding: '3px 7px', borderRadius: 999, background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', fontSize: 11 }}>
+                <CloseOutlined style={{ fontSize: 9 }} />
+              </span>
             )}
-          </Space>
+          </div>
         );
       },
+    },
+    {
+      title: <ColHead>Updated</ColHead>,
+      dataIndex: 'updatedAt',
+      width: 80,
+      render: (v) => <span style={{ fontSize: 12, color: '#64748b' }}>{v ? relTime(v) : '—'}</span>,
+    },
+    {
+      title: <ColHead>Payout</ColHead>,
+      width: 95,
+      align: 'right',
+      render: (_, row) => (
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontWeight: 700, fontSize: 13, color: row.commissionStatus === 'paid' ? '#16a34a' : '#4f46e5' }}>{aed(row.commission)}</div>
+          {row.commissionStatus === 'paid' && <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>PAID</div>}
+        </div>
+      ),
     },
   ];
 
@@ -361,7 +408,7 @@ function AgencyLeads() {
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>Lead Queue</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Lead Queue</Typography.Title>
           <Typography.Text type="secondary">
             Leads filed to your agency. Approve is only enabled once a lead reaches <i>Assigned</i>; reject is available throughout.
           </Typography.Text>
@@ -449,7 +496,6 @@ function AgencyLeads() {
           loading={loading}
           dataSource={filtered}
           columns={columns}
-          scroll={{ x: 900 }}
           rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           onRow={(row) => ({ onClick: () => navigate(`/agency/leads/${row._id}`), style: { cursor: 'pointer' } })}
           pagination={{ pageSize: 15, showSizeChanger: false }}
@@ -490,11 +536,7 @@ function AgencyLeads() {
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                              width: 18, height: 18, borderRadius: '50%',
-                              background: '#25d366', color: '#fff', flexShrink: 0,
-                            }}
+                            style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, lineHeight: 0 }}
                           >
                             <WaIcon />
                           </a>
@@ -642,20 +684,39 @@ function AgencyLeads() {
 
       {/* Bulk assign modal */}
       <Modal
-        title="Assign to Employee"
+        title={`Assign ${selectedRowKeys.length} Lead(s) to Employee`}
         open={bulkAssignOpen}
         onCancel={() => setBulkAssignOpen(false)}
         onOk={bulkAssign}
         okText="Assign"
         destroyOnClose
       >
-        <Form form={bulkAssignForm} layout="vertical">
-          <Form.Item name="employeeId" label="Employee" rules={[{ required: true, message: 'Select an employee' }]}>
+        <Form form={bulkAssignForm} layout="vertical" initialValues={{ type: 'cpv' }}>
+          <Form.Item name="type" label="Employee Type" rules={[{ required: true }]}>
             <Select
-              placeholder="Select employee"
-              options={employees.filter((e) => e.isActive).map((e) => ({ value: e._id, label: e.name || e.email }))}
-              style={{ width: '100%' }}
+              options={[
+                { value: 'cpv', label: 'CPV Employee' },
+                { value: 'sales', label: 'Sales Employee' },
+              ]}
+              onChange={() => bulkAssignForm.setFieldValue('employeeId', undefined)}
             />
+          </Form.Item>
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.type !== cur.type}>
+            {({ getFieldValue }) => {
+              const type = getFieldValue('type');
+              const opts = employees
+                .filter((e) => e.isActive && e.employeeType === type)
+                .map((e) => ({ value: e._id, label: e.name || e.email }));
+              return (
+                <Form.Item name="employeeId" label="Employee" rules={[{ required: true, message: 'Select an employee' }]}>
+                  <Select
+                    placeholder="Select employee"
+                    options={opts}
+                    style={{ width: '100%' }}
+                  />
+                </Form.Item>
+              );
+            }}
           </Form.Item>
         </Form>
       </Modal>

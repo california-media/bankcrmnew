@@ -103,8 +103,8 @@ function Commissions() {
 
   return (
     <>
-      <div style={{ marginBottom: 20 }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>Payouts &amp; Earnings</Typography.Title>
+      <div style={{ marginBottom: 12 }}>
+        <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Payouts &amp; Earnings</Typography.Title>
         <Typography.Text type="secondary">Track your payouts, pending settlements, and expected earnings.</Typography.Text>
       </div>
 

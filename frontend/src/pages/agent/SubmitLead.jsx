@@ -224,7 +224,7 @@ function SubmitLead() {
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>New Lead</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>New Lead</Typography.Title>
           <Typography.Text type="secondary">Select a product — bank and agency are set automatically.</Typography.Text>
         </Col>
         <Col>

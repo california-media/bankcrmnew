@@ -86,7 +86,7 @@ export default function LeadDetail() {
     if (role === 'agency') {
       api.get('/employees').then((res) => setEmployees(res.data)).catch(() => {});
     }
-    if (role === 'employee') {
+    if (role === 'employee' || role === 'agency') {
       api.get('/employee-statuses').then((res) => setEmpStatuses(res.data.filter((s) => s.isActive))).catch(() => {});
     }
   }, [role]);
@@ -209,11 +209,11 @@ export default function LeadDetail() {
   return (
     <>
       {/* Header */}
-      <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
         <Col>
           <Space>
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backPath)}>Back</Button>
-            <Typography.Title level={4} style={{ margin: 0 }}>
+            <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>
               Lead{' '}
               <Typography.Text type="secondary" style={{ fontFamily: 'monospace', fontSize: 16 }}>
                 {lead.leadNumber || `LD-${String(lead._id).slice(-6)}`}
@@ -415,6 +415,14 @@ export default function LeadDetail() {
 
           {/* Notes */}
           <Card title="Notes" style={{ marginBottom: 16 }}>
+            {lead.notes && (
+              <div style={{ padding: '10px 12px', borderRadius: 6, background: '#fffbeb', border: '1px solid #fde68a', marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                  Submission Note
+                </div>
+                <div style={{ fontSize: 13, color: '#333', whiteSpace: 'pre-wrap' }}>{lead.notes}</div>
+              </div>
+            )}
             {(lead.leadNotes ?? []).length > 0 ? (
               <div style={{ marginBottom: 16 }}>
                 {lead.leadNotes.map((n) => (
@@ -705,9 +713,24 @@ export default function LeadDetail() {
             </Card>
           )}
 
-          {/* Employee status for all roles (read-only) */}
-          {lead.employeeStatus && role !== 'employee' && (
-            <Card title="Lead Status" style={{ marginBottom: 16 }}>
+          {/* Agency — editable consent/status label */}
+          {role === 'agency' && (
+            <Card title="Consent Status" style={{ marginBottom: 16 }}>
+              <Select
+                allowClear
+                placeholder="Set status..."
+                value={lead.employeeStatus?._id || lead.employeeStatus || undefined}
+                loading={empStatusSaving}
+                onChange={(val) => updateEmpStatus(val || null)}
+                style={{ width: '100%' }}
+                options={empStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))}
+              />
+            </Card>
+          )}
+
+          {/* Other roles — read-only tag */}
+          {lead.employeeStatus && role !== 'employee' && role !== 'agency' && (
+            <Card title="Consent Status" style={{ marginBottom: 16 }}>
               <Tag color={lead.employeeStatus.color} style={{ fontSize: 13 }}>
                 {lead.employeeStatus.label}
               </Tag>

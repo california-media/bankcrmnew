@@ -74,7 +74,7 @@ function AgencyBanks() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
-          <Typography.Title level={3} style={{ margin: 0 }}>My Banks</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>My Banks</Typography.Title>
           <Typography.Text type="secondary">
             The banks your agency services. Agents can only file leads against these.
           </Typography.Text>

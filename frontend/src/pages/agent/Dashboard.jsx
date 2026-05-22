@@ -25,6 +25,67 @@ const statusTag = {
 const productLabels = { credit_card: 'Credit Card', loan: 'Loan' };
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
+const PIPELINE_STAGES = [
+  { key: 'submitted',    label: 'NEW',       bg: '#e0f7fa', border: '#a5f3fc', dot: '#06b6d4', text: '#0e7490' },
+  { key: 'approved',     label: 'APPROVED',  bg: '#f3e8ff', border: '#d8b4fe', dot: '#a855f7', text: '#7e22ce' },
+  { key: 'cpvDone',      label: 'CPV DONE',  bg: '#fef9c3', border: '#fde047', dot: '#eab308', text: '#a16207' },
+  { key: 'activateDone', label: 'ACTIVATED', bg: '#e0f2fe', border: '#7dd3fc', dot: '#0ea5e9', text: '#0369a1' },
+  { key: 'disbursed',    label: 'PAID',      bg: '#dcfce7', border: '#86efac', dot: '#22c55e', text: '#15803d' },
+];
+
+const LeadPipeline = ({ stats }) => {
+  const max = Math.max(1, ...PIPELINE_STAGES.map((s) => stats?.[s.key] ?? 0));
+  return (
+    <Card
+      title={
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>Lead Pipeline</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 400, marginTop: 2 }}>
+            New → Approved → CPV Done → Activated → Paid
+          </div>
+        </div>
+      }
+      extra={<Link to="/agent/leads" style={{ fontSize: 13, color: '#0f172a', fontWeight: 600 }}>View all →</Link>}
+      style={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+      styles={{ header: { borderBottom: '1px solid #f1f5f9', paddingTop: 16, paddingBottom: 12 }, body: { padding: '16px 24px' } }}
+    >
+      {PIPELINE_STAGES.map((stage) => {
+        const count = stats?.[stage.key] ?? 0;
+        const pct = Math.max(count === 0 ? 2 : (count / max) * 100, 2);
+        return (
+          <div key={stage.key} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            {/* Label pill */}
+            <div style={{ width: 100, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 999, background: stage.bg, border: `1.5px solid ${stage.border}`, fontSize: 10, fontWeight: 700, color: stage.text, whiteSpace: 'nowrap' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: stage.dot, flexShrink: 0 }} />
+              {stage.label}
+            </div>
+            {/* Bar track */}
+            <div style={{ flex: 1, height: 22, background: '#f1f5f9', borderRadius: 999, overflow: 'hidden', position: 'relative' }}>
+              <div style={{
+                height: '100%',
+                width: `${pct}%`,
+                borderRadius: 999,
+                background: 'linear-gradient(90deg, #7c3aed 0%, #4f46e5 45%, #3b82f6 100%)',
+                transition: 'width 0.4s ease',
+                display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+                paddingRight: count > 0 ? 12 : 0,
+              }}>
+                {count > 0 && pct > 16 && (
+                  <span style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>{count}</span>
+                )}
+              </div>
+            </div>
+            {/* Count outside bar when bar too small */}
+            <div style={{ width: 24, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#334155', flexShrink: 0 }}>
+              {(count === 0 || pct <= 16) ? count : ''}
+            </div>
+          </div>
+        );
+      })}
+    </Card>
+  );
+};
+
 const StatCard = ({ title, value, sub, icon, gradient, loading }) =>
   loading ? (
     <Card styles={{ body: { padding: '22px 24px' } }} style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}>
@@ -152,7 +213,7 @@ function AgentDashboard() {
         ))}
       </Row>
 
-      {/* Recent Leads + Profile */}
+      {/* Recent Leads + Right Column */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={16}>
           <Card
@@ -172,6 +233,8 @@ function AgentDashboard() {
           </Card>
         </Col>
         <Col xs={24} lg={8}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
+            <LeadPipeline stats={stats} />
           <Card
             style={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', overflow: 'hidden' }}
             styles={{ body: { padding: 0 } }}
@@ -210,6 +273,7 @@ function AgentDashboard() {
               </Card>
             </div>
           </Card>
+          </div>
         </Col>
       </Row>
     </>

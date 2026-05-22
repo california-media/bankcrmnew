@@ -217,9 +217,9 @@ export default function Receive() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>Receive</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Receive</Typography.Title>
           <Typography.Text type="secondary">Track commission payments received from agencies.</Typography.Text>
         </Col>
         <Col>

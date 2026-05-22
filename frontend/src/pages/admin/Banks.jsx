@@ -112,7 +112,7 @@ function AdminBanks() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
-          <Typography.Title level={3} style={{ margin: 0 }}>Banks</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Banks</Typography.Title>
           <Typography.Text type="secondary">Inactive banks hide all their card and loan products from agents.</Typography.Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bank</Button>

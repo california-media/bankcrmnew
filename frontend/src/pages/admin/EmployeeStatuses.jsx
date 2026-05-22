@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Table, Button, Modal, Form, Input, Select, Tag, Space, Typography, Row, Col, message, Popconfirm, Switch, Divider,
+  Table, Button, Modal, Form, Input, Select, Tag, Space, Typography, Row, Col, message, Popconfirm, Switch, Divider, InputNumber,
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../../api/client';
@@ -108,7 +108,42 @@ function EmployeeStatuses() {
     }
   };
 
+  const updateOrder = async (id, order) => {
+    try {
+      const { data } = await api.patch(`/employee-statuses/${id}`, { order });
+      setStatuses((prev) =>
+        [...prev.map((s) => (s._id === id ? { ...s, order: data.order } : s))].sort(
+          (a, b) => (a.order ?? 0) - (b.order ?? 0) || new Date(a.createdAt) - new Date(b.createdAt)
+        )
+      );
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update order');
+    }
+  };
+
   const columns = [
+    {
+      title: '#',
+      dataIndex: 'order',
+      width: 80,
+      render: (v, row) => (
+        <InputNumber
+          size="small"
+          min={1}
+          defaultValue={v || 0}
+          style={{ width: 64 }}
+          onBlur={(e) => {
+            const val = parseInt(e.target.value, 10);
+            if (!isNaN(val) && val !== v) updateOrder(row._id, val);
+          }}
+          onPressEnter={(e) => {
+            const val = parseInt(e.target.value, 10);
+            if (!isNaN(val) && val !== v) updateOrder(row._id, val);
+            e.target.blur();
+          }}
+        />
+      ),
+    },
     {
       title: 'Label',
       dataIndex: 'label',
@@ -149,7 +184,7 @@ function EmployeeStatuses() {
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>Lead Status</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Lead Status</Typography.Title>
         </Col>
         <Col>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => { addForm.resetFields(); setAddOpen(true); }}>

@@ -1,9 +1,26 @@
 import { useEffect, useState } from 'react';
-import { Table, Typography, Tag, Button, Modal, Form, Input, message, Space, Popconfirm, Tooltip, Row, Col, Card } from 'antd';
+import { Table, Typography, Button, Modal, Form, Input, message, Space, Popconfirm, Row, Col, Card, Tag, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, StopOutlined, CheckCircleOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
+
+const ColHead = ({ children }) => (
+  <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.8, textTransform: 'uppercase' }}>{children}</span>
+);
+
+const StatusBadge = ({ active }) => (
+  <span style={{
+    display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 999,
+    background: active ? '#f0fdf4' : '#f8fafc',
+    border: `1px solid ${active ? '#bbf7d0' : '#e2e8f0'}`,
+    fontSize: 11, fontWeight: 700,
+    color: active ? '#15803d' : '#94a3b8',
+  }}>
+    <span style={{ width: 5, height: 5, borderRadius: '50%', background: active ? '#22c55e' : '#94a3b8' }} />
+    {active ? 'Active' : 'Inactive'}
+  </span>
+);
 
 function AdminAgents() {
   const [agents, setAgents] = useState([]);
@@ -11,9 +28,9 @@ function AdminAgents() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
+  const [viewMode, setViewMode] = useState('table');
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
-  const [viewMode, setViewMode] = useState('table');
 
   const load = () => {
     setLoading(true);
@@ -80,58 +97,72 @@ function AdminAgents() {
 
   const columns = [
     {
-      title: 'Name',
-      dataIndex: 'name',
-      render: (v, row) => (
-        <div>
-          <div style={{ fontWeight: 600 }}>{v || '—'}</div>
-          <div style={{ fontSize: 12, color: '#888' }}>{row.email}</div>
+      title: <ColHead>Agent</ColHead>,
+      render: (_, row) => (
+        <div style={{ lineHeight: 1.5 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.name || '—'}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.email}</div>
+          {row.phone && <div style={{ fontSize: 11, color: '#64748b' }}>{row.phone}</div>}
         </div>
       ),
     },
-    { title: 'Phone', dataIndex: 'phone', render: (v) => v || '—' },
     {
-      title: 'Referral Code',
+      title: <ColHead>Referral Code</ColHead>,
       dataIndex: 'referralCode',
-      render: (v) => <Typography.Text style={{ fontFamily: 'monospace' }}>{v}</Typography.Text>,
+      width: 130,
+      render: (v) => <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#1d4ed8' }}>{v || '—'}</span>,
     },
     {
-      title: 'Referred by',
-      dataIndex: 'referredBy',
-      render: (v) => v ? <Tag color="blue">{v.name || v.email}</Tag> : <Typography.Text type="secondary">—</Typography.Text>,
+      title: <ColHead>Referred By</ColHead>,
+      width: 120,
+      render: (_, row) => row.referredBy ? (
+        <span style={{ fontSize: 12, color: '#334155' }}>{row.referredBy.name || row.referredBy.email}</span>
+      ) : <span style={{ color: '#cbd5e1' }}>—</span>,
     },
-    { title: 'Total Leads', dataIndex: ['stats', 'total'] },
-    { title: 'Approved', dataIndex: ['stats', 'approved'] },
     {
-      title: 'Paid Commission',
-      dataIndex: ['stats', 'paidCommission'],
+      title: <ColHead>Leads</ColHead>,
+      width: 65,
+      align: 'center',
+      render: (_, row) => <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.stats?.total || 0}</span>,
+    },
+    {
+      title: <ColHead>Approved</ColHead>,
+      width: 80,
+      align: 'center',
+      render: (_, row) => <span style={{ fontWeight: 700, fontSize: 14, color: '#16a34a' }}>{row.stats?.approved || 0}</span>,
+    },
+    {
+      title: <ColHead>Paid</ColHead>,
+      width: 110,
       align: 'right',
-      render: (v) => <span style={{ fontWeight: 600 }}>{aed(v)}</span>,
+      render: (_, row) => <span style={{ fontWeight: 700, fontSize: 13, color: '#4f46e5' }}>{aed(row.stats?.paidCommission)}</span>,
     },
     {
-      title: 'Status',
-      dataIndex: 'isActive',
-      render: (v) => v ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>,
+      title: <ColHead>Status</ColHead>,
+      width: 90,
+      render: (_, row) => <StatusBadge active={row.isActive} />,
     },
     {
-      title: 'Joined',
+      title: <ColHead>Joined</ColHead>,
       dataIndex: 'createdAt',
-      render: (d) => new Date(d).toLocaleDateString(),
+      width: 95,
+      render: (d) => <span style={{ fontSize: 12, color: '#64748b' }}>{new Date(d).toLocaleDateString()}</span>,
     },
     {
-      title: 'Actions',
+      title: <ColHead>Actions</ColHead>,
+      width: 200,
       render: (_, row) => (
-        <Space>
-          <Tooltip title="Edit">
-            <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
-          </Tooltip>
-          <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
-            <Button
-              size="small"
-              icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
-              onClick={() => onToggleActive(row)}
-            />
-          </Tooltip>
+        <Space size={6} style={{ flexWrap: 'nowrap' }}>
+          <Button
+            size="small"
+            onClick={() => onToggleActive(row)}
+            style={row.isActive
+              ? { borderColor: '#ef4444', color: '#ef4444', fontWeight: 600 }
+              : { borderColor: '#22c55e', color: '#22c55e', fontWeight: 600 }}
+          >
+            {row.isActive ? 'Deactivate' : 'Activate'}
+          </Button>
+          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)}>Edit</Button>
           <Popconfirm
             title="Delete agent?"
             description="This cannot be undone."
@@ -139,9 +170,7 @@ function AdminAgents() {
             okText="Delete"
             okButtonProps={{ danger: true }}
           >
-            <Tooltip title="Delete">
-              <Button size="small" danger icon={<DeleteOutlined />} />
-            </Tooltip>
+            <Button size="small" danger icon={<DeleteOutlined />}>Delete</Button>
           </Popconfirm>
         </Space>
       ),
@@ -150,27 +179,21 @@ function AdminAgents() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div>
-          <Typography.Title level={3} style={{ margin: 0 }}>Agents</Typography.Title>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
+        <Col>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Agents</Typography.Title>
           <Typography.Text type="secondary">All registered agents and their lead/commission summary.</Typography.Text>
-        </div>
-        <Space>
-          <Button
-            icon={<TableOutlined />}
-            type={viewMode === 'table' ? 'primary' : 'default'}
-            onClick={() => setViewMode('table')}
-          >Table</Button>
-          <Button
-            icon={<AppstoreOutlined />}
-            type={viewMode === 'card' ? 'primary' : 'default'}
-            onClick={() => setViewMode('card')}
-          >Cards</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setOpen(true); }}>
-            Add Agent
-          </Button>
-        </Space>
-      </div>
+        </Col>
+        <Col>
+          <Space>
+            <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+            <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setOpen(true); }}>
+              Add Agent
+            </Button>
+          </Space>
+        </Col>
+      </Row>
 
       {viewMode === 'table' ? (
         <Table size="small" rowKey="_id" loading={loading} dataSource={agents} columns={columns} />
@@ -182,71 +205,49 @@ function AdminAgents() {
                 size="small"
                 hoverable
                 style={{ borderRadius: 12, border: '1px solid #e2e8f0', height: '100%' }}
-                styles={{ body: { padding: '14px 16px' } }}
+                styles={{ body: { padding: '16px' } }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                   <div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.name || '—'}</div>
                     <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{row.email}</div>
+                    {row.phone && <div style={{ fontSize: 11, color: '#64748b' }}>{row.phone}</div>}
                   </div>
-                  {row.isActive ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>}
+                  <StatusBadge active={row.isActive} />
                 </div>
 
-                {row.phone && (
-                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>{row.phone}</div>
-                )}
-
                 {row.referralCode && (
-                  <div style={{ marginBottom: 8 }}>
-                    <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Referral Code</Typography.Text>
-                    <div style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 600 }}>{row.referralCode}</div>
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.5, marginBottom: 2 }}>Referral Code</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: '#1d4ed8' }}>{row.referralCode}</div>
                   </div>
                 )}
 
-                {row.referredBy && (
-                  <div style={{ marginBottom: 8 }}>
-                    <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Referred By</Typography.Text>
-                    <div><Tag color="blue" style={{ marginTop: 2 }}>{row.referredBy.name || row.referredBy.email}</Tag></div>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+                <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
                   <div>
-                    <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Leads</Typography.Text>
-                    <div style={{ fontWeight: 700, fontSize: 15 }}>{row.stats?.total || 0}</div>
+                    <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.5 }}>Leads</div>
+                    <div style={{ fontWeight: 700, fontSize: 16 }}>{row.stats?.total || 0}</div>
                   </div>
                   <div>
-                    <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Approved</Typography.Text>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: '#16a34a' }}>{row.stats?.approved || 0}</div>
+                    <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.5 }}>Approved</div>
+                    <div style={{ fontWeight: 700, fontSize: 16, color: '#16a34a' }}>{row.stats?.approved || 0}</div>
                   </div>
                   <div>
-                    <Typography.Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Paid</Typography.Text>
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>{aed(row.stats?.paidCommission)}</div>
+                    <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.5 }}>Paid</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: '#4f46e5' }}>{aed(row.stats?.paidCommission)}</div>
                   </div>
                 </div>
 
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                    {new Date(row.createdAt).toLocaleDateString()}
-                  </Typography.Text>
+                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(row.createdAt).toLocaleDateString()}</span>
                   <Space size={4}>
-                    <Tooltip title="Edit">
-                      <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
-                    </Tooltip>
-                    <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
-                      <Button
-                        size="small"
-                        icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
-                        onClick={() => onToggleActive(row)}
-                      />
-                    </Tooltip>
-                    <Popconfirm
-                      title="Delete agent?"
-                      description="This cannot be undone."
-                      onConfirm={() => onDelete(row._id)}
-                      okText="Delete"
-                      okButtonProps={{ danger: true }}
-                    >
+                    <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
+                    <Button
+                      size="small"
+                      icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
+                      onClick={() => onToggleActive(row)}
+                    />
+                    <Popconfirm title="Delete agent?" description="This cannot be undone." onConfirm={() => onDelete(row._id)} okText="Delete" okButtonProps={{ danger: true }}>
                       <Button size="small" danger icon={<DeleteOutlined />} />
                     </Popconfirm>
                   </Space>
@@ -258,20 +259,12 @@ function AdminAgents() {
       )}
 
       {/* Create modal */}
-      <Modal
-        title="Add Agent"
-        open={open}
-        onCancel={() => setOpen(false)}
-        onOk={onSubmit}
-        okText="Create"
-        confirmLoading={saving}
-        destroyOnClose
-      >
+      <Modal title="Add Agent" open={open} onCancel={() => setOpen(false)} onOk={onSubmit} okText="Create" confirmLoading={saving} destroyOnClose>
         <Form form={form} layout="vertical">
           <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Email is required' }, { type: 'email', message: 'Enter a valid email' }]}>
+          <Form.Item name="email" label="Email" rules={[{ required: true }, { type: 'email' }]}>
             <Input />
           </Form.Item>
           <Form.Item name="password" label="Password" rules={[{ required: true, message: 'Password is required' }]}>
@@ -284,20 +277,12 @@ function AdminAgents() {
       </Modal>
 
       {/* Edit modal */}
-      <Modal
-        title="Edit Agent"
-        open={!!editTarget}
-        onCancel={() => setEditTarget(null)}
-        onOk={onEdit}
-        okText="Save"
-        confirmLoading={saving}
-        destroyOnClose
-      >
+      <Modal title="Edit Agent" open={!!editTarget} onCancel={() => setEditTarget(null)} onOk={onEdit} okText="Save" confirmLoading={saving} destroyOnClose>
         <Form form={editForm} layout="vertical">
-          <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }]}>
+          <Form.Item name="name" label="Name" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Email is required' }, { type: 'email' }]}>
+          <Form.Item name="email" label="Email" rules={[{ required: true }, { type: 'email' }]}>
             <Input />
           </Form.Item>
           <Form.Item name="phone" label="Phone">

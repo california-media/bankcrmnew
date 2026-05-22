@@ -185,7 +185,7 @@ function CardProducts() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div>
-          <Typography.Title level={3} style={{ margin: 0 }}>Card Products</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Card Products</Typography.Title>
           <Typography.Text type="secondary">
             Manage credit card products. Commission brackets define receivable and payable amounts per salary tier.
           </Typography.Text>

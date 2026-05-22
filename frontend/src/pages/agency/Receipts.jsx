@@ -184,9 +184,9 @@ export default function AgencyReceipts() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>Receipts</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Receipts</Typography.Title>
           <Typography.Text type="secondary">
             Upload disbursement receipts. Select multiple leads to upload one receipt for all at once.
           </Typography.Text>

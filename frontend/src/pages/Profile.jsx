@@ -118,7 +118,7 @@ export default function Profile() {
           <Col flex="auto">
             <Space direction="vertical" size={4}>
               <Space align="center">
-                <Typography.Title level={3} style={{ margin: 0 }}>
+                <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>
                   {profile.name || '—'}
                 </Typography.Title>
                 <Tag color={ROLE_COLORS[role]}>{ROLE_LABELS[role]}</Tag>

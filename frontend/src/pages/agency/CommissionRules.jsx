@@ -97,7 +97,7 @@ function AgencyCommissionRules() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
         <div>
-          <Typography.Title level={3} style={{ margin: 0 }}>Commission Rules</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Commission Rules</Typography.Title>
           <Typography.Text type="secondary">
             What your agency pays an agent for an approved lead. Each rule is tied to a specific bank + product pair.
           </Typography.Text>

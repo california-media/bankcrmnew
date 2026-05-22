@@ -144,8 +144,8 @@ function Products() {
 
   return (
     <>
-      <div style={{ marginBottom: 20 }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>Products</Typography.Title>
+      <div style={{ marginBottom: 12 }}>
+        <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Products</Typography.Title>
         <Typography.Text type="secondary">Browse all authorized card and loan products with estimated payouts.</Typography.Text>
       </div>
 
@@ -225,7 +225,7 @@ function Products() {
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               )}
-              <Typography.Title level={4} style={{ margin: 0 }}>{selectedProduct.name}</Typography.Title>
+              <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>{selectedProduct.name}</Typography.Title>
             </div>
             <Tabs
               items={[

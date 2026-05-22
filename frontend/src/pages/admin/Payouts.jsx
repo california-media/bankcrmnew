@@ -137,9 +137,9 @@ export default function Payouts() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
         <Col>
-          <Typography.Title level={3} style={{ margin: 0 }}>Payouts to Agents</Typography.Title>
+          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Payouts to Agents</Typography.Title>
           <Typography.Text type="secondary">Send commission payouts to agents in bulk.</Typography.Text>
         </Col>
         <Col>

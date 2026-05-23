@@ -5,7 +5,7 @@ import {
   AuditOutlined, IdcardOutlined, CreditCardOutlined, FundOutlined,
   DownOutlined, InboxOutlined, AppstoreOutlined,
   BellOutlined, PlusCircleOutlined, CheckCircleOutlined,
-  UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined,
+  UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined, WalletOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -50,6 +50,7 @@ const menusByRole = {
     { key: '/admin/employee-statuses', icon: <UnorderedListOutlined />,label: <Link to="/admin/employee-statuses">Lead Status</Link> },
     { key: '/admin/pipeline',          icon: <ProjectOutlined />,      label: <Link to="/admin/pipeline">Pipeline</Link> },
     { key: '/admin/consent-logs',      icon: <MessageOutlined />,      label: <Link to="/admin/consent-logs">Consent Logs</Link> },
+    { key: '/admin/bucket-requests',   icon: <WalletOutlined />,       label: <Link to="/admin/bucket-requests">Bucket Requests</Link> },
     { key: '/admin/notifications',     icon: <BellOutlined />,         label: <Link to="/admin/notifications">Notifications</Link> },
   ],
   agent: [
@@ -111,7 +112,9 @@ function NotifDropdown({ notifications, role, markRead, markAllRead, navigate })
             {TYPE_ICONS[n.type] || <BellOutlined />}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: n.isRead ? 400 : 600, fontSize: 13, color: '#0f172a' }}>{n.title}</div>
+            <div style={{ fontWeight: n.isRead ? 400 : 600, fontSize: 13, color: '#0f172a' }}>
+              {({ 'New Lead Submitted': 'New Lead', 'Lead Approved': 'Application Approved', 'Lead Disbursed': 'Application Disbursed', 'Lead Rejected': 'Application Rejected' }[n.title] || n.title)}
+            </div>
             <div style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.body}</div>
             <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{dayjs(n.createdAt).fromNow()}</div>
           </div>

@@ -29,12 +29,22 @@ const TYPE_COLORS = {
   commission_payable:      '#16a34a',
 };
 
+const TITLE_REMAP = {
+  'New Lead Submitted': 'New Lead',
+  'Lead Approved':      'Application Approved',
+  'Lead Disbursed':     'Application Disbursed',
+  'Lead Rejected':      'Application Rejected',
+};
+
 const cleanBody = (body = '', type) => {
   if (type === 'note_added') {
     return body.replace(/\s*—\s*".*$/, '').trim();
   }
   if (type === 'status_changed') {
     return body.replace(/\s*moved to\s+\S+.*$/i, '').replace(/\s*—\s*$/, '').trim();
+  }
+  if (type === 'lead_created') {
+    return body.replace(/\s+submitted\s+by\s+[\w\s]+$/i, '').replace(/\s+submitted$/i, '').trim();
   }
   return body.replace(/\s+by\s+[\w\s]+[:.]?\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
 };
@@ -110,7 +120,7 @@ export default function Notifications() {
           {/* Text */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: n.isRead ? 500 : 700, fontSize: 14, color: '#0f172a', lineHeight: 1.3 }}>
-              {n.title}
+              {TITLE_REMAP[n.title] || n.title}
             </div>
             <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {cleanBody(n.body, n.type)}

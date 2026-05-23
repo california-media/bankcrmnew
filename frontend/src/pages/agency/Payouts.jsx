@@ -33,18 +33,21 @@ function AgencyPayouts() {
   const [walletFileList, setWalletFileList] = useState([]);
   const [walletSubmitting, setWalletSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('bank'); // 'bank' | 'bucket'
+  const [bucketRequests, setBucketRequests] = useState([]);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [pendRes, histRes, bucketRes] = await Promise.all([
+      const [pendRes, histRes, bucketRes, reqRes] = await Promise.allSettled([
         api.get('/agency-payouts/pending'),
         api.get('/agency-payouts/history'),
         api.get('/agency-payouts/bucket'),
+        api.get('/agency-payouts/bucket-requests'),
       ]);
-      setPendingLeads(pendRes.data);
-      setHistory(histRes.data);
-      setBucketBalance(bucketRes.data.bucketBalance || 0);
+      if (pendRes.status === 'fulfilled')   setPendingLeads(pendRes.value.data);
+      if (histRes.status === 'fulfilled')   setHistory(histRes.value.data);
+      if (bucketRes.status === 'fulfilled') setBucketBalance(bucketRes.value.data.bucketBalance || 0);
+      if (reqRes.status === 'fulfilled')    setBucketRequests(reqRes.value.data);
     } finally {
       setLoading(false);
     }
@@ -79,14 +82,14 @@ function AgencyPayouts() {
       formData.append('amount', values.amount);
       if (values.note) formData.append('note', values.note);
       if (walletFileList[0]?.originFileObj) formData.append('receiptFile', walletFileList[0].originFileObj);
-      const res = await api.post('/agency-payouts/add-wallet', formData, {
+      await api.post('/agency-payouts/add-wallet', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      message.success('Wallet topped up successfully');
-      setBucketBalance(res.data.bucketBalance);
+      message.success('Top-up request submitted — pending admin approval');
       setWalletOpen(false);
       walletForm.resetFields();
       setWalletFileList([]);
+      load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed');
     } finally {
@@ -435,6 +438,66 @@ function AgencyPayouts() {
               />
             ),
           },
+          {
+            key: 'bucket-requests',
+            label: (
+              <span>
+                <WalletOutlined /> Wallet Requests ({bucketRequests.length})
+                {bucketRequests.some((r) => r.status === 'pending') && (
+                  <span style={{ marginLeft: 5, background: '#f59e0b', color: '#fff', borderRadius: 999, fontSize: 10, fontWeight: 700, padding: '0 5px' }}>
+                    {bucketRequests.filter((r) => r.status === 'pending').length}
+                  </span>
+                )}
+              </span>
+            ),
+            children: (
+              <Table
+                size="small"
+                rowKey="_id"
+                loading={loading}
+                dataSource={bucketRequests}
+                scroll={{ x: 700 }}
+                pagination={{ pageSize: 15, showSizeChanger: false }}
+                columns={[
+                  {
+                    title: 'Date',
+                    dataIndex: 'createdAt',
+                    render: (v) => dayjs(v).format('DD MMM YYYY, HH:mm'),
+                  },
+                  {
+                    title: 'Amount',
+                    dataIndex: 'amount',
+                    align: 'right',
+                    render: (v) => <Typography.Text strong style={{ color: '#4f46e5' }}>{aed(v)}</Typography.Text>,
+                  },
+                  {
+                    title: 'Note',
+                    dataIndex: 'note',
+                    render: (v) => v || <Typography.Text type="secondary">—</Typography.Text>,
+                  },
+                  {
+                    title: 'Status',
+                    dataIndex: 'status',
+                    render: (v) => ({
+                      pending:  <Tag color="gold">Pending Approval</Tag>,
+                      approved: <Tag color="green">Approved</Tag>,
+                      rejected: <Tag color="red">Rejected</Tag>,
+                    }[v] || <Tag>{v}</Tag>),
+                  },
+                  {
+                    title: 'Note / Reason',
+                    render: (_, row) => {
+                      if (row.status === 'rejected' && row.rejectionReason)
+                        return <span style={{ fontSize: 12, color: '#dc2626' }}>{row.rejectionReason}</span>;
+                      if (row.status === 'approved' && row.reviewedAt)
+                        return <span style={{ fontSize: 12, color: '#16a34a' }}>Credited on {dayjs(row.reviewedAt).format('DD MMM, HH:mm')}</span>;
+                      return <Typography.Text type="secondary" style={{ fontSize: 12 }}>Awaiting admin review</Typography.Text>;
+                    },
+                  },
+                ]}
+              />
+            ),
+          },
         ]}
       />
 
@@ -532,13 +595,13 @@ function AgencyPayouts() {
         open={walletOpen}
         onCancel={() => { setWalletOpen(false); walletForm.resetFields(); setWalletFileList([]); }}
         onOk={handleWalletSubmit}
-        okText="Top Up"
+        okText="Submit Request"
         confirmLoading={walletSubmitting}
         destroyOnClose
         width={440}
       >
         <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16, fontSize: 13 }}>
-          Add funds directly to your wallet. These can be used to offset future payouts.
+          Submit a top-up request with your payment receipt. Admin will review and credit the amount to your wallet.
         </Typography.Text>
         <div style={{ background: '#eef2ff', borderRadius: 8, padding: '10px 14px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 12, color: '#4f46e5', fontWeight: 600 }}><WalletOutlined style={{ marginRight: 5 }} />Current Balance</span>

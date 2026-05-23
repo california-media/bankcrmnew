@@ -118,8 +118,8 @@ exports.create = async (req, res) => {
         [...adminIds, String(populated.agency?._id || populated.agency)],
         {
           type: 'lead_created',
-          title: 'New Lead Submitted',
-          body: `${lead.customerName} — ${populated.bank?.name || ''} ${productName} submitted by ${req.user.name || req.user.email}`,
+          title: 'New Lead',
+          body: `${lead.customerName} — ${populated.bank?.name || ''} ${productName}`,
           lead: lead._id,
         },
         req.user._id,
@@ -382,7 +382,7 @@ exports.updateStatus = async (req, res) => {
         statusRecipients,
         {
           type: 'status_changed',
-          title: `Lead ${formatStatus(status)}`,
+          title: { approved: 'Application Approved', disbursed: 'Application Disbursed', rejected: 'Application Rejected' }[status] || `Lead ${formatStatus(status)}`,
           body: `${lead.customerName} — ${populated.bank?.name || ''}`,
           lead: lead._id,
         },

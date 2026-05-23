@@ -1,5 +1,6 @@
 const Lead = require('../models/Lead');
 const AgencyPayout = require('../models/AgencyPayout');
+const BucketRequest = require('../models/BucketRequest');
 const User = require('../models/User');
 const { createAndEmit, getAdminIds } = require('../utils/notify');
 
@@ -48,11 +49,116 @@ exports.addToWallet = async (req, res) => {
     if (!amount || Number(amount) <= 0)
       return res.status(400).json({ message: 'Valid amount required' });
 
-    const agency = await User.findById(req.user._id);
-    agency.bucketBalance = (agency.bucketBalance || 0) + Number(amount);
-    await agency.save();
+    const request = await BucketRequest.create({
+      agency: req.user._id,
+      amount: Number(amount),
+      note: note || undefined,
+      receiptFile,
+    });
 
-    res.json({ bucketBalance: agency.bucketBalance, message: 'Wallet topped up successfully' });
+    try {
+      const agency = await User.findById(req.user._id).select('name email');
+      const adminIds = await getAdminIds();
+      await createAndEmit(
+        adminIds,
+        {
+          type: 'bucket_request',
+          title: 'Bucket Top-Up Request',
+          body: `${agency.name || agency.email} requested AED ${Number(amount).toLocaleString()} wallet top-up`,
+        },
+        req.user._id,
+      );
+    } catch (_) {}
+
+    res.status(201).json({ request, message: 'Request submitted — pending admin approval' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getMyBucketRequests = async (req, res) => {
+  try {
+    const requests = await BucketRequest.find({ agency: req.user._id })
+      .sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.adminGetBucketRequests = async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = status ? { status } : {};
+    const requests = await BucketRequest.find(filter)
+      .populate('agency', 'name email')
+      .populate('reviewedBy', 'name email')
+      .sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.approveBucketRequest = async (req, res) => {
+  try {
+    const request = await BucketRequest.findById(req.params.id).populate('agency', 'name email');
+    if (!request) return res.status(404).json({ message: 'Request not found' });
+    if (request.status !== 'pending') return res.status(400).json({ message: 'Already reviewed' });
+
+    request.status = 'approved';
+    request.reviewedBy = req.user._id;
+    request.reviewedAt = new Date();
+    await request.save();
+
+    await User.findByIdAndUpdate(request.agency._id, {
+      $inc: { bucketBalance: request.amount },
+    });
+
+    try {
+      await createAndEmit(
+        [String(request.agency._id)],
+        {
+          type: 'bucket_request',
+          title: 'Wallet Top-Up Approved',
+          body: `AED ${Number(request.amount).toLocaleString()} added to your wallet`,
+        },
+        req.user._id,
+      );
+    } catch (_) {}
+
+    res.json({ message: 'Approved', request });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.rejectBucketRequest = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const request = await BucketRequest.findById(req.params.id).populate('agency', 'name email');
+    if (!request) return res.status(404).json({ message: 'Request not found' });
+    if (request.status !== 'pending') return res.status(400).json({ message: 'Already reviewed' });
+
+    request.status = 'rejected';
+    request.reviewedBy = req.user._id;
+    request.reviewedAt = new Date();
+    request.rejectionReason = reason || undefined;
+    await request.save();
+
+    try {
+      await createAndEmit(
+        [String(request.agency._id)],
+        {
+          type: 'bucket_request',
+          title: 'Wallet Top-Up Rejected',
+          body: `AED ${Number(request.amount).toLocaleString()} request rejected${reason ? ` — ${reason}` : ''}`,
+        },
+        req.user._id,
+      );
+    } catch (_) {}
+
+    res.json({ message: 'Rejected', request });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

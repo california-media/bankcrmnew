@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Card, Form, Input, Select, Button, Typography, Row, Col, message,
-  Space, InputNumber, Segmented, Descriptions, Modal, Alert, Divider,
+  Space, InputNumber, Segmented, Descriptions, Modal, Alert,
 } from 'antd';
 import { ArrowLeftOutlined, CreditCardOutlined, BankOutlined, SendOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
@@ -45,6 +45,16 @@ const NATIONALITIES = [
   'Uruguayan', 'Uzbekistani', 'Vanuatuan', 'Venezuelan', 'Vietnamese', 'Yemeni',
   'Zambian', 'Zimbabwean',
 ].map((n) => ({ value: n, label: n }));
+
+const VISA_OPTIONS = [
+  { value: 'employment', label: 'Employment Visa' },
+  { value: 'residence',  label: 'Residence Visa' },
+  { value: 'investor',   label: 'Investor Visa' },
+  { value: 'golden',     label: 'Golden Visa' },
+  { value: 'freelance',  label: 'Freelance Visa' },
+  { value: 'tourist',    label: 'Tourist Visa' },
+  { value: 'other',      label: 'Other' },
+];
 
 const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
 
@@ -98,15 +108,15 @@ function buildBracketOptions(brackets) {
 }
 
 function SubmitLead() {
-  const [submitting, setSubmitting] = useState(false);
-  const [productType, setProductType] = useState('credit_card');
+  const [submitting, setSubmitting]     = useState(false);
+  const [productType, setProductType]   = useState('credit_card');
   const [cardProducts, setCardProducts] = useState([]);
   const [loanProducts, setLoanProducts] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [selectedBracket, setSelectedBracket] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [termsOpen, setTermsOpen] = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [termsOpen, setTermsOpen]       = useState(false);
   const [pendingValues, setPendingValues] = useState(null);
   const navigate = useNavigate();
   const [form] = Form.useForm();
@@ -128,10 +138,7 @@ function SubmitLead() {
     form.resetFields(['cardProduct', 'loanProduct', 'loanAmount', 'salaryBracket']);
   };
 
-  const onProductTypeChange = (val) => {
-    setProductType(val);
-    resetProduct();
-  };
+  const onProductTypeChange = (val) => { setProductType(val); resetProduct(); };
 
   const autoSelectMinBracket = (brackets) => {
     if (!brackets || brackets.length === 0) { setSelectedBracket(null); form.resetFields(['salaryBracket']); return; }
@@ -153,10 +160,9 @@ function SubmitLead() {
   };
 
   const onBracketSelect = (minSalary) => {
-    const product = productType === 'credit_card' ? selectedCard : selectedLoan;
+    const product  = productType === 'credit_card' ? selectedCard : selectedLoan;
     const brackets = product?.commissionBrackets || [];
-    const bracket = brackets.find((b) => b.minimumSalary === minSalary) || null;
-    setSelectedBracket(bracket);
+    setSelectedBracket(brackets.find((b) => b.minimumSalary === minSalary) || null);
   };
 
   const activeBrackets = productType === 'credit_card'
@@ -168,33 +174,31 @@ function SubmitLead() {
       const values = await form.validateFields();
       setPendingValues(values);
       setTermsOpen(true);
-    } catch {
-      // validation errors shown inline
-    }
+    } catch { /* validation errors shown inline */ }
   };
 
   const onTermsConfirm = async () => {
     setTermsOpen(false);
     setSubmitting(true);
     try {
-      const values = pendingValues;
+      const values  = pendingValues;
       const payload = {
         customerName: values.customerName,
-        phone: values.phone,
+        phone:        values.phone,
         productType,
-        notes: values.notes,
+        notes:        values.notes,
       };
       if (values.salaryBracket != null) payload.customerSalary = values.salaryBracket;
-      if (values.email) payload.email = values.email;
-      if (values.nationality) payload.nationality = values.nationality;
-      if (values.visaType) payload.visaType = values.visaType;
-      if (values.companyName) payload.companyName = values.companyName;
-      if (values.jobTitle) payload.jobTitle = values.jobTitle;
+      if (values.email)               payload.email             = values.email;
+      if (values.nationality)         payload.nationality        = values.nationality;
+      if (values.visaType)            payload.visaType           = values.visaType;
+      if (values.companyName)         payload.companyName        = values.companyName;
+      if (values.jobTitle)            payload.jobTitle           = values.jobTitle;
       if (values.yearsOfExperience != null) payload.yearsOfExperience = values.yearsOfExperience;
       if (productType === 'credit_card') payload.cardProduct = values.cardProduct;
       if (productType === 'loan') {
         payload.loanProduct = values.loanProduct;
-        payload.loanAmount = values.loanAmount;
+        payload.loanAmount  = values.loanAmount;
       }
 
       const { data: lead } = await api.post('/leads', payload);
@@ -222,225 +226,192 @@ function SubmitLead() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
-        <Col>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>New Lead</Typography.Title>
-          <Typography.Text type="secondary">Select a product — bank and agency are set automatically.</Typography.Text>
-        </Col>
-        <Col>
-          <Link to="/agent/leads">
-            <Button icon={<ArrowLeftOutlined />}>Back to leads</Button>
-          </Link>
-        </Col>
-      </Row>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <Typography.Title level={4} style={{ margin: 0, fontWeight: 600 }}>New Lead</Typography.Title>
+        <Link to="/agent/leads">
+          <Button size="small" icon={<ArrowLeftOutlined />}>Back</Button>
+        </Link>
+      </div>
 
-      <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-        <Card title="Client Information" style={{ marginBottom: 16 }}>
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item name="customerName" label="Client Full Name" rules={[{ required: true }]}>
-                <Input placeholder="e.g. Mohammed Ahmed" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item name="phone" label="Mobile Number" rules={[{ required: true }]}>
-                <Input placeholder="+971 50 xxx xxxx" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item name="email" label="Email (optional)">
-                <Input placeholder="client@email.com" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item name="nationality" label="Nationality (optional)">
-                <Select
-                  showSearch
-                  allowClear
-                  placeholder="Select nationality"
-                  options={NATIONALITIES}
-                  filterOption={(input, opt) =>
-                    opt.label.toLowerCase().includes(input.toLowerCase())
-                  }
+      <Form form={form} layout="vertical" size="small">
+        <Row gutter={12} align="stretch">
+          {/* LEFT — Client */}
+          <Col xs={24} lg={14}>
+            <Card
+              title="Client Information"
+              size="small"
+              style={{ height: '100%' }}
+              styles={{ body: { paddingBottom: 4 } }}
+            >
+              <Row gutter={[12, 0]}>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="customerName" label="Full Name" rules={[{ required: true }]}>
+                    <Input placeholder="Mohammed Ahmed" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="phone" label="Mobile Number" rules={[{ required: true }]}>
+                    <Input placeholder="+971 50 xxx xxxx" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="email" label="Email">
+                    <Input placeholder="client@email.com" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="nationality" label="Nationality">
+                    <Select
+                      showSearch allowClear placeholder="Select"
+                      options={NATIONALITIES}
+                      filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="visaType" label="Visa Type">
+                    <Select allowClear placeholder="Select" options={VISA_OPTIONS} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="companyName" label="Company">
+                    <Input placeholder="Emirates NBD" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="jobTitle" label="Job Title">
+                    <Input placeholder="Sales Manager" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="yearsOfExperience" label="Experience (yrs)">
+                    <InputNumber min={0} max={60} style={{ width: '100%' }} placeholder="0" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24}>
+                  <Form.Item name="notes" label="Notes" style={{ marginBottom: 4 }}>
+                    <Input.TextArea rows={2} placeholder="Anything the agency should know about this client." />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+
+          {/* RIGHT — Product */}
+          <Col xs={24} lg={10}>
+            <Card
+              title="Product"
+              size="small"
+              style={{ height: '100%' }}
+              styles={{ body: { paddingBottom: 4 } }}
+            >
+              <Form.Item label="Type" style={{ marginBottom: 10 }}>
+                <Segmented
+                  value={productType}
+                  onChange={onProductTypeChange}
+                  size="small"
+                  options={[
+                    { value: 'credit_card', label: 'Credit Card', icon: <CreditCardOutlined /> },
+                    { value: 'loan',        label: 'Loan',        icon: <BankOutlined /> },
+                  ]}
                 />
               </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item name="visaType" label="Visa Type (optional)">
-                <Select allowClear placeholder="Select visa type" options={[
-                  { value: 'employment', label: 'Employment Visa' },
-                  { value: 'residence', label: 'Residence Visa' },
-                  { value: 'investor', label: 'Investor Visa' },
-                  { value: 'golden', label: 'Golden Visa' },
-                  { value: 'freelance', label: 'Freelance Visa' },
-                  { value: 'tourist', label: 'Tourist Visa' },
-                  { value: 'other', label: 'Other' },
-                ]} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Divider style={{ margin: '4px 0 16px' }} />
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item name="companyName" label="Company Name (optional)">
-                <Input placeholder="e.g. Emirates NBD" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item name="jobTitle" label="Job Title (optional)">
-                <Input placeholder="e.g. Sales Manager" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item name="yearsOfExperience" label="Years of Experience (optional)">
-                <InputNumber min={0} max={60} style={{ width: '100%' }} placeholder="0" />
-              </Form.Item>
-            </Col>
-          </Row>
-        </Card>
 
-        <Card title="Product" style={{ marginBottom: 16 }}>
-          <Form.Item label="Product Type">
-            <Segmented
-              value={productType}
-              onChange={onProductTypeChange}
-              options={[
-                { value: 'credit_card', label: 'Credit Card', icon: <CreditCardOutlined /> },
-                { value: 'loan', label: 'Loan', icon: <BankOutlined /> },
-              ]}
-            />
-          </Form.Item>
-
-          {productType === 'credit_card' && (
-            <>
-              <Form.Item name="cardProduct" label="Card Product" rules={[{ required: true, message: 'Please select a card product' }]}>
-                <Select
-                  loading={loading}
-                  showSearch
-                  filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())}
-                  placeholder="Select card product"
-                  options={cardOptions}
-                  onChange={onCardSelect}
-                />
-              </Form.Item>
-              {selectedCard && (
+              {productType === 'credit_card' && (
                 <>
-                  {selectedCard.cardImage && (
-                    <div style={{ marginBottom: 12 }}>
-                      <img
-                        src={`${API_BASE}/uploads/card-images/${selectedCard.cardImage}`}
-                        alt={selectedCard.name}
-                        style={{
-                          width: 200,
-                          height: 126,
-                          objectFit: 'cover',
-                          borderRadius: 10,
-                          border: '1px solid #e2e8f0',
-                          display: 'block',
-                        }}
-                      />
+                  <Form.Item name="cardProduct" label="Card Product" rules={[{ required: true, message: 'Select a card' }]}>
+                    <Select
+                      loading={loading} showSearch
+                      filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())}
+                      placeholder="Select card product"
+                      options={cardOptions}
+                      onChange={onCardSelect}
+                    />
+                  </Form.Item>
+                  {selectedCard && (
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 8, alignItems: 'flex-start' }}>
+                      {selectedCard.cardImage && (
+                        <img
+                          src={`${API_BASE}/uploads/card-images/${selectedCard.cardImage}`}
+                          alt={selectedCard.name}
+                          style={{ width: 100, height: 63, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0', flexShrink: 0 }}
+                        />
+                      )}
+                      <Descriptions size="small" column={1} style={{ flex: 1 }}>
+                        <Descriptions.Item label="Bank">{selectedCard.bank?.name}</Descriptions.Item>
+                        <Descriptions.Item label="Type">
+                          {({ regular: 'Regular', premium: 'Premium', rewards_lifestyle: 'Rewards', travel: 'Travel', ecommerce: 'E-Commerce', legacy: 'Legacy' })[selectedCard.cardType] || selectedCard.cardType}
+                        </Descriptions.Item>
+                        {selectedBracket?.feeType && (
+                          <Descriptions.Item label="Fee">
+                            <span style={{ fontWeight: 700, color: selectedBracket.feeType === 'free' ? '#16a34a' : '#2563eb' }}>
+                              {selectedBracket.feeType === 'free' ? 'Free' : 'Paid'}
+                            </span>
+                          </Descriptions.Item>
+                        )}
+                      </Descriptions>
                     </div>
                   )}
-                  <Descriptions size="small" bordered style={{ marginBottom: 12 }}>
-                    <Descriptions.Item label="Bank">{selectedCard.bank?.name}</Descriptions.Item>
-                    <Descriptions.Item label="Card Type">
-                      {({ regular: 'Regular', premium: 'Premium', rewards_lifestyle: 'Rewards & Lifestyle', travel: 'Travel', ecommerce: 'E-Commerce', legacy: 'Legacy' })[selectedCard.cardType] || selectedCard.cardType}
-                    </Descriptions.Item>
-                    {selectedBracket?.feeType && (
-                      <Descriptions.Item label="Card Fee">
-                        <span style={{
-                          fontWeight: 700,
-                          color: selectedBracket.feeType === 'free' ? '#16a34a' : '#2563eb',
-                        }}>
-                          {selectedBracket.feeType === 'free' ? 'Free' : 'Paid'}
-                        </span>
-                      </Descriptions.Item>
-                    )}
-                  </Descriptions>
+                  {selectedCard && activeBrackets.length > 0 && (
+                    <Form.Item name="salaryBracket" label="Salary Bracket" rules={[{ required: true, message: 'Select salary bracket' }]}>
+                      <Select placeholder="Select minimum salary tier" options={activeBrackets} onChange={onBracketSelect} />
+                    </Form.Item>
+                  )}
+                  {selectedBracket && (
+                    <Alert type="success" showIcon style={{ marginBottom: 8, padding: '4px 10px' }}
+                      message={<span style={{ fontSize: 12 }}>Payout: <strong>{aed(selectedBracket.payable)}</strong></span>}
+                    />
+                  )}
                 </>
               )}
-              {selectedCard && activeBrackets.length > 0 && (
-                <Form.Item
-                  name="salaryBracket"
-                  label="Salary Bracket"
-                  rules={[{ required: true, message: 'Please select a salary bracket' }]}
-                >
-                  <Select
-                    placeholder="Select minimum salary tier"
-                    options={activeBrackets}
-                    onChange={onBracketSelect}
-                  />
-                </Form.Item>
-              )}
-              {selectedBracket && (
-                <Alert
-                  type="success"
-                  showIcon
-                  message={<span>Expected Payout: <strong>{aed(selectedBracket.payable)}</strong></span>}
-                  style={{ marginBottom: 12 }}
-                />
-              )}
-            </>
-          )}
 
-          {productType === 'loan' && (
-            <>
-              <Form.Item name="loanProduct" label="Loan Product" rules={[{ required: true, message: 'Please select a loan product' }]}>
-                <Select
-                  loading={loading}
-                  showSearch
-                  filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())}
-                  placeholder="Select loan product"
-                  options={loanOptions}
-                  onChange={onLoanSelect}
-                />
-              </Form.Item>
-              {selectedLoan && (
-                <Descriptions size="small" bordered style={{ marginBottom: 12 }}>
-                  <Descriptions.Item label="Bank">{selectedLoan.bank?.name}</Descriptions.Item>
-                  <Descriptions.Item label="Category">
-                    {selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal Loan'}
-                  </Descriptions.Item>
-                </Descriptions>
+              {productType === 'loan' && (
+                <>
+                  <Form.Item name="loanProduct" label="Loan Product" rules={[{ required: true, message: 'Select a loan' }]}>
+                    <Select
+                      loading={loading} showSearch
+                      filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())}
+                      placeholder="Select loan product"
+                      options={loanOptions}
+                      onChange={onLoanSelect}
+                    />
+                  </Form.Item>
+                  {selectedLoan && (
+                    <Descriptions size="small" column={2} style={{ marginBottom: 8 }}>
+                      <Descriptions.Item label="Bank">{selectedLoan.bank?.name}</Descriptions.Item>
+                      <Descriptions.Item label="Category">
+                        {selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal'}
+                      </Descriptions.Item>
+                    </Descriptions>
+                  )}
+                  {selectedLoan && activeBrackets.length > 0 && (
+                    <Form.Item name="salaryBracket" label="Salary Bracket" rules={[{ required: true, message: 'Select salary bracket' }]}>
+                      <Select placeholder="Select minimum salary tier" options={activeBrackets} onChange={onBracketSelect} />
+                    </Form.Item>
+                  )}
+                  {selectedBracket && (
+                    <Alert type="success" showIcon style={{ marginBottom: 8, padding: '4px 10px' }}
+                      message={<span style={{ fontSize: 12 }}>Payout: <strong>{selectedBracket.payable}%</strong> of loan amount</span>}
+                    />
+                  )}
+                  <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount required' }]}>
+                    <InputNumber min={1} step={1000} style={{ width: '100%' }} placeholder="e.g. 100000" />
+                  </Form.Item>
+                </>
               )}
-              {selectedLoan && activeBrackets.length > 0 && (
-                <Form.Item
-                  name="salaryBracket"
-                  label="Salary Bracket"
-                  rules={[{ required: true, message: 'Please select a salary bracket' }]}
-                >
-                  <Select
-                    placeholder="Select minimum salary tier"
-                    options={activeBrackets}
-                    onChange={onBracketSelect}
-                  />
-                </Form.Item>
-              )}
-              {selectedBracket && (
-                <Alert
-                  type="success"
-                  showIcon
-                  message={<span>Expected Payout: <strong>{selectedBracket.payable}%</strong> of loan amount</span>}
-                  style={{ marginBottom: 12 }}
-                />
-              )}
-              <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount is required' }]}>
-                <InputNumber min={1} step={1000} style={{ width: '100%' }} placeholder="e.g. 100000" />
-              </Form.Item>
-            </>
-          )}
 
-          <Form.Item name="notes" label="Notes (optional)" style={{ marginTop: 8 }}>
-            <Input.TextArea rows={3} placeholder="Anything the agency should know about this customer." />
-          </Form.Item>
-        </Card>
+            </Card>
+          </Col>
+        </Row>
 
-        <Space>
-          <Button type="primary" icon={<SendOutlined />} loading={submitting} onClick={onFormSubmit}>
-            Submit Lead
-          </Button>
-          <Button onClick={() => { form.resetFields(); resetProduct(); }}>Reset</Button>
-        </Space>
+        <div style={{ marginTop: 10 }}>
+          <Space>
+            <Button type="primary" icon={<SendOutlined />} loading={submitting} onClick={onFormSubmit}>
+              Submit Lead
+            </Button>
+            <Button onClick={() => { form.resetFields(); resetProduct(); }}>Reset</Button>
+          </Space>
+        </div>
       </Form>
 
       <Modal
@@ -453,16 +424,7 @@ function SubmitLead() {
         okButtonProps={{ type: 'primary' }}
         width={600}
       >
-        <div
-          style={{
-            background: '#f9fafb',
-            border: '1px solid #e5e7eb',
-            borderRadius: 6,
-            padding: 16,
-            maxHeight: 320,
-            overflowY: 'auto',
-          }}
-        >
+        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6, padding: 16, maxHeight: 320, overflowY: 'auto' }}>
           <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 13, margin: 0, color: '#374151' }}>
             {TERMS}
           </pre>

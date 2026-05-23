@@ -14,7 +14,7 @@ import api from '../../api/client';
 
 const statusTag = {
   draft: { color: 'default', label: 'Draft' },
-  submitted: { color: 'blue', label: 'Submitted' },
+  submitted: { color: 'blue', label: 'New Lead' },
   under_review: { color: 'gold', label: 'Under Review' },
   assigned: { color: 'cyan', label: 'Assigned' },
   approved: { color: 'green', label: 'Approved' },
@@ -145,12 +145,12 @@ function AgentDashboard() {
     },
     { title: 'Product', dataIndex: 'productType', render: (v) => productLabels[v] || v },
     {
-      title: 'Stage',
+      title: 'Status',
       dataIndex: 'status',
       render: (s) => <Tag color={statusTag[s]?.color}>{statusTag[s]?.label || s}</Tag>,
     },
     {
-      title: 'Expected Payout',
+      title: 'Expected Earning',
       align: 'right',
       render: (_, row) => (
         <Space direction="vertical" size={0} style={{ alignItems: 'flex-end' }}>
@@ -160,7 +160,7 @@ function AgentDashboard() {
               color={row.commissionStatus === 'paid' ? 'green' : row.commissionStatus === 'payable' ? 'cyan' : 'gold'}
               style={{ marginInlineEnd: 0, marginTop: 2 }}
             >
-              {row.commissionStatus === 'paid' ? 'Paid' : row.commissionStatus === 'payable' ? 'Payout Ready' : 'Pending'}
+              {row.commissionStatus === 'paid' ? 'Received' : row.commissionStatus === 'payable' ? 'Payout Ready' : 'Pending'}
             </Tag>
           )}
         </Space>

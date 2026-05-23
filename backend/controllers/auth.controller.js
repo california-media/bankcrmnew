@@ -16,6 +16,7 @@ const sanitize = (user) => ({
   phone: user.phone,
   role: user.role,
   referralCode: user.referralCode,
+  employeeType: user.employeeType,
 });
 
 const sanitizeFull = (user) => ({
@@ -40,7 +41,7 @@ const safeUser = async (id) =>
  */
 exports.registerAgent = async (req, res) => {
   try {
-    const { name, email, password, phone, referralCode, emiratesId } = req.body;
+    const { name, email, password, phone, referralCode, emiratesId, uaepassSub } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
     }
@@ -71,7 +72,8 @@ exports.registerAgent = async (req, res) => {
       referralCode: code,
       referredBy,
       isActive: true,
-      ...(emiratesId ? { emiratesId } : {}),
+      ...(emiratesId   ? { emiratesId }   : {}),
+      ...(uaepassSub   ? { uaepassSub }   : {}),
     });
 
     const token = signAuthToken(agent);

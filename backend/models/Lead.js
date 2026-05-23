@@ -62,6 +62,7 @@ const leadSchema = new mongoose.Schema(
     assignedSalesEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     engagementStatus: { type: String, enum: ENGAGEMENT_STATUSES, default: 'new_lead' },
     employeeStatus: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeStatus' },
+    consentStatus: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeStatus' },
     notes: { type: String, trim: true },
     cpvDone: { type: Boolean, default: false },
     cpvNote: { type: String, trim: true },
@@ -77,6 +78,14 @@ const leadSchema = new mongoose.Schema(
       {
         status: { type: String },
         note: { type: String, trim: true },
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        changedAt: { type: Date, default: Date.now },
+        _id: false,
+      },
+    ],
+    consentStatusHistory: [
+      {
+        consentStatus: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeStatus' },
         changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         changedAt: { type: Date, default: Date.now },
         _id: false,

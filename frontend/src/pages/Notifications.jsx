@@ -1,5 +1,4 @@
-import { useState, useMemo } from 'react';
-import { Typography, Tabs, Button, Badge, Tag, Empty } from 'antd';
+import { Empty } from 'antd';
 import {
   BellOutlined, PlusCircleOutlined, CheckCircleOutlined,
   UserAddOutlined, SyncOutlined, MessageOutlined, DollarOutlined,
@@ -30,25 +29,20 @@ const TYPE_COLORS = {
   commission_payable:      '#16a34a',
 };
 
-const TYPE_LABELS = {
-  lead_created:            'New Lead',
-  status_changed:          'Status',
-  lead_assigned:           'Assigned',
-  employee_status_updated: 'Employee Status',
-  note_added:              'Note',
-  commission_payable:      'Commission',
+const cleanBody = (body = '', type) => {
+  if (type === 'note_added') {
+    return body.replace(/\s*—\s*".*$/, '').trim();
+  }
+  if (type === 'status_changed') {
+    return body.replace(/\s*moved to\s+\S+.*$/i, '').replace(/\s*—\s*$/, '').trim();
+  }
+  return body.replace(/\s+by\s+[\w\s]+[:.]?\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
 };
 
 export default function Notifications() {
-  const navigate  = useNavigate();
-  const { user }  = useSelector((s) => s.auth);
-  const { notifications, unreadCount, markRead, markAllRead, connected } = useNotificationsContext();
-  const [tab, setTab] = useState('all');
-
-  const filtered = useMemo(() => {
-    if (tab === 'unread') return notifications.filter((n) => !n.isRead);
-    return notifications;
-  }, [notifications, tab]);
+  const navigate = useNavigate();
+  const { user } = useSelector((s) => s.auth);
+  const { notifications, markRead, connected } = useNotificationsContext();
 
   const handleRow = (n) => {
     if (!n.isRead) markRead([String(n._id)]);
@@ -56,73 +50,84 @@ export default function Notifications() {
   };
 
   return (
-    <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Notifications</Typography.Title>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: connected ? '#22c55e' : '#94a3b8' }} />
-              <span style={{ fontSize: 12, color: connected ? '#16a34a' : '#94a3b8' }}>{connected ? 'Live' : 'Offline'}</span>
-            </div>
+    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+
+      {/* Live activity header row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 20px', borderBottom: '1px solid #e2e8f0',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
+            background: '#4f46e5',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', fontSize: 18,
+          }}>
+            <BellOutlined />
           </div>
-          <Typography.Text type="secondary">Live activity across your leads</Typography.Text>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>Live activity feed</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Updated in real time across all leads</div>
+          </div>
         </div>
-        <Button size="small" disabled={unreadCount === 0} onClick={markAllRead}>
-          Mark all read
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: connected ? '#22c55e' : '#94a3b8' }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: connected ? '#16a34a' : '#94a3b8', letterSpacing: 0.5 }}>
+            {connected ? 'LIVE' : 'OFFLINE'}
+          </span>
+        </div>
       </div>
 
-      <Tabs
-        activeKey={tab}
-        onChange={setTab}
-        style={{ marginBottom: 0 }}
-        items={[
-          { key: 'all',    label: `All (${notifications.length})` },
-          { key: 'unread', label: <span>Unread {unreadCount > 0 && <Badge count={unreadCount} size="small" style={{ marginLeft: 4 }} />}</span> },
-        ]}
-      />
+      {notifications.length === 0 && <Empty description="No notifications" style={{ padding: '40px 0' }} />}
 
-      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden', marginTop: 16 }}>
-        {filtered.length === 0 && <Empty description="No notifications" style={{ padding: '40px 0' }} />}
-        {filtered.map((n, idx) => (
-          <div
-            key={n._id}
-            onClick={() => handleRow(n)}
-            style={{
-              display: 'flex', alignItems: 'flex-start', gap: 14,
-              padding: '14px 20px',
-              borderBottom: idx < filtered.length - 1 ? '1px solid #f1f5f9' : 'none',
-              background: n.isRead ? 'transparent' : '#f8faff',
-              cursor: n.lead ? 'pointer' : 'default',
-            }}
-            onMouseEnter={e => { if (n.lead) e.currentTarget.style.background = '#f1f5f9'; }}
-            onMouseLeave={e => e.currentTarget.style.background = n.isRead ? 'transparent' : '#f8faff'}
-          >
-            <div style={{
-              width: 38, height: 38, borderRadius: 10, flexShrink: 0,
-              background: `${TYPE_COLORS[n.type] || '#4f46e5'}18`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: TYPE_COLORS[n.type] || '#4f46e5', fontSize: 16,
-            }}>
-              {TYPE_ICONS[n.type] || <BellOutlined />}
-            </div>
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                <span style={{ fontWeight: n.isRead ? 500 : 700, fontSize: 14, color: '#0f172a' }}>{n.title}</span>
-                <Tag style={{ fontSize: 10, lineHeight: '16px', padding: '0 6px', margin: 0 }}>
-                  {TYPE_LABELS[n.type] || n.type}
-                </Tag>
-              </div>
-              <div style={{ fontSize: 13, color: '#475569', marginBottom: 3 }}>{n.body}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>{dayjs(n.createdAt).fromNow()}</div>
-            </div>
-
-            {!n.isRead && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', marginTop: 6, flexShrink: 0 }} />}
+      {notifications.map((n, idx) => (
+        <div
+          key={n._id}
+          onClick={() => handleRow(n)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            padding: '14px 20px',
+            borderBottom: idx < notifications.length - 1 ? '1px solid #f1f5f9' : 'none',
+            background: n.isRead ? 'transparent' : '#f8faff',
+            cursor: n.lead ? 'pointer' : 'default',
+            transition: 'background 0.12s',
+          }}
+          onMouseEnter={e => { if (n.lead) e.currentTarget.style.background = '#f1f5f9'; }}
+          onMouseLeave={e => e.currentTarget.style.background = n.isRead ? 'transparent' : '#f8faff'}
+        >
+          {/* Round icon */}
+          <div style={{
+            width: 42, height: 42, borderRadius: '50%', flexShrink: 0,
+            background: `${TYPE_COLORS[n.type] || '#4f46e5'}18`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: TYPE_COLORS[n.type] || '#4f46e5', fontSize: 17,
+            border: `1.5px solid ${TYPE_COLORS[n.type] || '#4f46e5'}30`,
+          }}>
+            {TYPE_ICONS[n.type] || <BellOutlined />}
           </div>
-        ))}
-      </div>
-    </>
+
+          {/* Text */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: n.isRead ? 500 : 700, fontSize: 14, color: '#0f172a', lineHeight: 1.3 }}>
+              {n.title}
+            </div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {cleanBody(n.body, n.type)}
+            </div>
+          </div>
+
+          {/* Unread dot */}
+          {!n.isRead && (
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
+          )}
+
+          {/* Time — far right */}
+          <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0, minWidth: 52, textAlign: 'right' }}>
+            {dayjs(n.createdAt).fromNow()}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }

@@ -11,9 +11,10 @@ const POPULATE_FIELDS = [
   { path: 'bank', select: 'name code' },
   { path: 'agency', select: 'name email' },
   { path: 'agent', select: 'name email' },
-  { path: 'cardProduct', select: 'name cardType commissionBrackets' },
-  { path: 'loanProduct', select: 'name loanCategory commissionBrackets' },
+  { path: 'cardProduct', select: 'name cardType commissionBrackets cardImage benefits feesEligibility' },
+  { path: 'loanProduct', select: 'name loanCategory commissionBrackets benefits feesEligibility minSalary maxLoanAmount maxTenure interestRateRange' },
   { path: 'employeeStatus', select: 'label color' },
+  { path: 'consentStatus', select: 'label color' },
   { path: 'assignedCpvEmployee', select: 'name email employeeType' },
   { path: 'assignedSalesEmployee', select: 'name email employeeType' },
 ];
@@ -101,8 +102,10 @@ exports.create = async (req, res) => {
     const seq = String(agentDoc.leadCount).padStart(4, '0');
     leadData.leadNumber = `LD-${agentShortId}-${seq}`;
 
-    const newLeadStatus = await EmployeeStatus.findOne({ label: /^new lead$/i, isActive: true });
+    const newLeadStatus = await EmployeeStatus.findOne({ label: /^new lead$/i, statusType: 'lead_label', isActive: true });
     if (newLeadStatus) leadData.employeeStatus = newLeadStatus._id;
+    const pendingConsent = await EmployeeStatus.findOne({ label: /^pending$/i, statusType: 'whatsapp_consent', isActive: true });
+    if (pendingConsent) leadData.consentStatus = pendingConsent._id;
 
     const lead = await Lead.create(leadData);
     const populated = await lead.populate(POPULATE_FIELDS);
@@ -148,6 +151,16 @@ exports.sendToAgency = async (req, res) => {
     if (!agencyDoc) return res.status(400).json({ message: 'The target agency is no longer active' });
 
     lead.status = 'submitted';
+
+    // Auto-assign default consent status: explicit default first, fallback to lowest order
+    let defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isDefault: true, isActive: true });
+    if (!defaultConsent) {
+      defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isActive: true }).sort({ order: 1, createdAt: 1 });
+    }
+    if (defaultConsent && !lead.consentStatus) {
+      lead.consentStatus = defaultConsent._id;
+    }
+
     await lead.save();
 
     const populated = await lead.populate(POPULATE_FIELDS);
@@ -185,6 +198,9 @@ exports.listMine = async (req, res) => {
       .populate('cardProduct', 'name cardType commissionBrackets')
       .populate('loanProduct', 'name loanCategory commissionBrackets')
       .populate('employeeStatus', 'label color')
+      .populate('consentStatus', 'label color')
+      .populate('consentStatusHistory.consentStatus', 'label color')
+      .populate('consentStatusHistory.changedBy', 'name email')
       .sort({ createdAt: -1 });
     res.json(leads);
   } catch (err) {
@@ -245,8 +261,11 @@ exports.listForAgency = async (req, res) => {
       .populate('assignedCpvEmployee', 'name email employeeType')
       .populate('assignedSalesEmployee', 'name email employeeType')
       .populate('employeeStatus', 'label color')
+      .populate('consentStatus', 'label color')
       .populate('cardProduct', 'name cardType commissionBrackets')
       .populate('loanProduct', 'name loanCategory commissionBrackets')
+      .populate('consentStatusHistory.consentStatus', 'label color')
+      .populate('consentStatusHistory.changedBy', 'name email')
       .sort({ createdAt: -1 });
     res.json(leads);
   } catch (err) {
@@ -267,8 +286,11 @@ exports.listAll = async (req, res) => {
       .populate('assignedCpvEmployee', 'name email employeeType')
       .populate('assignedSalesEmployee', 'name email employeeType')
       .populate('employeeStatus', 'label color')
+      .populate('consentStatus', 'label color')
       .populate('cardProduct', 'name cardType commissionBrackets')
       .populate('loanProduct', 'name loanCategory commissionBrackets')
+      .populate('consentStatusHistory.consentStatus', 'label color')
+      .populate('consentStatusHistory.changedBy', 'name email')
       .sort({ createdAt: -1 });
     res.json(leads);
   } catch (err) {
@@ -338,17 +360,30 @@ exports.updateStatus = async (req, res) => {
       changedAt: new Date(),
     });
     await commissionService.recalcOnStatusChange(lead);
+    // Auto-update lead label to match system status
+    const labelMap = { approved: 'Approved', rejected: 'Rejected', disbursed: 'Disbursed' };
+    if (labelMap[status]) {
+      const lbl = await EmployeeStatus.findOne({ label: labelMap[status], statusType: 'lead_label', isActive: true });
+      if (lbl) lead.employeeStatus = lbl._id;
+    }
     await lead.save();
 
     const populated = await lead.populate(POPULATE_FIELDS);
     try {
       const adminIds = await getAdminIds();
+      const statusRecipients = [
+        ...adminIds,
+        String(populated.agency?._id || populated.agency),
+        String(populated.agent?._id || populated.agent),
+      ];
+      if (populated.assignedCpvEmployee) statusRecipients.push(String(populated.assignedCpvEmployee?._id || populated.assignedCpvEmployee));
+      if (populated.assignedSalesEmployee) statusRecipients.push(String(populated.assignedSalesEmployee?._id || populated.assignedSalesEmployee));
       await createAndEmit(
-        [...adminIds, String(populated.agency?._id || populated.agency), String(populated.agent?._id || populated.agent)],
+        statusRecipients,
         {
           type: 'status_changed',
           title: `Lead ${formatStatus(status)}`,
-          body: `${lead.customerName} — ${populated.bank?.name || ''} moved to ${formatStatus(status)}`,
+          body: `${lead.customerName} — ${populated.bank?.name || ''}`,
           lead: lead._id,
         },
         req.user._id,
@@ -397,18 +432,28 @@ exports.updateLoanAmount = async (req, res) => {
  */
 exports.updateCpv = async (req, res) => {
   try {
-    const lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     lead.cpvDone = true;
     const cpvNote = req.body.note ? String(req.body.note).trim() : undefined;
     if (cpvNote) lead.cpvNote = cpvNote;
     lead.statusHistory.push({ status: 'cpv_done', note: cpvNote, changedBy: req.user._id, changedAt: new Date() });
+    const cpvLbl = await EmployeeStatus.findOne({ label: /^cpv$/i, statusType: 'lead_label', isActive: true });
+    if (cpvLbl) lead.employeeStatus = cpvLbl._id;
     await lead.save();
     const populated = await lead.populate(POPULATE_FIELDS);
     try {
       const adminIds = await getAdminIds();
+      const cpvRecipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      if (populated.assignedCpvEmployee) cpvRecipients.push(String(populated.assignedCpvEmployee?._id || populated.assignedCpvEmployee));
       await createAndEmit(
-        [...adminIds, String(populated.agent?._id || populated.agent)],
+        cpvRecipients,
         { type: 'cpv_done', title: 'CPV Completed', body: `${lead.customerName} — CPV completed`, lead: lead._id },
         req.user._id,
       );
@@ -425,18 +470,28 @@ exports.updateCpv = async (req, res) => {
  */
 exports.updateActivate = async (req, res) => {
   try {
-    const lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     lead.activateDone = true;
     const activateNote = req.body.note ? String(req.body.note).trim() : undefined;
     if (activateNote) lead.activateNote = activateNote;
     lead.statusHistory.push({ status: 'activate_done', note: activateNote, changedBy: req.user._id, changedAt: new Date() });
+    const activateLbl = await EmployeeStatus.findOne({ label: /^activated?$/i, statusType: 'lead_label', isActive: true });
+    if (activateLbl) lead.employeeStatus = activateLbl._id;
     await lead.save();
     const populated = await lead.populate(POPULATE_FIELDS);
     try {
       const adminIds = await getAdminIds();
+      const activateRecipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      if (populated.assignedSalesEmployee) activateRecipients.push(String(populated.assignedSalesEmployee?._id || populated.assignedSalesEmployee));
       await createAndEmit(
-        [...adminIds, String(populated.agent?._id || populated.agent)],
+        activateRecipients,
         { type: 'activate_done', title: 'Activation Completed', body: `${lead.customerName} — Activation completed`, lead: lead._id },
         req.user._id,
       );
@@ -718,15 +773,18 @@ exports.getOne = async (req, res) => {
       .populate('bank', 'name code')
       .populate('agency', 'name email')
       .populate('agent', 'name email phone')
-      .populate('cardProduct', 'name cardType commissionBrackets')
-      .populate('loanProduct', 'name loanCategory commissionBrackets')
+      .populate('cardProduct', 'name cardType commissionBrackets cardImage benefits feesEligibility')
+      .populate('loanProduct', 'name loanCategory commissionBrackets benefits feesEligibility minSalary maxLoanAmount maxTenure interestRateRange')
       .populate('employeeStatus', 'label color')
+      .populate('consentStatus', 'label color')
       .populate('assignedEmployee', 'name email')
       .populate('assignedCpvEmployee', 'name email employeeType')
       .populate('assignedSalesEmployee', 'name email employeeType')
       .populate('payoutHistory.sentBy', 'name email')
       .populate('statusHistory.changedBy', 'name email')
-      .populate('leadNotes.author', 'name email employeeId');
+      .populate('leadNotes.author', 'name email employeeId')
+      .populate('consentStatusHistory.changedBy', 'name email role')
+      .populate('consentStatusHistory.consentStatus', 'label color');
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     const out = lead.toObject();
     if (req.user.role === 'agency') delete out.agent;
@@ -878,6 +936,9 @@ exports.listAssigned = async (req, res) => {
       .populate('cardProduct', 'name cardType')
       .populate('loanProduct', 'name loanCategory')
       .populate('employeeStatus', 'label color')
+      .populate('consentStatus', 'label color')
+      .populate('consentStatusHistory.consentStatus', 'label color')
+      .populate('consentStatusHistory.changedBy', 'name email')
       .sort({ createdAt: -1 });
     res.json(leads);
   } catch (err) {
@@ -943,7 +1004,7 @@ exports.addNote = async (req, res) => {
         {
           type: 'note_added',
           title: 'Note Added',
-          body: `${lead.customerName} — note by ${req.user.name || req.user.email}: "${truncated}"`,
+          body: `${lead.customerName} — "${truncated}"`,
           lead: lead._id,
         },
         req.user._id,

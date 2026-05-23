@@ -5,7 +5,7 @@ import {
   AuditOutlined, IdcardOutlined, CreditCardOutlined, FundOutlined,
   DownOutlined, InboxOutlined, AppstoreOutlined,
   BellOutlined, PlusCircleOutlined, CheckCircleOutlined,
-  UserAddOutlined, SyncOutlined, MessageOutlined,
+  UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -48,6 +48,8 @@ const menusByRole = {
     { key: '/admin/payouts',           icon: <DollarOutlined />,       label: <Link to="/admin/payouts">Payouts</Link> },
     { key: '/admin/receive',           icon: <InboxOutlined />,        label: <Link to="/admin/receive">Receive</Link> },
     { key: '/admin/employee-statuses', icon: <UnorderedListOutlined />,label: <Link to="/admin/employee-statuses">Lead Status</Link> },
+    { key: '/admin/pipeline',          icon: <ProjectOutlined />,      label: <Link to="/admin/pipeline">Pipeline</Link> },
+    { key: '/admin/consent-logs',      icon: <MessageOutlined />,      label: <Link to="/admin/consent-logs">Consent Logs</Link> },
     { key: '/admin/notifications',     icon: <BellOutlined />,         label: <Link to="/admin/notifications">Notifications</Link> },
   ],
   agent: [
@@ -56,18 +58,23 @@ const menusByRole = {
     { key: '/agent/leads/new',        icon: <FileAddOutlined />,      label: <Link to="/agent/leads/new">New Lead</Link> },
     { key: '/agent/commissions',      icon: <DollarOutlined />,       label: <Link to="/agent/commissions">Payouts</Link> },
     { key: '/agent/products',         icon: <AppstoreOutlined />,     label: <Link to="/agent/products">Products</Link> },
+    { key: '/agent/consent-logs',     icon: <MessageOutlined />,      label: <Link to="/agent/consent-logs">Consent Logs</Link> },
     { key: '/agent/notifications',    icon: <BellOutlined />,         label: <Link to="/agent/notifications">Notifications</Link> },
   ],
   agency: [
     { key: '/agency',                 icon: <DashboardOutlined />,    label: <Link to="/agency">Dashboard</Link> },
     { key: '/agency/leads',           icon: <AuditOutlined />,        label: <Link to="/agency/leads">Lead Queue</Link> },
+    { key: '/agency/pipeline',        icon: <ProjectOutlined />,      label: <Link to="/agency/pipeline">Pipeline</Link> },
     { key: '/agency/employees',       icon: <TeamOutlined />,         label: <Link to="/agency/employees">Employees</Link> },
     { key: '/agency/payouts',         icon: <DollarOutlined />,       label: <Link to="/agency/payouts">Payouts</Link> },
+    { key: '/agency/consent-logs',     icon: <MessageOutlined />,      label: <Link to="/agency/consent-logs">Consent Logs</Link> },
     { key: '/agency/notifications',   icon: <BellOutlined />,         label: <Link to="/agency/notifications">Notifications</Link> },
   ],
   employee: [
     { key: '/employee',               icon: <DashboardOutlined />,    label: <Link to="/employee">Dashboard</Link> },
     { key: '/employee/leads',         icon: <UnorderedListOutlined />,label: <Link to="/employee/leads">My Leads</Link> },
+    { key: '/employee/pipeline',      icon: <ProjectOutlined />,      label: <Link to="/employee/pipeline">Pipeline</Link> },
+    { key: '/employee/consent-logs',  icon: <MessageOutlined />,      label: <Link to="/employee/consent-logs">Consent Logs</Link> },
     { key: '/employee/notifications', icon: <BellOutlined />,         label: <Link to="/employee/notifications">Notifications</Link> },
   ],
 };

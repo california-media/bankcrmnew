@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import {
-  Table, Tag, Typography, Button, Input, InputNumber, Form, Modal,
+  Table, Tag, Typography, Button, Input, InputNumber, Form, Modal, Segmented,
   Space, message, Tabs, Card, Row, Col, Descriptions, Divider, Alert, Upload, Statistic,
 } from 'antd';
 import {
@@ -32,6 +32,7 @@ function AgencyPayouts() {
   const [walletForm] = Form.useForm();
   const [walletFileList, setWalletFileList] = useState([]);
   const [walletSubmitting, setWalletSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('bank'); // 'bank' | 'bucket'
 
   const load = async () => {
     setLoading(true);
@@ -96,6 +97,7 @@ function AgencyPayouts() {
   const openPayoutModal = () => {
     payoutForm.resetFields();
     setReceiptFileList([]);
+    setPaymentMethod('bank');
     setPayoutOpen(true);
   };
 
@@ -104,11 +106,13 @@ function AgencyPayouts() {
     try { values = await payoutForm.validateFields(); } catch { return; }
     setSubmitting(true);
     try {
-      const { amountPaid, bucketUsedAmount, receiptNote } = values;
+      const { amountPaid, receiptNote } = values;
+      const bucketDeduct = paymentMethod === 'bucket' ? Math.min(selectedTotal, bucketBalance) : 0;
+      const bankAmount   = paymentMethod === 'bank'   ? (amountPaid || 0) : 0;
       const formData = new FormData();
       formData.append('leadIds', JSON.stringify(selectedRowKeys));
-      formData.append('amountPaid', amountPaid);
-      formData.append('bucketUsedAmount', bucketUsedAmount || 0);
+      formData.append('amountPaid', bankAmount);
+      formData.append('bucketUsedAmount', bucketDeduct);
       if (receiptNote) formData.append('receiptNote', receiptNote);
       if (receiptFileList[0]?.originFileObj) formData.append('receiptFile', receiptFileList[0].originFileObj);
 
@@ -161,7 +165,6 @@ function AgencyPayouts() {
         return row.productType;
       },
     },
-    { title: 'Agent', dataIndex: ['agent', 'name'], render: (v) => v || '—' },
     {
       title: 'Gross Commission',
       dataIndex: 'grossCommission',
@@ -368,12 +371,12 @@ function AgencyPayouts() {
                     const total = data.reduce((s, r) => s + (r.grossCommission || 0), 0);
                     return (
                       <Table.Summary.Row>
-                        <Table.Summary.Cell index={0} colSpan={5} />
-                        <Table.Summary.Cell index={5} align="right">
+                        <Table.Summary.Cell index={0} colSpan={4} />
+                        <Table.Summary.Cell index={4} align="right">
                           <Typography.Text strong>Total: {aed(total)}</Typography.Text>
                         </Table.Summary.Cell>
+                        <Table.Summary.Cell index={5} />
                         <Table.Summary.Cell index={6} />
-                        <Table.Summary.Cell index={7} />
                       </Table.Summary.Row>
                     );
                   }}
@@ -404,12 +407,12 @@ function AgencyPayouts() {
                     const total = data.reduce((s, r) => s + (r.grossCommission || 0), 0);
                     return (
                       <Table.Summary.Row>
-                        <Table.Summary.Cell index={0} colSpan={5} />
-                        <Table.Summary.Cell index={5} align="right">
+                        <Table.Summary.Cell index={0} colSpan={4} />
+                        <Table.Summary.Cell index={4} align="right">
                           <Typography.Text strong>Total: {aed(total)}</Typography.Text>
                         </Table.Summary.Cell>
+                        <Table.Summary.Cell index={5} />
                         <Table.Summary.Cell index={6} />
-                        <Table.Summary.Cell index={7} />
                       </Table.Summary.Row>
                     );
                   }}
@@ -456,76 +459,72 @@ function AgencyPayouts() {
         </Descriptions>
 
         <Form form={payoutForm} layout="vertical">
-          <Form.Item
-            name="amountPaid"
-            label="Bank Transfer (AED)"
-            rules={[{ required: true, message: 'Enter the amount you are sending' }]}
-          >
-            <InputNumber min={0} step={100} style={{ width: '100%' }} />
+          <Form.Item label="Payment Method" style={{ marginBottom: 14 }}>
+            <Segmented
+              block
+              value={paymentMethod}
+              onChange={(v) => { setPaymentMethod(v); payoutForm.resetFields(['amountPaid']); }}
+              options={[
+                { value: 'bank', label: 'Bank Transfer' },
+                { value: 'bucket', label: `Bucket (${aed(bucketBalance)} available)`, disabled: bucketBalance <= 0 },
+              ]}
+            />
           </Form.Item>
 
-          {bucketBalance > 0 && (
-            <Form.Item
-              name="bucketUsedAmount"
-              label={`Use from Bucket (max ${aed(bucketBalance)})`}
-            >
-              <InputNumber min={0} max={bucketBalance} step={100} style={{ width: '100%' }} />
-            </Form.Item>
+          {paymentMethod === 'bank' && (
+            <>
+              <Form.Item
+                name="amountPaid"
+                label="Transfer Amount (AED)"
+                rules={[{ required: true, message: 'Enter transfer amount' }]}
+              >
+                <InputNumber min={0} step={100} style={{ width: '100%' }} placeholder={String(selectedTotal)} />
+              </Form.Item>
+              <Form.Item name="receiptNote" label="Receipt / Reference Note">
+                <Input.TextArea rows={2} placeholder="Transfer ref, receipt number..." />
+              </Form.Item>
+              <Form.Item label="Upload Receipt (JPG, PNG, PDF — max 10 MB)">
+                <Upload
+                  fileList={receiptFileList}
+                  beforeUpload={() => false}
+                  onChange={({ fileList }) => setReceiptFileList(fileList.slice(-1))}
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  maxCount={1}
+                >
+                  <Button icon={<UploadOutlined />}>Select File</Button>
+                </Upload>
+              </Form.Item>
+            </>
           )}
 
-          <Form.Item name="receiptNote" label="Receipt / Reference Note">
-            <Input.TextArea rows={2} placeholder="Transfer ref, receipt number..." />
-          </Form.Item>
-
-          <Form.Item label="Upload Receipt Image (JPG, PNG, PDF — max 10 MB)">
-            <Upload
-              fileList={receiptFileList}
-              beforeUpload={() => false}
-              onChange={({ fileList }) => setReceiptFileList(fileList.slice(-1))}
-              accept=".jpg,.jpeg,.png,.pdf"
-              maxCount={1}
-            >
-              <Button icon={<UploadOutlined />}>Select File</Button>
-            </Upload>
-          </Form.Item>
-
-          <Divider style={{ margin: '8px 0 12px' }} />
-
-          <Form.Item noStyle shouldUpdate>
-            {({ getFieldValue }) => {
-              const paid = getFieldValue('amountPaid') || 0;
-              const bucket = getFieldValue('bucketUsedAmount') || 0;
-              const effective = paid + bucket;
-              const overage = effective - selectedTotal;
-              return (
-                <div style={{ background: '#f8fafc', borderRadius: 8, padding: '10px 14px', fontSize: 13 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ color: '#64748b' }}>Bank transfer</span>
-                    <span style={{ fontWeight: 600 }}>{aed(paid)}</span>
-                  </div>
-                  {bucket > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ color: '#64748b' }}>Bucket used</span>
-                      <span style={{ fontWeight: 600, color: '#6366f1' }}>−{aed(bucket)}</span>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ color: '#64748b' }}>Total due</span>
-                    <span style={{ fontWeight: 600 }}>−{aed(selectedTotal)}</span>
-                  </div>
-                  <Divider style={{ margin: '6px 0' }} />
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: overage >= 0 ? '#15803d' : '#dc2626', fontWeight: 700 }}>
-                      {overage >= 0 ? 'Added to bucket' : 'Shortfall'}
-                    </span>
-                    <span style={{ fontWeight: 800, color: overage >= 0 ? '#15803d' : '#dc2626' }}>
-                      {overage >= 0 ? '+' : ''}{aed(overage)}
-                    </span>
-                  </div>
+          {paymentMethod === 'bucket' && (
+            <>
+              <div style={{ background: '#eef2ff', borderRadius: 8, padding: '12px 14px', marginBottom: 14, fontSize: 13 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ color: '#4f46e5' }}>Bucket balance</span>
+                  <span style={{ fontWeight: 700, color: '#4338ca' }}>{aed(bucketBalance)}</span>
                 </div>
-              );
-            }}
-          </Form.Item>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ color: '#64748b' }}>Total due</span>
+                  <span style={{ fontWeight: 700 }}>{aed(selectedTotal)}</span>
+                </div>
+                <Divider style={{ margin: '6px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 700, color: bucketBalance >= selectedTotal ? '#15803d' : '#dc2626' }}>
+                    {bucketBalance >= selectedTotal ? 'Remaining after deduction' : 'Shortfall (bucket insufficient)'}
+                  </span>
+                  <span style={{ fontWeight: 800, color: bucketBalance >= selectedTotal ? '#15803d' : '#dc2626' }}>
+                    {bucketBalance >= selectedTotal
+                      ? `+${aed(bucketBalance - selectedTotal)}`
+                      : `-${aed(selectedTotal - bucketBalance)}`}
+                  </span>
+                </div>
+              </div>
+              <Form.Item name="receiptNote" label="Note (optional)">
+                <Input.TextArea rows={2} placeholder="Reference note..." />
+              </Form.Item>
+            </>
+          )}
         </Form>
       </Modal>
       <Modal

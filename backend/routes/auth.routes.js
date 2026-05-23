@@ -1,6 +1,10 @@
 const router = require('express').Router();
 const ctrl = require('../controllers/auth.controller');
+const uaepass = require('../controllers/uaepass.controller');
 const { protect } = require('../middleware/auth.middleware');
+
+router.get('/uaepass/init', uaepass.init);
+router.get('/uaepass/callback', uaepass.callback);
 
 router.post('/register-agent', ctrl.registerAgent);
 router.post('/login', ctrl.login);

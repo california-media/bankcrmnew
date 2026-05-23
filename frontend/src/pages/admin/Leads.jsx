@@ -52,6 +52,7 @@ function AdminLeads() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState();
+  const [labelStatuses, setLabelStatuses] = useState([]);
   const [productFilter, setProductFilter] = useState();
   const [dateRange, setDateRange] = useState(null);
 
@@ -68,7 +69,10 @@ function AdminLeads() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.get('/employee-statuses?statusType=lead_label').then((r) => setLabelStatuses(r.data.filter((s) => s.isActive))).catch(() => {});
+  }, []);
 
   const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected').length;
   const rejectedCount = leads.filter(l => l.status === 'rejected').length;
@@ -82,7 +86,7 @@ function AdminLeads() {
       if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
       if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected')) return false;
       if (q && !l.customerName.toLowerCase().includes(q) && !String(l._id).toLowerCase().includes(q)) return false;
-      if (statusFilter && l.status !== statusFilter) return false;
+      if (statusFilter && String(l.employeeStatus?._id) !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
       if (from && dayjs(l.createdAt).isBefore(from.startOf('day'))) return false;
       if (to && dayjs(l.createdAt).isAfter(to.endOf('day'))) return false;
@@ -168,21 +172,43 @@ function AdminLeads() {
       render: (_, row) => <span style={{ fontSize: 12, color: '#334155' }}>{row.bank?.name || '—'}</span>,
     },
     {
-      title: <ColHead>Stage</ColHead>,
-      width: 110,
-      render: (_, row) => <StatusPill status={row.status} />,
+      title: <ColHead>Status</ColHead>,
+      width: 120,
+      render: (_, row) => {
+        const badges = (row.cpvDone || row.activateDone) ? (
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+            {row.cpvDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>CPV ✓</span>}
+            {row.activateDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Activated ✓</span>}
+          </div>
+        ) : null;
+        if (['approved', 'disbursed'].includes(row.status)) return <div><StatusPill status={row.status} />{badges}</div>;
+        if (!row.employeeStatus) return <div><StatusPill status={row.status} />{badges}</div>;
+        const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
+        const c = COLOR_MAP[row.employeeStatus.color] || '#94a3b8';
+        return (
+          <div>
+            <Tooltip title={row.employeeStatus.label}>
+              <span style={{ display: 'inline-block', maxWidth: 110, padding: '3px 8px', borderRadius: 999, border: `1.5px solid ${c}`, fontSize: 10, fontWeight: 700, color: c, textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {row.employeeStatus.label}
+              </span>
+            </Tooltip>
+            {badges}
+          </div>
+        );
+      },
     },
     {
       title: <ColHead>Consent</ColHead>,
       width: 100,
       render: (_, row) => {
-        if (!row.employeeStatus) return <span style={{ color: '#cbd5e1' }}>—</span>;
+        const s = row.consentStatus;
+        if (!s) return <span style={{ color: '#cbd5e1' }}>—</span>;
         const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8' };
-        const c = COLOR_MAP[row.employeeStatus.color] || '#94a3b8';
+        const c = COLOR_MAP[s.color] || '#94a3b8';
         return (
-          <Tooltip title={row.employeeStatus.label}>
+          <Tooltip title={s.label}>
             <span style={{ display: 'inline-block', maxWidth: 90, padding: '3px 8px', borderRadius: 999, border: `1.5px solid ${c}`, fontSize: 10, fontWeight: 700, color: c, textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {row.employeeStatus.label}
+              {s.label}
             </span>
           </Tooltip>
         );
@@ -245,7 +271,7 @@ function AdminLeads() {
             placeholder="All Stages"
             value={statusFilter}
             onChange={setStatusFilter}
-            options={STATUSES.map((s) => ({ value: s.value, label: s.label }))}
+            options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
             style={{ width: 180 }}
           />
           <Select

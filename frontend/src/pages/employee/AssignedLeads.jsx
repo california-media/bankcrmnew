@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Modal, Space, Card, Row, Col } from 'antd';
-import { SearchOutlined, CheckOutlined, CloseOutlined, DollarOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Space, Card, Row, Col, Modal, Form } from 'antd';
+import { SearchOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import api from '../../api/client';
 
 const STATUSES = [
@@ -88,15 +89,28 @@ const ENGAGEMENT_LABELS = {
 
 function AssignedLeads() {
   const navigate = useNavigate();
+  const { user } = useSelector((s) => s.auth);
+
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [leadsTab, setLeadsTab] = useState('active');
   const [empStatuses, setEmpStatuses] = useState([]);
+  const [labelStatuses, setLabelStatuses] = useState([]);
   const [updatingStatus, setUpdatingStatus] = useState(null);
-  const [statusModal, setStatusModal] = useState({ open: false, leadId: null, status: null, label: '', note: '' });
-  const [statusSaving, setStatusSaving] = useState(false);
   const [viewMode, setViewMode] = useState('table');
+
+  const empType   = user?.employeeType; // 'cpv' | 'sales' | undefined
+  const showCpv   = empType === 'cpv';
+  const showSales = empType === 'sales';
+
+  const [actionModal, setActionModal] = useState({ open: false, leadId: null, type: null });
+  const [actionForm] = Form.useForm();
+  const [actionSaving, setActionSaving] = useState(false);
+
+  const [statusModal, setStatusModal] = useState({ open: false, leadId: null, status: null, label: '' });
+  const [statusNoteForm] = Form.useForm();
+  const [statusSaving, setStatusSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -110,28 +124,9 @@ function AssignedLeads() {
 
   useEffect(() => {
     load();
-    api.get('/employee-statuses').then((res) => setEmpStatuses(res.data.filter((s) => s.isActive)));
+    api.get('/employee-statuses?statusType=whatsapp_consent').then((res) => setEmpStatuses(res.data.filter((s) => s.isActive)));
+    api.get('/employee-statuses?statusType=lead_label').then(r => setLabelStatuses(r.data.filter(s => s.isActive))).catch(() => {});
   }, []);
-
-  const openStatusModal = (leadId, status, label) =>
-    setStatusModal({ open: true, leadId, status, label, note: '' });
-
-  const confirmStatusChange = async () => {
-    setStatusSaving(true);
-    try {
-      const { data } = await api.patch(`/leads/${statusModal.leadId}/status`, {
-        status: statusModal.status,
-        note: statusModal.note || undefined,
-      });
-      setLeads((prev) => prev.map((l) => (l._id === statusModal.leadId ? data : l)));
-      message.success(`Lead marked as ${statusModal.label}`);
-      setStatusModal({ open: false, leadId: null, status: null, label: '', note: '' });
-    } catch (err) {
-      message.error(err.response?.data?.message || 'Failed to update status');
-    } finally {
-      setStatusSaving(false);
-    }
-  };
 
   const updateEmpStatus = async (leadId, employeeStatusId) => {
     setUpdatingStatus(leadId);
@@ -143,6 +138,56 @@ function AssignedLeads() {
       message.error(err.response?.data?.message || 'Failed to update status');
     } finally {
       setUpdatingStatus(null);
+    }
+  };
+
+  const updateConsentStatus = async (leadId, consentStatusId) => {
+    try {
+      const { data } = await api.patch(`/leads/${leadId}/consent-status`, { consentStatusId: consentStatusId || null });
+      setLeads((prev) => prev.map((l) => (l._id === leadId ? data : l)));
+      message.success('Consent updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update');
+    }
+  };
+
+  const openActionModal = (leadId, type) => {
+    actionForm.resetFields();
+    setActionModal({ open: true, leadId, type });
+  };
+
+  const openStatusModal = (leadId, status, label) => {
+    statusNoteForm.resetFields();
+    setStatusModal({ open: true, leadId, status, label });
+  };
+
+  const confirmStatusUpdate = async () => {
+    setStatusSaving(true);
+    try {
+      const { note } = statusNoteForm.getFieldsValue();
+      const { data } = await api.patch(`/leads/${statusModal.leadId}/status`, { status: statusModal.status, note: note || undefined });
+      setLeads((prev) => prev.map((l) => (l._id === statusModal.leadId ? data : l)));
+      message.success(`Marked as ${statusModal.label}`);
+      setStatusModal({ open: false, leadId: null, status: null, label: '' });
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const confirmAction = async () => {
+    setActionSaving(true);
+    try {
+      const { note } = actionForm.getFieldsValue();
+      const { data } = await api.patch(`/leads/${actionModal.leadId}/${actionModal.type}`, { note: note || undefined });
+      setLeads((prev) => prev.map((l) => (l._id === actionModal.leadId ? data : l)));
+      message.success(actionModal.type === 'cpv' ? 'CPV marked done' : 'Activated marked done');
+      setActionModal({ open: false, leadId: null, type: null });
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Action failed');
+    } finally {
+      setActionSaving(false);
     }
   };
 
@@ -198,24 +243,51 @@ function AssignedLeads() {
     },
     {
       title: <ColHead>Status</ColHead>,
-      dataIndex: 'status',
-      render: (s) => <StatusPill status={s} />,
+      width: 120,
+      render: (_, row) => {
+        const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
+        const badges = (
+          (row.cpvDone || row.activateDone) ? (
+            <div style={{ display: 'flex', gap: 3, marginTop: 3, flexWrap: 'nowrap' }}>
+              {row.cpvDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>CPV ✓</span>}
+              {row.activateDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Activated ✓</span>}
+            </div>
+          ) : null
+        );
+        if (['approved', 'disbursed'].includes(row.status)) return <div><StatusPill status={row.status} />{badges}</div>;
+        if (row.employeeStatus) {
+          const c = COLOR_MAP[row.employeeStatus.color] || '#94a3b8';
+          return (
+            <div>
+              <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, border: `1.5px solid ${c}`, fontSize: 11, fontWeight: 700, color: c, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                {row.employeeStatus.label}
+              </span>
+              {badges}
+            </div>
+          );
+        }
+        return (
+          <div>
+            <StatusPill status={row.status} />
+            {badges}
+          </div>
+        );
+      },
     },
     {
       title: <ColHead>Consent</ColHead>,
-      width: 160,
+      width: 140,
       render: (_, row) => (
         <div onClick={(e) => e.stopPropagation()}>
           <Select
             size="small"
-            allowClear
-            placeholder="Set status"
+            placeholder="Set consent"
             loading={updatingStatus === row._id}
-            value={row.employeeStatus?._id || undefined}
-            onChange={(val) => updateEmpStatus(row._id, val)}
+            value={row.consentStatus?._id ? String(row.consentStatus._id) : undefined}
+            onChange={(val) => updateConsentStatus(row._id, val)}
             style={{ width: '100%' }}
             options={empStatuses.map((s) => ({
-              value: s._id,
+              value: String(s._id),
               label: <Tag color={s.color} style={{ margin: 0 }}>{s.label}</Tag>,
             }))}
           />
@@ -229,25 +301,24 @@ function AssignedLeads() {
     },
     {
       title: <ColHead>Actions</ColHead>,
-      width: 160,
+      width: 240,
       render: (_, row) => {
-        const canApprove = ['submitted', 'under_review', 'assigned'].includes(row.status);
-        const canDisburse = row.status === 'approved';
-        const canReject = ['submitted', 'under_review', 'assigned', 'approved'].includes(row.status);
-        if (!canApprove && !canDisburse && !canReject) return null;
-        return (
-          <Space size={4} onClick={(e) => e.stopPropagation()} style={{ flexWrap: 'nowrap' }}>
-            {canApprove && (
-              <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>
-            )}
-            {canDisburse && (
-              <Button size="small" icon={<DollarOutlined />} style={{ background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }} onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>
-            )}
-            {canReject && (
-              <Button size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')} />
-            )}
-          </Space>
-        );
+        const s = row.status;
+        const btns = [];
+        if (showCpv && s === 'approved' && !row.cpvDone)
+          btns.push(<Button key="cpv" size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV Done</Button>);
+        if (showSales) {
+          if (['submitted', 'under_review', 'assigned'].includes(s))
+            btns.push(<Button key="approve" size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>);
+          if (s === 'approved' && !row.activateDone)
+            btns.push(<Button key="activate" size="small" onClick={() => openActionModal(row._id, 'activate')}>Activated</Button>);
+          if (s === 'approved' && row.cpvDone && row.activateDone)
+            btns.push(<Button key="disburse" size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>);
+          if (['submitted', 'under_review', 'assigned', 'approved'].includes(s))
+            btns.push(<Button key="reject" size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>);
+        }
+        if (!btns.length) return null;
+        return <Space size={4} wrap onClick={(e) => e.stopPropagation()}>{btns}</Space>;
       },
     },
   ];
@@ -318,11 +389,31 @@ function AssignedLeads() {
                 </div>
                 <div style={{ fontSize: 12, color: '#334155', marginBottom: 4 }}>{PRODUCT_LABELS[row.productType] || row.productType}</div>
                 <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>{row.bank?.name || '—'}</div>
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{row.updatedAt ? relTime(row.updatedAt) : '—'}</span>
-                  {row.employeeStatus && (
-                    <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>{row.employeeStatus.label}</span>
-                  )}
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{row.updatedAt ? relTime(row.updatedAt) : '—'}</span>
+                    {row.employeeStatus && (
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>{row.employeeStatus.label}</span>
+                    )}
+                  </div>
+                  {(() => {
+                    const s = row.status;
+                    const btns = [];
+                    if (showCpv && s === 'approved' && !row.cpvDone)
+                      btns.push(<Button key="cpv" size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV Done</Button>);
+                    if (showSales) {
+                      if (['submitted', 'under_review', 'assigned'].includes(s))
+                        btns.push(<Button key="approve" size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>);
+                      if (s === 'approved' && !row.activateDone)
+                        btns.push(<Button key="activate" size="small" onClick={() => openActionModal(row._id, 'activate')}>Activated</Button>);
+                      if (s === 'approved' && row.cpvDone && row.activateDone)
+                        btns.push(<Button key="disburse" size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>);
+                      if (['submitted', 'under_review', 'assigned', 'approved'].includes(s))
+                        btns.push(<Button key="reject" size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>);
+                    }
+                    if (!btns.length) return null;
+                    return <Space size={4} wrap onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>{btns}</Space>;
+                  })()}
                 </div>
               </Card>
             </Col>
@@ -334,20 +425,35 @@ function AssignedLeads() {
       )}
 
       <Modal
+        title={actionModal.type === 'cpv' ? 'Mark CPV Done' : 'Mark Activated Done'}
+        open={actionModal.open}
+        onCancel={() => setActionModal({ open: false, leadId: null, type: null })}
+        onOk={confirmAction}
+        okText="Confirm"
+        confirmLoading={actionSaving}
+        destroyOnClose
+      >
+        <Form form={actionForm} layout="vertical">
+          <Form.Item name="note" label="Note (optional)">
+            <Input.TextArea rows={3} placeholder="Add a note..." />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
         title={`Move to: ${statusModal.label}`}
         open={statusModal.open}
-        onCancel={() => setStatusModal({ open: false, leadId: null, status: null, label: '', note: '' })}
-        onOk={confirmStatusChange}
+        onCancel={() => setStatusModal({ open: false, leadId: null, status: null, label: '' })}
+        onOk={confirmStatusUpdate}
         okText="Confirm"
-        okButtonProps={{ danger: statusModal.status === 'rejected', loading: statusSaving }}
+        confirmLoading={statusSaving}
+        destroyOnClose
       >
-        <Input.TextArea
-          rows={3}
-          placeholder="Add a note (optional)..."
-          value={statusModal.note}
-          onChange={(e) => setStatusModal((prev) => ({ ...prev, note: e.target.value }))}
-          style={{ marginTop: 8 }}
-        />
+        <Form form={statusNoteForm} layout="vertical">
+          <Form.Item name="note" label="Note (optional)">
+            <Input.TextArea rows={3} placeholder="Add a note for this stage update..." />
+          </Form.Item>
+        </Form>
       </Modal>
     </>
   );

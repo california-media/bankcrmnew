@@ -19,6 +19,7 @@ const userSchema = new mongoose.Schema(
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     leadCount: { type: Number, default: 0 },
     emiratesId: { type: String, default: null },
+    uaepassSub: { type: String, sparse: true, default: null },
 
     // Agency-only: overpayment credit pool
     bucketBalance: { type: Number, default: 0 },

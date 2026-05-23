@@ -21,6 +21,8 @@ import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyLeads from './pages/agency/Leads';
 import AgencyEmployees from './pages/agency/Employees';
 import AgencyPayouts from './pages/agency/Payouts';
+import ConsentLogs from './pages/agency/ConsentLogs';
+import Pipeline from './pages/agency/Pipeline';
 import Payouts from './pages/admin/Payouts';
 import Receive from './pages/admin/Receive';
 import EmployeeStatuses from './pages/admin/EmployeeStatuses';
@@ -30,6 +32,7 @@ import LeadDetail from './pages/leads/LeadDetail';
 import Profile from './pages/Profile';
 import TermsAndConditions from './pages/TermsAndConditions';
 import Notifications from './pages/Notifications';
+import UaePassCallback from './pages/UaePassCallback';
 
 const theme = {
   algorithm: antdTheme.defaultAlgorithm,
@@ -67,6 +70,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/terms" element={<TermsAndConditions />} />
+        <Route path="/auth/uaepass/callback" element={<UaePassCallback />} />
 
         <Route
           path="/admin"
@@ -87,6 +91,8 @@ function App() {
           <Route path="payouts" element={<Payouts />} />
           <Route path="receive" element={<Receive />} />
           <Route path="employee-statuses" element={<EmployeeStatuses />} />
+          <Route path="pipeline" element={<Pipeline />} />
+          <Route path="consent-logs" element={<ConsentLogs />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
         </Route>
@@ -105,6 +111,7 @@ function App() {
           <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="commissions" element={<Commissions />} />
           <Route path="products" element={<AgentProducts />} />
+          <Route path="consent-logs" element={<ConsentLogs />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
         </Route>
@@ -121,7 +128,9 @@ function App() {
           <Route path="leads" element={<AgencyLeads />} />
           <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="employees" element={<AgencyEmployees />} />
-<Route path="payouts" element={<AgencyPayouts />} />
+          <Route path="pipeline" element={<Pipeline />} />
+          <Route path="payouts" element={<AgencyPayouts />} />
+          <Route path="consent-logs" element={<ConsentLogs />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
         </Route>
@@ -137,6 +146,8 @@ function App() {
           <Route index element={<EmployeeDashboard />} />
           <Route path="leads" element={<EmployeeLeads />} />
           <Route path="leads/:id" element={<LeadDetail />} />
+          <Route path="pipeline" element={<Pipeline />} />
+          <Route path="consent-logs" element={<ConsentLogs />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
         </Route>

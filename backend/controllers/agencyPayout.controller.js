@@ -67,7 +67,7 @@ exports.submitPayout = async (req, res) => {
 
     if (!Array.isArray(leadIds) || !leadIds.length)
       return res.status(400).json({ message: 'Select at least one lead' });
-    if (!amountPaid || Number(amountPaid) < 0)
+    if (Number(amountPaid) < 0)
       return res.status(400).json({ message: 'Valid amount required' });
 
     const leads = await Lead.find({
@@ -94,10 +94,26 @@ exports.submitPayout = async (req, res) => {
 
     const overage = effectiveTotal - totalSelected;
 
+    // Bucket-only payment → auto-mark received (no admin confirmation needed)
+    const isBucketOnly = Number(amountPaid) === 0 && bucketUsed >= totalSelected;
+    const newStatus = isBucketOnly ? 'received' : 'agency_paid';
+
     await Lead.updateMany(
       { _id: { $in: leadIds } },
-      { agencyPaymentStatus: 'agency_paid', agencyPaymentNote: receiptNote || undefined }
+      {
+        agencyPaymentStatus: newStatus,
+        agencyPaymentNote: receiptNote || undefined,
+        ...(isBucketOnly ? { agencyPaymentReceivedAt: new Date() } : {}),
+      }
     );
+
+    // If auto-received, flip commissionStatus to payable so agent payout queue updates
+    if (isBucketOnly) {
+      await Lead.updateMany(
+        { _id: { $in: leadIds }, commissionStatus: { $in: ['pending', 'none'] }, commission: { $gt: 0 } },
+        { commissionStatus: 'payable' }
+      );
+    }
 
     agency.bucketBalance = bucketAvailable - bucketUsed + overage;
     await agency.save();
@@ -112,18 +128,50 @@ exports.submitPayout = async (req, res) => {
       receiptNote,
       receiptFile,
     });
+
     try {
       const adminIds = await getAdminIds();
-      await createAndEmit(
-        adminIds,
-        {
-          type: 'agency_payout_submitted',
-          title: 'Agency Payout Submitted',
-          body: `${agency.name || agency.email} submitted payout of AED ${Number(amountPaid).toLocaleString()} for ${leads.length} lead(s)`,
-        },
-        req.user._id,
-      );
+      if (isBucketOnly) {
+        // Notify admin that bucket payment auto-cleared
+        await createAndEmit(
+          adminIds,
+          {
+            type: 'agency_payout_submitted',
+            title: 'Agency Paid via Bucket',
+            body: `${agency.name || agency.email} settled ${leads.length} lead(s) (${`AED ${totalSelected.toLocaleString()}`}) via bucket — auto marked received`,
+          },
+          req.user._id,
+        );
+        // Notify agency + agents that commission is now payable
+        const fullLeads = await Lead.find({ _id: { $in: leadIds } })
+          .select('customerName agency agent commission').lean();
+        await Promise.all(
+          fullLeads.map((l) =>
+            createAndEmit(
+              [String(l.agency), String(l.agent)],
+              {
+                type: 'commission_payable',
+                title: 'Commission Ready',
+                body: `${l.customerName} — AED ${Number(l.commission || 0).toLocaleString()} now payable`,
+                lead: l._id,
+              },
+              req.user._id,
+            )
+          )
+        );
+      } else {
+        await createAndEmit(
+          adminIds,
+          {
+            type: 'agency_payout_submitted',
+            title: 'Agency Payout Submitted',
+            body: `${agency.name || agency.email} submitted payout of AED ${Number(amountPaid).toLocaleString()} for ${leads.length} lead(s)`,
+          },
+          req.user._id,
+        );
+      }
     } catch (_) {}
+
     res.status(201).json({ payout, bucketBalance: agency.bucketBalance });
   } catch (err) {
     res.status(500).json({ message: err.message });

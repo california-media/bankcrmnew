@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, DatePicker, Row, Col, Space, message, Modal, Form, InputNumber, Descriptions, Tabs, Card, Empty, Tooltip } from 'antd';
-import { SearchOutlined, CheckOutlined, CloseOutlined, EditOutlined, UserAddOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { Table, Tag, Typography, Button, Input, Select, DatePicker, Row, Col, Space, message, Modal, Form, InputNumber, Descriptions, Tabs, Card, Empty } from 'antd';
+import { SearchOutlined, EditOutlined, UserAddOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
@@ -20,8 +20,8 @@ const PRODUCTS = [
 ];
 
 const TERMINAL_STATUSES  = ['disbursed', 'rejected'];
-const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned', 'approved'];
 const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
+const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned', 'approved'];
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
@@ -106,17 +106,19 @@ function AgencyLeads() {
   const [statusNoteForm] = Form.useForm();
   const [statusSaving, setStatusSaving] = useState(false);
 
+  // CPV / Activate modals
+  const [actionModal, setActionModal] = useState({ open: false, leadId: null, type: null });
+  const [actionForm] = Form.useForm();
+  const [actionSaving, setActionSaving] = useState(false);
+
   // Loan amount edit modal
   const [loanEditOpen, setLoanEditOpen] = useState(false);
   const [loanEditLead, setLoanEditLead] = useState(null);
   const [loanForm] = Form.useForm();
 
-  // CPV / Activate modals
-  const [actionModal, setActionModal] = useState({ open: false, leadId: null, type: null }); // type: 'cpv' | 'activate'
-  const [actionForm] = Form.useForm();
-  const [actionSaving, setActionSaving] = useState(false);
-
   const [viewMode, setViewMode] = useState('table');
+  const [empStatuses, setEmpStatuses] = useState([]);
+  const [labelStatuses, setLabelStatuses] = useState([]);
 
   // Bulk assign
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
@@ -138,6 +140,8 @@ function AgencyLeads() {
   useEffect(() => {
     load();
     api.get('/employees').then((res) => setEmployees(res.data)).catch(() => {});
+    api.get('/employee-statuses?statusType=whatsapp_consent').then((res) => setEmpStatuses(res.data.filter((s) => s.isActive))).catch(() => {});
+    api.get('/employee-statuses?statusType=lead_label').then((res) => setLabelStatuses(res.data.filter((s) => s.isActive))).catch(() => {});
   }, []);
 
   const bulkAssign = async () => {
@@ -150,6 +154,26 @@ function AgencyLeads() {
       load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed');
+    }
+  };
+
+  const updateEmpStatus = async (leadId, employeeStatusId) => {
+    try {
+      const { data } = await api.patch(`/leads/${leadId}/employee-status`, { employeeStatusId: employeeStatusId || null });
+      setLeads((prev) => prev.map((l) => (l._id === leadId ? data : l)));
+      message.success('Status updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update');
+    }
+  };
+
+  const updateConsentStatus = async (leadId, consentStatusId) => {
+    try {
+      const { data } = await api.patch(`/leads/${leadId}/consent-status`, { consentStatusId: consentStatusId || null });
+      setLeads((prev) => prev.map((l) => (l._id === leadId ? data : l)));
+      message.success('Consent status updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update');
     }
   };
 
@@ -196,7 +220,7 @@ function AgencyLeads() {
     try {
       const { note } = actionForm.getFieldsValue();
       await api.patch(`/leads/${actionModal.leadId}/${actionModal.type}`, { note: note || undefined });
-      message.success(actionModal.type === 'cpv' ? 'CPV marked done' : 'Activate marked done');
+      message.success(actionModal.type === 'cpv' ? 'CPV marked done' : 'Activated marked done');
       setActionModal({ open: false, leadId: null, type: null });
       load();
     } catch (err) {
@@ -236,7 +260,7 @@ function AgencyLeads() {
       if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
       if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected')) return false;
       if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
-      if (statusFilter && l.status !== statusFilter) return false;
+      if (statusFilter && String(l.employeeStatus?._id) !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
       if (from && dayjs(l.createdAt).isBefore(from.startOf('day'))) return false;
       if (to && dayjs(l.createdAt).isAfter(to.endOf('day'))) return false;
@@ -300,25 +324,72 @@ function AgencyLeads() {
     },
     {
       title: <ColHead>Status</ColHead>,
-      dataIndex: 'status',
-      width: 120,
-      render: (s) => <StatusPill status={s} />,
+      width: 140,
+      render: (_, row) => {
+        const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
+        const badges = (
+          (row.cpvDone || row.activateDone) ? (
+            <div style={{ display: 'flex', gap: 3, marginTop: 3, flexWrap: 'nowrap' }}>
+              {row.cpvDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>CPV ✓</span>}
+              {row.activateDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Activated ✓</span>}
+            </div>
+          ) : null
+        );
+        // Post-approval: always show system status pill
+        if (['approved', 'disbursed'].includes(row.status)) {
+          const p = STATUS_PILL[row.status] || { bg: '#f1f5f9', border: '#e2e8f0', dot: '#94a3b8', text: '#475569', label: (row.status || '').toUpperCase() };
+          return (
+            <div>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: p.bg, border: `1px solid ${p.border}`, fontSize: 11, fontWeight: 700, color: p.text, whiteSpace: 'nowrap' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.dot, flexShrink: 0 }} />
+                {p.label}
+              </span>
+              {badges}
+            </div>
+          );
+        }
+        // Pre-approval: custom label pill if set
+        if (row.employeeStatus) {
+          const c = COLOR_MAP[row.employeeStatus.color] || '#94a3b8';
+          return (
+            <div>
+              <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, border: `1.5px solid ${c}`, fontSize: 11, fontWeight: 700, color: c, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                {row.employeeStatus.label}
+              </span>
+              {badges}
+            </div>
+          );
+        }
+        const p = STATUS_PILL[row.status] || { bg: '#f1f5f9', border: '#e2e8f0', dot: '#94a3b8', text: '#475569', label: (row.status || '').toUpperCase() };
+        return (
+          <div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: p.bg, border: `1px solid ${p.border}`, fontSize: 11, fontWeight: 700, color: p.text, whiteSpace: 'nowrap' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: p.dot, flexShrink: 0 }} />
+              {p.label}
+            </span>
+            {badges}
+          </div>
+        );
+      },
     },
     {
       title: <ColHead>Consent</ColHead>,
-      width: 120,
-      render: (_, row) => {
-        if (!row.employeeStatus) return <span style={{ color: '#cbd5e1', fontSize: 13 }}>—</span>;
-        const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
-        const c = COLOR_MAP[row.employeeStatus.color] || '#94a3b8';
-        return (
-          <Tooltip title={row.employeeStatus.label}>
-            <span style={{ display: 'inline-block', maxWidth: 100, padding: '3px 8px', borderRadius: 999, border: `1.5px solid ${c}`, fontSize: 10, fontWeight: 700, color: c, textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {row.employeeStatus.label}
-            </span>
-          </Tooltip>
-        );
-      },
+      width: 130,
+      render: (_, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Select
+            size="small"
+            placeholder="Set consent"
+            value={row.consentStatus?._id ? String(row.consentStatus._id) : undefined}
+            onChange={(val) => updateConsentStatus(row._id, val)}
+            style={{ width: '100%' }}
+            options={empStatuses.map((s) => ({
+              value: String(s._id),
+              label: <Tag color={s.color} style={{ margin: 0 }}>{s.label}</Tag>,
+            }))}
+          />
+        </div>
+      ),
     },
     {
       title: <ColHead>Agent</ColHead>,
@@ -338,54 +409,6 @@ function AgencyLeads() {
       },
     },
     {
-      title: <ColHead>Actions</ColHead>,
-      width: 110,
-      render: (_, row) => {
-        const canReject   = REJECTABLE_FROM.includes(row.status);
-        const canEditLoan = row.productType === 'loan' && LOAN_EDITABLE_FROM.includes(row.status);
-        const canApprove  = ['submitted', 'under_review', 'assigned'].includes(row.status);
-        const canCpv      = row.status === 'approved' && !row.cpvDone;
-        const canActivate = row.status === 'approved' && !row.activateDone;
-        const canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
-        const hasActions  = canApprove || canCpv || canActivate || canDisburse || canEditLoan || canReject;
-        if (!hasActions) return null;
-        return (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }} onClick={(e) => e.stopPropagation()}>
-            {canApprove && (
-              <span onClick={() => openStatusModal(row._id, 'approved', 'Approved')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, background: '#dcfce7', border: '1px solid #86efac', color: '#15803d', fontSize: 11, fontWeight: 700 }}>
-                <CheckOutlined style={{ fontSize: 9 }} /> Approve
-              </span>
-            )}
-            {canCpv && (
-              <span onClick={() => openActionModal(row._id, 'cpv')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, background: '#dbeafe', border: '1px solid #93c5fd', color: '#1d4ed8', fontSize: 11, fontWeight: 700 }}>
-                CPV
-              </span>
-            )}
-            {canActivate && (
-              <span onClick={() => openActionModal(row._id, 'activate')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, background: '#ccfbf1', border: '1px solid #5eead4', color: '#0f766e', fontSize: 11, fontWeight: 700 }}>
-                Activate
-              </span>
-            )}
-            {canDisburse && (
-              <span onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, background: '#ede9fe', border: '1px solid #c4b5fd', color: '#6d28d9', fontSize: 11, fontWeight: 700 }}>
-                Disburse
-              </span>
-            )}
-            {canEditLoan && (
-              <span onClick={() => openLoanEdit(row)} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', padding: '3px 7px', borderRadius: 999, background: '#fef9c3', border: '1px solid #fde047', color: '#a16207', fontSize: 11 }}>
-                <EditOutlined style={{ fontSize: 10 }} />
-              </span>
-            )}
-            {canReject && (
-              <span onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', padding: '3px 7px', borderRadius: 999, background: '#fee2e2', border: '1px solid #fca5a5', color: '#b91c1c', fontSize: 11 }}>
-                <CloseOutlined style={{ fontSize: 9 }} />
-              </span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
       title: <ColHead>Updated</ColHead>,
       dataIndex: 'updatedAt',
       width: 80,
@@ -393,14 +416,37 @@ function AgencyLeads() {
     },
     {
       title: <ColHead>Payout</ColHead>,
-      width: 95,
+      width: 110,
       align: 'right',
       render: (_, row) => (
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: row.commissionStatus === 'paid' ? '#16a34a' : '#4f46e5' }}>{aed(row.commission)}</div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: row.commissionStatus === 'paid' ? '#16a34a' : '#4f46e5' }}>{aed(row.grossCommission)}</div>
           {row.commissionStatus === 'paid' && <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>PAID</div>}
         </div>
       ),
+    },
+    {
+      title: <ColHead>Actions</ColHead>,
+      width: 200,
+      render: (_, row) => {
+        const canReject   = REJECTABLE_FROM.includes(row.status);
+        const canEditLoan = row.productType === 'loan' && LOAN_EDITABLE_FROM.includes(row.status);
+        const canApprove  = ['submitted', 'under_review', 'assigned'].includes(row.status);
+        const canCpv      = row.status === 'approved' && !row.cpvDone;
+        const canActivate = row.status === 'approved' && !row.activateDone;
+        const canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
+        if (!canApprove && !canCpv && !canActivate && !canDisburse && !canEditLoan && !canReject) return null;
+        return (
+          <Space size={4} wrap onClick={(e) => e.stopPropagation()}>
+            {canApprove && <Button size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>}
+            {canCpv && <Button size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV</Button>}
+            {canActivate && <Button size="small" onClick={() => openActionModal(row._id, 'activate')}>Activated</Button>}
+            {canDisburse && <Button size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>}
+            {canEditLoan && <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />}
+            {canReject && <Button size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -410,7 +456,7 @@ function AgencyLeads() {
         <Col>
           <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Lead Queue</Typography.Title>
           <Typography.Text type="secondary">
-            Leads filed to your agency. Approve is only enabled once a lead reaches <i>Assigned</i>; reject is available throughout.
+            Leads filed to your agency.
           </Typography.Text>
         </Col>
         <Col>
@@ -444,7 +490,7 @@ function AgencyLeads() {
             placeholder="All Stages"
             value={statusFilter}
             onChange={setStatusFilter}
-            options={STATUSES.map((s) => ({ value: s.value, label: s.label }))}
+            options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
             style={{ width: 180 }}
           />
           <Select
@@ -594,24 +640,12 @@ function AgencyLeads() {
                       if (!canApprove && !canCpv && !canActivate && !canDisburse && !canEditLoan && !canReject) return null;
                       return (
                         <Space size={4} style={{ marginTop: 10, flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
-                          {canApprove && (
-                            <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>
-                          )}
-                          {canCpv && (
-                            <Button size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV</Button>
-                          )}
-                          {canActivate && (
-                            <Button size="small" onClick={() => openActionModal(row._id, 'activate')}>Activate</Button>
-                          )}
-                          {canDisburse && (
-                            <Button size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>
-                          )}
-                          {canEditLoan && (
-                            <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />
-                          )}
-                          {canReject && (
-                            <Button size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>
-                          )}
+                          {canApprove && <Button size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>}
+                          {canCpv && <Button size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV</Button>}
+                          {canActivate && <Button size="small" onClick={() => openActionModal(row._id, 'activate')}>Activated</Button>}
+                          {canDisburse && <Button size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>}
+                          {canEditLoan && <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />}
+                          {canReject && <Button size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>}
                         </Space>
                       );
                     })()}
@@ -625,23 +659,6 @@ function AgencyLeads() {
           )}
         </Row>
       )}
-
-      {/* Status update modal */}
-      <Modal
-        title={`Move to: ${statusModal.label}`}
-        open={statusModal.open}
-        onCancel={() => setStatusModal({ open: false, leadId: null, status: null, label: '' })}
-        onOk={confirmStatusUpdate}
-        okText="Confirm"
-        confirmLoading={statusSaving}
-        destroyOnClose
-      >
-        <Form form={statusNoteForm} layout="vertical">
-          <Form.Item name="note" label="Note (optional)">
-            <Input.TextArea rows={3} placeholder="Add a note for this stage update..." />
-          </Form.Item>
-        </Form>
-      </Modal>
 
       {/* Loan amount modal */}
       <Modal
@@ -665,9 +682,26 @@ function AgencyLeads() {
         </Form>
       </Modal>
 
+      {/* Status update modal */}
+      <Modal
+        title={`Move to: ${statusModal.label}`}
+        open={statusModal.open}
+        onCancel={() => setStatusModal({ open: false, leadId: null, status: null, label: '' })}
+        onOk={confirmStatusUpdate}
+        okText="Confirm"
+        confirmLoading={statusSaving}
+        destroyOnClose
+      >
+        <Form form={statusNoteForm} layout="vertical">
+          <Form.Item name="note" label="Note (optional)">
+            <Input.TextArea rows={3} placeholder="Add a note for this stage update..." />
+          </Form.Item>
+        </Form>
+      </Modal>
+
       {/* CPV / Activate modal */}
       <Modal
-        title={actionModal.type === 'cpv' ? 'Mark CPV Done' : 'Mark Activate Done'}
+        title={actionModal.type === 'cpv' ? 'Mark CPV Done' : 'Mark Activated Done'}
         open={actionModal.open}
         onCancel={() => setActionModal({ open: false, leadId: null, type: null })}
         onOk={confirmAction}

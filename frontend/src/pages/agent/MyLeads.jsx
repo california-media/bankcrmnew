@@ -66,6 +66,7 @@ function MyLeads() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState();
+  const [labelStatuses, setLabelStatuses] = useState([]);
   const [productFilter, setProductFilter] = useState();
   const [leadsTab, setLeadsTab] = useState('active');
   const [viewMode, setViewMode] = useState('table');
@@ -80,7 +81,10 @@ function MyLeads() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.get('/employee-statuses?statusType=lead_label').then((r) => setLabelStatuses(r.data.filter((s) => s.isActive))).catch(() => {});
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -89,7 +93,7 @@ function MyLeads() {
       if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
       if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected')) return false;
       if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
-      if (statusFilter && l.status !== statusFilter) return false;
+      if (statusFilter && String(l.employeeStatus?._id) !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
       return true;
     });
@@ -130,13 +134,31 @@ function MyLeads() {
     },
     {
       title: <ColHead>Status</ColHead>,
-      dataIndex: 'status',
-      render: (s) => <StatusPill status={s} />,
+      render: (_, row) => {
+        const badges = (row.cpvDone || row.activateDone) ? (
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+            {row.cpvDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>CPV ✓</span>}
+            {row.activateDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Activated ✓</span>}
+          </div>
+        ) : null;
+        if (['approved', 'disbursed'].includes(row.status)) return <div><StatusPill status={row.status} />{badges}</div>;
+        if (!row.employeeStatus) return <div><StatusPill status={row.status} />{badges}</div>;
+        const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
+        const c = COLOR_MAP[row.employeeStatus.color] || '#94a3b8';
+        return (
+          <div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, border: `1.5px solid ${c}`, fontSize: 11, fontWeight: 700, color: c, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+              {row.employeeStatus.label}
+            </span>
+            {badges}
+          </div>
+        );
+      },
     },
     {
       title: <ColHead>Consent</ColHead>,
-      dataIndex: 'employeeStatus',
-      render: (s) => {
+      render: (_, row) => {
+        const s = row.consentStatus;
         if (!s) return <span style={{ color: '#cbd5e1' }}>—</span>;
         const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
         const c = COLOR_MAP[s.color] || '#94a3b8';
@@ -153,12 +175,12 @@ function MyLeads() {
       render: (d) => <span style={{ fontSize: 12, color: '#64748b' }}>{d ? relTime(d) : '—'}</span>,
     },
     {
-      title: <ColHead>Payout</ColHead>,
+      title: <ColHead>Expected Earning</ColHead>,
       align: 'right',
       render: (_, row) => (
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontWeight: 700, fontSize: 13, color: row.commissionStatus === 'paid' ? '#16a34a' : '#4f46e5' }}>{aed(row.commission)}</div>
-          {row.commissionStatus === 'paid' && <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>PAID</div>}
+          {row.commissionStatus === 'paid' && <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 600 }}>RECEIVED</div>}
         </div>
       ),
     },
@@ -207,7 +229,7 @@ function MyLeads() {
             placeholder="All Stages"
             value={statusFilter}
             onChange={setStatusFilter}
-            options={STATUSES.map((s) => ({ value: s.value, label: s.label }))}
+            options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
             style={{ width: 180 }}
           />
           <Select

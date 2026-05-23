@@ -1,33 +1,24 @@
 import { useEffect, useState } from 'react';
 import {
-  Table, Button, Modal, Form, Input, Select, Tag, Space, Typography, Row, Col, message, Popconfirm, Switch, Divider, InputNumber,
+  Table, Button, Modal, Form, Input, Select, Tag, Space, Typography, Row, Col,
+  message, Popconfirm, Switch, InputNumber, Tabs,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, StarFilled, StarOutlined, LockOutlined } from '@ant-design/icons';
 import api from '../../api/client';
-
-const SYSTEM_STAGES = [
-  { value: 'draft',        label: 'Draft',        color: 'default' },
-  { value: 'submitted',    label: 'Submitted',    color: 'blue' },
-  { value: 'under_review', label: 'Under Review', color: 'gold' },
-  { value: 'assigned',     label: 'Assigned',     color: 'cyan' },
-  { value: 'approved',     label: 'Approved',     color: 'green' },
-  { value: 'rejected',     label: 'Rejected',     color: 'red' },
-  { value: 'disbursed',    label: 'Disbursed',    color: 'purple' },
-];
 
 const COLOR_OPTIONS = [
   { value: 'default', label: 'Grey' },
-  { value: 'blue', label: 'Blue' },
-  { value: 'green', label: 'Green' },
-  { value: 'gold', label: 'Gold' },
-  { value: 'orange', label: 'Orange' },
-  { value: 'red', label: 'Red' },
-  { value: 'purple', label: 'Purple' },
-  { value: 'cyan', label: 'Cyan' },
+  { value: 'blue',    label: 'Blue' },
+  { value: 'green',   label: 'Green' },
+  { value: 'gold',    label: 'Gold' },
+  { value: 'orange',  label: 'Orange' },
+  { value: 'red',     label: 'Red' },
+  { value: 'purple',  label: 'Purple' },
+  { value: 'cyan',    label: 'Cyan' },
   { value: 'volcano', label: 'Volcano' },
 ];
 
-function EmployeeStatuses() {
+function StatusTable({ statusType }) {
   const [statuses, setStatuses] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -43,20 +34,20 @@ function EmployeeStatuses() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/employee-statuses');
+      const { data } = await api.get(`/employee-statuses?statusType=${statusType}`);
       setStatuses(data);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [statusType]);
 
   const addStatus = async () => {
     const values = await addForm.validateFields();
     setAddSaving(true);
     try {
-      await api.post('/employee-statuses', values);
+      await api.post('/employee-statuses', { ...values, statusType });
       message.success('Status added');
       setAddOpen(false);
       addForm.resetFields();
@@ -70,7 +61,7 @@ function EmployeeStatuses() {
 
   const openEdit = (row) => {
     setEditTarget(row);
-    editForm.setFieldsValue({ label: row.label, color: row.color, isActive: row.isActive });
+    editForm.setFieldsValue({ label: row.label, color: row.color, isActive: row.isActive, isFixed: row.isFixed });
     setEditOpen(true);
   };
 
@@ -121,6 +112,16 @@ function EmployeeStatuses() {
     }
   };
 
+  const setDefault = async (id) => {
+    try {
+      await api.patch(`/employee-statuses/${id}`, { isDefault: true });
+      message.success('Default consent status set');
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed');
+    }
+  };
+
   const columns = [
     {
       title: '#',
@@ -161,30 +162,53 @@ function EmployeeStatuses() {
         <Switch checked={v} size="small" onChange={(checked) => toggleActive(row._id, checked)} />
       ),
     },
+    ...(statusType === 'whatsapp_consent' ? [{
+      title: 'Default',
+      dataIndex: 'isDefault',
+      render: (v, row) => v
+        ? <StarFilled style={{ color: '#f59e0b', fontSize: 16 }} title="Default consent status" />
+        : <StarOutlined style={{ color: '#cbd5e1', fontSize: 16, cursor: 'pointer' }} title="Set as default" onClick={() => setDefault(row._id)} />,
+    }] : []),
+    {
+      title: 'Fixed',
+      dataIndex: 'isFixed',
+      width: 60,
+      render: (v, row) => v
+        ? <LockOutlined style={{ color: '#f59e0b', fontSize: 16 }} title="Fixed — cannot be deleted" />
+        : null,
+    },
     {
       title: 'Actions',
       render: (_, row) => (
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)}>Edit</Button>
-          <Popconfirm
-            title="Delete this status?"
-            description="Leads using this status will be cleared."
-            onConfirm={() => deleteStatus(row._id)}
-            okText="Delete"
-            okButtonProps={{ danger: true }}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />}>Delete</Button>
-          </Popconfirm>
+          {!row.isFixed && (
+            <Popconfirm
+              title="Delete this status?"
+              description="Leads using this status will be cleared."
+              onConfirm={() => deleteStatus(row._id)}
+              okText="Delete"
+              okButtonProps={{ danger: true }}
+            >
+              <Button size="small" danger icon={<DeleteOutlined />}>Delete</Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
   ];
 
+  const label = statusType === 'whatsapp_consent' ? 'WhatsApp Consent Status' : 'Custom Lead Labels';
+  const desc  = statusType === 'whatsapp_consent'
+    ? 'These statuses are shown in the Consent column of the leads table.'
+    : 'Employees and agencies apply these labels to their assigned leads.';
+
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
         <Col>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Lead Status</Typography.Title>
+          <Typography.Text strong style={{ fontSize: 14 }}>{label}</Typography.Text>
+          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>{desc}</Typography.Text>
         </Col>
         <Col>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => { addForm.resetFields(); setAddOpen(true); }}>
@@ -193,27 +217,8 @@ function EmployeeStatuses() {
         </Col>
       </Row>
 
-      {/* System stages */}
-      <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>System Stages</Typography.Text>
-      <Space wrap style={{ marginBottom: 4 }}>
-        {SYSTEM_STAGES.map((s) => (
-          <Tag key={s.value} color={s.color} style={{ fontSize: 13, padding: '2px 10px' }}>{s.label}</Tag>
-        ))}
-      </Space>
-      <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 16 }}>
-        Built-in workflow stages — not editable.
-      </Typography.Text>
-
-      <Divider style={{ margin: '8px 0 16px' }} />
-
-      <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>Custom Labels</Typography.Text>
-      <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 12 }}>
-        Employees apply these labels to their assigned leads.
-      </Typography.Text>
-
       <Table size="small" rowKey="_id" loading={loading} dataSource={statuses} columns={columns} />
 
-      {/* Add modal */}
       <Modal title="Add Status" open={addOpen} onCancel={() => setAddOpen(false)} onOk={addStatus} okText="Add" confirmLoading={addSaving} destroyOnClose>
         <Form form={addForm} layout="vertical" initialValues={{ color: 'default' }}>
           <Form.Item name="label" label="Label" rules={[{ required: true, message: 'Label is required' }]}>
@@ -225,10 +230,9 @@ function EmployeeStatuses() {
         </Form>
       </Modal>
 
-      {/* Edit modal */}
       <Modal title="Edit Status" open={editOpen} onCancel={() => setEditOpen(false)} onOk={saveEdit} okText="Save" confirmLoading={editSaving} destroyOnClose>
         <Form form={editForm} layout="vertical">
-          <Form.Item name="label" label="Label" rules={[{ required: true, message: 'Label is required' }]}>
+          <Form.Item name="label" label="Label" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
           <Form.Item name="color" label="Color">
@@ -237,8 +241,35 @@ function EmployeeStatuses() {
           <Form.Item name="isActive" label="Active" valuePropName="checked">
             <Switch />
           </Form.Item>
+          <Form.Item name="isFixed" label="Fixed (cannot be deleted)" valuePropName="checked">
+            <Switch />
+          </Form.Item>
         </Form>
       </Modal>
+    </>
+  );
+}
+
+function EmployeeStatuses() {
+  return (
+    <>
+      <Typography.Title level={4} style={{ margin: '0 0 12px', fontWeight: 500 }}>Lead Status</Typography.Title>
+
+      <Tabs
+        defaultActiveKey="lead_label"
+        items={[
+          {
+            key: 'lead_label',
+            label: 'Lead Labels',
+            children: <StatusTable statusType="lead_label" />,
+          },
+          {
+            key: 'whatsapp_consent',
+            label: 'WhatsApp Consent',
+            children: <StatusTable statusType="whatsapp_consent" />,
+          },
+        ]}
+      />
     </>
   );
 }

@@ -22,14 +22,15 @@ router.post('/:id/send-to-agency', requireRole('agent', 'admin'), ctrl.sendToAge
 // Employee
 router.get('/assigned', requireRole('employee'), ctrl.listAssigned);
 router.patch('/:id/employee-status', requireRole('employee', 'agency'), require('../controllers/employeeStatus.controller').setOnLead);
+router.patch('/:id/consent-status', requireRole('employee', 'agency'), require('../controllers/employeeStatus.controller').setConsentOnLead);
 
 // Agency
 router.get('/agency', requireRole('agency'), ctrl.listForAgency);
 router.post('/bulk-assign-employee', requireRole('agency'), ctrl.bulkAssignEmployee);
 router.post('/bulk-receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.bulkAddReceipt);
 router.patch('/:id/loan-amount', requireRole('agency'), ctrl.updateLoanAmount);
-router.patch('/:id/cpv', requireRole('agency'), ctrl.updateCpv);
-router.patch('/:id/activate', requireRole('agency'), ctrl.updateActivate);
+router.patch('/:id/cpv', requireRole('agency', 'employee'), ctrl.updateCpv);
+router.patch('/:id/activate', requireRole('agency', 'employee'), ctrl.updateActivate);
 router.patch('/:id/receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.addDisbursementReceipt);
 router.patch('/:id/assign-employee', requireRole('agency'), ctrl.assignEmployee);
 

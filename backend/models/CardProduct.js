@@ -19,6 +19,7 @@ const cardProductSchema = new mongoose.Schema(
     commissionBrackets: { type: [bracketSchema], default: [] },
     benefits: { type: String, default: '' },
     feesEligibility: { type: String, default: '' },
+    clawbackMonths: { type: Number, default: 0, min: 0 },
     isActive: { type: Boolean, default: true },
     cardImage: { type: String, trim: true },
   },

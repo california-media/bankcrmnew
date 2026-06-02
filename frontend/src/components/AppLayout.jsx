@@ -6,6 +6,7 @@ import {
   DownOutlined, InboxOutlined, AppstoreOutlined,
   BellOutlined, PlusCircleOutlined, CheckCircleOutlined,
   UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined, WalletOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -59,8 +60,9 @@ const menusByRole = {
     { key: '/agent/leads/new',        icon: <FileAddOutlined />,      label: <Link to="/agent/leads/new">New Lead</Link> },
     { key: '/agent/commissions',      icon: <DollarOutlined />,       label: <Link to="/agent/commissions">Payouts</Link> },
     { key: '/agent/products',         icon: <AppstoreOutlined />,     label: <Link to="/agent/products">Products</Link> },
-    { key: '/agent/consent-logs',     icon: <MessageOutlined />,      label: <Link to="/agent/consent-logs">Consent Logs</Link> },
+
     { key: '/agent/notifications',    icon: <BellOutlined />,         label: <Link to="/agent/notifications">Notifications</Link> },
+    { key: '/agent/settings',         icon: <SettingOutlined />,      label: <Link to="/agent/settings">Settings</Link> },
   ],
   agency: [
     { key: '/agency',                 icon: <DashboardOutlined />,    label: <Link to="/agency">Dashboard</Link> },

@@ -198,9 +198,13 @@ function StatusTable({ statusType }) {
     },
   ];
 
-  const label = statusType === 'whatsapp_consent' ? 'WhatsApp Consent Status' : 'Custom Lead Labels';
-  const desc  = statusType === 'whatsapp_consent'
+  const label = statusType === 'whatsapp_consent' ? 'WhatsApp Consent Status'
+    : statusType === 'loan_status' ? 'Loan Stage Statuses'
+    : 'Custom Lead Labels';
+  const desc = statusType === 'whatsapp_consent'
     ? 'These statuses are shown in the Consent column of the leads table.'
+    : statusType === 'loan_status'
+    ? 'Stage labels applied to loan leads by admin, agency, and employees.'
     : 'Employees and agencies apply these labels to their assigned leads.';
 
   return (
@@ -267,6 +271,11 @@ function EmployeeStatuses() {
             key: 'whatsapp_consent',
             label: 'WhatsApp Consent',
             children: <StatusTable statusType="whatsapp_consent" />,
+          },
+          {
+            key: 'loan_status',
+            label: 'Loan Status',
+            children: <StatusTable statusType="loan_status" />,
           },
         ]}
       />

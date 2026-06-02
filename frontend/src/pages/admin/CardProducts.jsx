@@ -71,6 +71,7 @@ function CardProducts() {
       bank: c.bank?._id,
       agency: c.agency?._id,
       isActive: c.isActive,
+      clawbackMonths: c.clawbackMonths || 0,
       commissionBrackets: c.commissionBrackets || [],
     });
     setBenefitsHtml(c.benefits || '');
@@ -91,6 +92,7 @@ function CardProducts() {
       fd.append('cardType', values.cardType);
       fd.append('bank', values.bank);
       if (values.agency) fd.append('agency', values.agency);
+      fd.append('clawbackMonths', values.clawbackMonths || 0);
       fd.append('commissionBrackets', JSON.stringify(values.commissionBrackets || []));
       fd.append('benefits', benefitsHtml);
       fd.append('feesEligibility', feesHtml);
@@ -266,6 +268,15 @@ function CardProducts() {
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               JPG, PNG, or WebP — max 10 MB
             </Typography.Text>
+          </Form.Item>
+
+          <Form.Item
+            name="clawbackMonths"
+            label="Clawback Period (months)"
+            tooltip="Number of months the agent's hold % is retained before admin can release it. Set 0 for no clawback."
+            initialValue={0}
+          >
+            <InputNumber min={0} max={36} style={{ width: '100%' }} placeholder="e.g. 3" />
           </Form.Item>
 
           <Divider orientation="left" style={{ fontSize: 13 }}>Commission Brackets</Divider>

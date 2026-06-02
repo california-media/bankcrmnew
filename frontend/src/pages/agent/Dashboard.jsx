@@ -193,6 +193,18 @@ function AgentDashboard() {
             Here's what's happening with your portfolio today.
           </div>
         </div>
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'rgba(255,255,255,0.55)', marginBottom: 6 }}>
+            Your Referral Code
+          </div>
+          <Typography.Text
+            copyable={{ icon: <CopyOutlined style={{ color: 'rgba(255,255,255,0.7)' }} />, text: user.referralCode }}
+            style={{ fontFamily: 'monospace', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: 3 }}
+          >
+            {user.referralCode}
+          </Typography.Text>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>Share to earn referral bonuses</div>
+        </div>
         <Link to="/agent/leads/new">
           <Button
             icon={<PlusOutlined />}
@@ -234,45 +246,29 @@ function AgentDashboard() {
         </Col>
         <Col xs={24} lg={8}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
-            <LeadPipeline stats={stats} />
-          <Card
-            style={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', overflow: 'hidden' }}
-            styles={{ body: { padding: 0 } }}
-          >
-            <div style={{
-              background: 'linear-gradient(135deg, #1e1b4b 0%, #1d4ed8 100%)',
-              padding: '28px 24px 52px',
-              textAlign: 'center',
-              position: 'relative',
-            }}>
-              <div style={{ position: 'absolute', right: -20, top: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-              <div style={{
-                width: 72, height: 72, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.2)',
-                border: '3px solid rgba(255,255,255,0.4)',
-                color: '#fff',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 28, fontWeight: 700,
-              }}>
-                {(user.name || user.email)[0].toUpperCase()}
-              </div>
-              <div style={{ fontWeight: 700, marginTop: 10, fontSize: 16, color: '#fff' }}>{user.name || user.email}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>{user.email}</div>
-            </div>
-            <div style={{ padding: '0 24px 20px', marginTop: -28 }}>
-              <Card size="small" style={{ borderRadius: 12, border: '1px solid #e2e8f0', background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-                <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 1, marginBottom: 6, fontWeight: 700 }}>
-                  Referral Code
+            {/* Performance This Month */}
+            <Card
+              style={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', background: '#eef2ff' }}
+              styles={{ body: { padding: '20px 24px' } }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#1e1b4b', marginBottom: 16 }}>Performance This Month</div>
+              {[
+                { label: 'Submitted', value: stats?.thisMonth?.submitted ?? 0, color: '#4f46e5' },
+                { label: 'Approved', value: stats?.thisMonth?.approved ?? 0, color: '#16a34a' },
+                { label: 'Paid', value: stats?.thisMonth?.paid ?? 0, color: '#7c3aed' },
+              ].map((row) => (
+                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <span style={{ fontSize: 13, color: '#475569', fontWeight: 500 }}>{row.label}</span>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: row.color, lineHeight: 1 }}>{row.value}</span>
                 </div>
-                <Typography.Text
-                  copyable={{ icon: <CopyOutlined />, text: user.referralCode }}
-                  style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 800, color: '#1d4ed8' }}
-                >
-                  {user.referralCode}
-                </Typography.Text>
-              </Card>
-            </div>
-          </Card>
+              ))}
+              <div style={{ height: 1, background: '#c7d2fe', margin: '12px 0' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: '#6366f1', fontWeight: 600 }}>Earned</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: '#4f46e5' }}>AED {Number(stats?.thisMonth?.earned || 0).toLocaleString()}</span>
+              </div>
+            </Card>
+            <LeadPipeline stats={stats} />
           </div>
         </Col>
       </Row>

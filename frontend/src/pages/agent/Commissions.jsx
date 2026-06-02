@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, Row, Col, Typography, Table, Tag, Empty, Skeleton, Space, Tabs, Statistic } from 'antd';
-import { CheckCircleOutlined, ClockCircleOutlined, RiseOutlined, DollarOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, ClockCircleOutlined, RiseOutlined, DollarOutlined, LockOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
@@ -18,6 +18,7 @@ function Commissions() {
   const paidLeads = (ledger?.leads || []).filter((l) => l.commissionStatus === 'paid');
   const payableLeads = (ledger?.leads || []).filter((l) => l.commissionStatus === 'payable');
   const pendingLeads = (ledger?.leads || []).filter((l) => l.commissionStatus === 'pending');
+  const heldLeads = (ledger?.leads || []).filter((l) => l.holdAmount > 0 && !l.holdReleased && l.productType === 'credit_card');
 
   const paidColumns = [
     {
@@ -30,9 +31,19 @@ function Commissions() {
     { title: 'Bank', dataIndex: ['bank', 'name'] },
     {
       title: 'Payout',
-      dataIndex: 'commission',
       align: 'right',
-      render: (v) => <span style={{ color: '#16a34a', fontWeight: 700 }}>{aed(v)}</span>,
+      render: (_, row) => {
+        const held = row.holdAmount > 0 && !row.holdReleased ? (row.holdAmount || 0) : 0;
+        const actual = (row.commission || 0) - held;
+        return (
+          <div style={{ textAlign: 'right' }}>
+            <span style={{ color: '#16a34a', fontWeight: 700 }}>{aed(actual)}</span>
+            {held > 0 && (
+              <div style={{ fontSize: 10, color: '#f59e0b', marginTop: 1 }}>+{aed(held)} on hold</div>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: 'Paid On',
@@ -109,7 +120,7 @@ function Commissions() {
       </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={8}>
+        <Col xs={24} sm={12} lg={6}>
           <StatCard
             loading={!ledger}
             icon={<CheckCircleOutlined />}
@@ -122,7 +133,7 @@ function Commissions() {
             valueColor="#15803d"
           />
         </Col>
-        <Col xs={24} sm={12} lg={8}>
+        <Col xs={24} sm={12} lg={6}>
           <StatCard
             loading={!ledger}
             icon={<ClockCircleOutlined />}
@@ -135,7 +146,7 @@ function Commissions() {
             valueColor="#0e7490"
           />
         </Col>
-        <Col xs={24} sm={12} lg={8}>
+        <Col xs={24} sm={12} lg={6}>
           <StatCard
             loading={!ledger}
             icon={<RiseOutlined />}
@@ -146,6 +157,19 @@ function Commissions() {
             borderColor="#f59e0b"
             bg="#fffbeb"
             valueColor="#92400e"
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <StatCard
+            loading={!ledger}
+            icon={<LockOutlined />}
+            iconColor="#7c3aed"
+            label="On Hold"
+            value={aed(ledger?.held)}
+            sub={`${heldLeads.length} hold${heldLeads.length !== 1 ? 's' : ''} — pending release`}
+            borderColor="#a855f7"
+            bg="#faf5ff"
+            valueColor="#6b21a8"
           />
         </Col>
       </Row>
@@ -237,6 +261,45 @@ function Commissions() {
                 />
               ),
             },
+            ...(heldLeads.length > 0 ? [{
+              key: 'held',
+              label: (
+                <span>
+                  <LockOutlined style={{ color: '#7c3aed', marginRight: 6 }} />
+                  On Hold ({heldLeads.length})
+                </span>
+              ),
+              children: (
+                <Table
+                  size="small"
+                  rowKey="_id"
+                  dataSource={heldLeads}
+                  columns={[
+                    { title: 'Reference', dataIndex: 'leadNumber', render: (v) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace' }}>{v || '—'}</Typography.Text> },
+                    { title: 'Client', dataIndex: 'customerName', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+                    { title: 'Bank', dataIndex: ['bank', 'name'] },
+                    { title: 'Commission', dataIndex: 'commission', align: 'right', render: (v) => <span style={{ fontWeight: 700 }}>{aed(v)}</span> },
+                    {
+                      title: 'On Hold',
+                      dataIndex: 'holdAmount',
+                      align: 'right',
+                      render: (v, row) => (
+                        <div>
+                          <span style={{ fontWeight: 700, color: '#7c3aed' }}>{aed(v)}</span>
+                          {row.clawbackUntil && (
+                            <div style={{ fontSize: 10, color: '#94a3b8' }}>Until {new Date(row.clawbackUntil).toLocaleDateString()}</div>
+                          )}
+                        </div>
+                      ),
+                    },
+                    { title: 'Paid On', dataIndex: 'commissionPaidAt', render: (d) => d ? new Date(d).toLocaleDateString() : '—' },
+                  ]}
+                  scroll={{ x: 'max-content' }}
+                  pagination={{ pageSize: 10 }}
+                  locale={{ emptyText: <Empty description="No holds" /> }}
+                />
+              ),
+            }] : []),
           ]}
         />
       </div>

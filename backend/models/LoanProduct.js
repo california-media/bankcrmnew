@@ -12,7 +12,7 @@ const bracketSchema = new mongoose.Schema(
 const loanProductSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    loanCategory: { type: String, enum: ['personal', 'mortgage', 'investor', 'business', 'auto_loan', 'buyout', 'fresh', 'pdc'], required: true },
+    loanCategory: { type: String, enum: ['personal', 'mortgage', 'investor', 'business', 'auto_loan', 'buyout', 'fresh', 'pdc', 'stl'], required: true },
     bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     commissionBrackets: { type: [bracketSchema], default: [] },

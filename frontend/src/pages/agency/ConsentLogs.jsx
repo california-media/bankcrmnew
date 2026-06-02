@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Typography, Spin, Input, Tag } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
+import { Typography, Spin, Input } from 'antd';
+import {
+  SearchOutlined, ClockCircleOutlined, SendOutlined,
+  CheckCircleOutlined, CloseCircleOutlined, MessageOutlined,
+} from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../../api/client';
@@ -71,6 +74,24 @@ export default function ConsentLogs() {
       .finally(() => setLoading(false));
   }, [apiUrl]);
 
+  // Count leads per current consentStatus
+  const consentCounts = useMemo(() => {
+    const map = {};
+    let noStatus = 0;
+    for (const lead of leads) {
+      if (lead.consentStatus) {
+        const k = String(lead.consentStatus._id);
+        if (!map[k]) map[k] = { ...lead.consentStatus, count: 0 };
+        map[k].count++;
+      } else {
+        noStatus++;
+      }
+    }
+    const items = Object.values(map).sort((a, b) => b.count - a.count);
+    if (noStatus > 0) items.unshift({ _id: '__none__', label: 'No Status', color: 'default', count: noStatus });
+    return items;
+  }, [leads]);
+
   // Flatten all consentStatusHistory entries across all leads into a single feed
   const feed = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -87,8 +108,52 @@ export default function ConsentLogs() {
     );
   }, [leads, search]);
 
+  const iconForLabel = (label = '') => {
+    const l = label.toLowerCase();
+    if (l.includes('approv')) return <CheckCircleOutlined />;
+    if (l.includes('declin') || l.includes('reject')) return <CloseCircleOutlined />;
+    if (l.includes('sent') && !l.includes('pending')) return <SendOutlined />;
+    if (l.includes('pending') || l.includes('send') || l === 'no status') return <ClockCircleOutlined />;
+    return <MessageOutlined />;
+  };
+
   return (
-    <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 130px)', minHeight: 400 }}>
+    <div>
+
+    {/* Consent status counts */}
+    {!loading && consentCounts.length > 0 && (
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        {consentCounts.map((cs) => {
+          const hex = STATUS_COLOR[cs.color] || STATUS_COLOR.default;
+          return (
+            <div key={cs._id} style={{
+              flex: '1 1 140px', minWidth: 130,
+              background: '#fff', borderRadius: 14,
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+              padding: '14px 18px',
+              display: 'flex', alignItems: 'center', gap: 14,
+            }}>
+              <div style={{
+                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                background: `${hex}18`,
+                color: hex,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 20,
+              }}>
+                {iconForLabel(cs.label)}
+              </div>
+              <div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{cs.count}</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>{cs.label}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
+
+    <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 220px)', minHeight: 400 }}>
 
       {/* LEFT — activity feed */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -246,6 +311,7 @@ export default function ConsentLogs() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

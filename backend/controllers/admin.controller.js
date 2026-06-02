@@ -125,6 +125,36 @@ exports.overview = async (req, res) => {
 };
 
 /**
+ * GET /api/admin/agents/:id  (admin)
+ */
+exports.getAgent = async (req, res) => {
+  try {
+    const agent = await User.findOne({ _id: req.params.id, role: 'agent' })
+      .select('-password -inviteToken -inviteTokenExpires')
+      .populate('referredBy', 'name email referralCode');
+    if (!agent) return res.status(404).json({ message: 'Agent not found' });
+
+    const leads = await Lead.find({ agent: agent._id })
+      .select('status commission commissionStatus createdAt customerName bank productType loanAmount leadNumber')
+      .populate('bank', 'name')
+      .sort({ createdAt: -1 });
+
+    const paidLeads = leads.filter((l) => l.commissionStatus === 'paid');
+    const stats = {
+      total: leads.length,
+      approved: leads.filter((l) => ['approved', 'disbursed'].includes(l.status)).length,
+      paid: paidLeads.length,
+      paidCommission: paidLeads.reduce((s, l) => s + (l.commission || 0), 0),
+      pending: leads.filter((l) => ['submitted', 'under_review', 'assigned'].includes(l.status)).length,
+    };
+
+    res.json({ agent, stats, leads: leads.slice(0, 20) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * POST /api/admin/agents  (admin)
  * Body: { name, email, password, phone? }
  * Response 201: { user }
@@ -163,9 +193,10 @@ exports.updateAgent = async (req, res) => {
     const agent = await User.findOne({ _id: req.params.id, role: 'agent' });
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
 
-    const { name, email, phone } = req.body;
+    const { name, email, phone, holdPct } = req.body;
     if (name !== undefined) agent.name = name;
     if (phone !== undefined) agent.phone = phone;
+    if (holdPct !== undefined) agent.holdPct = Math.min(100, Math.max(0, Number(holdPct) || 0));
     if (email) {
       const lower = email.toLowerCase();
       const conflict = await User.findOne({ email: lower, _id: { $ne: agent._id } });

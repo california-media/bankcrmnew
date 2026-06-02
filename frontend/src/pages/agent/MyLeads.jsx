@@ -262,7 +262,7 @@ function MyLeads() {
           loading={loading}
           dataSource={filtered}
           columns={columns}
-          scroll={{ x: 'max-content' }}
+
           onRow={(row) => ({ onClick: () => navigate(`/agent/leads/${row._id}`), style: { cursor: 'pointer' } })}
         />
       ) : (

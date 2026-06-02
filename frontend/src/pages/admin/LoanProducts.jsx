@@ -19,6 +19,7 @@ const LOAN_CATEGORIES = [
   { value: 'buyout',    label: 'Buyout Loan' },
   { value: 'fresh',     label: 'Fresh Loan' },
   { value: 'pdc',       label: 'PDC Loans' },
+  { value: 'stl',       label: 'STL Loan' },
 ];
 
 const CATEGORY_COLOR = {
@@ -30,6 +31,7 @@ const CATEGORY_COLOR = {
   buyout:    'volcano',
   fresh:     'lime',
   pdc:       'geekblue',
+  stl:       'orange',
 };
 
 function LoanProducts() {

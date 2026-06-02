@@ -9,6 +9,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import Agencies from './pages/admin/Agencies';
 import AdminLeads from './pages/admin/Leads';
 import AdminAgents from './pages/admin/Agents';
+import AgentDetail from './pages/admin/AgentDetail';
 import CardProducts from './pages/admin/CardProducts';
 import LoanProducts from './pages/admin/LoanProducts';
 import AdminBanks from './pages/admin/Banks';
@@ -17,6 +18,7 @@ import SubmitLead from './pages/agent/SubmitLead';
 import MyLeads from './pages/agent/MyLeads';
 import Commissions from './pages/agent/Commissions';
 import AgentProducts from './pages/agent/Products';
+import AgentSettings from './pages/agent/Settings';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyLeads from './pages/agency/Leads';
 import AgencyEmployees from './pages/agency/Employees';
@@ -86,6 +88,7 @@ function App() {
           <Route path="leads" element={<AdminLeads />} />
           <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="agents" element={<AdminAgents />} />
+          <Route path="agents/:id" element={<AgentDetail />} />
           <Route path="card-products" element={<CardProducts />} />
           <Route path="loan-products" element={<LoanProducts />} />
           <Route path="banks" element={<AdminBanks />} />
@@ -113,9 +116,9 @@ function App() {
           <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="commissions" element={<Commissions />} />
           <Route path="products" element={<AgentProducts />} />
-          <Route path="consent-logs" element={<ConsentLogs />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="settings" element={<AgentSettings />} />
         </Route>
 
         <Route

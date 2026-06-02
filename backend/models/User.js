@@ -15,11 +15,21 @@ const userSchema = new mongoose.Schema(
     employeeType: { type: String, enum: ['cpv', 'sales'] },
 
     // Agent-only
+    holdPct: { type: Number, default: 0, min: 0, max: 100 },
     referralCode: { type: String, unique: true, sparse: true },
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     leadCount: { type: Number, default: 0 },
     emiratesId: { type: String, default: null },
     uaepassSub: { type: String, sparse: true, default: null },
+
+    // Agent bank details for payouts
+    bankDetails: {
+      accountHolderName: { type: String, trim: true, default: '' },
+      bankName:          { type: String, trim: true, default: '' },
+      accountNumber:     { type: String, trim: true, default: '' },
+      iban:              { type: String, trim: true, default: '' },
+      swiftCode:         { type: String, trim: true, default: '' },
+    },
 
     // Agency-only: overpayment credit pool
     bucketBalance: { type: Number, default: 0 },

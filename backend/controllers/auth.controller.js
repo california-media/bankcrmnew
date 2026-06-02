@@ -31,6 +31,7 @@ const sanitizeFull = (user) => ({
   createdAt: user.createdAt,
   agency: user.agency,
   referredBy: user.referredBy,
+  bankDetails: user.bankDetails,
 });
 
 const safeUser = async (id) =>
@@ -186,12 +187,22 @@ exports.getProfile = async (req, res) => {
  */
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, phone, currentPassword, newPassword } = req.body;
+    const { name, phone, currentPassword, newPassword, bankDetails } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (name !== undefined && name.trim()) user.name = name.trim();
     if (phone !== undefined) user.phone = phone.trim();
+
+    if (bankDetails && typeof bankDetails === 'object' && user.role === 'agent') {
+      const bd = bankDetails;
+      if (!user.bankDetails) user.bankDetails = {};
+      if (bd.accountHolderName !== undefined) user.bankDetails.accountHolderName = bd.accountHolderName;
+      if (bd.bankName !== undefined) user.bankDetails.bankName = bd.bankName;
+      if (bd.accountNumber !== undefined) user.bankDetails.accountNumber = bd.accountNumber;
+      if (bd.iban !== undefined) user.bankDetails.iban = bd.iban;
+      if (bd.swiftCode !== undefined) user.bankDetails.swiftCode = bd.swiftCode;
+    }
 
     if (newPassword) {
       if (!currentPassword) return res.status(400).json({ message: 'Current password required' });

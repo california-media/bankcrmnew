@@ -22,7 +22,8 @@ router.post('/:id/send-to-agency', requireRole('agent', 'admin'), ctrl.sendToAge
 // Employee
 router.get('/assigned', requireRole('employee'), ctrl.listAssigned);
 router.patch('/:id/employee-status', requireRole('employee', 'agency'), require('../controllers/employeeStatus.controller').setOnLead);
-router.patch('/:id/consent-status', requireRole('employee', 'agency'), require('../controllers/employeeStatus.controller').setConsentOnLead);
+router.patch('/:id/consent-status',  requireRole('employee', 'agency'), require('../controllers/employeeStatus.controller').setConsentOnLead);
+router.patch('/:id/loan-status',     requireRole('admin', 'employee', 'agency'), require('../controllers/employeeStatus.controller').setLoanStatusOnLead);
 
 // Agency
 router.get('/agency', requireRole('agency'), ctrl.listForAgency);
@@ -36,9 +37,12 @@ router.patch('/:id/assign-employee', requireRole('agency'), ctrl.assignEmployee)
 
 // Admin
 router.get('/', requireRole('admin'), ctrl.listAll);
+router.get('/holds', requireRole('admin'), ctrl.listHolds);
 router.post('/bulk-mark-paid', requireRole('admin'), ctrl.bulkMarkPaid);
 router.post('/bulk-mark-received', requireRole('admin'), ctrl.bulkMarkReceived);
+router.post('/bulk-release-holds', requireRole('admin'), ctrl.bulkReleaseHolds);
 router.post('/:id/mark-paid', requireRole('admin'), ctrl.markCommissionPaid);
+router.post('/:id/release-hold', requireRole('admin'), ctrl.releaseHold);
 router.patch('/:id/agent-commission', requireRole('admin'), ctrl.setAgentCommission);
 router.delete('/:id/notes/:noteId', requireRole('admin'), ctrl.deleteNote);
 

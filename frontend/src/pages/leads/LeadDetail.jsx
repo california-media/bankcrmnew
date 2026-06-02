@@ -79,8 +79,10 @@ export default function LeadDetail() {
 
   const [labelStatuses, setLabelStatuses] = useState([]);
   const [consentStatuses, setConsentStatuses] = useState([]);
+  const [loanStatuses, setLoanStatuses] = useState([]);
   const [empStatusSaving, setEmpStatusSaving] = useState(false);
   const [consentStatusSaving, setConsentStatusSaving] = useState(false);
+  const [loanStatusSaving, setLoanStatusSaving] = useState(false);
   const [benefitsOpen, setBenefitsOpen] = useState(false);
 
   const load = async () => {
@@ -102,9 +104,10 @@ export default function LeadDetail() {
     if (role === 'agency') {
       api.get('/employees').then((res) => setEmployees(res.data)).catch(() => {});
     }
-    if (role === 'employee' || role === 'agency') {
+    if (role === 'employee' || role === 'agency' || role === 'admin') {
       api.get('/employee-statuses?statusType=lead_label').then((res) => setLabelStatuses(res.data.filter((s) => s.isActive))).catch(() => {});
       api.get('/employee-statuses?statusType=whatsapp_consent').then((res) => setConsentStatuses(res.data.filter((s) => s.isActive))).catch(() => {});
+      api.get('/employee-statuses?statusType=loan_status').then((res) => setLoanStatuses(res.data.filter((s) => s.isActive))).catch(() => {});
     }
   }, [role]);
 
@@ -191,6 +194,19 @@ export default function LeadDetail() {
       message.error(err.response?.data?.message || 'Failed to update consent status');
     } finally {
       setConsentStatusSaving(false);
+    }
+  };
+
+  const updateLoanStatus = async (loanStatusId) => {
+    setLoanStatusSaving(true);
+    try {
+      const { data } = await api.patch(`/leads/${id}/loan-status`, { loanStatusId: loanStatusId || null });
+      setLead(data);
+      message.success('Loan status updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update loan status');
+    } finally {
+      setLoanStatusSaving(false);
     }
   };
 
@@ -289,13 +305,17 @@ export default function LeadDetail() {
             </div>
           </Card>
 
-          {/* People (admin) */}
-          {role === 'admin' && (
+          {/* People (admin / agency / employee) */}
+          {role !== 'agent' && (
             <Card size="small" style={cardStyle} styles={{ body: cardBodyStyle }}>
               <div style={{ marginBottom: 10 }}>{sectionLabel('People')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px 16px' }}>
-                <InfoItem label="Agent" value={lead.agent?.name || lead.agent?.email || '—'} sub={lead.agent?.name && lead.agent?.email ? lead.agent.email : undefined} />
-                <InfoItem label="Agency" value={lead.agency?.name || lead.agency?.email || '—'} sub={lead.agency?.name && lead.agency?.email ? lead.agency.email : undefined} />
+                {lead.agent && (
+                  <InfoItem label="Agent" value={lead.agent?.name || '—'} />
+                )}
+                {role === 'admin' && lead.agency && (
+                  <InfoItem label="Agency" value={lead.agency?.name || lead.agency?.email || '—'} sub={lead.agency?.name && lead.agency?.email ? lead.agency.email : undefined} />
+                )}
                 {lead.assignedCpvEmployee && (
                   <InfoItem label="CPV Employee" value={lead.assignedCpvEmployee.name || lead.assignedCpvEmployee.email} sub={lead.assignedCpvEmployee.name && lead.assignedCpvEmployee.email ? lead.assignedCpvEmployee.email : undefined} />
                 )}
@@ -536,6 +556,12 @@ export default function LeadDetail() {
                     <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Consent</div>
                     <Select placeholder="Set consent..." value={lead.consentStatus?._id || lead.consentStatus || undefined} loading={consentStatusSaving} onChange={(val) => updateConsentStatus(val || null)} size="small" style={{ width: '100%' }} options={consentStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
                   </div>
+                  {isLoan && loanStatuses.length > 0 && (
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Loan Status</div>
+                      <Select allowClear placeholder="Set loan stage..." value={lead.loanStatus?._id || lead.loanStatus || undefined} loading={loanStatusSaving} onChange={(val) => updateLoanStatus(val || null)} size="small" style={{ width: '100%' }} options={loanStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
+                    </div>
+                  )}
                 </Space>
               </Card>
             );
@@ -552,6 +578,11 @@ export default function LeadDetail() {
               <Card size="small" title={sectionLabel('Consent')} style={cardStyle} styles={{ body: cardBodyStyle }}>
                 <Select placeholder="Set consent status..." value={lead.consentStatus?._id || lead.consentStatus || undefined} loading={consentStatusSaving} onChange={(val) => updateConsentStatus(val || null)} size="small" style={{ width: '100%' }} options={consentStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
               </Card>
+              {isLoan && loanStatuses.length > 0 && (
+                <Card size="small" title={sectionLabel('Loan Status')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+                  <Select allowClear placeholder="Set loan stage..." value={lead.loanStatus?._id || lead.loanStatus || undefined} loading={loanStatusSaving} onChange={(val) => updateLoanStatus(val || null)} size="small" style={{ width: '100%' }} options={loanStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
+                </Card>
+              )}
             </>
           )}
 
@@ -574,6 +605,11 @@ export default function LeadDetail() {
                       </span>
                     );
                   })()}
+                </Card>
+              )}
+              {role === 'admin' && isLoan && loanStatuses.length > 0 && (
+                <Card size="small" title={sectionLabel('Loan Status')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+                  <Select allowClear placeholder="Set loan stage..." value={lead.loanStatus?._id || lead.loanStatus || undefined} loading={loanStatusSaving} onChange={(val) => updateLoanStatus(val || null)} size="small" style={{ width: '100%' }} options={loanStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
                 </Card>
               )}
             </>
@@ -633,9 +669,10 @@ export default function LeadDetail() {
                   )}
                 </div>
               </div>
-              {isLoan && lead.loanAmount > 0 && (
+              {isLoan && (lead.loanAmount > 0 || lead.loanType) && (
                 <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <InfoItem label="Loan Amount" value={aed(lead.loanAmount)} />
+                  {lead.loanAmount > 0 && <InfoItem label="Loan Amount" value={aed(lead.loanAmount)} />}
+                  {lead.loanType && <InfoItem label="Loan Type" value={{ new_stl_loan: 'New STL Loan', buyout: 'Buyout', pdc: 'PDC' }[lead.loanType] || lead.loanType} />}
                   {lead.loanProduct?.maxLoanAmount > 0 && <InfoItem label="Max Loan" value={aed(lead.loanProduct.maxLoanAmount)} />}
                 </div>
               )}

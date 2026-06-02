@@ -98,10 +98,23 @@ async function getAgentLedger(agentId) {
   const sumBy = (s) =>
     leads.filter((l) => l.commissionStatus === s).reduce((acc, l) => acc + (l.commission || 0), 0);
 
+  // paid = actual received (commission minus unreleased hold)
+  const paidActual = leads
+    .filter((l) => l.commissionStatus === 'paid')
+    .reduce((acc, l) => {
+      const unreleased = (!l.holdReleased && l.holdAmount > 0) ? (l.holdAmount || 0) : 0;
+      return acc + (l.commission || 0) - unreleased;
+    }, 0);
+
+  const held = leads
+    .filter((l) => l.holdAmount > 0 && !l.holdReleased && l.productType === 'credit_card')
+    .reduce((acc, l) => acc + (l.holdAmount || 0), 0);
+
   return {
     pending: sumBy('pending'),
     payable: sumBy('payable'),
-    paid: sumBy('paid'),
+    paid: paidActual,
+    held,
     leads,
   };
 }

@@ -135,7 +135,7 @@ function SubmitLead() {
     setSelectedCard(null);
     setSelectedLoan(null);
     setSelectedBracket(null);
-    form.resetFields(['cardProduct', 'loanProduct', 'loanAmount', 'salaryBracket']);
+    form.resetFields(['cardProduct', 'loanProduct', 'loanAmount', 'loanType', 'salaryBracket']);
   };
 
   const onProductTypeChange = (val) => { setProductType(val); resetProduct(); };
@@ -199,6 +199,7 @@ function SubmitLead() {
       if (productType === 'loan') {
         payload.loanProduct = values.loanProduct;
         payload.loanAmount  = values.loanAmount;
+        if (values.loanType) payload.loanType = values.loanType;
       }
 
       const { data: lead } = await api.post('/leads', payload);
@@ -394,6 +395,13 @@ function SubmitLead() {
                       message={<span style={{ fontSize: 12 }}>Payout: <strong>{selectedBracket.payable}%</strong> of loan amount</span>}
                     />
                   )}
+                  <Form.Item name="loanType" label="Loan Type" rules={[{ required: true, message: 'Select loan type' }]}>
+                    <Select placeholder="Select loan type" options={[
+                      { value: 'new_stl_loan', label: 'New STL Loan' },
+                      { value: 'buyout',       label: 'Buyout' },
+                      { value: 'pdc',          label: 'PDC' },
+                    ]} />
+                  </Form.Item>
                   <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount required' }]}>
                     <InputNumber min={1} step={1000} style={{ width: '100%' }} placeholder="e.g. 100000" />
                   </Form.Item>

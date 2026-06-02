@@ -6,7 +6,7 @@ const employeeStatusSchema = new mongoose.Schema(
     color: { type: String, default: 'default', trim: true },
     isActive: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
-    statusType: { type: String, enum: ['lead_label', 'whatsapp_consent'], default: 'lead_label' },
+    statusType: { type: String, enum: ['lead_label', 'whatsapp_consent', 'loan_status'], default: 'lead_label' },
     isDefault: { type: Boolean, default: false },
     isFixed: { type: Boolean, default: false },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

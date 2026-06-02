@@ -1,15 +1,19 @@
 import { useEffect } from 'react';
-import { Card, Form, Input, Button, Typography, Alert, Divider } from 'antd';
+import { Form, Input, Button, Alert } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, clearError } from '../store/slices/authSlice';
 
 const DEMO_ACCOUNTS = [
-  { label: 'Admin',        email: 'admin@gmail.com',    password: 'admin123' },
-  { label: 'Agency',       email: 'agency@gmail.com',   password: '123456' },
-  { label: 'Agent',        email: 'agent@gmail.com',    password: '123456' },
-  { label: 'Employee (Sales)', email: 'employee@gmail.com',  password: '123456' },
-  { label: 'Employee (CPV)',   email: 'employee2@gmail.com', password: '123456' },
+  { label: 'Administrator', email: 'admin@gmail.com',     password: 'admin123' },
+  { label: 'Agency',        email: 'agency@gmail.com',    password: '123456' },
+  { label: 'Agent',         email: 'agent@gmail.com',     password: '123456' },
+  { label: 'Employee',      email: 'employee@gmail.com',  password: '123456' },
+];
+
+const FEATURES = [
+  { icon: '⚡', title: 'Live pipeline', sub: 'New → Paid in one view' },
+  { icon: '↗', title: 'Product payouts', sub: 'Live commission ledger' },
 ];
 
 function Login() {
@@ -31,40 +35,191 @@ function Login() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5' }}>
-      <Card style={{ width: 420 }}>
-        <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 4 }}>Bank Portal</Typography.Title>
-        <Typography.Paragraph style={{ textAlign: 'center', color: '#888' }}>Sign in to your account</Typography.Paragraph>
-        {error && <Alert type="error" message={error} style={{ marginBottom: 16 }} />}
-        <Form form={form} layout="vertical" onFinish={onFinish}>
-          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}>
-            <Input placeholder="you@example.com" />
-          </Form.Item>
-          <Form.Item name="password" label="Password" rules={[{ required: true }]}>
-            <Input.Password />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" loading={status === 'loading'} block>
-            Login
-          </Button>
-        </Form>
-        <Typography.Paragraph style={{ textAlign: 'center', marginTop: 16, marginBottom: 0 }}>
-          New agent? <Link to="/register">Create an account</Link>
-        </Typography.Paragraph>
+    <div style={{
+      minHeight: '100vh',
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      background: 'linear-gradient(135deg, #eef2ff 0%, #f0f4ff 40%, #e8f0fe 100%)',
+    }}>
 
-        <Divider style={{ fontSize: 12, color: '#bbb' }}>Demo Accounts</Divider>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-          {DEMO_ACCOUNTS.map((acc) => (
-            <Button
-              key={acc.email}
-              size="small"
-              onClick={() => fillDemo(acc)}
-              style={{ fontSize: 12, borderStyle: 'dashed' }}
-            >
-              {acc.label}
-            </Button>
-          ))}
+      {/* LEFT — brand + marketing */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '40px 56px',
+      }}>
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 20, color: '#fff', fontWeight: 800, flexShrink: 0,
+          }}>
+            BC
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', lineHeight: 1.2 }}>Bank CRM</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>UAE Banking Referrals</div>
+          </div>
         </div>
-      </Card>
+
+        {/* Hero */}
+        <div style={{ maxWidth: 520 }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            border: '1px solid #c7d2fe', borderRadius: 999,
+            padding: '5px 14px', fontSize: 12, color: '#6366f1',
+            fontWeight: 600, marginBottom: 28, background: 'rgba(255,255,255,0.6)',
+          }}>
+            ⚡ Real-time referral infrastructure
+          </div>
+
+          <h1 style={{
+            fontSize: 42, fontWeight: 800, lineHeight: 1.15,
+            color: '#0f172a', margin: '0 0 20px', letterSpacing: -0.5,
+          }}>
+            Earn transparently through{' '}
+            <span style={{ color: '#6366f1' }}>UAE's banking referral</span> infrastructure.
+          </h1>
+
+          <p style={{ fontSize: 15, color: '#475569', lineHeight: 1.7, margin: '0 0 40px' }}>
+            Submit leads, automate WhatsApp consent, track every approval and get paid
+            transparently — across Emirates NBD, ADCB, FAB, Mashreq, DIB, and ADIB.
+          </p>
+
+          <div style={{ display: 'flex', gap: 14 }}>
+            {FEATURES.map((f) => (
+              <div key={f.title} style={{
+                flex: 1, background: 'rgba(255,255,255,0.75)', borderRadius: 14,
+                border: '1px solid rgba(255,255,255,0.9)',
+                padding: '18px 20px',
+                boxShadow: '0 2px 12px rgba(99,102,241,0.08)',
+              }}>
+                <div style={{ fontSize: 22, marginBottom: 8 }}>{f.icon}</div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 3 }}>{f.title}</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>{f.sub}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ fontSize: 12, color: '#94a3b8' }}>
+          © 2026 Bank CRM · DIFC, Dubai
+        </div>
+      </div>
+
+      {/* RIGHT — login form */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 56px',
+        background: 'rgba(255,255,255,0.55)',
+        backdropFilter: 'blur(12px)',
+        borderLeft: '1px solid rgba(255,255,255,0.7)',
+      }}>
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', margin: '0 0 6px' }}>
+            Welcome back
+          </h2>
+          <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 32px' }}>
+            Sign in to your referral workspace.
+          </p>
+
+          {error && (
+            <Alert type="error" message={error} style={{ marginBottom: 20, borderRadius: 8 }} />
+          )}
+
+          <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
+            <Form.Item
+              name="email"
+              label={<span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Work email</span>}
+              rules={[{ required: true, type: 'email', message: 'Valid email required' }]}
+              style={{ marginBottom: 16 }}
+            >
+              <Input
+                size="large"
+                placeholder="you@company.ae"
+                style={{ borderRadius: 10, fontSize: 14 }}
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              label={<span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Password</span>}
+              rules={[{ required: true, message: 'Password required' }]}
+              style={{ marginBottom: 24 }}
+            >
+              <Input.Password
+                size="large"
+                style={{ borderRadius: 10, fontSize: 14 }}
+              />
+            </Form.Item>
+
+            {/* Demo role picker */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 8 }}>
+                Sign in as (demo)
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {DEMO_ACCOUNTS.map((acc) => (
+                  <button
+                    key={acc.email}
+                    type="button"
+                    onClick={() => fillDemo(acc)}
+                    style={{
+                      flex: 1,
+                      padding: '7px 10px',
+                      borderRadius: 8,
+                      border: '1.5px solid #e2e8f0',
+                      background: '#fff',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#374151',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.15s, color 0.15s',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.color = '#6366f1'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#374151'; }}
+                  >
+                    {acc.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={status === 'loading'}
+              block
+              size="large"
+              style={{
+                borderRadius: 10,
+                height: 48,
+                fontSize: 15,
+                fontWeight: 700,
+                background: 'linear-gradient(90deg, #6366f1, #818cf8)',
+                border: 'none',
+                boxShadow: '0 4px 14px rgba(99,102,241,0.35)',
+                marginBottom: 16,
+              }}
+            >
+              Continue to dashboard
+            </Button>
+          </Form>
+
+          <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
+            New agent?{' '}
+            <Link to="/register" style={{ color: '#6366f1', textDecoration: 'underline' }}>Create an account</Link>
+            {' '}· By signing in you agree to Bank CRM's Terms.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

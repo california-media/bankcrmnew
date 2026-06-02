@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Table, Typography, Button, Modal, Form, Input, message, Space, Popconfirm, Row, Col, Card, Tag, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, StopOutlined, CheckCircleOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { Table, Typography, Button, Modal, Form, Input, InputNumber, message, Space, Popconfirm, Row, Col, Card, Tag, Tooltip } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, StopOutlined, CheckCircleOutlined, TableOutlined, AppstoreOutlined, LockOutlined, EyeOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
@@ -23,6 +24,7 @@ const StatusBadge = ({ active }) => (
 );
 
 function AdminAgents() {
+  const navigate = useNavigate();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -57,7 +59,7 @@ function AdminAgents() {
 
   const openEdit = (row) => {
     setEditTarget(row);
-    editForm.setFieldsValue({ name: row.name, email: row.email, phone: row.phone || '' });
+    editForm.setFieldsValue({ name: row.name, email: row.email, phone: row.phone || '', holdPct: row.holdPct || 0 });
   };
 
   const onEdit = async () => {
@@ -138,6 +140,14 @@ function AdminAgents() {
       render: (_, row) => <span style={{ fontWeight: 700, fontSize: 13, color: '#4f46e5' }}>{aed(row.stats?.paidCommission)}</span>,
     },
     {
+      title: <ColHead>Hold %</ColHead>,
+      width: 80,
+      align: 'center',
+      render: (_, row) => row.holdPct > 0
+        ? <Tag color="orange" icon={<LockOutlined />} style={{ fontSize: 11 }}>{row.holdPct}%</Tag>
+        : <span style={{ color: '#cbd5e1' }}>—</span>,
+    },
+    {
       title: <ColHead>Status</ColHead>,
       width: 90,
       render: (_, row) => <StatusBadge active={row.isActive} />,
@@ -162,6 +172,7 @@ function AdminAgents() {
           >
             {row.isActive ? 'Deactivate' : 'Activate'}
           </Button>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/admin/agents/${row._id}`)}>View</Button>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)}>Edit</Button>
           <Popconfirm
             title="Delete agent?"
@@ -287,6 +298,13 @@ function AdminAgents() {
           </Form.Item>
           <Form.Item name="phone" label="Phone">
             <Input />
+          </Form.Item>
+          <Form.Item
+            name="holdPct"
+            label="Hold Percentage (credit card commissions only)"
+            tooltip="% of commission held back until clawback period expires. Set 0 to disable."
+          >
+            <InputNumber min={0} max={100} formatter={(v) => `${v}%`} parser={(v) => v.replace('%', '')} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

@@ -199,3 +199,79 @@ exports.setConsentOnLead = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+/**
+ * PATCH /api/leads/:id/loan-status  (admin, agency, employee)
+ * Sets the loan-specific stage status on a loan lead.
+ */
+exports.setLoanStatusOnLead = async (req, res) => {
+  try {
+    const { loanStatusId } = req.body;
+    const role = req.user.role;
+
+    let lead;
+    if (role === 'admin') {
+      lead = await Lead.findById(req.params.id);
+    } else if (role === 'agency') {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    } else {
+      const empId = req.user._id;
+      lead = await Lead.findOne({
+        _id: req.params.id,
+        $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }],
+      });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    if (lead.productType !== 'loan') return res.status(400).json({ message: 'Loan status only applies to loan leads' });
+
+    if (loanStatusId) {
+      const status = await EmployeeStatus.findOne({ _id: loanStatusId, statusType: 'loan_status', isActive: true });
+      if (!status) return res.status(404).json({ message: 'Loan status not found or inactive' });
+      lead.loanStatus = loanStatusId;
+    } else {
+      lead.loanStatus = undefined;
+    }
+
+    await lead.save();
+    await lead.populate([
+      { path: 'bank', select: 'name code' },
+      { path: 'agency', select: 'name email' },
+      { path: 'agent', select: 'name email' },
+      { path: 'cardProduct', select: 'name cardType commissionBrackets cardImage benefits feesEligibility' },
+      { path: 'loanProduct', select: 'name loanCategory commissionBrackets benefits feesEligibility minSalary maxLoanAmount maxTenure interestRateRange' },
+      { path: 'employeeStatus', select: 'label color' },
+      { path: 'consentStatus',  select: 'label color' },
+      { path: 'loanStatus',     select: 'label color' },
+      { path: 'assignedCpvEmployee',  select: 'name email employeeType' },
+      { path: 'assignedSalesEmployee', select: 'name email employeeType' },
+    ]);
+
+    // Notify admin, agency, agent, and assigned employees
+    try {
+      const loanStatusLabel = lead.loanStatus?.label || 'Cleared';
+      const notifPayload = {
+        type: 'status_changed',
+        title: 'Loan Status Updated',
+        body: `${lead.customerName} — loan status set to "${loanStatusLabel}"`,
+        lead: lead._id,
+      };
+
+      const recipientIds = new Set();
+      (await getAdminIds()).forEach((id) => recipientIds.add(String(id)));
+      if (lead.agency?._id) recipientIds.add(String(lead.agency._id));
+      if (lead.agent?._id)  recipientIds.add(String(lead.agent._id));
+      if (lead.assignedCpvEmployee?._id)   recipientIds.add(String(lead.assignedCpvEmployee._id));
+      if (lead.assignedSalesEmployee?._id) recipientIds.add(String(lead.assignedSalesEmployee._id));
+      // Don't notify the person who made the change
+      recipientIds.delete(String(req.user._id));
+
+      if (recipientIds.size > 0) {
+        await createAndEmit([...recipientIds], notifPayload, req.user._id);
+      }
+    } catch (_) {}
+
+    res.json(lead);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

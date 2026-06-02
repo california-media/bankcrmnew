@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Table, Tag, Typography, Button, Input, Tabs, Space, message, Popconfirm, Row, Col, Card,
+  Table, Tag, Typography, Button, Input, Tabs, Space, message, Popconfirm,
+  Row, Col, Card, Modal, Form, InputNumber, Divider,
 } from 'antd';
 import {
-  SearchOutlined, DollarOutlined, CheckCircleOutlined, RiseOutlined,
+  SearchOutlined, DollarOutlined, CheckCircleOutlined, LockOutlined, InfoCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
@@ -16,11 +17,19 @@ const COMM_LABELS = { payable: 'Payout Ready for Agent', pending: 'Pending', pai
 export default function Payouts() {
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
+  const [holds, setHolds] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [holdsLoading, setHoldsLoading] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [releasing, setReleasing] = useState(false);
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('payable');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [selectedHoldKeys, setSelectedHoldKeys] = useState([]);
+
+  // Pay modal state
+  const [payModal, setPayModal] = useState({ open: false, ids: null }); // ids=null means all payable
+  const [holdPct, setHoldPct] = useState(10);
 
   const load = async () => {
     setLoading(true);
@@ -32,20 +41,64 @@ export default function Payouts() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadHolds = async () => {
+    setHoldsLoading(true);
+    try {
+      const { data } = await api.get('/leads/holds');
+      setHolds(data);
+    } catch {
+      message.error('Failed to load holds');
+    } finally {
+      setHoldsLoading(false);
+    }
+  };
 
-  const bulkPay = async (ids) => {
+  useEffect(() => { load(); loadHolds(); }, []);
+
+  const openPayModal = (ids) => {
+    setHoldPct(10);
+    setPayModal({ open: true, ids });
+  };
+
+  const confirmPay = async () => {
     setPaying(true);
     try {
-      const body = ids ? { leadIds: ids } : {};
+      const body = payModal.ids ? { leadIds: payModal.ids, holdPct } : { holdPct };
       const { data } = await api.post('/leads/bulk-mark-paid', body);
       message.success(`${data.count} payout(s) sent`);
       setSelectedRowKeys([]);
+      setPayModal({ open: false, ids: null });
       load();
+      loadHolds();
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed');
     } finally {
       setPaying(false);
+    }
+  };
+
+  const releaseHold = async (leadId) => {
+    try {
+      await api.post(`/leads/${leadId}/release-hold`);
+      message.success('Hold released');
+      loadHolds();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to release hold');
+    }
+  };
+
+  const bulkRelease = async (ids) => {
+    setReleasing(true);
+    try {
+      const body = ids ? { leadIds: ids } : {};
+      const { data } = await api.post('/leads/bulk-release-holds', body);
+      message.success(`${data.count} hold(s) released`);
+      setSelectedHoldKeys([]);
+      loadHolds();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to release holds');
+    } finally {
+      setReleasing(false);
     }
   };
 
@@ -65,19 +118,34 @@ export default function Payouts() {
     payable: payableLeads.length,
     paid:    leads.filter((l) => l.commissionStatus === 'paid').length,
     totalPayable: payableLeads.reduce((s, l) => s + (l.commission || 0), 0),
-    totalPaid: leads.filter((l) => l.commissionStatus === 'paid').reduce((s, l) => s + (l.commission || 0), 0),
-  }), [leads, payableLeads]);
+    totalPaid: leads.filter((l) => l.commissionStatus === 'paid').reduce((s, l) => {
+      const held = l.holdAmount > 0 && !l.holdReleased ? (l.holdAmount || 0) : 0;
+      return s + (l.commission || 0) - held;
+    }, 0),
+    totalHeld: holds.reduce((s, l) => s + (l.holdAmount || 0), 0),
+  }), [leads, payableLeads, holds]);
 
   const selectedPayable = useMemo(
     () => selectedRowKeys.filter((id) => payableLeads.some((l) => l._id === id)),
     [selectedRowKeys, payableLeads],
   );
 
+  // For the pay modal preview
+  const modalLeads = useMemo(() => {
+    if (!payModal.open) return [];
+    return payModal.ids ? payableLeads.filter((l) => payModal.ids.includes(l._id)) : payableLeads;
+  }, [payModal, payableLeads]);
+
+  const modalCardLeads = modalLeads.filter((l) => l.productType === 'credit_card');
+  const modalTotal = modalLeads.reduce((s, l) => s + (l.commission || 0), 0);
+  const holdAmount = holdPct > 0 ? Math.round(modalCardLeads.reduce((s, l) => s + (l.commission || 0), 0) * holdPct / 100) : 0;
+  const netPayout = modalTotal - holdAmount;
+
   const columns = [
     {
       title: 'Lead ID',
       dataIndex: 'leadNumber',
-      render: (v) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace', width: 130, whiteSpace: 'nowrap' }}>{v || '—'}</Typography.Text>,
+      render: (v) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{v || '—'}</Typography.Text>,
     },
     {
       title: 'Client',
@@ -103,14 +171,21 @@ export default function Payouts() {
     {
       title: 'Commission',
       align: 'right',
-      render: (_, row) => (
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>{aed(row.commission)}</div>
-          {row.grossCommission > 0 && (
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>Gross: {aed(row.grossCommission)}</div>
-          )}
-        </div>
-      ),
+      render: (_, row) => {
+        const held = row.holdAmount > 0 && !row.holdReleased ? (row.holdAmount || 0) : 0;
+        const actual = (row.commission || 0) - held;
+        return (
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>{aed(row.commissionStatus === 'paid' ? actual : row.commission)}</div>
+            {row.commissionStatus === 'paid' && held > 0 && (
+              <div style={{ fontSize: 11, color: '#f59e0b' }}>+{aed(held)} on hold</div>
+            )}
+            {row.grossCommission > 0 && (
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>Gross: {aed(row.grossCommission)}</div>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: 'Status',
@@ -124,6 +199,51 @@ export default function Payouts() {
     },
   ];
 
+  const holdColumns = [
+    {
+      title: 'Lead ID',
+      dataIndex: 'leadNumber',
+      render: (v) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace' }}>{v || '—'}</Typography.Text>,
+    },
+    { title: 'Client', dataIndex: 'customerName', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+    {
+      title: 'Agent',
+      render: (_, row) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{row.agent?.name || row.agent?.email || '—'}</div>
+          {row.agent?.name && <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.agent.email}</div>}
+        </div>
+      ),
+    },
+    { title: 'Bank', render: (_, row) => row.bank?.name || '—' },
+    {
+      title: 'Clawback Until',
+      render: (_, row) => row.clawbackUntil
+        ? <span style={{ fontSize: 13, fontWeight: 600, color: '#b45309' }}>{new Date(row.clawbackUntil).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+        : <span style={{ color: '#94a3b8' }}>—</span>,
+    },
+    { title: 'Commission', align: 'right', render: (_, row) => <span style={{ fontWeight: 700 }}>{aed(row.commission)}</span> },
+    {
+      title: 'On Hold',
+      align: 'right',
+      render: (_, row) => <span style={{ fontWeight: 700, color: '#f59e0b', fontSize: 14 }}>{aed(row.holdAmount)}</span>,
+    },
+    { title: 'Paid On', dataIndex: 'commissionPaidAt', render: (d) => d ? new Date(d).toLocaleDateString() : '—' },
+    {
+      title: 'Action',
+      render: (_, row) => (
+        <Popconfirm
+          title="Release hold?"
+          description={`Release ${aed(row.holdAmount)} to agent?`}
+          onConfirm={() => releaseHold(row._id)}
+          okText="Release"
+        >
+          <Button size="small" type="primary" ghost>Release</Button>
+        </Popconfirm>
+      ),
+    },
+  ];
+
   const tabItems = [
     {
       key: 'payable',
@@ -132,6 +252,10 @@ export default function Payouts() {
     {
       key: 'paid',
       label: <span><CheckCircleOutlined style={{ color: '#16a34a', marginRight: 5 }} />Paid ({stats.paid})</span>,
+    },
+    {
+      key: 'holds',
+      label: <span><LockOutlined style={{ color: '#f59e0b', marginRight: 5 }} />On Hold ({holds.length})</span>,
     },
   ];
 
@@ -145,36 +269,22 @@ export default function Payouts() {
         <Col>
           <Space>
             {selectedPayable.length > 0 && (
-              <Popconfirm
-                title={`Send payout for ${selectedPayable.length} selected lead(s)?`}
-                onConfirm={() => bulkPay(selectedPayable)}
-              >
-                <Button type="primary" icon={<DollarOutlined />} loading={paying}>
-                  Pay Selected ({selectedPayable.length})
-                </Button>
-              </Popconfirm>
+              <Button type="primary" icon={<DollarOutlined />} onClick={() => openPayModal(selectedPayable)}>
+                Pay Selected ({selectedPayable.length})
+              </Button>
             )}
             {stats.payable > 0 && (
-              <Popconfirm
-                title={`Send all ${stats.payable} ready payouts (${aed(stats.totalPayable)} total)?`}
-                onConfirm={() => bulkPay(null)}
-              >
-                <Button icon={<DollarOutlined />} loading={paying}>
-                  Pay All Ready ({stats.payable})
-                </Button>
-              </Popconfirm>
+              <Button icon={<DollarOutlined />} onClick={() => openPayModal(null)}>
+                Pay All Ready ({stats.payable})
+              </Button>
             )}
           </Space>
         </Col>
       </Row>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12}>
-          <Card
-            size="small"
-            style={{ borderRadius: 12, borderLeft: '4px solid #06b6d4', background: '#ecfeff', border: '1px solid #06b6d422' }}
-            styles={{ body: { padding: '18px 20px' } }}
-          >
+        <Col xs={24} sm={8}>
+          <Card size="small" style={{ borderRadius: 12, background: '#ecfeff', border: '1px solid #06b6d422' }} styles={{ body: { padding: '18px 20px' } }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0891b2', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
               <DollarOutlined />Payout Ready for Agent
             </div>
@@ -182,12 +292,8 @@ export default function Payouts() {
             <div style={{ fontSize: 12, color: '#0891b2', marginTop: 6, opacity: 0.8 }}>{stats.payable} lead{stats.payable !== 1 ? 's' : ''} ready to pay</div>
           </Card>
         </Col>
-        <Col xs={24} sm={12}>
-          <Card
-            size="small"
-            style={{ borderRadius: 12, borderLeft: '4px solid #22c55e', background: '#f0fdf4', border: '1px solid #22c55e22' }}
-            styles={{ body: { padding: '18px 20px' } }}
-          >
+        <Col xs={24} sm={8}>
+          <Card size="small" style={{ borderRadius: 12, background: '#f0fdf4', border: '1px solid #22c55e22' }} styles={{ body: { padding: '18px 20px' } }}>
             <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#16a34a', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
               <CheckCircleOutlined />Total Paid Out to Agent
             </div>
@@ -195,40 +301,173 @@ export default function Payouts() {
             <div style={{ fontSize: 12, color: '#16a34a', marginTop: 6, opacity: 0.8 }}>{stats.paid} payout{stats.paid !== 1 ? 's' : ''} completed</div>
           </Card>
         </Col>
+        <Col xs={24} sm={8}>
+          <Card size="small" style={{ borderRadius: 12, background: '#fffbeb', border: '1px solid #f59e0b22' }} styles={{ body: { padding: '18px 20px' } }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#b45309', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <LockOutlined />Total On Hold
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#92400e', lineHeight: 1.2 }}>{aed(stats.totalHeld)}</div>
+            <div style={{ fontSize: 12, color: '#b45309', marginTop: 6, opacity: 0.8 }}>{holds.length} hold{holds.length !== 1 ? 's' : ''} pending release</div>
+          </Card>
+        </Col>
       </Row>
 
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '0 24px 24px' }}>
         <Tabs
           activeKey={tab}
-          onChange={(k) => { setTab(k); setSelectedRowKeys([]); }}
+          onChange={(k) => { setTab(k); setSelectedRowKeys([]); setSelectedHoldKeys([]); }}
           items={tabItems}
           style={{ marginBottom: 0 }}
         />
-        <Space style={{ marginBottom: 16 }}>
-          <Input
-            allowClear
-            placeholder="Search client or lead ID..."
-            prefix={<SearchOutlined />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 280 }}
+        {tab !== 'holds' && (
+          <Space style={{ marginBottom: 16 }}>
+            <Input
+              allowClear
+              placeholder="Search client or lead ID..."
+              prefix={<SearchOutlined />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 280 }}
+            />
+            <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
+          </Space>
+        )}
+        {tab === 'holds' ? (
+          <>
+            {holds.length > 0 && (
+              <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center' }}>
+                {selectedHoldKeys.length > 0 && (
+                  <Popconfirm
+                    title={`Release ${selectedHoldKeys.length} hold(s)?`}
+                    description={`This will release ${aed(holds.filter(h => selectedHoldKeys.includes(h._id)).reduce((s, h) => s + (h.holdAmount || 0), 0))} to agents.`}
+                    onConfirm={() => bulkRelease(selectedHoldKeys)}
+                    okText="Release"
+                    okButtonProps={{ danger: false }}
+                  >
+                    <Button
+                      type="primary"
+                      icon={<LockOutlined />}
+                      loading={releasing}
+                      style={{ background: '#f59e0b', borderColor: '#f59e0b' }}
+                    >
+                      Release Selected ({selectedHoldKeys.length})
+                    </Button>
+                  </Popconfirm>
+                )}
+                <Popconfirm
+                  title={`Release all ${holds.length} holds?`}
+                  description={`This will release ${aed(stats.totalHeld)} total to agents.`}
+                  onConfirm={() => bulkRelease(null)}
+                  okText="Release All"
+                  okButtonProps={{ danger: false }}
+                >
+                  <Button icon={<LockOutlined />} loading={releasing}>
+                    Release All ({holds.length})
+                  </Button>
+                </Popconfirm>
+                {selectedHoldKeys.length > 0 && (
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    {selectedHoldKeys.length} selected · {aed(holds.filter(h => selectedHoldKeys.includes(h._id)).reduce((s, h) => s + (h.holdAmount || 0), 0))} held
+                  </Typography.Text>
+                )}
+              </div>
+            )}
+            <Table
+              size="small"
+              rowKey="_id"
+              loading={holdsLoading}
+              dataSource={holds}
+              columns={holdColumns}
+              rowSelection={{ selectedRowKeys: selectedHoldKeys, onChange: setSelectedHoldKeys }}
+              onRow={(row) => ({ onClick: (e) => { if (e.target.tagName !== 'BUTTON' && !e.target.closest('button') && !e.target.closest('.ant-checkbox-wrapper')) navigate(`/admin/leads/${row._id}`); }, style: { cursor: 'pointer' } })}
+              locale={{ emptyText: 'No active holds' }}
+            />
+          </>
+        ) : (
+          <Table
+            size="small"
+            rowKey="_id"
+            loading={loading}
+            dataSource={filtered}
+            columns={columns}
+            rowSelection={
+              tab === 'payable'
+                ? { selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (row) => ({ disabled: row.commissionStatus !== 'payable' }) }
+                : undefined
+            }
+            onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })}
           />
-          <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
-        </Space>
-        <Table
-          size="small"
-          rowKey="_id"
-          loading={loading}
-          dataSource={filtered}
-          columns={columns}
-          rowSelection={
-            tab === 'payable'
-              ? { selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (row) => ({ disabled: row.commissionStatus !== 'payable' }) }
-              : undefined
-          }
-          onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })}
-        />
+        )}
       </div>
+
+      {/* Pay Modal */}
+      <Modal
+        title="Confirm Payout"
+        open={payModal.open}
+        onCancel={() => setPayModal({ open: false, ids: null })}
+        onOk={confirmPay}
+        okText="Confirm & Pay"
+        confirmLoading={paying}
+        okButtonProps={{ type: 'primary' }}
+        destroyOnClose
+        width={480}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <Typography.Text type="secondary">Leads to pay</Typography.Text>
+            <Typography.Text strong>{modalLeads.length}</Typography.Text>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+            <Typography.Text type="secondary">Total commission</Typography.Text>
+            <Typography.Text strong>{aed(modalTotal)}</Typography.Text>
+          </div>
+          {modalCardLeads.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Typography.Text type="secondary">Credit card leads</Typography.Text>
+              <Typography.Text>{modalCardLeads.length}</Typography.Text>
+            </div>
+          )}
+        </div>
+
+        {modalCardLeads.length > 0 && (
+          <>
+            <Divider style={{ margin: '12px 0' }} />
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <LockOutlined /> Hold Amount (Credit Cards Only)
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <InputNumber
+                  min={0}
+                  max={100}
+                  value={holdPct}
+                  onChange={(v) => setHoldPct(v || 0)}
+                  formatter={(v) => `${v}%`}
+                  parser={(v) => v.replace('%', '')}
+                  style={{ width: 110 }}
+                  placeholder="0%"
+                />
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  of credit card commissions (set 0 to skip)
+                </Typography.Text>
+              </div>
+              {holdPct > 0 && (
+                <div style={{ fontSize: 12, color: '#b45309' }}>
+                  <div>Hold: <strong>{aed(holdAmount)}</strong></div>
+                  <div>Net paid: <strong>{aed(netPayout)}</strong></div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748b' }}>
+          <InfoCircleOutlined />
+          {holdPct > 0
+            ? `Agent receives ${aed(netPayout)}. ${aed(holdAmount)} held until clawback period expires.`
+            : 'Full commission will be paid to agents.'}
+        </div>
+      </Modal>
     </>
   );
 }

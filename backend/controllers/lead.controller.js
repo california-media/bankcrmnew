@@ -14,7 +14,8 @@ const POPULATE_FIELDS = [
   { path: 'cardProduct', select: 'name cardType commissionBrackets cardImage benefits feesEligibility' },
   { path: 'loanProduct', select: 'name loanCategory commissionBrackets benefits feesEligibility minSalary maxLoanAmount maxTenure interestRateRange' },
   { path: 'employeeStatus', select: 'label color' },
-  { path: 'consentStatus', select: 'label color' },
+  { path: 'consentStatus',  select: 'label color' },
+  { path: 'loanStatus',     select: 'label color' },
   { path: 'assignedCpvEmployee', select: 'name email employeeType' },
   { path: 'assignedSalesEmployee', select: 'name email employeeType' },
 ];
@@ -26,7 +27,7 @@ const POPULATE_FIELDS = [
  */
 exports.create = async (req, res) => {
   try {
-    const { customerName, phone, productType, cardProduct, loanProduct, loanAmount, customerSalary, notes, email, visaType, nationality, companyName, jobTitle, yearsOfExperience } = req.body;
+    const { customerName, phone, productType, cardProduct, loanProduct, loanAmount, loanType, customerSalary, notes, email, visaType, nationality, companyName, jobTitle, yearsOfExperience } = req.body;
     if (!customerName || !phone || !productType) {
       return res.status(400).json({ message: 'customerName, phone, and productType are required' });
     }
@@ -80,7 +81,7 @@ exports.create = async (req, res) => {
     if (jobTitle) leadData.jobTitle = jobTitle.trim();
     if (yearsOfExperience != null) leadData.yearsOfExperience = yearsOfExperience;
     if (productType === 'credit_card') leadData.cardProduct = cardProduct;
-    if (productType === 'loan') { leadData.loanProduct = loanProduct; leadData.loanAmount = loanAmount; }
+    if (productType === 'loan') { leadData.loanProduct = loanProduct; leadData.loanAmount = loanAmount; if (loanType) leadData.loanType = loanType; }
 
     // Pre-calculate expected commissions from product brackets at creation time
     const { receivable, payable } = await commissionService.resolveCommissions({
@@ -214,14 +215,19 @@ exports.listMine = async (req, res) => {
 exports.stats = async (req, res) => {
   try {
     const agentId = req.user._id;
-    const [total, approved, rejected, disbursed, cpvDoneCount, activateDoneCount, leads] = await Promise.all([
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const [total, approved, rejected, disbursed, cpvDoneCount, activateDoneCount, leads, monthPaidLeads] = await Promise.all([
       Lead.countDocuments({ agent: agentId }),
       Lead.countDocuments({ agent: agentId, status: 'approved' }),
       Lead.countDocuments({ agent: agentId, status: 'rejected' }),
       Lead.countDocuments({ agent: agentId, status: 'disbursed' }),
       Lead.countDocuments({ agent: agentId, cpvDone: true }),
       Lead.countDocuments({ agent: agentId, activateDone: true }),
-      Lead.find({ agent: agentId }).select('status commission commissionStatus'),
+      Lead.find({ agent: agentId }).select('status commission commissionStatus createdAt'),
+      Lead.find({ agent: agentId, commissionStatus: 'paid', commissionPaidAt: { $gte: monthStart } }).select('commission'),
     ]);
 
     const activeStatuses = ['draft', 'submitted', 'under_review', 'assigned'];
@@ -238,11 +244,18 @@ exports.stats = async (req, res) => {
       .filter((l) => l.commissionStatus === 'pending' || l.commissionStatus === 'payable')
       .reduce((s, l) => s + (l.commission || 0), 0);
 
+    const thisMonthLeads = leads.filter((l) => new Date(l.createdAt) >= monthStart);
+    const thisMonthSubmitted = thisMonthLeads.filter((l) => l.status !== 'draft').length;
+    const thisMonthApproved = thisMonthLeads.filter((l) => l.status === 'approved' || l.status === 'disbursed').length;
+    const thisMonthPaid = monthPaidLeads.length;
+    const thisMonthEarned = monthPaidLeads.reduce((s, l) => s + (l.commission || 0), 0);
+
     res.json({
       total, active, drafts, submitted, underReview, assigned,
       approved, rejected, pending, disbursed,
       cpvDone: cpvDoneCount, activateDone: activateDoneCount,
       paidEarnings, pendingEarnings,
+      thisMonth: { submitted: thisMonthSubmitted, approved: thisMonthApproved, paid: thisMonthPaid, earned: thisMonthEarned },
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -417,6 +430,14 @@ exports.updateLoanAmount = async (req, res) => {
     }
 
     lead.loanAmount = loanAmount;
+
+    // Recalculate commission based on new loan amount (only if not yet locked by disbursement)
+    if (lead.status !== 'disbursed') {
+      const { receivable, payable } = await commissionService.resolveCommissions(lead);
+      lead.grossCommission = receivable;
+      lead.commission = payable;
+    }
+
     await lead.save();
 
     const populated = await lead.populate(POPULATE_FIELDS);
@@ -555,8 +576,24 @@ exports.markCommissionPaid = async (req, res) => {
     }
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Hold amount: credit card only, based on holdPct from request
+    const holdPct = Math.min(100, Math.max(0, Number(req.body.holdPct) || 0));
+    let holdAmount = 0;
+    if (lead.productType === 'credit_card' && holdPct > 0) {
+      holdAmount = Math.round(lead.commission * holdPct / 100);
+      const card = await CardProduct.findById(lead.cardProduct).select('clawbackMonths');
+      const clawbackMonths = card?.clawbackMonths || 0;
+      if (clawbackMonths > 0) {
+        const until = new Date(now);
+        until.setMonth(until.getMonth() + clawbackMonths);
+        lead.clawbackUntil = until;
+      }
+      lead.holdAmount = holdAmount;
+    }
+
     lead.payoutHistory.push({
-      amount: lead.commission,
+      amount: lead.commission - holdAmount,
       sentAt: now,
       sentBy: req.user._id,
       month,
@@ -566,17 +603,105 @@ exports.markCommissionPaid = async (req, res) => {
     await lead.save();
     const populated = await lead.populate(POPULATE_FIELDS);
     try {
+      const body = holdAmount > 0
+        ? `${lead.customerName} — AED ${Number(lead.commission - holdAmount).toLocaleString()} paid · AED ${Number(holdAmount).toLocaleString()} on hold`
+        : `${lead.customerName} — AED ${Number(lead.commission || 0).toLocaleString()} commission paid`;
       await createAndEmit(
         [String(populated.agent?._id || populated.agent)],
+        { type: 'commission_paid', title: 'Commission Paid', body, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * GET /api/leads/holds  (admin)
+ * List all credit-card leads with an active (unreleased) hold amount.
+ */
+exports.listHolds = async (req, res) => {
+  try {
+    const leads = await Lead.find({ holdAmount: { $gt: 0 }, holdReleased: { $ne: true }, productType: 'credit_card' })
+      .populate(POPULATE_FIELDS)
+      .sort({ commissionPaidAt: -1 });
+    res.json(leads);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/leads/bulk-release-holds  (admin)
+ * Body: { leadIds?: string[] }  — omit to release all active holds.
+ */
+exports.bulkReleaseHolds = async (req, res) => {
+  try {
+    const { leadIds } = req.body;
+    const query = { holdAmount: { $gt: 0 }, holdReleased: { $ne: true } };
+    if (leadIds && leadIds.length) query._id = { $in: leadIds };
+
+    const leads = await Lead.find(query);
+    if (!leads.length) return res.json({ count: 0, message: 'No active holds found' });
+
+    const now = new Date();
+    await Lead.updateMany(
+      { _id: { $in: leads.map((l) => l._id) } },
+      { holdReleased: true, holdReleasedAt: now },
+    );
+
+    // Notify each affected agent
+    await Promise.allSettled(
+      leads.map((lead) =>
+        createAndEmit(
+          [String(lead.agent)],
+          {
+            type: 'hold_released',
+            title: 'Hold Released',
+            body: `${lead.customerName} — AED ${Number(lead.holdAmount || 0).toLocaleString()} hold released`,
+            lead: lead._id,
+          },
+          req.user._id,
+        )
+      )
+    );
+
+    res.json({ count: leads.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/leads/:id/release-hold  (admin)
+ * Release the held amount back to the agent.
+ */
+exports.releaseHold = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    if (!lead.holdAmount || lead.holdReleased) return res.status(400).json({ message: 'No active hold on this lead' });
+
+    lead.holdReleased = true;
+    lead.holdReleasedAt = new Date();
+    await lead.save();
+
+    try {
+      await createAndEmit(
+        [String(lead.agent)],
         {
-          type: 'commission_paid',
-          title: 'Commission Paid',
-          body: `${lead.customerName} — AED ${Number(lead.commission || 0).toLocaleString()} commission paid`,
+          type: 'hold_released',
+          title: 'Hold Released',
+          body: `${lead.customerName} — AED ${Number(lead.holdAmount || 0).toLocaleString()} hold released`,
           lead: lead._id,
         },
         req.user._id,
       );
     } catch (_) {}
+
+    const populated = await lead.populate(POPULATE_FIELDS);
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -618,7 +743,9 @@ exports.addDisbursementReceipt = async (req, res) => {
  */
 exports.bulkMarkPaid = async (req, res) => {
   try {
-    const { leadIds } = req.body;
+    const { leadIds, holdPct: rawHoldPct } = req.body;
+    const holdPct = Math.min(100, Math.max(0, Number(rawHoldPct) || 0));
+
     const filter = leadIds?.length
       ? { _id: { $in: leadIds }, commissionStatus: 'payable' }
       : { commissionStatus: 'payable' };
@@ -626,8 +753,28 @@ exports.bulkMarkPaid = async (req, res) => {
     if (!leads.length) return res.status(400).json({ message: 'No payable leads found' });
     const now = new Date();
     const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Pre-fetch clawbackMonths from card products (only needed if holdPct > 0)
+    let cardClawbackMap = {};
+    if (holdPct > 0) {
+      const cardIds = [...new Set(leads.filter((l) => l.productType === 'credit_card' && l.cardProduct).map((l) => String(l.cardProduct)))];
+      const cards = await CardProduct.find({ _id: { $in: cardIds } }).select('clawbackMonths');
+      cardClawbackMap = Object.fromEntries(cards.map((c) => [String(c._id), c.clawbackMonths || 0]));
+    }
+
     await Promise.all(leads.map((lead) => {
-      lead.payoutHistory.push({ amount: lead.commission, sentAt: now, sentBy: req.user._id, month });
+      let holdAmount = 0;
+      if (lead.productType === 'credit_card' && holdPct > 0) {
+        holdAmount = Math.round(lead.commission * holdPct / 100);
+        const clawbackMonths = cardClawbackMap[String(lead.cardProduct)] || 0;
+        if (clawbackMonths > 0) {
+          const until = new Date(now);
+          until.setMonth(until.getMonth() + clawbackMonths);
+          lead.clawbackUntil = until;
+        }
+        lead.holdAmount = holdAmount;
+      }
+      lead.payoutHistory.push({ amount: lead.commission - holdAmount, sentAt: now, sentBy: req.user._id, month });
       lead.commissionStatus = 'paid';
       lead.commissionPaidAt = now;
       return lead.save();
@@ -787,7 +934,6 @@ exports.getOne = async (req, res) => {
       .populate('consentStatusHistory.consentStatus', 'label color');
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     const out = lead.toObject();
-    if (req.user.role === 'agency') delete out.agent;
     if (req.user.role === 'employee') {
       delete out.commission;
       delete out.grossCommission;

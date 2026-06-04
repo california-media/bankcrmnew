@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Card, Row, Col, Tag, Table, Typography, Button, Skeleton, Divider } from 'antd';
+import { Card, Row, Col, Tag, Table, Typography, Button, Skeleton, Divider, Modal, Form, Input, message } from 'antd';
 import {
   ArrowLeftOutlined, BankOutlined, UserOutlined, LockOutlined,
-  CheckCircleOutlined, DollarOutlined, AuditOutlined, ClockCircleOutlined,
+  CheckCircleOutlined, DollarOutlined, AuditOutlined, ClockCircleOutlined, EditOutlined,
 } from '@ant-design/icons';
 import api from '../../api/client';
 
@@ -31,6 +31,9 @@ export default function AgentDetail() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editModal, setEditModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form] = Form.useForm();
 
   useEffect(() => {
     api.get(`/admin/agents/${id}`)
@@ -50,6 +53,32 @@ export default function AgentDetail() {
   const { agent, stats, leads } = data;
   const bd = agent.bankDetails || {};
   const hasBankDetails = !!(bd.iban || bd.accountNumber);
+
+  const openEdit = () => {
+    form.setFieldsValue({
+      accountHolderName: bd.accountHolderName || '',
+      bankName:          bd.bankName          || '',
+      accountNumber:     bd.accountNumber     || '',
+      iban:              bd.iban              || '',
+      swiftCode:         bd.swiftCode         || '',
+    });
+    setEditModal(true);
+  };
+
+  const saveBankDetails = async () => {
+    try {
+      const values = await form.validateFields();
+      setSaving(true);
+      const res = await api.patch(`/admin/agents/${id}`, { bankDetails: values });
+      setData((prev) => ({ ...prev, agent: res.data.user }));
+      setEditModal(false);
+      message.success('Bank details updated');
+    } catch (err) {
+      if (err?.response) message.error(err.response.data?.message || 'Update failed');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const statCards = [
     { label: 'Total Leads', value: stats.total, color: '#4f46e5', bg: '#eef2ff', icon: <AuditOutlined /> },
@@ -141,6 +170,7 @@ export default function AgentDetail() {
                 }
               </div>
             }
+            extra={<Button size="small" icon={<EditOutlined />} onClick={openEdit}>Edit</Button>}
           >
             {!hasBankDetails ? (
               <div style={{ textAlign: 'center', color: '#94a3b8', padding: '32px 0', fontSize: 13 }}>
@@ -162,6 +192,46 @@ export default function AgentDetail() {
           </Card>
         </Col>
       </Row>
+
+      <Modal
+        title="Edit Bank Details"
+        open={editModal}
+        onCancel={() => setEditModal(false)}
+        onOk={saveBankDetails}
+        okText="Save"
+        confirmLoading={saving}
+        width={480}
+      >
+        <Form form={form} layout="vertical" style={{ marginTop: 8 }}>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="accountHolderName" label="Account Holder Name">
+                <Input placeholder="Full name" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="bankName" label="Bank Name">
+                <Input placeholder="Bank name" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="accountNumber" label="Account Number">
+                <Input placeholder="Account number" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="iban" label="IBAN">
+                <Input placeholder="IBAN" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="swiftCode" label="SWIFT / BIC Code">
+            <Input placeholder="SWIFT code" />
+          </Form.Item>
+        </Form>
+      </Modal>
 
       {/* Recent Leads */}
       <Card

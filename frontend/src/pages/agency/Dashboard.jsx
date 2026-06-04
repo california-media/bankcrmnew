@@ -292,37 +292,6 @@ function AgencyDashboard() {
               )) : <Skeleton active paragraph={{ rows: 2 }} />}
             </Card>
 
-            {/* Top Agents */}
-            <Card
-              title={
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>Top Agents</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 400, marginTop: 2 }}>By paid commission</div>
-                </div>
-              }
-              style={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-              styles={{ header: { borderBottom: '1px solid #f1f5f9', paddingTop: 16, paddingBottom: 12 }, body: { padding: '16px 24px' } }}
-            >
-              {topAgents ? (
-                topAgents.length === 0 ? (
-                  <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: '8px 0' }}>No paid commissions yet</div>
-                ) : (
-                  topAgents.map((agent, i) => (
-                    <div key={agent.email || i} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: i < topAgents.length - 1 ? 12 : 0 }}>
-                      <div style={{ width: 22, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#94a3b8', flexShrink: 0 }}>{i + 1}</div>
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: avatarBg(agent.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
-                        {initials(agent.name)}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agent.name}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agent.email}</div>
-                      </div>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', flexShrink: 0 }}>{aed(agent.amount)}</div>
-                    </div>
-                  ))
-                )
-              ) : <Skeleton active paragraph={{ rows: 3 }} />}
-            </Card>
           </div>
         </Col>
       </Row>

@@ -315,7 +315,6 @@ export default function Receive() {
               ? { selectedRowKeys, onChange: setSelectedRowKeys }
               : undefined
           }
-          onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })}
         />
       </div>
 

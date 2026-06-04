@@ -12,4 +12,8 @@ router.patch('/agents/:id', ctrl.updateAgent);
 router.patch('/agents/:id/toggle-active', ctrl.toggleAgentActive);
 router.delete('/agents/:id', ctrl.deleteAgent);
 
+router.get('/agencies/pending', ctrl.listPendingAgencies);
+router.patch('/agencies/:id/approve', ctrl.approveAgency);
+router.patch('/agencies/:id/reject', ctrl.rejectAgency);
+
 module.exports = router;

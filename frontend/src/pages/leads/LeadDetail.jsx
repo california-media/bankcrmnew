@@ -3,12 +3,37 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
   Card, Col, Row, Typography, Tag, Space, Button, Descriptions, Skeleton,
-  Timeline, Divider, message, Modal, Form, InputNumber, Input, Select, Image, Tabs,
+  Timeline, Divider, message, Modal, Form, InputNumber, Input, Select, Image, Tabs, Alert, Segmented,
 } from 'antd';
 import {
-  ArrowLeftOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, FileOutlined, DollarOutlined,
+  ArrowLeftOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, FileOutlined, DollarOutlined, ThunderboltOutlined,
 } from '@ant-design/icons';
 import api from '../../api/client';
+
+const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
+
+1. Accuracy of Information
+   You confirm that all client information provided (name, phone number, salary, and product selection) is accurate and obtained with the client's knowledge and consent.
+
+2. Client Consent
+   You confirm that the client has agreed to be contacted by the agency regarding the selected financial product.
+
+3. Data Privacy
+   Client data will be used solely for processing this lead and will be handled in accordance with applicable data protection regulations.
+
+4. No Duplicate Submissions
+   You confirm this lead has not been previously submitted through this or any other channel.
+
+5. Agent Responsibility
+   You acknowledge responsibility for the quality and authenticity of the lead. Submitting false or duplicate leads may result in account suspension.
+
+6. Commission Terms
+   Commission eligibility is subject to the agency's approval and the successful disbursement of the financial product. Rates are subject to change.
+
+7. Compliance
+   This submission must comply with all applicable UAE Central Bank regulations and the agency's internal compliance policies.
+
+By accepting these terms, you confirm all above conditions are met and authorize submission of this lead to the agency.`;
 
 const STATUSES = {
   draft:           { color: 'default',  label: 'Draft' },
@@ -21,6 +46,7 @@ const STATUSES = {
   cpv_done:        { color: 'teal',     label: 'CPV Done' },
   activate_done:   { color: 'lime',     label: 'Activate Done' },
   employee_status: { color: 'orange',   label: 'Employee Status' },
+  loan_status:     { color: 'blue',     label: 'Loan Status' },
 };
 
 const AGENCY_STATUSES = {
@@ -85,6 +111,17 @@ export default function LeadDetail() {
   const [loanStatusSaving, setLoanStatusSaving] = useState(false);
   const [benefitsOpen, setBenefitsOpen] = useState(false);
 
+  const [completeOpen, setCompleteOpen]   = useState(false);
+  const [completeForm]                    = Form.useForm();
+  const [completeProdType, setCompleteProdType] = useState('credit_card');
+  const [cardProducts, setCardProducts]   = useState([]);
+  const [loanProducts, setLoanProducts]   = useState([]);
+  const [selectedCard, setSelectedCard]   = useState(null);
+  const [selectedBracket, setSelectedBracket] = useState(null);
+  const [completing, setCompleting]       = useState(false);
+  const [termsOpen, setTermsOpen]         = useState(false);
+  const [pendingCompleteValues, setPendingCompleteValues] = useState(null);
+
   const load = async () => {
     setLoading(true);
     try {
@@ -101,6 +138,14 @@ export default function LeadDetail() {
   useEffect(() => { load(); }, [id]);
 
   useEffect(() => {
+    if (role === 'agent') {
+      Promise.all([api.get('/card-products'), api.get('/loan-products')])
+        .then(([cardsRes, loansRes]) => {
+          setCardProducts(cardsRes.data.filter((c) => c.isActive && c.bank?.isActive !== false));
+          setLoanProducts(loansRes.data.filter((l) => l.isActive && l.bank?.isActive !== false));
+        })
+        .catch(() => {});
+    }
     if (role === 'agency') {
       api.get('/employees').then((res) => setEmployees(res.data)).catch(() => {});
     }
@@ -236,6 +281,65 @@ export default function LeadDetail() {
     }
   };
 
+  const openCompleteModal = () => {
+    completeForm.resetFields();
+    setCompleteProdType('credit_card');
+    setSelectedCard(null);
+    setSelectedBracket(null);
+    setCompleteOpen(true);
+  };
+
+  const onCompleteCardSelect = (id) => {
+    const card = cardProducts.find((c) => c._id === id) || null;
+    setSelectedCard(card);
+    if (card?.commissionBrackets?.length) {
+      const min = [...card.commissionBrackets].sort((a, b) => a.minimumSalary - b.minimumSalary)[0];
+      setSelectedBracket(min);
+      completeForm.setFieldValue('salaryBracket', min.minimumSalary);
+    } else {
+      setSelectedBracket(null);
+      completeForm.resetFields(['salaryBracket']);
+    }
+  };
+
+  const onCompleteBracketSelect = (minSalary) => {
+    const brackets = selectedCard?.commissionBrackets || [];
+    setSelectedBracket(brackets.find((b) => b.minimumSalary === minSalary) || null);
+  };
+
+  const submitCompleteReferral = async () => {
+    try {
+      const values = await completeForm.validateFields();
+      setPendingCompleteValues(values);
+      setTermsOpen(true);
+    } catch { /* validation errors shown inline */ }
+  };
+
+  const confirmCompleteReferral = async () => {
+    setTermsOpen(false);
+    setCompleting(true);
+    try {
+      const values = pendingCompleteValues;
+      const payload = { productType: completeProdType };
+      if (completeProdType === 'credit_card') {
+        payload.cardProduct = values.cardProduct;
+        if (values.salaryBracket != null) payload.customerSalary = values.salaryBracket;
+      } else {
+        payload.loanProduct = values.loanProduct;
+        if (values.loanAmount) payload.loanAmount = values.loanAmount;
+        if (values.loanType) payload.loanType = values.loanType;
+      }
+      const { data } = await api.patch(`/leads/${id}/complete-referral`, payload);
+      setLead(data);
+      message.success('Lead completed and sent to agency');
+      setCompleteOpen(false);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to complete lead');
+    } finally {
+      setCompleting(false);
+    }
+  };
+
   const backPath = role === 'admin' ? '/admin/leads' : role === 'agency' ? '/agency/leads' : role === 'employee' ? '/employee/leads' : '/agent/leads';
 
   if (loading) {
@@ -280,6 +384,21 @@ export default function LeadDetail() {
           {' · '}Updated {new Date(lead.updatedAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
         </Typography.Text>
       </div>
+
+      {role === 'agent' && lead.isReferral && !lead.productType && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12, borderRadius: 10 }}
+          message="Referral Lead — Action Required"
+          description="This lead was submitted by a customer via your referral link. Select a product to complete the lead and send it to the agency."
+          action={
+            <Button size="small" type="primary" icon={<ThunderboltOutlined />} onClick={openCompleteModal} style={{ background: '#d97706', borderColor: '#d97706' }}>
+              Complete Lead
+            </Button>
+          }
+        />
+      )}
 
       <Row gutter={[12, 12]}>
         {/* LEFT COLUMN */}
@@ -762,6 +881,110 @@ export default function LeadDetail() {
             <Input.TextArea rows={3} placeholder="Add a note..." />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Complete Referral Lead modal */}
+      <Modal
+        title="Complete Referral Lead"
+        open={completeOpen}
+        onCancel={() => setCompleteOpen(false)}
+        onOk={submitCompleteReferral}
+        okText="Submit Lead"
+        confirmLoading={completing}
+        destroyOnClose
+        width={480}
+      >
+        <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 16 }}>
+          Select the product for <strong>{lead.customerName}</strong>. The lead will be sent to the agency once submitted.
+        </Typography.Text>
+        <Segmented
+          block
+          value={completeProdType}
+          onChange={(v) => {
+            setCompleteProdType(v);
+            setSelectedCard(null);
+            setSelectedBracket(null);
+            completeForm.resetFields(['cardProduct', 'loanProduct', 'salaryBracket', 'loanAmount', 'loanType']);
+          }}
+          options={[
+            { label: 'Credit Card', value: 'credit_card' },
+            { label: 'Loan', value: 'loan' },
+          ]}
+          style={{ marginBottom: 16 }}
+        />
+        <Form form={completeForm} layout="vertical">
+          {completeProdType === 'credit_card' ? (
+            <>
+              <Form.Item name="cardProduct" label="Card Product" rules={[{ required: true, message: 'Select a card' }]}>
+                <Select
+                  showSearch
+                  placeholder="Select card product"
+                  optionFilterProp="label"
+                  onChange={onCompleteCardSelect}
+                  options={cardProducts.map((c) => ({ value: c._id, label: `${c.name} — ${c.bank?.name || ''}` }))}
+                />
+              </Form.Item>
+              {selectedCard?.commissionBrackets?.length > 0 && (
+                <Form.Item name="salaryBracket" label="Salary Bracket" rules={[{ required: true, message: 'Select salary bracket' }]}>
+                  <Select
+                    onChange={onCompleteBracketSelect}
+                    options={[...selectedCard.commissionBrackets]
+                      .sort((a, b) => a.minimumSalary - b.minimumSalary)
+                      .map((b) => ({
+                        value: b.minimumSalary,
+                        label: `Min. AED ${Number(b.minimumSalary).toLocaleString()} · ${b.feeType === 'free' ? 'Free' : 'Paid'} · AED ${Number(b.payable || 0).toLocaleString()}`,
+                      }))}
+                  />
+                </Form.Item>
+              )}
+              {selectedBracket && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, color: '#166534', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Expected Earning</div>
+                  <div style={{ fontWeight: 800, fontSize: 18, color: '#15803d' }}>AED {Number(selectedBracket.payable || 0).toLocaleString()}</div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <Form.Item name="loanProduct" label="Loan Product" rules={[{ required: true, message: 'Select a loan product' }]}>
+                <Select
+                  showSearch
+                  placeholder="Select loan product"
+                  optionFilterProp="label"
+                  options={loanProducts.map((l) => ({ value: l._id, label: `${l.name} — ${l.bank?.name || ''}` }))}
+                />
+              </Form.Item>
+              <Form.Item name="loanAmount" label="Loan Amount (AED)">
+                <InputNumber min={1} step={1000} style={{ width: '100%' }} placeholder="e.g. 50000" />
+              </Form.Item>
+              <Form.Item name="loanType" label="Loan Type">
+                <Select placeholder="Select type" allowClear options={[
+                  { value: 'new_stl_loan', label: 'New STL Loan' },
+                  { value: 'buyout', label: 'Buyout' },
+                  { value: 'pdc', label: 'PDC' },
+                ]} />
+              </Form.Item>
+            </>
+          )}
+        </Form>
+      </Modal>
+
+      {/* Terms & Conditions modal — shown before completing referral lead */}
+      <Modal
+        title="Terms & Conditions"
+        open={termsOpen}
+        onCancel={() => setTermsOpen(false)}
+        onOk={confirmCompleteReferral}
+        okText="I Agree — Submit Lead"
+        confirmLoading={completing}
+        width={520}
+        destroyOnClose
+      >
+        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6, padding: 16, maxHeight: 320, overflowY: 'auto' }}>
+          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 13, margin: 0, color: '#374151' }}>
+            {TERMS}
+          </pre>
+        </div>
       </Modal>
     </>
   );

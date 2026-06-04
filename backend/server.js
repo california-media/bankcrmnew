@@ -46,12 +46,19 @@ io.on('connection', (socket) => {
 
 connectDB();
 
-app.use(cors());
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => res.json({ message: 'Bank CRM API' }));
 
+app.use('/api/public',            require('./routes/public.routes'));
 app.use('/api/auth',              require('./routes/auth.routes'));
 app.use('/api/banks',             require('./routes/bank.routes'));
 app.use('/api/agencies',          require('./routes/agency.routes'));

@@ -34,6 +34,12 @@ const userSchema = new mongoose.Schema(
     // Agency-only: overpayment credit pool
     bucketBalance: { type: Number, default: 0 },
 
+    // Agency self-registration fields
+    companyName: { type: String, trim: true },
+    tradeLicense: { type: String, trim: true },
+    location: { type: String, trim: true },
+    registrationStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: null },
+
     // Invitation flow (agencies created by admin)
     inviteToken: { type: String },
     inviteTokenExpires: { type: Date },

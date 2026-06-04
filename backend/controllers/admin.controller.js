@@ -4,6 +4,7 @@ const { generateReferralCode } = require('../utils/token');
 
 const sanitizeAgent = (user) => ({
   id: user._id,
+  _id: user._id,
   name: user.name,
   email: user.email,
   phone: user.phone,
@@ -11,6 +12,7 @@ const sanitizeAgent = (user) => ({
   referralCode: user.referralCode,
   isActive: user.isActive,
   createdAt: user.createdAt,
+  bankDetails: user.bankDetails,
 });
 
 /**
@@ -193,7 +195,7 @@ exports.updateAgent = async (req, res) => {
     const agent = await User.findOne({ _id: req.params.id, role: 'agent' });
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
 
-    const { name, email, phone, holdPct } = req.body;
+    const { name, email, phone, holdPct, bankDetails } = req.body;
     if (name !== undefined) agent.name = name;
     if (phone !== undefined) agent.phone = phone;
     if (holdPct !== undefined) agent.holdPct = Math.min(100, Math.max(0, Number(holdPct) || 0));
@@ -202,6 +204,15 @@ exports.updateAgent = async (req, res) => {
       const conflict = await User.findOne({ email: lower, _id: { $ne: agent._id } });
       if (conflict) return res.status(409).json({ message: 'Email already in use' });
       agent.email = lower;
+    }
+    if (bankDetails !== undefined) {
+      agent.bankDetails = {
+        accountHolderName: bankDetails.accountHolderName ?? agent.bankDetails?.accountHolderName ?? '',
+        bankName:          bankDetails.bankName          ?? agent.bankDetails?.bankName          ?? '',
+        accountNumber:     bankDetails.accountNumber     ?? agent.bankDetails?.accountNumber     ?? '',
+        iban:              bankDetails.iban              ?? agent.bankDetails?.iban              ?? '',
+        swiftCode:         bankDetails.swiftCode         ?? agent.bankDetails?.swiftCode         ?? '',
+      };
     }
     await agent.save();
     res.json({ user: sanitizeAgent(agent) });
@@ -232,6 +243,51 @@ exports.deleteAgent = async (req, res) => {
   try {
     const agent = await User.findOneAndDelete({ _id: req.params.id, role: 'agent' });
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * GET /api/admin/agencies/pending  (admin)
+ */
+exports.listPendingAgencies = async (req, res) => {
+  try {
+    const agencies = await User.find({ role: 'agency', registrationStatus: 'pending' })
+      .select('-password -inviteToken -inviteTokenExpires')
+      .sort({ createdAt: -1 });
+    res.json(agencies);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/admin/agencies/:id/approve  (admin)
+ */
+exports.approveAgency = async (req, res) => {
+  try {
+    const agency = await User.findOne({ _id: req.params.id, role: 'agency', registrationStatus: 'pending' });
+    if (!agency) return res.status(404).json({ message: 'Pending agency not found' });
+    agency.isActive = true;
+    agency.registrationStatus = 'approved';
+    await agency.save();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/admin/agencies/:id/reject  (admin)
+ */
+exports.rejectAgency = async (req, res) => {
+  try {
+    const agency = await User.findOne({ _id: req.params.id, role: 'agency', registrationStatus: 'pending' });
+    if (!agency) return res.status(404).json({ message: 'Pending agency not found' });
+    agency.registrationStatus = 'rejected';
+    await agency.save();
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });

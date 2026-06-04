@@ -7,6 +7,7 @@ router.get('/uaepass/init', uaepass.init);
 router.get('/uaepass/callback', uaepass.callback);
 
 router.post('/register-agent', ctrl.registerAgent);
+router.post('/register-agency', ctrl.registerAgency);
 router.post('/login', ctrl.login);
 router.get('/invite/:token', ctrl.verifyInvite);
 router.post('/set-password', ctrl.setPassword);

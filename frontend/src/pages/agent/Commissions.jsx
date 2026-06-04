@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, Row, Col, Typography, Table, Tag, Empty, Skeleton, Space, Tabs, Statistic } from 'antd';
 import { CheckCircleOutlined, ClockCircleOutlined, RiseOutlined, DollarOutlined, LockOutlined } from '@ant-design/icons';
 import api from '../../api/client';
@@ -20,6 +20,19 @@ function Commissions() {
   const pendingLeads = (ledger?.leads || []).filter((l) => l.commissionStatus === 'pending');
   const heldLeads = (ledger?.leads || []).filter((l) => l.holdAmount > 0 && !l.holdReleased && l.productType === 'credit_card');
 
+  const paidRows = useMemo(() => {
+    const rows = [];
+    paidLeads.forEach((l) => {
+      const holdAmt = l.holdAmount || 0;
+      const stillHeld = holdAmt > 0 && !l.holdReleased;
+      rows.push({ ...l, _rowKey: `${l._id}_pay`, _type: 'payout', _amount: (l.commission || 0) - holdAmt, _date: l.commissionPaidAt });
+      if (holdAmt > 0 && l.holdReleased) {
+        rows.push({ ...l, _rowKey: `${l._id}_hold`, _type: 'hold_release', _amount: holdAmt, _date: l.holdReleasedAt });
+      }
+    });
+    return rows.sort((a, b) => new Date(b._date || 0) - new Date(a._date || 0));
+  }, [paidLeads]);
+
   const paidColumns = [
     {
       title: 'Reference',
@@ -30,25 +43,23 @@ function Commissions() {
     { title: 'Product', dataIndex: 'productType', render: (v) => productLabels[v] },
     { title: 'Bank', dataIndex: ['bank', 'name'] },
     {
-      title: 'Payout',
-      align: 'right',
-      render: (_, row) => {
-        const held = row.holdAmount > 0 && !row.holdReleased ? (row.holdAmount || 0) : 0;
-        const actual = (row.commission || 0) - held;
-        return (
-          <div style={{ textAlign: 'right' }}>
-            <span style={{ color: '#16a34a', fontWeight: 700 }}>{aed(actual)}</span>
-            {held > 0 && (
-              <div style={{ fontSize: 10, color: '#f59e0b', marginTop: 1 }}>+{aed(held)} on hold</div>
-            )}
-          </div>
-        );
-      },
+      title: 'Type',
+      render: (_, row) => row._type === 'hold_release'
+        ? <Tag color="purple" style={{ fontSize: 11 }}>Hold Released</Tag>
+        : <Tag color="green" style={{ fontSize: 11 }}>Payout</Tag>,
     },
     {
-      title: 'Paid On',
-      dataIndex: 'commissionPaidAt',
-      render: (d) => d ? new Date(d).toLocaleDateString() : '—',
+      title: 'Amount',
+      align: 'right',
+      render: (_, row) => (
+        <span style={{ color: row._type === 'hold_release' ? '#7c3aed' : '#16a34a', fontWeight: 700 }}>
+          {aed(row._amount)}
+        </span>
+      ),
+    },
+    {
+      title: 'Date',
+      render: (_, row) => row._date ? new Date(row._date).toLocaleDateString() : '—',
     },
   ];
 
@@ -212,8 +223,8 @@ function Commissions() {
               children: (
                 <Table
                   size="small"
-                  rowKey="_id"
-                  dataSource={paidLeads}
+                  rowKey="_rowKey"
+                  dataSource={paidRows}
                   columns={paidColumns}
                   scroll={{ x: 'max-content' }}
                   pagination={{ pageSize: 10 }}

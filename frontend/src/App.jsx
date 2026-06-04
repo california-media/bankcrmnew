@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, theme as antdTheme } from 'antd';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import RegisterAgency from './pages/RegisterAgency';
+import ReferralForm from './pages/ReferralForm';
 import SetPassword from './pages/SetPassword';
 import AppLayout from './components/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -18,7 +20,6 @@ import SubmitLead from './pages/agent/SubmitLead';
 import MyLeads from './pages/agent/MyLeads';
 import Commissions from './pages/agent/Commissions';
 import AgentProducts from './pages/agent/Products';
-import AgentSettings from './pages/agent/Settings';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyLeads from './pages/agency/Leads';
 import AgencyEmployees from './pages/agency/Employees';
@@ -71,9 +72,11 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/register/agency" element={<RegisterAgency />} />
         <Route path="/set-password" element={<SetPassword />} />
         <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/auth/uaepass/callback" element={<UaePassCallback />} />
+        <Route path="/ref/:code" element={<ReferralForm />} />
 
         <Route
           path="/admin"
@@ -118,7 +121,7 @@ function App() {
           <Route path="products" element={<AgentProducts />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
-          <Route path="settings" element={<AgentSettings />} />
+          <Route path="settings" element={<Profile />} />
         </Route>
 
         <Route

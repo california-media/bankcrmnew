@@ -153,14 +153,17 @@ exports.sendToAgency = async (req, res) => {
 
     lead.status = 'submitted';
 
-    // Auto-assign default consent status: explicit default first, fallback to lowest order
-    let defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isDefault: true, isActive: true });
-    if (!defaultConsent) {
-      defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isActive: true }).sort({ order: 1, createdAt: 1 });
-    }
-    if (defaultConsent && !lead.consentStatus) {
-      lead.consentStatus = defaultConsent._id;
-    }
+    // Auto-assign consent status: "Sent" label first, then isDefault, then lowest order
+    let defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: /^sent$/i, isActive: true });
+    if (!defaultConsent) defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isDefault: true, isActive: true });
+    if (!defaultConsent) defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isActive: true }).sort({ order: 1, createdAt: 1 });
+    if (defaultConsent && !lead.consentStatus) lead.consentStatus = defaultConsent._id;
+
+    // Auto-assign lead label: "New Lead" first, then isDefault, then lowest order
+    let defaultLabel = await EmployeeStatus.findOne({ statusType: 'lead_label', label: /^new lead$/i, isActive: true });
+    if (!defaultLabel) defaultLabel = await EmployeeStatus.findOne({ statusType: 'lead_label', isDefault: true, isActive: true });
+    if (!defaultLabel) defaultLabel = await EmployeeStatus.findOne({ statusType: 'lead_label', isActive: true }).sort({ order: 1, createdAt: 1 });
+    if (defaultLabel && !lead.employeeStatus) lead.employeeStatus = defaultLabel._id;
 
     await lead.save();
 
@@ -582,11 +585,11 @@ exports.markCommissionPaid = async (req, res) => {
     let holdAmount = 0;
     if (lead.productType === 'credit_card' && holdPct > 0) {
       holdAmount = Math.round(lead.commission * holdPct / 100);
-      const card = await CardProduct.findById(lead.cardProduct).select('clawbackMonths');
-      const clawbackMonths = card?.clawbackMonths || 0;
-      if (clawbackMonths > 0) {
+      const card = await CardProduct.findById(lead.cardProduct).select('clawbackMonths clawbackDays');
+      const clawbackDays = card?.clawbackDays || (card?.clawbackMonths ? card.clawbackMonths * 30 : 90);
+      if (clawbackDays > 0) {
         const until = new Date(now);
-        until.setMonth(until.getMonth() + clawbackMonths);
+        until.setDate(until.getDate() + clawbackDays);
         lead.clawbackUntil = until;
       }
       lead.holdAmount = holdAmount;
@@ -758,18 +761,18 @@ exports.bulkMarkPaid = async (req, res) => {
     let cardClawbackMap = {};
     if (holdPct > 0) {
       const cardIds = [...new Set(leads.filter((l) => l.productType === 'credit_card' && l.cardProduct).map((l) => String(l.cardProduct)))];
-      const cards = await CardProduct.find({ _id: { $in: cardIds } }).select('clawbackMonths');
-      cardClawbackMap = Object.fromEntries(cards.map((c) => [String(c._id), c.clawbackMonths || 0]));
+      const cards = await CardProduct.find({ _id: { $in: cardIds } }).select('clawbackMonths clawbackDays');
+      cardClawbackMap = Object.fromEntries(cards.map((c) => [String(c._id), c.clawbackDays || (c.clawbackMonths ? c.clawbackMonths * 30 : 90)]));
     }
 
     await Promise.all(leads.map((lead) => {
       let holdAmount = 0;
       if (lead.productType === 'credit_card' && holdPct > 0) {
         holdAmount = Math.round(lead.commission * holdPct / 100);
-        const clawbackMonths = cardClawbackMap[String(lead.cardProduct)] || 0;
-        if (clawbackMonths > 0) {
+        const clawbackDays = cardClawbackMap[String(lead.cardProduct)] || 90;
+        if (clawbackDays > 0) {
           const until = new Date(now);
-          until.setMonth(until.getMonth() + clawbackMonths);
+          until.setDate(until.getDate() + clawbackDays);
           lead.clawbackUntil = until;
         }
         lead.holdAmount = holdAmount;
@@ -872,6 +875,76 @@ exports.bulkAddReceipt = async (req, res) => {
       return lead.save();
     }));
     res.json({ count: leads.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/leads/:id/complete-referral  (agent)
+ * Fill in product/bank details for a referral lead submitted by a customer.
+ */
+exports.completeReferral = async (req, res) => {
+  try {
+    const lead = await Lead.findOne({ _id: req.params.id, agent: req.user._id, isReferral: true });
+    if (!lead) return res.status(404).json({ message: 'Referral lead not found' });
+    if (lead.productType) return res.status(400).json({ message: 'Lead already completed' });
+
+    const { productType, cardProduct, loanProduct, loanAmount, loanType, customerSalary } = req.body;
+    if (!productType) return res.status(400).json({ message: 'Product type required' });
+    if (productType === 'credit_card' && !cardProduct) return res.status(400).json({ message: 'Card product required' });
+    if (productType === 'loan' && !loanProduct) return res.status(400).json({ message: 'Loan product required' });
+
+    let bank, agency;
+    if (productType === 'credit_card') {
+      const CardProduct = require('../models/CardProduct');
+      const card = await CardProduct.findById(cardProduct).select('bank agency');
+      if (!card) return res.status(404).json({ message: 'Card product not found' });
+      bank = card.bank;
+      agency = card.agency;
+    } else {
+      const LoanProduct = require('../models/LoanProduct');
+      const loan = await LoanProduct.findById(loanProduct).select('bank agency');
+      if (!loan) return res.status(404).json({ message: 'Loan product not found' });
+      bank = loan.bank;
+      agency = loan.agency;
+    }
+
+    lead.productType = productType;
+    lead.bank = bank;
+    if (agency) lead.agency = agency;
+    if (productType === 'credit_card') {
+      lead.cardProduct = cardProduct;
+    } else {
+      lead.loanProduct = loanProduct;
+      if (loanAmount) lead.loanAmount = loanAmount;
+      if (loanType) lead.loanType = loanType;
+    }
+    if (customerSalary) lead.customerSalary = customerSalary;
+
+    // Auto-assign consent "Sent" and label "New Lead" on completion
+    let defConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: /^sent$/i, isActive: true });
+    if (!defConsent) defConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isDefault: true, isActive: true });
+    if (!defConsent) defConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isActive: true }).sort({ order: 1, createdAt: 1 });
+    if (defConsent) lead.consentStatus = defConsent._id;
+
+    let defLabel = await EmployeeStatus.findOne({ statusType: 'lead_label', label: /^new lead$/i, isActive: true });
+    if (!defLabel) defLabel = await EmployeeStatus.findOne({ statusType: 'lead_label', isDefault: true, isActive: true });
+    if (!defLabel) defLabel = await EmployeeStatus.findOne({ statusType: 'lead_label', isActive: true }).sort({ order: 1, createdAt: 1 });
+    if (defLabel) lead.employeeStatus = defLabel._id;
+
+    await lead.save();
+
+    const populated = await Lead.findById(lead._id)
+      .populate('bank', 'name')
+      .populate('cardProduct', 'name commissionBrackets clawbackDays')
+      .populate('loanProduct', 'name')
+      .populate('agent', 'name email')
+      .populate('agency', 'name email')
+      .populate('employeeStatus', 'label color')
+      .populate('consentStatus', 'label color');
+
+    res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -40,6 +40,15 @@ export const registerAgent = createAsyncThunk('auth/registerAgent', async (paylo
   }
 });
 
+export const registerAgency = createAsyncThunk('auth/registerAgency', async (payload, { rejectWithValue }) => {
+  try {
+    const { data } = await api.post('/auth/register-agency', payload);
+    return data; // { message: '...' } — no token, awaiting approval
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || 'Registration failed');
+  }
+});
+
 /**
  * POST /auth/set-password (completes invitation)
  * @param {{ token: string, password: string, name?: string, phone?: string }} payload
@@ -122,6 +131,11 @@ const authSlice = createSlice({
           state.user = { ...state.user, name: action.payload.name, phone: action.payload.phone };
         }
       });
+
+    builder
+      .addCase(registerAgency.pending, (state) => { state.status = 'loading'; state.error = null; })
+      .addCase(registerAgency.fulfilled, (state) => { state.status = 'idle'; })
+      .addCase(registerAgency.rejected, (state, action) => { state.status = 'idle'; state.error = action.payload; });
 
     [login, registerAgent, setPassword].forEach((thunk) => {
       builder

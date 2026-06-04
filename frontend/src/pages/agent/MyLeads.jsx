@@ -89,9 +89,11 @@ function MyLeads() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return leads.filter((l) => {
+      const isPendingReferral = l.isReferral && !l.productType;
+      if (leadsTab === 'referral' && !isPendingReferral) return false;
       if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
       if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
-      if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected')) return false;
+      if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected' || isPendingReferral)) return false;
       if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
       if (statusFilter && String(l.employeeStatus?._id) !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
@@ -99,9 +101,10 @@ function MyLeads() {
     });
   }, [leads, search, statusFilter, productFilter, leadsTab]);
 
-  const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected').length;
+  const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected' && !(l.isReferral && !l.productType)).length;
   const rejectedCount = leads.filter(l => l.status === 'rejected').length;
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
+  const referralCount = leads.filter(l => l.isReferral && !l.productType).length;
 
   const renderProduct = (row) => {
     if (row.productType === 'credit_card' && row.cardProduct) return row.cardProduct.name || 'Credit Card';
@@ -250,6 +253,7 @@ function MyLeads() {
         style={{ marginBottom: 8 }}
         items={[
           { key: 'active', label: `Active (${activeCount})` },
+          { key: 'referral', label: `Referral Leads (${referralCount})` },
           { key: 'rejected', label: `Rejected (${rejectedCount})` },
           { key: 'archive', label: `Approved (${archiveCount})` },
         ]}

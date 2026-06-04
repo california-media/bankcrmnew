@@ -74,17 +74,19 @@ function AdminLeads() {
     api.get('/employee-statuses?statusType=lead_label').then((r) => setLabelStatuses(r.data.filter((s) => s.isActive))).catch(() => {});
   }, []);
 
-  const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected').length;
+  const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected' && !l.isReferral).length;
   const rejectedCount = leads.filter(l => l.status === 'rejected').length;
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
+  const referralCount = leads.filter(l => l.isReferral).length;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const [from, to] = dateRange || [];
     return leads.filter((l) => {
+      if (leadsTab === 'referral' && !l.isReferral) return false;
       if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
       if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
-      if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected')) return false;
+      if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected' || l.isReferral)) return false;
       if (q && !l.customerName.toLowerCase().includes(q) && !String(l._id).toLowerCase().includes(q)) return false;
       if (statusFilter && String(l.employeeStatus?._id) !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
@@ -303,6 +305,7 @@ function AdminLeads() {
         style={{ marginBottom: 8 }}
         items={[
           { key: 'active', label: `Active (${activeCount})` },
+          { key: 'referral', label: `Referral Leads (${referralCount})` },
           { key: 'rejected', label: `Rejected (${rejectedCount})` },
           { key: 'archive', label: `Approved (${archiveCount})` },
         ]}

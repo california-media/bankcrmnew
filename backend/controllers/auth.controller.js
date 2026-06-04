@@ -32,6 +32,7 @@ const sanitizeFull = (user) => ({
   agency: user.agency,
   referredBy: user.referredBy,
   bankDetails: user.bankDetails,
+  emiratesId: user.emiratesId,
 });
 
 const safeUser = async (id) =>
@@ -85,6 +86,39 @@ exports.registerAgent = async (req, res) => {
 };
 
 /**
+ * POST /api/auth/register-agency  (public — self-registration, requires admin approval)
+ */
+exports.registerAgency = async (req, res) => {
+  try {
+    const { name, companyName, tradeLicense, email, phone, password, emiratesId, city } = req.body;
+    if (!companyName || !email || !password) {
+      return res.status(400).json({ message: 'Company name, email, and password are required' });
+    }
+
+    const exists = await User.findOne({ email: email.toLowerCase() });
+    if (exists) return res.status(409).json({ message: 'Email already registered' });
+
+    await User.create({
+      name: name || companyName,
+      companyName,
+      tradeLicense,
+      email: email.toLowerCase(),
+      password,
+      phone,
+      emiratesId,
+      location: city,
+      role: 'agency',
+      isActive: false,
+      registrationStatus: 'pending',
+    });
+
+    res.status(201).json({ message: 'Registration submitted. Awaiting admin approval.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * POST /api/auth/login  (public — all roles)
  */
 exports.login = async (req, res) => {
@@ -94,7 +128,11 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || !user.password) return res.status(401).json({ message: 'Invalid credentials' });
-    if (!user.isActive) return res.status(403).json({ message: 'Account not activated. Check your invite email.' });
+    if (!user.isActive) {
+      if (user.registrationStatus === 'pending') return res.status(403).json({ message: 'Account pending admin approval.' });
+      if (user.registrationStatus === 'rejected') return res.status(403).json({ message: 'Account registration was rejected. Contact support.' });
+      return res.status(403).json({ message: 'Account not activated. Check your invite email.' });
+    }
 
     const ok = await user.comparePassword(password);
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
@@ -187,12 +225,13 @@ exports.getProfile = async (req, res) => {
  */
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, phone, currentPassword, newPassword, bankDetails } = req.body;
+    const { name, phone, emiratesId, currentPassword, newPassword, bankDetails } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     if (name !== undefined && name.trim()) user.name = name.trim();
     if (phone !== undefined) user.phone = phone.trim();
+    if (emiratesId !== undefined) user.emiratesId = emiratesId.trim() || null;
 
     if (bankDetails && typeof bankDetails === 'object' && user.role === 'agent') {
       const bd = bankDetails;

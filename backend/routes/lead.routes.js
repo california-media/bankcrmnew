@@ -12,6 +12,7 @@ router.get('/stats', requireRole('agent'), ctrl.stats);
 router.get('/ledger', requireRole('agent'), ctrl.myLedger);
 router.delete('/:id', requireRole('agent'), ctrl.removeDraft);
 router.patch('/:id/engagement-status', requireRole('agent'), ctrl.updateEngagementStatus);
+router.patch('/:id/complete-referral', requireRole('agent'), ctrl.completeReferral);
 
 // All roles — add note
 router.post('/:id/notes', requireRole('admin', 'agency', 'agent', 'employee'), ctrl.addNote);

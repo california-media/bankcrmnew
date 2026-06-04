@@ -82,6 +82,7 @@ export default function Payouts() {
       await api.post(`/leads/${leadId}/release-hold`);
       message.success('Hold released');
       loadHolds();
+      load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed to release hold');
     }
@@ -95,6 +96,7 @@ export default function Payouts() {
       message.success(`${data.count} hold(s) released`);
       setSelectedHoldKeys([]);
       loadHolds();
+      load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed to release holds');
     } finally {
@@ -140,6 +142,75 @@ export default function Payouts() {
   const modalTotal = modalLeads.reduce((s, l) => s + (l.commission || 0), 0);
   const holdAmount = holdPct > 0 ? Math.round(modalCardLeads.reduce((s, l) => s + (l.commission || 0), 0) * holdPct / 100) : 0;
   const netPayout = modalTotal - holdAmount;
+
+  const paidRows = useMemo(() => {
+    const src = leads.filter((l) => {
+      const q = search.trim().toLowerCase();
+      if (l.commissionStatus !== 'paid') return false;
+      if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
+      return true;
+    });
+    const rows = [];
+    src.forEach((l) => {
+      const holdAmt = l.holdAmount || 0;
+      const stillHeld = holdAmt > 0 && !l.holdReleased;
+      rows.push({ ...l, _rowKey: `${l._id}_pay`, _type: 'payout', _amount: (l.commission || 0) - holdAmt, _date: l.commissionPaidAt });
+      if (holdAmt > 0 && l.holdReleased) {
+        rows.push({ ...l, _rowKey: `${l._id}_hold`, _type: 'hold_release', _amount: holdAmt, _date: l.holdReleasedAt });
+      }
+    });
+    return rows.sort((a, b) => new Date(b._date || 0) - new Date(a._date || 0));
+  }, [leads, search]);
+
+  const adminPaidColumns = [
+    {
+      title: 'Lead ID',
+      dataIndex: 'leadNumber',
+      render: (v) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{v || '—'}</Typography.Text>,
+    },
+    {
+      title: 'Client',
+      dataIndex: 'customerName',
+      render: (v, row) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{v}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.phone}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Agent',
+      render: (_, row) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{row.agent?.name || row.agent?.email || '—'}</div>
+          {row.agent?.name && <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.agent.email}</div>}
+        </div>
+      ),
+    },
+    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || '—' },
+    { title: 'Bank', render: (_, row) => row.bank?.name || '—' },
+    {
+      title: 'Type',
+      render: (_, row) => row._type === 'hold_release'
+        ? <Tag color="purple" style={{ fontSize: 11 }}>Hold Released</Tag>
+        : <Tag color="green" style={{ fontSize: 11 }}>Payout</Tag>,
+    },
+    {
+      title: 'Amount',
+      align: 'right',
+      render: (_, row) => (
+        <span style={{ color: row._type === 'hold_release' ? '#7c3aed' : '#16a34a', fontWeight: 700, fontSize: 14 }}>
+          {aed(row._amount)}
+        </span>
+      ),
+    },
+    {
+      title: 'Date',
+      render: (_, row) => row._date
+        ? new Date(row._date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+        : '—',
+    },
+  ];
 
   const columns = [
     {
@@ -218,9 +289,22 @@ export default function Payouts() {
     { title: 'Bank', render: (_, row) => row.bank?.name || '—' },
     {
       title: 'Clawback Until',
-      render: (_, row) => row.clawbackUntil
-        ? <span style={{ fontSize: 13, fontWeight: 600, color: '#b45309' }}>{new Date(row.clawbackUntil).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-        : <span style={{ color: '#94a3b8' }}>—</span>,
+      render: (_, row) => {
+        if (!row.clawbackUntil) return <span style={{ color: '#94a3b8' }}>—</span>;
+        const until = new Date(row.clawbackUntil);
+        const daysLeft = Math.ceil((until - Date.now()) / 86400000);
+        return (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#b45309' }}>
+              {until.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+            </div>
+            {daysLeft > 0
+              ? <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 1 }}>{daysLeft} day{daysLeft !== 1 ? 's' : ''} left</div>
+              : <div style={{ fontSize: 11, color: '#16a34a', marginTop: 1 }}>Clawback expired</div>
+            }
+          </div>
+        );
+      },
     },
     { title: 'Commission', align: 'right', render: (_, row) => <span style={{ fontWeight: 700 }}>{aed(row.commission)}</span> },
     {
@@ -329,7 +413,7 @@ export default function Payouts() {
               onChange={(e) => setSearch(e.target.value)}
               style={{ width: 280 }}
             />
-            <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
+            <Typography.Text type="secondary">{tab === 'paid' ? paidRows.length : filtered.length} records</Typography.Text>
           </Space>
         )}
         {tab === 'holds' ? (
@@ -379,23 +463,21 @@ export default function Payouts() {
               dataSource={holds}
               columns={holdColumns}
               rowSelection={{ selectedRowKeys: selectedHoldKeys, onChange: setSelectedHoldKeys }}
-              onRow={(row) => ({ onClick: (e) => { if (e.target.tagName !== 'BUTTON' && !e.target.closest('button') && !e.target.closest('.ant-checkbox-wrapper')) navigate(`/admin/leads/${row._id}`); }, style: { cursor: 'pointer' } })}
               locale={{ emptyText: 'No active holds' }}
             />
           </>
         ) : (
           <Table
             size="small"
-            rowKey="_id"
+            rowKey={tab === 'paid' ? '_rowKey' : '_id'}
             loading={loading}
-            dataSource={filtered}
-            columns={columns}
+            dataSource={tab === 'paid' ? paidRows : filtered}
+            columns={tab === 'paid' ? adminPaidColumns : columns}
             rowSelection={
               tab === 'payable'
                 ? { selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (row) => ({ disabled: row.commissionStatus !== 'payable' }) }
                 : undefined
             }
-            onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })}
           />
         )}
       </div>

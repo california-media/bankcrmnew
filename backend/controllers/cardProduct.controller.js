@@ -47,6 +47,7 @@ exports.create = async (req, res) => {
     const benefits = req.body.benefits || '';
     const feesEligibility = req.body.feesEligibility || '';
     const clawbackMonths = req.body.clawbackMonths ? Number(req.body.clawbackMonths) : 0;
+    const clawbackDays = req.body.clawbackDays ? Number(req.body.clawbackDays) : 0;
     const card = await CardProduct.create({
       name,
       cardType,
@@ -56,6 +57,7 @@ exports.create = async (req, res) => {
       benefits,
       feesEligibility,
       clawbackMonths,
+      clawbackDays,
       isActive: isActive === undefined ? true : isActive !== 'false' && isActive !== false,
       cardImage: req.file ? req.file.filename : undefined,
     });
@@ -88,6 +90,7 @@ exports.update = async (req, res) => {
     if (req.body.benefits !== undefined) update.benefits = req.body.benefits || '';
     if (req.body.feesEligibility !== undefined) update.feesEligibility = req.body.feesEligibility || '';
     if (req.body.clawbackMonths !== undefined) update.clawbackMonths = Number(req.body.clawbackMonths) || 0;
+    if (req.body.clawbackDays !== undefined) update.clawbackDays = Number(req.body.clawbackDays) || 0;
     if (isActive !== undefined) update.isActive = isActive !== 'false' && isActive !== false;
 
     if (req.file) {

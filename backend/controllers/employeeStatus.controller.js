@@ -228,8 +228,10 @@ exports.setLoanStatusOnLead = async (req, res) => {
       const status = await EmployeeStatus.findOne({ _id: loanStatusId, statusType: 'loan_status', isActive: true });
       if (!status) return res.status(404).json({ message: 'Loan status not found or inactive' });
       lead.loanStatus = loanStatusId;
+      lead.statusHistory.push({ status: 'loan_status', note: status.label, changedBy: req.user._id, changedAt: new Date() });
     } else {
       lead.loanStatus = undefined;
+      lead.statusHistory.push({ status: 'loan_status', note: 'Cleared', changedBy: req.user._id, changedAt: new Date() });
     }
 
     await lead.save();

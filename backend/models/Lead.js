@@ -32,8 +32,9 @@ const leadSchema = new mongoose.Schema(
     leadNumber: { type: String, unique: true, sparse: true },
     customerName: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
-    productType: { type: String, enum: ['credit_card', 'loan'], required: true },
-    bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
+    isReferral: { type: Boolean, default: false },
+    productType: { type: String, enum: ['credit_card', 'loan'] },
+    bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank' },
     // Card or loan product selected at lead creation
     cardProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'CardProduct' },
     loanProduct: { type: mongoose.Schema.Types.ObjectId, ref: 'LoanProduct' },
@@ -48,7 +49,7 @@ const leadSchema = new mongoose.Schema(
     yearsOfExperience: { type: Number, min: 0 },
     status: { type: String, enum: LEAD_STATUSES, default: 'draft' },
     agent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     // grossCommission = raw commission from card/loan product (admin keeps this)
     grossCommission: { type: Number, default: 0 },
     // commission = agent's portion (set by admin, shown in agent ledger)

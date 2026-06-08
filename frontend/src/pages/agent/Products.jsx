@@ -4,7 +4,7 @@ import 'quill/dist/quill.core.css';
 import { CreditCardOutlined, FundOutlined, RiseOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
-const UPLOADS_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace('/api', '/uploads');
+const UPLOADS_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '/uploads');
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 function StatCard({ icon, iconColor, label, value, borderColor, bg }) {

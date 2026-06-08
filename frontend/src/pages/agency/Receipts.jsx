@@ -7,7 +7,7 @@ import { SearchOutlined, FileTextOutlined, UploadOutlined, CheckCircleOutlined, 
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
 
 export default function AgencyReceipts() {
   const navigate = useNavigate();

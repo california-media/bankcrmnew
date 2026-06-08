@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Data Policy — Inizio Global</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+a.logo img {
+    width: 112px;
+}
+  :root{
+    --ink:#0B0F1E;--ink-2:#1A2036;--muted:#6B7186;--muted-2:#9AA0B4;--line:#E8E8EE;--line-2:#F0F0F4;
+    --bg:#FFFFFF;--bg-soft:#FAFAFB;--violet:#7B5CFF;--indigo:#5B6CFF;--blue:#3D8BFF;
+    --grad:linear-gradient(135deg,#7B5CFF 0%,#5B6CFF 45%,#3D8BFF 100%);
+    --shadow-glow:0 12px 48px -12px rgba(91,108,255,0.45);
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;letter-spacing:-0.011em}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+  @media(max-width:768px){.wrap{padding:0 20px}}
+  .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.78);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--line-2)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px;gap:24px}
+  .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .logo-icon{width:38px;height:38px;border-radius:11px;background:var(--grad);display:grid;place-items:center;color:#fff;box-shadow:var(--shadow-glow);flex-shrink:0}
+  .logo-text{line-height:1.15}
+  .logo-title{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.015em}
+  .logo-sub{font-size:11px;color:var(--muted);font-weight:400}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;padding:10px 18px;border-radius:999px;transition:all .25s;white-space:nowrap;letter-spacing:-0.01em}
+  .btn-primary{background:var(--ink);color:#fff}.btn-primary:hover{background:#000}
+  .legal-hero{padding:72px 0 48px;border-bottom:1px solid var(--line)}
+  .legal-hero .eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--violet);margin-bottom:16px}
+  .legal-hero h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:var(--ink)}
+  .legal-hero .meta{margin-top:16px;font-size:14px;color:var(--muted)}
+  .legal-body{display:grid;grid-template-columns:240px 1fr;gap:64px;padding:64px 0 96px;align-items:start}
+  @media(max-width:900px){.legal-body{grid-template-columns:1fr;gap:32px}}
+  .legal-nav{position:sticky;top:96px}
+  .legal-nav h6{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .legal-nav ul{list-style:none}
+  .legal-nav ul li a{display:block;font-size:14px;color:var(--muted);padding:6px 0;border-left:2px solid var(--line);padding-left:12px;transition:all .2s}
+  .legal-nav ul li a:hover{color:var(--violet);border-left-color:var(--violet)}
+  .legal-content section{margin-bottom:48px}
+  .legal-content h2{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--ink);margin-bottom:16px;padding-top:8px}
+  .legal-content h3{font-size:16px;font-weight:600;color:var(--ink-2);margin:20px 0 10px}
+  .legal-content p{font-size:15px;line-height:1.75;color:#3a3f55;margin-bottom:14px}
+  .legal-content ul{padding-left:20px;margin-bottom:14px}
+  .legal-content ul li{font-size:15px;line-height:1.75;color:#3a3f55;margin-bottom:6px}
+  .legal-content .highlight-box{background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin:20px 0}
+  .legal-content .highlight-box p{margin:0;font-size:14px;color:var(--muted)}
+  .principle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:20px 0}
+  .principle-card{border:1px solid var(--line);border-radius:12px;padding:20px;background:var(--bg-soft)}
+  .principle-card .icon{font-size:24px;margin-bottom:10px}
+  .principle-card h4{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:6px}
+  .principle-card p{font-size:13px;color:var(--muted);margin:0;line-height:1.6}
+  footer{padding:48px 0 32px;border-top:1px solid var(--line);background:#fff}
+  .foot-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px;border-top:1px solid var(--line-2)}
+  .foot-bottom .left,.foot-bottom .right{font-size:13px;color:var(--muted)}
+  .foot-legal-links{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+  .foot-legal-links a{font-size:13px;color:var(--muted);transition:color .2s}
+  .foot-legal-links a:hover,.foot-legal-links a.current{color:var(--violet);font-weight:500}
+
+  .foot-grid{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:48px;padding-bottom:40px;border-bottom:1px solid var(--line-2)}
+  @media(max-width:900px){.foot-grid{grid-template-columns:1fr 1fr;gap:32px}}
+  @media(max-width:600px){.foot-grid{grid-template-columns:1fr;gap:24px}}
+  .brand p{font-size:13px;color:var(--muted);line-height:1.7;margin-top:14px;max-width:260px}
+  footer h5{font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  footer ul{list-style:none}
+  footer ul li{margin-bottom:8px}
+  footer ul li a{font-size:14px;color:var(--muted);transition:color .2s}
+  footer ul li a:hover{color:var(--violet)}
+  .foot-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px}
+  .foot-bottom .left,.foot-bottom .right{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-inner">
+      <a href="https://inizioglobal.com/" class="logo">
+      <img src="/logo.png">
+    </a>
+      <a href="/" class="btn btn-primary">← Back to Home</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="legal-hero">
+    <div class="eyebrow">Legal</div>
+    <h1>Data Policy</h1>
+    <p class="meta">Last updated: 1 June 2026 &nbsp;·&nbsp; Effective: 1 June 2026</p>
+  </div>
+
+  <div class="legal-body">
+    <aside class="legal-nav">
+      <h6>On this page</h6>
+      <ul>
+        <li><a href="#principles">1. Our Principles</a></li>
+        <li><a href="#controller">2. Data Controller</a></li>
+        <li><a href="#lawful">3. Lawful Basis</a></li>
+        <li><a href="#referral-data">4. Referral Data</a></li>
+        <li><a href="#transfers">5. Data Transfers</a></li>
+        <li><a href="#processors">6. Sub-Processors</a></li>
+        <li><a href="#breach">7. Data Breaches</a></li>
+        <li><a href="#dpia">8. Impact Assessments</a></li>
+        <li><a href="#compliance">9. Compliance</a></li>
+        <li><a href="#contact">10. Contact</a></li>
+      </ul>
+    </aside>
+
+    <div class="legal-content">
+      <section id="principles">
+        <h2>1. Our Data Principles</h2>
+        <p>Inizio Global is committed to responsible data stewardship. We process personal data in accordance with applicable UAE data protection law, including Federal Decree-Law No. 45 of 2021 on Personal Data Protection.</p>
+        <div class="principle-grid">
+          <div class="principle-card">
+            <div class="icon">🎯</div>
+            <h4>Purpose Limitation</h4>
+            <p>Data is collected for specific, explicit purposes and not processed beyond those purposes.</p>
+          </div>
+          <div class="principle-card">
+            <div class="icon">⚖️</div>
+            <h4>Data Minimisation</h4>
+            <p>We collect only data that is adequate, relevant, and limited to what is necessary.</p>
+          </div>
+          <div class="principle-card">
+            <div class="icon">✅</div>
+            <h4>Accuracy</h4>
+            <p>We take reasonable steps to ensure data is accurate and kept up to date.</p>
+          </div>
+          <div class="principle-card">
+            <div class="icon">🔒</div>
+            <h4>Security</h4>
+            <p>Appropriate technical and organisational measures protect data at all times.</p>
+          </div>
+          <div class="principle-card">
+            <div class="icon">🗓️</div>
+            <h4>Storage Limitation</h4>
+            <p>Data is retained only for as long as necessary and then securely deleted.</p>
+          </div>
+          <div class="principle-card">
+            <div class="icon">📋</div>
+            <h4>Accountability</h4>
+            <p>We maintain records of processing activities and are responsible for demonstrating compliance.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="controller">
+        <h2>2. Data Controller</h2>
+        <p>Inizio Global DMCC is the data controller for personal data processed through the Platform. We determine the purposes and means of processing and are responsible for compliance with applicable data protection law.</p>
+        <p>Where partner agencies use the Platform to manage their agents, they may act as independent data controllers in respect of their agents' personal data. Each party is responsible for its own compliance obligations.</p>
+      </section>
+
+      <section id="lawful">
+        <h2>3. Lawful Basis for Processing</h2>
+        <p>We rely on the following lawful bases for processing personal data:</p>
+        <ul>
+          <li><strong>Contract performance</strong> — processing necessary to deliver the Platform services and manage referral agreements</li>
+          <li><strong>Legal obligation</strong> — processing required by UAE law, including AML/KYC obligations and regulatory reporting</li>
+          <li><strong>Legitimate interests</strong> — fraud prevention, platform security, and analytics to improve services</li>
+          <li><strong>Consent</strong> — for optional communications, marketing, and non-essential cookies</li>
+        </ul>
+        <p>Where we rely on consent, you have the right to withdraw consent at any time without affecting the lawfulness of prior processing.</p>
+      </section>
+
+      <section id="referral-data">
+        <h2>4. Referral Data Handling</h2>
+        <p>The Platform involves submission of customer personal data by agents as part of financial product referrals. The following standards apply:</p>
+        <h3>Consent Requirements</h3>
+        <p>Agents must obtain explicit informed consent from customers before submitting their data to the Platform. Consent records must be retained and may be audited by Inizio Global or the relevant bank.</p>
+        <h3>Data Accuracy</h3>
+        <p>Agents are responsible for the accuracy of data submitted. Inizio Global will pass referral data to banks and FIs as submitted. Correction of inaccurate referral data must be requested promptly.</p>
+        <h3>Customer Rights</h3>
+        <p>Customers whose data has been submitted may exercise rights directly with Inizio Global by contacting privacy@inizioglobal.com. We will liaise with the relevant agent and bank to fulfil such requests.</p>
+      </section>
+
+      <section id="transfers">
+        <h2>5. International Data Transfers</h2>
+        <p>Inizio Global operates primarily within the UAE. Where data is processed or stored outside the UAE, we ensure appropriate safeguards are in place including:</p>
+        <ul>
+          <li>Standard contractual clauses approved by the UAE Data Office</li>
+          <li>Transfers only to jurisdictions with adequate data protection standards</li>
+          <li>Data processing agreements with all international sub-processors</li>
+        </ul>
+      </section>
+
+      <section id="processors">
+        <h2>6. Sub-Processors</h2>
+        <p>We engage trusted sub-processors to support Platform operations. All sub-processors are bound by data processing agreements and may only process data as instructed by Inizio Global.</p>
+        <p>A current list of sub-processors is available on request. We will provide 30 days' notice of any material changes to our sub-processor arrangements.</p>
+      </section>
+
+      <section id="breach">
+        <h2>7. Data Breach Procedures</h2>
+        <p>In the event of a personal data breach, Inizio Global will:</p>
+        <ul>
+          <li>Assess the breach within 24 hours of detection</li>
+          <li>Notify the UAE Data Office within 72 hours where required by law</li>
+          <li>Notify affected individuals without undue delay where the breach poses a high risk</li>
+          <li>Document the breach, its effects, and remedial measures taken</li>
+        </ul>
+        <p>To report a suspected data breach, contact security@inizioglobal.com immediately.</p>
+      </section>
+
+      <section id="dpia">
+        <h2>8. Data Protection Impact Assessments</h2>
+        <p>We conduct Data Protection Impact Assessments (DPIAs) for new or changed processing activities that are likely to result in high risk to individuals, including large-scale processing of sensitive financial data. DPIAs are reviewed annually and updated as needed.</p>
+      </section>
+
+      <section id="compliance">
+        <h2>9. Regulatory Compliance</h2>
+        <p>Inizio Global's data practices are designed to comply with:</p>
+        <ul>
+          <li>UAE Federal Decree-Law No. 45 of 2021 on Personal Data Protection</li>
+          <li>DIFC Data Protection Law (DIFC Law No. 5 of 2020)</li>
+          <li>UAE Central Bank Consumer Protection Regulations</li>
+          <li>UAE AML/CFT Federal Decree-Law No. 20 of 2018</li>
+        </ul>
+        <p>We conduct annual compliance reviews and maintain a register of processing activities as required by applicable law.</p>
+      </section>
+
+      <section id="contact">
+        <h2>10. Contact</h2>
+        <p>For data policy enquiries, to exercise your rights, or to report a concern:</p>
+        <div class="highlight-box">
+          <p><strong>Data Protection Officer</strong><br>Inizio Global DMCC<br>DIFC, Dubai, United Arab Emirates<br>Email: privacy@inizioglobal.com<br>Security incidents: security@inizioglobal.com</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="brand">
+        <a href="https://inizioglobal.com/" class="logo">
+        <img src="/logo.png">
+    </a>
+        <p>A premium, professional lead referral platform for agents, partner agencies and financial institutions across the UAE.</p>
+      </div>
+      <div><h5>Platform</h5><ul><li><a href="https://inizioglobal.com/#agents">For Professional Banking Agents</a></li><li><a href="https://inizioglobal.com/#agencies">For Partner Agencies</a></li><li><a href="https://inizioglobal.com/#banks">For Banks &amp; FIs</a></li><li><a href="https://inizioglobal.com/#features">Features</a></li></ul></div>
+      <div><h5>Company</h5><ul><li><a href="https://inizioglobal.com/">Home</a></li><li><a href="https://inizioglobal.com/">About</a></li><li><a href="https://inizioglobal.com/#features">Products</a></li><li><a href="https://inizioglobal.com/#contact">Contact</a></li></ul></div>
+      <div><h5>Legal</h5><ul><li><a href="/terms.html">Terms</a></li><li><a href="/privacy-policy.html">Privacy</a></li><li><a href="/cookie-policy.html">Cookies</a></li><li><a href="/data-policy.html">Data policy</a></li></ul></div>
+    </div>
+    <div class="foot-bottom">
+     <div class="left">© 2026 Inizio Global · Meydan FZ, Dubai</div>
+      <div class="right">A premium banking referral platform for the UAE.</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

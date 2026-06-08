@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerAgent, clearError } from '../store/slices/authSlice';
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000';
 
 const UAE_PASS_ERROR_MESSAGES = {
   invalid_state:   'Session expired. Please try again.',
@@ -65,6 +65,9 @@ function Register() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5', padding: '16px 0' }}>
       <Card style={{ width: 460 }} styles={{ body: { padding: '20px 24px' } }}>
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <img src="/logo.png" alt="Inizio Global" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
+        </div>
         <Typography.Title level={4} style={{ textAlign: 'center', marginBottom: 2, fontWeight: 600 }}>
           Agent Registration
         </Typography.Title>

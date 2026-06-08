@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Privacy Policy — Inizio Global</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+a.logo img {
+    width: 112px;
+}
+  :root{
+    --ink:#0B0F1E;--ink-2:#1A2036;--muted:#6B7186;--muted-2:#9AA0B4;--line:#E8E8EE;--line-2:#F0F0F4;
+    --bg:#FFFFFF;--bg-soft:#FAFAFB;--violet:#7B5CFF;--indigo:#5B6CFF;--blue:#3D8BFF;
+    --grad:linear-gradient(135deg,#7B5CFF 0%,#5B6CFF 45%,#3D8BFF 100%);
+    --shadow-glow:0 12px 48px -12px rgba(91,108,255,0.45);
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;letter-spacing:-0.011em}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+  @media(max-width:768px){.wrap{padding:0 20px}}
+  .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.78);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--line-2)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px;gap:24px}
+  .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .logo-icon{width:38px;height:38px;border-radius:11px;background:var(--grad);display:grid;place-items:center;color:#fff;box-shadow:var(--shadow-glow);flex-shrink:0}
+  .logo-text{line-height:1.15}
+  .logo-title{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.015em}
+  .logo-sub{font-size:11px;color:var(--muted);font-weight:400}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;padding:10px 18px;border-radius:999px;transition:all .25s;white-space:nowrap;letter-spacing:-0.01em}
+  .btn-primary{background:var(--ink);color:#fff}.btn-primary:hover{background:#000}
+  .legal-hero{padding:72px 0 48px;border-bottom:1px solid var(--line)}
+  .legal-hero .eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--violet);margin-bottom:16px}
+  .legal-hero h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:var(--ink)}
+  .legal-hero .meta{margin-top:16px;font-size:14px;color:var(--muted)}
+  .legal-body{display:grid;grid-template-columns:240px 1fr;gap:64px;padding:64px 0 96px;align-items:start}
+  @media(max-width:900px){.legal-body{grid-template-columns:1fr;gap:32px}}
+  .legal-nav{position:sticky;top:96px}
+  .legal-nav h6{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .legal-nav ul{list-style:none}
+  .legal-nav ul li a{display:block;font-size:14px;color:var(--muted);padding:6px 0;border-left:2px solid var(--line);padding-left:12px;transition:all .2s}
+  .legal-nav ul li a:hover{color:var(--violet);border-left-color:var(--violet)}
+  .legal-content section{margin-bottom:48px}
+  .legal-content h2{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--ink);margin-bottom:16px;padding-top:8px}
+  .legal-content h3{font-size:16px;font-weight:600;color:var(--ink-2);margin:20px 0 10px}
+  .legal-content p{font-size:15px;line-height:1.75;color:#3a3f55;margin-bottom:14px}
+  .legal-content ul{padding-left:20px;margin-bottom:14px}
+  .legal-content ul li{font-size:15px;line-height:1.75;color:#3a3f55;margin-bottom:6px}
+  .legal-content .highlight-box{background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin:20px 0}
+  .legal-content .highlight-box p{margin:0;font-size:14px;color:var(--muted)}
+  .data-table{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px}
+  .data-table th{background:var(--bg-soft);padding:10px 14px;text-align:left;font-weight:600;color:var(--ink);border:1px solid var(--line)}
+  .data-table td{padding:10px 14px;border:1px solid var(--line);color:#3a3f55;line-height:1.6}
+  footer{padding:48px 0 32px;border-top:1px solid var(--line);background:#fff}
+  .foot-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px;border-top:1px solid var(--line-2)}
+  .foot-bottom .left,.foot-bottom .right{font-size:13px;color:var(--muted)}
+  .foot-legal-links{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+  .foot-legal-links a{font-size:13px;color:var(--muted);transition:color .2s}
+  .foot-legal-links a:hover,.foot-legal-links a.current{color:var(--violet);font-weight:500}
+
+  .foot-grid{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:48px;padding-bottom:40px;border-bottom:1px solid var(--line-2)}
+  @media(max-width:900px){.foot-grid{grid-template-columns:1fr 1fr;gap:32px}}
+  @media(max-width:600px){.foot-grid{grid-template-columns:1fr;gap:24px}}
+  .brand p{font-size:13px;color:var(--muted);line-height:1.7;margin-top:14px;max-width:260px}
+  footer h5{font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  footer ul{list-style:none}
+  footer ul li{margin-bottom:8px}
+  footer ul li a{font-size:14px;color:var(--muted);transition:color .2s}
+  footer ul li a:hover{color:var(--violet)}
+  .foot-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px}
+  .foot-bottom .left,.foot-bottom .right{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-inner">
+      <a href="https://inizioglobal.com/" class="logo">
+      <img src="/logo.png">
+    </a>
+      <a href="/" class="btn btn-primary">← Back to Home</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="legal-hero">
+    <div class="eyebrow">Legal</div>
+    <h1>Privacy Policy</h1>
+    <p class="meta">Last updated: 1 June 2026 &nbsp;·&nbsp; Effective: 1 June 2026</p>
+  </div>
+
+  <div class="legal-body">
+    <aside class="legal-nav">
+      <h6>On this page</h6>
+      <ul>
+        <li><a href="#overview">1. Overview</a></li>
+        <li><a href="#collect">2. Data We Collect</a></li>
+        <li><a href="#use">3. How We Use Data</a></li>
+        <li><a href="#sharing">4. Data Sharing</a></li>
+        <li><a href="#retention">5. Retention</a></li>
+        <li><a href="#rights">6. Your Rights</a></li>
+        <li><a href="#security">7. Security</a></li>
+        <li><a href="#children">8. Children</a></li>
+        <li><a href="#updates">9. Policy Updates</a></li>
+        <li><a href="#contact">10. Contact</a></li>
+      </ul>
+    </aside>
+
+    <div class="legal-content">
+      <section id="overview">
+        <h2>1. Overview</h2>
+        <p>Inizio Global DMCC ("Inizio Global", "we", "us") is committed to protecting your personal data. This Privacy Policy explains how we collect, use, share, and safeguard information when you use the Inizio Global Platform.</p>
+        <p>This policy applies to all users of the Platform including freelance agents, partner agencies, bank representatives, and prospective customers whose data is submitted as part of a referral.</p>
+        <div class="highlight-box"><p>🔒 Inizio Global does not sell personal data to third parties. Your data is used solely for the operation and improvement of the Platform and the referral services it enables.</p></div>
+      </section>
+
+      <section id="collect">
+        <h2>2. Data We Collect</h2>
+        <table class="data-table">
+          <tr><th>Category</th><th>Examples</th><th>Source</th></tr>
+          <tr><td>Identity</td><td>Full name, Emirates ID, passport number</td><td>Registration / agent submission</td></tr>
+          <tr><td>Contact</td><td>Email, phone, address</td><td>Registration / referral form</td></tr>
+          <tr><td>Financial</td><td>Bank account details, salary information</td><td>Referral submissions</td></tr>
+          <tr><td>Professional</td><td>Employer, job title, licence numbers</td><td>Agent profile / KYC</td></tr>
+          <tr><td>Usage</td><td>Login activity, pages visited, referral history</td><td>Platform analytics</td></tr>
+          <tr><td>Device</td><td>IP address, browser type, device ID</td><td>Automatic collection</td></tr>
+        </table>
+      </section>
+
+      <section id="use">
+        <h2>3. How We Use Your Data</h2>
+        <p>We use collected data to:</p>
+        <ul>
+          <li>Operate and deliver the Platform's referral services</li>
+          <li>Verify agent and agency eligibility and compliance</li>
+          <li>Process and track referral submissions with banks and FIs</li>
+          <li>Calculate and process commission payments</li>
+          <li>Communicate updates, policy changes, and account notifications</li>
+          <li>Comply with UAE legal and regulatory obligations</li>
+          <li>Detect and prevent fraud and unauthorised access</li>
+          <li>Improve Platform features and user experience</li>
+        </ul>
+      </section>
+
+      <section id="sharing">
+        <h2>4. Data Sharing</h2>
+        <p>We share personal data only in the following circumstances:</p>
+        <h3>With Banks & Financial Institutions</h3>
+        <p>Customer referral data is shared with the relevant bank or FI to process the application. Only the data necessary for the application is shared.</p>
+        <h3>With Service Providers</h3>
+        <p>We engage trusted third-party providers for hosting, analytics, and payment processing, all bound by data processing agreements.</p>
+        <h3>Legal Requirements</h3>
+        <p>We may disclose data where required by UAE law, regulatory authorities (including the UAE Central Bank), or court order.</p>
+      </section>
+
+      <section id="retention">
+        <h2>5. Data Retention</h2>
+        <p>We retain personal data for as long as necessary to fulfil the purposes outlined in this policy, and in any case for a minimum of 5 years as required by UAE anti-money-laundering regulations. After this period, data is securely deleted or anonymised.</p>
+      </section>
+
+      <section id="rights">
+        <h2>6. Your Rights</h2>
+        <p>Under applicable UAE data protection law, you have the right to:</p>
+        <ul>
+          <li>Access the personal data we hold about you</li>
+          <li>Request correction of inaccurate data</li>
+          <li>Request deletion of data (subject to legal retention requirements)</li>
+          <li>Object to certain processing activities</li>
+          <li>Withdraw consent where processing is consent-based</li>
+        </ul>
+        <p>To exercise any of these rights, contact us at privacy@inizioglobal.com. We will respond within 30 days.</p>
+      </section>
+
+      <section id="security">
+        <h2>7. Security</h2>
+        <p>We implement industry-standard security measures including TLS encryption, access controls, and regular security audits. However, no system is completely secure and we cannot guarantee absolute security of data transmitted over the internet.</p>
+      </section>
+
+      <section id="children">
+        <h2>8. Children</h2>
+        <p>The Platform is not directed at individuals under the age of 21. We do not knowingly collect personal data from minors. If you believe a minor has submitted data through the Platform, please contact us immediately.</p>
+      </section>
+
+      <section id="updates">
+        <h2>9. Policy Updates</h2>
+        <p>We may update this Privacy Policy from time to time. Material changes will be notified via email or a prominent notice on the Platform at least 14 days before taking effect. Continued use of the Platform after the effective date constitutes acceptance of the updated policy.</p>
+      </section>
+
+      <section id="contact">
+        <h2>10. Contact</h2>
+        <div class="highlight-box">
+          <p><strong>Data Protection Officer</strong><br>Inizio Global<br>Meydan FZ, Dubai, United Arab Emirates<br>Email: privacy@inizioglobal.com</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="brand">
+        <a href="https://inizioglobal.com/" class="logo">
+        <img src="/logo.png">
+    </a>
+        <p>A premium, professional lead referral platform for agents, partner agencies and financial institutions across the UAE.</p>
+      </div>
+      <div><h5>Platform</h5><ul><li><a href="https://inizioglobal.com/#agents">For Professional Banking Agents</a></li><li><a href="https://inizioglobal.com/#agencies">For Partner Agencies</a></li><li><a href="https://inizioglobal.com/#banks">For Banks &amp; FIs</a></li><li><a href="https://inizioglobal.com/#features">Features</a></li></ul></div>
+      <div><h5>Company</h5><ul><li><a href="https://inizioglobal.com/">Home</a></li><li><a href="https://inizioglobal.com/">About</a></li><li><a href="https://inizioglobal.com/#features">Products</a></li><li><a href="https://inizioglobal.com/#contact">Contact</a></li></ul></div>
+      <div><h5>Legal</h5><ul><li><a href="/terms.html">Terms</a></li><li><a href="/privacy-policy.html">Privacy</a></li><li><a href="/cookie-policy.html">Cookies</a></li><li><a href="/data-policy.html">Data policy</a></li></ul></div>
+    </div>
+    <div class="foot-bottom">
+      <div class="left">© 2026 Inizio Global · Meydan FZ, Dubai</div>
+      <div class="right">A premium banking referral platform for the UAE.</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cookies Policy — Inizio Global</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+a.logo img {
+    width: 112px;
+}
+  :root{
+    --ink:#0B0F1E;--ink-2:#1A2036;--muted:#6B7186;--muted-2:#9AA0B4;--line:#E8E8EE;--line-2:#F0F0F4;
+    --bg:#FFFFFF;--bg-soft:#FAFAFB;--violet:#7B5CFF;--indigo:#5B6CFF;--blue:#3D8BFF;
+    --grad:linear-gradient(135deg,#7B5CFF 0%,#5B6CFF 45%,#3D8BFF 100%);
+    --shadow-glow:0 12px 48px -12px rgba(91,108,255,0.45);
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;letter-spacing:-0.011em}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+  @media(max-width:768px){.wrap{padding:0 20px}}
+  .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.78);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--line-2)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px;gap:24px}
+  .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .logo-icon{width:38px;height:38px;border-radius:11px;background:var(--grad);display:grid;place-items:center;color:#fff;box-shadow:var(--shadow-glow);flex-shrink:0}
+  .logo-text{line-height:1.15}
+  .logo-title{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.015em}
+  .logo-sub{font-size:11px;color:var(--muted);font-weight:400}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;padding:10px 18px;border-radius:999px;transition:all .25s;white-space:nowrap;letter-spacing:-0.01em}
+  .btn-primary{background:var(--ink);color:#fff}.btn-primary:hover{background:#000}
+  .legal-hero{padding:72px 0 48px;border-bottom:1px solid var(--line)}
+  .legal-hero .eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--violet);margin-bottom:16px}
+  .legal-hero h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:var(--ink)}
+  .legal-hero .meta{margin-top:16px;font-size:14px;color:var(--muted)}
+  .legal-body{display:grid;grid-template-columns:240px 1fr;gap:64px;padding:64px 0 96px;align-items:start}
+  @media(max-width:900px){.legal-body{grid-template-columns:1fr;gap:32px}}
+  .legal-nav{position:sticky;top:96px}
+  .legal-nav h6{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .legal-nav ul{list-style:none}
+  .legal-nav ul li a{display:block;font-size:14px;color:var(--muted);padding:6px 0;border-left:2px solid var(--line);padding-left:12px;transition:all .2s}
+  .legal-nav ul li a:hover{color:var(--violet);border-left-color:var(--violet)}
+  .legal-content section{margin-bottom:48px}
+  .legal-content h2{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--ink);margin-bottom:16px;padding-top:8px}
+  .legal-content h3{font-size:16px;font-weight:600;color:var(--ink-2);margin:20px 0 10px}
+  .legal-content p{font-size:15px;line-height:1.75;color:#3a3f55;margin-bottom:14px}
+  .legal-content ul{padding-left:20px;margin-bottom:14px}
+  .legal-content ul li{font-size:15px;line-height:1.75;color:#3a3f55;margin-bottom:6px}
+  .legal-content .highlight-box{background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin:20px 0}
+  .legal-content .highlight-box p{margin:0;font-size:14px;color:var(--muted)}
+  .cookie-table{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px}
+  .cookie-table th{background:var(--bg-soft);padding:10px 14px;text-align:left;font-weight:600;color:var(--ink);border:1px solid var(--line)}
+  .cookie-table td{padding:10px 14px;border:1px solid var(--line);color:#3a3f55;line-height:1.6}
+  .cookie-toggle{display:flex;flex-direction:column;gap:12px;margin:20px 0}
+  .cookie-item{border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .cookie-item-info h4{font-size:15px;font-weight:600;color:var(--ink);margin-bottom:4px}
+  .cookie-item-info p{font-size:13px;color:var(--muted);margin:0}
+  .badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;letter-spacing:0.04em}
+  .badge-required{background:#e8f5e9;color:#2e7d32}
+  .badge-optional{background:#f3f0ff;color:#6d28d9}
+  footer{padding:48px 0 32px;border-top:1px solid var(--line);background:#fff}
+  .foot-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px;border-top:1px solid var(--line-2)}
+  .foot-bottom .left,.foot-bottom .right{font-size:13px;color:var(--muted)}
+  .foot-legal-links{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+  .foot-legal-links a{font-size:13px;color:var(--muted);transition:color .2s}
+  .foot-legal-links a:hover,.foot-legal-links a.current{color:var(--violet);font-weight:500}
+
+  .foot-grid{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:48px;padding-bottom:40px;border-bottom:1px solid var(--line-2)}
+  @media(max-width:900px){.foot-grid{grid-template-columns:1fr 1fr;gap:32px}}
+  @media(max-width:600px){.foot-grid{grid-template-columns:1fr;gap:24px}}
+  .brand p{font-size:13px;color:var(--muted);line-height:1.7;margin-top:14px;max-width:260px}
+  footer h5{font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  footer ul{list-style:none}
+  footer ul li{margin-bottom:8px}
+  footer ul li a{font-size:14px;color:var(--muted);transition:color .2s}
+  footer ul li a:hover{color:var(--violet)}
+  .foot-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px}
+  .foot-bottom .left,.foot-bottom .right{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-inner">
+      <a href="https://inizioglobal.com/" class="logo">
+      <img src="/logo.png">
+    </a>
+      <a href="/" class="btn btn-primary">← Back to Home</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="legal-hero">
+    <div class="eyebrow">Legal</div>
+    <h1>Cookies Policy</h1>
+    <p class="meta">Last updated: 1 June 2026 &nbsp;·&nbsp; Effective: 1 June 2026</p>
+  </div>
+
+  <div class="legal-body">
+    <aside class="legal-nav">
+      <h6>On this page</h6>
+      <ul>
+        <li><a href="#what">1. What Are Cookies</a></li>
+        <li><a href="#types">2. Types We Use</a></li>
+        <li><a href="#list">3. Cookie List</a></li>
+        <li><a href="#third-party">4. Third-Party Cookies</a></li>
+        <li><a href="#control">5. Your Choices</a></li>
+        <li><a href="#updates">6. Updates</a></li>
+        <li><a href="#contact">7. Contact</a></li>
+      </ul>
+    </aside>
+
+    <div class="legal-content">
+      <section id="what">
+        <h2>1. What Are Cookies?</h2>
+        <p>Cookies are small text files placed on your device when you visit a website. They allow the site to recognise your device, remember your preferences, and provide a more personalised experience.</p>
+        <p>We also use similar technologies such as web beacons, pixel tags, and local storage. References to "cookies" in this policy include these similar technologies.</p>
+        <div class="highlight-box"><p>🍪 By continuing to use the Inizio Global Platform, you consent to our use of cookies as described in this policy. You can manage your preferences at any time via your browser settings.</p></div>
+      </section>
+
+      <section id="types">
+        <h2>2. Types of Cookies We Use</h2>
+        <div class="cookie-toggle">
+          <div class="cookie-item">
+            <div class="cookie-item-info">
+              <h4>Strictly Necessary <span class="badge badge-required">Always Active</span></h4>
+              <p>Essential for the Platform to function. These cookies enable core features like secure login, session management, and fraud prevention. They cannot be disabled.</p>
+            </div>
+          </div>
+          <div class="cookie-item">
+            <div class="cookie-item-info">
+              <h4>Performance & Analytics <span class="badge badge-optional">Optional</span></h4>
+              <p>Help us understand how users interact with the Platform — which pages are visited most, where errors occur, and how we can improve. Data is aggregated and anonymised.</p>
+            </div>
+          </div>
+          <div class="cookie-item">
+            <div class="cookie-item-info">
+              <h4>Functional <span class="badge badge-optional">Optional</span></h4>
+              <p>Remember your preferences such as language, display settings, and previously viewed products to provide a more personalised experience.</p>
+            </div>
+          </div>
+          <div class="cookie-item">
+            <div class="cookie-item-info">
+              <h4>Marketing <span class="badge badge-optional">Optional</span></h4>
+              <p>Used to deliver relevant advertising and measure campaign effectiveness. We do not use aggressive tracking or share data with ad networks without your consent.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="list">
+        <h2>3. Cookie List</h2>
+        <table class="cookie-table">
+          <tr><th>Name</th><th>Type</th><th>Duration</th><th>Purpose</th></tr>
+          <tr><td>ig_session</td><td>Necessary</td><td>Session</td><td>Maintains your authenticated session</td></tr>
+          <tr><td>ig_csrf</td><td>Necessary</td><td>Session</td><td>Cross-site request forgery protection</td></tr>
+          <tr><td>ig_prefs</td><td>Functional</td><td>1 year</td><td>Stores your display and language preferences</td></tr>
+          <tr><td>ig_analytics</td><td>Analytics</td><td>90 days</td><td>Anonymous usage analytics</td></tr>
+          <tr><td>_ga</td><td>Analytics</td><td>2 years</td><td>Google Analytics — distinguishes users</td></tr>
+          <tr><td>_gid</td><td>Analytics</td><td>24 hours</td><td>Google Analytics — distinguishes users</td></tr>
+        </table>
+      </section>
+
+      <section id="third-party">
+        <h2>4. Third-Party Cookies</h2>
+        <p>We use a limited number of trusted third-party services that may place cookies on your device:</p>
+        <ul>
+          <li><strong>Google Analytics</strong> — web analytics (opt-out available via Google's opt-out tool)</li>
+          <li><strong>Intercom</strong> — customer support chat widget</li>
+          <li><strong>Cloudflare</strong> — security and performance</li>
+        </ul>
+        <p>These third parties have their own privacy and cookie policies. We encourage you to review them.</p>
+      </section>
+
+      <section id="control">
+        <h2>5. Your Choices</h2>
+        <p>You can control cookies through your browser settings. Most browsers allow you to:</p>
+        <ul>
+          <li>View and delete existing cookies</li>
+          <li>Block all or certain cookies</li>
+          <li>Set preferences for specific websites</li>
+        </ul>
+        <p>Note that disabling necessary cookies will impair Platform functionality and may prevent you from logging in. For guidance on managing cookies in your specific browser, visit your browser's help documentation.</p>
+        <h3>Opt-Out Links</h3>
+        <ul>
+          <li>Google Analytics: tools.google.com/dlpage/gaoptout</li>
+          <li>Intercom: docs.intercom.com/privacy</li>
+        </ul>
+      </section>
+
+      <section id="updates">
+        <h2>6. Updates to This Policy</h2>
+        <p>We may update this Cookies Policy as our use of cookies changes. Material updates will be communicated via a notice on the Platform. The "last updated" date at the top of this page reflects the most recent revision.</p>
+      </section>
+
+      <section id="contact">
+        <h2>7. Contact</h2>
+        <div class="highlight-box">
+          <p><strong>Inizio Global DMCC</strong><br>DIFC, Dubai, United Arab Emirates<br>Email: privacy@inizioglobal.com</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="brand">
+        <a href="https://inizioglobal.com/" class="logo">
+        <img src="/logo.png">
+    </a>
+         <p>A premium, professional lead referral platform for agents, partner agencies and financial institutions across the UAE.</p>
+      </div>
+      <div><h5>Platform</h5><ul><li><a href="https://inizioglobal.com/#agents">For Professional Banking Agents</a></li><li><a href="https://inizioglobal.com/#agencies">For Partner Agencies</a></li><li><a href="https://inizioglobal.com/#banks">For Banks &amp; FIs</a></li><li><a href="https://inizioglobal.com/#features">Features</a></li></ul></div>
+      <div><h5>Company</h5><ul><li><a href="https://inizioglobal.com/">Home</a></li><li><a href="https://inizioglobal.com/">About</a></li><li><a href="https://inizioglobal.com/#features">Products</a></li><li><a href="https://inizioglobal.com/#contact">Contact</a></li></ul></div>
+      <div><h5>Legal</h5><ul><li><a href="/terms.html">Terms</a></li><li><a href="/privacy-policy.html">Privacy</a></li><li><a href="/cookie-policy.html">Cookies</a></li><li><a href="/data-policy.html">Data policy</a></li></ul></div>
+    </div>
+    <div class="foot-bottom">
+      <div class="left">© 2026 Inizio Global · Meydan FZ, Dubai</div>
+      <div class="right">A premium banking referral platform for the UAE.</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

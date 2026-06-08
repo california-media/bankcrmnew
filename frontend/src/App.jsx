@@ -30,6 +30,7 @@ import Payouts from './pages/admin/Payouts';
 import Receive from './pages/admin/Receive';
 import EmployeeStatuses from './pages/admin/EmployeeStatuses';
 import BucketRequests from './pages/admin/BucketRequests';
+import Inquiries from './pages/admin/Inquiries';
 import EmployeeDashboard from './pages/employee/Dashboard';
 import EmployeeLeads from './pages/employee/AssignedLeads';
 import LeadDetail from './pages/leads/LeadDetail';
@@ -101,6 +102,7 @@ function App() {
           <Route path="pipeline" element={<Pipeline />} />
           <Route path="consent-logs" element={<ConsentLogs />} />
           <Route path="bucket-requests" element={<BucketRequests />} />
+          <Route path="inquiries" element={<Inquiries />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
         </Route>

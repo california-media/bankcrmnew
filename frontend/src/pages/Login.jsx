@@ -11,12 +11,15 @@ const DEMO_ACCOUNTS = [
   { label: 'Employee',      email: 'employee@gmail.com',  password: '123456' },
 ];
 
-const FEATURES = [
-  { icon: '⚡', title: 'Live pipeline', sub: 'New → Paid in one view' },
-  { icon: '↗', title: 'Product payouts', sub: 'Live commission ledger' },
+const PRODUCT_TAGS = ['Credit Cards', 'Personal Loans', 'SME Loans', 'Financial Products'];
+
+const PILLARS = [
+  { num: '01', role: 'AGENT', headline: 'Earn transparently' },
+  { num: '02', role: 'AGENCY', headline: 'Grow faster' },
+  { num: '03', role: 'BANK', headline: 'Real results' },
 ];
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000';
 
 function Login() {
   const dispatch = useDispatch();
@@ -54,56 +57,74 @@ function Login() {
         padding: '40px 56px',
       }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12,
-            background: 'linear-gradient(135deg, #6366f1, #818cf8)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 20, color: '#fff', fontWeight: 800, flexShrink: 0,
-          }}>
-            BC
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', lineHeight: 1.2 }}>Bank CRM</div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>UAE Banking Referrals</div>
-          </div>
+        <div>
+          <img src="/logo.png" alt="Bank CRM" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
         </div>
 
         {/* Hero */}
         <div style={{ maxWidth: 520 }}>
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
+            display: 'inline-flex', alignItems: 'center', gap: 8,
             border: '1px solid #c7d2fe', borderRadius: 999,
-            padding: '5px 14px', fontSize: 12, color: '#6366f1',
-            fontWeight: 600, marginBottom: 28, background: 'rgba(255,255,255,0.6)',
+            padding: '6px 16px', fontSize: 11, color: '#6366f1',
+            fontWeight: 700, marginBottom: 32, background: 'rgba(255,255,255,0.6)',
+            letterSpacing: 1.2, textTransform: 'uppercase',
           }}>
-            ⚡ Real-time referral infrastructure
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#6366f1', display: 'inline-block' }} />
+            UAE Banking Referral Infrastructure
           </div>
 
           <h1 style={{
-            fontSize: 42, fontWeight: 800, lineHeight: 1.15,
-            color: '#0f172a', margin: '0 0 20px', letterSpacing: -0.5,
+            fontSize: 44, fontWeight: 800, lineHeight: 1.12,
+            color: '#0f172a', margin: '0 0 8px', letterSpacing: -0.5,
           }}>
-            Earn transparently through{' '}
-            <span style={{ color: '#6366f1' }}>UAE's banking referral</span> infrastructure.
+            Earn Transparently.
+          </h1>
+          <h1 style={{
+            fontSize: 44, fontWeight: 800, lineHeight: 1.12,
+            color: '#6366f1', margin: '0 0 24px', letterSpacing: -0.5,
+          }}>
+            Submit a Lead. Get Paid.
           </h1>
 
-          <p style={{ fontSize: 15, color: '#475569', lineHeight: 1.7, margin: '0 0 40px' }}>
-            Submit leads, automate WhatsApp consent, track every approval and get paid
-            transparently — across Emirates NBD, ADCB, FAB, Mashreq, DIB, and ADIB.
+          <p style={{ fontSize: 15, color: '#475569', lineHeight: 1.7, margin: '0 0 28px' }}>
+            Create and manage referrals with real-time tracking, transparent
+            commissions, and a secure onboarding experience.
           </p>
 
-          <div style={{ display: 'flex', gap: 14 }}>
-            {FEATURES.map((f) => (
-              <div key={f.title} style={{
-                flex: 1, background: 'rgba(255,255,255,0.75)', borderRadius: 14,
-                border: '1px solid rgba(255,255,255,0.9)',
-                padding: '18px 20px',
-                boxShadow: '0 2px 12px rgba(99,102,241,0.08)',
+          {/* Product tags */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 32 }}>
+            {PRODUCT_TAGS.map((tag) => (
+              <div key={tag} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 16px', borderRadius: 999,
+                border: '1px solid #e2e8f0', background: 'rgba(255,255,255,0.7)',
+                fontSize: 13, fontWeight: 500, color: '#374151',
               }}>
-                <div style={{ fontSize: 22, marginBottom: 8 }}>{f.icon}</div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 3 }}>{f.title}</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>{f.sub}</div>
+                {tag === 'Credit Cards' && '💳'}
+                {tag === 'Personal Loans' && '🛡'}
+                {tag === 'SME Loans' && '🏢'}
+                {tag === 'Financial Products' && '📈'}
+                {tag}
+              </div>
+            ))}
+          </div>
+
+          {/* Pillars */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+            borderRadius: 14, overflow: 'hidden',
+            border: '1px solid #e2e8f0', background: 'rgba(255,255,255,0.6)',
+          }}>
+            {PILLARS.map((p, i) => (
+              <div key={p.num} style={{
+                padding: '16px 18px',
+                borderLeft: i > 0 ? '1px solid #e2e8f0' : 'none',
+              }}>
+                <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, letterSpacing: 1, marginBottom: 4 }}>
+                  {p.num} / {p.role}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{p.headline}</div>
               </div>
             ))}
           </div>
@@ -111,7 +132,7 @@ function Login() {
 
         {/* Footer */}
         <div style={{ fontSize: 12, color: '#94a3b8' }}>
-          © 2026 Bank CRM · DIFC, Dubai
+          © 2026 Inizio Global · Built for Growth. Driven by Trust.
         </div>
       </div>
 

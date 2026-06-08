@@ -63,7 +63,7 @@ const pct = (n) => `${Number(n || 0)}%`;
 const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned', 'approved'];
 const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
 
 const VISA_LABELS = { employment: 'Employment', residence: 'Residence', investor: 'Investor', golden: 'Golden', freelance: 'Freelance', tourist: 'Tourist', other: 'Other' };
 

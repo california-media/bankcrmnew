@@ -42,4 +42,36 @@ const sendInviteEmail = async ({ to, inviteUrl }) => {
   return { dev: false };
 };
 
-module.exports = { sendInviteEmail };
+const sendInquiryNotification = async ({ name, email, phone, companyName, message }) => {
+  const t = getTransporter();
+  const to = process.env.INQUIRY_NOTIFY_EMAIL || process.env.ADMIN_EMAIL;
+  const subject = `New Inquiry from ${name}`;
+  const html = `
+    <h2>New site inquiry</h2>
+    <table>
+      <tr><td><strong>Name</strong></td><td>${name}</td></tr>
+      <tr><td><strong>Email</strong></td><td>${email}</td></tr>
+      <tr><td><strong>Phone</strong></td><td>${phone || '—'}</td></tr>
+      <tr><td><strong>Company</strong></td><td>${companyName || '—'}</td></tr>
+    </table>
+    <p><strong>Message:</strong></p>
+    <p>${(message || '').replace(/\n/g, '<br>')}</p>
+  `;
+
+  if (!t) {
+    console.log('\n[DEV EMAIL — INQUIRY]');
+    console.log(`To: ${to}`);
+    console.log(`From: ${name} <${email}>`);
+    console.log(`Message: ${message}\n`);
+    return;
+  }
+
+  await t.sendMail({
+    from: process.env.SMTP_FROM || 'no-reply@bankcrm.local',
+    to,
+    subject,
+    html,
+  });
+};
+
+module.exports = { sendInviteEmail, sendInquiryNotification };

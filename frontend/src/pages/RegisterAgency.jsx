@@ -44,6 +44,9 @@ function RegisterAgency() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5', padding: '16px 0' }}>
       <Card style={{ width: 460 }} styles={{ body: { padding: '20px 24px' } }}>
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <img src="/logo.png" alt="Inizio Global" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
+        </div>
         <Typography.Title level={4} style={{ textAlign: 'center', marginBottom: 2, fontWeight: 600 }}>
           Agency Registration
         </Typography.Title>

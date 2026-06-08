@@ -6,7 +6,7 @@ import {
   DownOutlined, InboxOutlined, AppstoreOutlined,
   BellOutlined, PlusCircleOutlined, CheckCircleOutlined,
   UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined, WalletOutlined,
-  SettingOutlined,
+  SettingOutlined, MailOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -52,6 +52,7 @@ const menusByRole = {
     { key: '/admin/pipeline',          icon: <ProjectOutlined />,      label: <Link to="/admin/pipeline">Pipeline</Link> },
     { key: '/admin/consent-logs',      icon: <MessageOutlined />,      label: <Link to="/admin/consent-logs">Consent Logs</Link> },
     { key: '/admin/bucket-requests',   icon: <WalletOutlined />,       label: <Link to="/admin/bucket-requests">Bucket Requests</Link> },
+    { key: '/admin/inquiries',         icon: <MailOutlined />,         label: <Link to="/admin/inquiries">Inquiries</Link> },
     { key: '/admin/notifications',     icon: <BellOutlined />,         label: <Link to="/admin/notifications">Notifications</Link> },
   ],
   agent: [
@@ -155,19 +156,10 @@ function AppLayoutInner() {
         style={{ background: '#ffffff', borderRight: '1px solid #e2e8f0' }}
       >
         <div style={{ padding: '20px 20px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 38, height: 38, borderRadius: 10,
-              background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: 800, fontSize: 13, letterSpacing: 0.5,
-              boxShadow: '0 4px 12px rgba(99,102,241,0.35)',
-            }}>BC</div>
-            <div>
-              <div style={{ color: '#0f172a', fontWeight: 700, fontSize: 14, lineHeight: 1.2 }}>Bank CRM</div>
-              <div style={{ fontSize: 9.5, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1.4, marginTop: 2 }}>
-                {titleByRole[user.role]} Portal
-              </div>
+          <div>
+            <img src="/logo.png" alt="Bank CRM" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
+            <div style={{ fontSize: 9.5, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1.4, marginTop: 4 }}>
+              {titleByRole[user.role]} Portal
             </div>
           </div>
         </div>

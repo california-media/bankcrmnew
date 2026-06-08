@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Terms of Service — Inizio Global</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+a.logo img {
+    width: 112px;
+}
+  :root{
+    --ink:#0B0F1E;--ink-2:#1A2036;--muted:#6B7186;--muted-2:#9AA0B4;--line:#E8E8EE;--line-2:#F0F0F4;
+    --bg:#FFFFFF;--bg-soft:#FAFAFB;--violet:#7B5CFF;--indigo:#5B6CFF;--blue:#3D8BFF;
+    --grad:linear-gradient(135deg,#7B5CFF 0%,#5B6CFF 45%,#3D8BFF 100%);
+    --shadow-sm:0 1px 2px rgba(11,15,30,0.04);
+    --shadow-glow:0 12px 48px -12px rgba(91,108,255,0.45);
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;letter-spacing:-0.011em}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+  @media(max-width:768px){.wrap{padding:0 20px}}
+  .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.78);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--line-2)}
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px;gap:24px}
+  .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .logo-icon{width:38px;height:38px;border-radius:11px;background:var(--grad);display:grid;place-items:center;color:#fff;box-shadow:var(--shadow-glow);flex-shrink:0}
+  .logo-text{line-height:1.15}
+  .logo-title{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.015em}
+  .logo-sub{font-size:11px;color:var(--muted);font-weight:400}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;padding:10px 18px;border-radius:999px;transition:all .25s;white-space:nowrap;letter-spacing:-0.01em}
+  .btn-primary{background:var(--ink);color:#fff}.btn-primary:hover{background:#000}
+
+  /* Legal page layout */
+  .legal-hero{padding:72px 0 48px;border-bottom:1px solid var(--line)}
+  .legal-hero .eyebrow{font-size:12px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--violet);margin-bottom:16px}
+  .legal-hero h1{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-0.03em;line-height:1.1;color:var(--ink)}
+  .legal-hero .meta{margin-top:16px;font-size:14px;color:var(--muted)}
+  .legal-body{display:grid;grid-template-columns:240px 1fr;gap:64px;padding:64px 0 96px;align-items:start}
+  @media(max-width:900px){.legal-body{grid-template-columns:1fr;gap:32px}}
+  .legal-nav{position:sticky;top:96px}
+  .legal-nav h6{font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .legal-nav ul{list-style:none}
+  .legal-nav ul li a{display:block;font-size:14px;color:var(--muted);padding:6px 0;border-left:2px solid var(--line);padding-left:12px;transition:all .2s}
+  .legal-nav ul li a:hover,.legal-nav ul li a.active{color:var(--violet);border-left-color:var(--violet)}
+  .legal-content section{margin-bottom:48px}
+  .legal-content h2{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--ink);margin-bottom:16px;padding-top:8px}
+  .legal-content h3{font-size:16px;font-weight:600;color:var(--ink-2);margin:20px 0 10px}
+  .legal-content p{font-size:15px;line-height:1.75;color:#3a3f55;margin-bottom:14px}
+  .legal-content ul{padding-left:20px;margin-bottom:14px}
+  .legal-content ul li{font-size:15px;line-height:1.75;color:#3a3f55;margin-bottom:6px}
+  .legal-content .highlight-box{background:var(--bg-soft);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin:20px 0}
+  .legal-content .highlight-box p{margin:0;font-size:14px;color:var(--muted)}
+
+  footer{padding:48px 0 32px;border-top:1px solid var(--line);background:#fff;margin-top:0}
+  .foot-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px;border-top:1px solid var(--line-2)}
+  .foot-bottom .left{font-size:13px;color:var(--muted)}
+  .foot-bottom .right{font-size:13px;color:var(--muted-2)}
+  .foot-legal-links{display:flex;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+  .foot-legal-links a{font-size:13px;color:var(--muted);transition:color .2s}
+  .foot-legal-links a:hover{color:var(--violet)}
+  .foot-legal-links a.current{color:var(--violet);font-weight:500}
+
+  .foot-grid{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:48px;padding-bottom:40px;border-bottom:1px solid var(--line-2)}
+  @media(max-width:900px){.foot-grid{grid-template-columns:1fr 1fr;gap:32px}}
+  @media(max-width:600px){.foot-grid{grid-template-columns:1fr;gap:24px}}
+  .brand p{font-size:13px;color:var(--muted);line-height:1.7;margin-top:14px;max-width:260px}
+  footer h5{font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  footer ul{list-style:none}
+  footer ul li{margin-bottom:8px}
+  footer ul li a{font-size:14px;color:var(--muted);transition:color .2s}
+  footer ul li a:hover{color:var(--violet)}
+  .foot-bottom{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding-top:24px}
+  .foot-bottom .left,.foot-bottom .right{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <div class="nav-inner">
+      <a href="https://inizioglobal.com/" class="logo">
+      <img src="/logo.png">
+      </a>
+      <a href="/" class="btn btn-primary">← Back to Home</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="legal-hero">
+    <div class="eyebrow">Legal</div>
+    <h1>Terms of Service</h1>
+    <p class="meta">Last updated: 1 June 2026 &nbsp;·&nbsp; Effective: 1 June 2026</p>
+  </div>
+
+  <div class="legal-body">
+    <aside class="legal-nav">
+      <h6>On this page</h6>
+      <ul>
+        <li><a href="#acceptance">1. Acceptance</a></li>
+        <li><a href="#services">2. Services</a></li>
+        <li><a href="#eligibility">3. Eligibility</a></li>
+        <li><a href="#accounts">4. Accounts</a></li>
+        <li><a href="#referrals">5. Referral Rules</a></li>
+        <li><a href="#fees">6. Fees & Payments</a></li>
+        <li><a href="#conduct">7. Conduct</a></li>
+        <li><a href="#ip">8. Intellectual Property</a></li>
+        <li><a href="#liability">9. Liability</a></li>
+        <li><a href="#termination">10. Termination</a></li>
+        <li><a href="#governing">11. Governing Law</a></li>
+        <li><a href="#contact">12. Contact</a></li>
+      </ul>
+    </aside>
+
+    <div class="legal-content">
+      <section id="acceptance">
+        <h2>1. Acceptance of Terms</h2>
+        <p>By accessing or using the Inizio Global platform ("Platform"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, you may not access or use the Platform.</p>
+        <p>These Terms constitute a legally binding agreement between you and Inizio Global DMCC, a company registered in the Dubai Multi Commodities Centre (DMCC), Dubai, UAE ("Inizio Global", "we", "us", or "our").</p>
+        <div class="highlight-box"><p>⚠️ Please read these Terms carefully before using the Platform. Your continued use of the Platform constitutes acceptance of any updates to these Terms.</p></div>
+      </section>
+
+      <section id="services">
+        <h2>2. Description of Services</h2>
+        <p>Inizio Global operates a premium banking referral infrastructure platform that connects:</p>
+        <ul>
+          <li>Freelance banking agents seeking to refer financial products</li>
+          <li>Partner agencies managing teams of referral agents</li>
+          <li>Banks and financial institutions (FIs) seeking qualified leads</li>
+        </ul>
+        <p>The Platform facilitates the submission, tracking, and management of financial product referrals across the UAE. Inizio Global does not itself offer, sell, or underwrite any financial products and is not a licensed financial institution.</p>
+      </section>
+
+      <section id="eligibility">
+        <h2>3. Eligibility</h2>
+        <p>To use the Platform, you must:</p>
+        <ul>
+          <li>Be at least 21 years of age</li>
+          <li>Be a resident or registered business entity in the UAE</li>
+          <li>Hold any applicable licences or permits required by UAE law for your role</li>
+          <li>Not be barred from receiving services under applicable law</li>
+        </ul>
+        <p>Freelance agents operating through the Platform may be required to hold a valid UAE freelance permit or equivalent authorisation. Inizio Global reserves the right to verify eligibility at any time.</p>
+      </section>
+
+      <section id="accounts">
+        <h2>4. Accounts & Registration</h2>
+        <p>You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account. You agree to:</p>
+        <ul>
+          <li>Provide accurate and complete registration information</li>
+          <li>Update your information promptly if it changes</li>
+          <li>Notify us immediately of any unauthorised use of your account</li>
+          <li>Not share your credentials with any third party</li>
+        </ul>
+        <p>Inizio Global reserves the right to suspend or terminate accounts that violate these Terms or engage in fraudulent activity.</p>
+      </section>
+
+      <section id="referrals">
+        <h2>5. Referral Rules</h2>
+        <p>All referrals submitted through the Platform must comply with the following rules:</p>
+        <ul>
+          <li>Referrals must relate to genuine prospective customers who have provided informed consent</li>
+          <li>Agents must not make misleading representations about any financial product</li>
+          <li>Referrals must not duplicate leads already submitted by another agent</li>
+          <li>Agents must comply with all applicable UAE Central Bank guidelines and anti-money-laundering regulations</li>
+        </ul>
+        <h3>Data Accuracy</h3>
+        <p>Agents are responsible for the accuracy of customer data submitted. Submission of false or incomplete data may result in withholding of commissions and account suspension.</p>
+      </section>
+
+      <section id="fees">
+        <h2>6. Fees & Payments</h2>
+        <p>Commission structures, payout schedules, and fee arrangements are governed by the specific agreement entered into between the agent or agency and Inizio Global. General terms include:</p>
+        <ul>
+          <li>Commissions are paid upon confirmation of a successful referral by the relevant bank or FI</li>
+          <li>Payment timelines vary by product and institution, typically 30–60 days after disbursement</li>
+          <li>Inizio Global may deduct applicable taxes or regulatory charges as required by UAE law</li>
+          <li>Disputed commissions must be raised within 30 days of the relevant payout cycle</li>
+        </ul>
+      </section>
+
+      <section id="conduct">
+        <h2>7. Acceptable Use & Conduct</h2>
+        <p>You agree not to use the Platform to:</p>
+        <ul>
+          <li>Violate any applicable UAE law or regulation</li>
+          <li>Engage in fraudulent, deceptive, or misleading conduct</li>
+          <li>Harass, abuse, or harm any other user or customer</li>
+          <li>Upload malicious code or attempt to compromise platform security</li>
+          <li>Scrape, copy, or redistribute Platform data without written consent</li>
+        </ul>
+      </section>
+
+      <section id="ip">
+        <h2>8. Intellectual Property</h2>
+        <p>All content, trademarks, logos, and software on the Platform are the property of Inizio Global or its licensors. You are granted a limited, non-exclusive, non-transferable licence to access and use the Platform for its intended purpose.</p>
+        <p>You may not reproduce, distribute, or create derivative works from any Platform content without prior written permission.</p>
+      </section>
+
+      <section id="liability">
+        <h2>9. Limitation of Liability</h2>
+        <p>To the fullest extent permitted by UAE law, Inizio Global shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the Platform, including loss of profits, data, or business opportunities.</p>
+        <p>Our total liability to you for any claim arising under these Terms shall not exceed the total fees paid by you to Inizio Global in the three (3) months preceding the claim.</p>
+      </section>
+
+      <section id="termination">
+        <h2>10. Termination</h2>
+        <p>Either party may terminate access to the Platform with 30 days' written notice. Inizio Global may terminate or suspend access immediately if you breach these Terms, engage in fraudulent activity, or if required by applicable law.</p>
+        <p>Upon termination, your right to use the Platform ceases immediately. Accrued commissions for confirmed referrals prior to termination will be paid per the standard schedule.</p>
+      </section>
+
+      <section id="governing">
+        <h2>11. Governing Law</h2>
+        <p>These Terms are governed by the laws of the Dubai International Financial Centre (DIFC). Any disputes arising under these Terms shall be subject to the exclusive jurisdiction of the DIFC Courts, Dubai, UAE.</p>
+      </section>
+
+      <section id="contact">
+        <h2>12. Contact Us</h2>
+        <p>For questions regarding these Terms, please contact:</p>
+        <div class="highlight-box">
+          <p><strong>Inizio Global DMCC</strong><br>Meydan FZ, Dubai, United Arab Emirates<br>Email: legal@inizioglobal.com</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="brand">
+        <a href="https://inizioglobal.com/" class="logo">
+        <img src="/logo.png">
+    </a>
+        <p>A premium, professional lead referral platform for agents, partner agencies and financial institutions across the UAE.</p>
+      </div>
+      <div><h5>Platform</h5><ul><li><a href="https://inizioglobal.com/#agents">For Professional Banking Agents</a></li><li><a href="https://inizioglobal.com/#agencies">For Partner Agencies</a></li><li><a href="https://inizioglobal.com/#banks">For Banks &amp; FIs</a></li><li><a href="https://inizioglobal.com/#features">Features</a></li></ul></div>
+      <div><h5>Company</h5><ul><li><a href="https://inizioglobal.com/">Home</a></li><li><a href="https://inizioglobal.com/">About</a></li><li><a href="https://inizioglobal.com/#features">Products</a></li><li><a href="https://inizioglobal.com/#contact">Contact</a></li></ul></div>
+      <div><h5>Legal</h5><ul><li><a href="/terms.html">Terms</a></li><li><a href="/privacy-policy.html">Privacy</a></li><li><a href="/cookie-policy.html">Cookies</a></li><li><a href="/data-policy.html">Data policy</a></li></ul></div>
+    </div>
+    <div class="foot-bottom">
+      <div class="left">© 2026 Inizio Global · Meydan FZ, Dubai</div>
+      <div class="right">A premium banking referral platform for the UAE.</div>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

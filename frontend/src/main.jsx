@@ -9,7 +9,7 @@ import App from './App.jsx';
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Provider store={store}>
-      <BrowserRouter basename="/projects/bankcrm">
+      <BrowserRouter basename="/">
         <App />
       </BrowserRouter>
     </Provider>

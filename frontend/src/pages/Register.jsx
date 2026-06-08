@@ -80,13 +80,35 @@ function Register() {
         )}
         {!isPrefilled && (
           <>
-            <Button
-              block onClick={handleUaePass}
-              style={{ height: 40, border: '1.5px solid #009e60', borderRadius: 8, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 600, color: '#009e60', fontSize: 14, marginBottom: 2 }}
+            <button
+              type="button"
+              onClick={handleUaePass}
+              style={{
+                width: '100%',
+                height: 46,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                background: '#fff',
+                border: '1.5px solid #d1d5db',
+                borderRadius: 10,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#0f172a',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                marginBottom: 2,
+              }}
             >
-              <img src="https://www.uaepass.ae/content/dam/uae-pass/images/logo/uae-pass-logo.svg" alt="UAE Pass" style={{ height: 18 }} onError={(e) => { e.target.style.display = 'none'; }} />
-              Register with UAE Pass
-            </Button>
+              <img
+                src="https://www.uaepass.ae/content/dam/uae-pass/images/logo/uae-pass-logo.svg"
+                alt="UAE PASS"
+                style={{ height: 22 }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+              Sign in with UAE PASS
+            </button>
             <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center', fontSize: 11, marginBottom: 4 }}>
               Instant verification using your Emirates ID
             </Typography.Text>

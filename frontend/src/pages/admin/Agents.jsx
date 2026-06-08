@@ -18,10 +18,43 @@ const StatusBadge = ({ active }) => (
     fontSize: 11, fontWeight: 700,
     color: active ? '#15803d' : '#94a3b8',
   }}>
-    <span style={{ width: 5, height: 5, borderRadius: '50%', background: active ? '#22c55e' : '#94a3b8' }} />
+    <span style={{
+      width: 5, height: 5, borderRadius: '50%',
+      background: active ? '#22c55e' : '#94a3b8',
+      boxShadow: active ? '0 0 0 2px #bbf7d0' : 'none',
+    }} />
     {active ? 'Active' : 'Inactive'}
   </span>
 );
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg, #6366f1, #8b5cf6)',
+  'linear-gradient(135deg, #3b82f6, #06b6d4)',
+  'linear-gradient(135deg, #f59e0b, #ef4444)',
+  'linear-gradient(135deg, #10b981, #3b82f6)',
+  'linear-gradient(135deg, #ec4899, #8b5cf6)',
+  'linear-gradient(135deg, #14b8a6, #6366f1)',
+  'linear-gradient(135deg, #f97316, #eab308)',
+];
+
+const getGradient = (name = '') =>
+  AVATAR_GRADIENTS[(name.charCodeAt(0) || 0) % AVATAR_GRADIENTS.length];
+
+const AgentAvatar = ({ name }) => {
+  const initials = (name || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  return (
+    <div style={{
+      width: 42, height: 42, borderRadius: 12,
+      background: getGradient(name),
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: 15, fontWeight: 800, color: '#fff',
+      letterSpacing: 0.5, flexShrink: 0,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    }}>
+      {initials}
+    </div>
+  );
+};
 
 function AdminAgents() {
   const navigate = useNavigate();
@@ -212,58 +245,85 @@ function AdminAgents() {
         <Row gutter={[14, 14]}>
           {agents.map((row) => (
             <Col key={row._id} xs={24} sm={12} lg={8} xl={6}>
-              <Card
-                size="small"
-                hoverable
-                style={{ borderRadius: 12, border: '1px solid #e2e8f0', height: '100%' }}
-                styles={{ body: { padding: '16px' } }}
+              <div style={{
+                borderRadius: 16,
+                border: '1px solid #e8edf5',
+                background: '#fff',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)',
+                transition: 'box-shadow 0.2s, transform 0.2s',
+                cursor: 'default',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)'; e.currentTarget.style.transform = 'translateY(0)'; }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.name || '—'}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{row.email}</div>
-                    {row.phone && <div style={{ fontSize: 11, color: '#64748b' }}>{row.phone}</div>}
+                {/* Accent bar */}
+                <div style={{ height: 4, background: getGradient(row.name), flexShrink: 0 }} />
+
+                <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <AgentAvatar name={row.name} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {row.name || '—'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.email}</div>
+                      {row.phone && <div style={{ fontSize: 11, color: '#64748b' }}>{row.phone}</div>}
+                    </div>
+                    <StatusBadge active={row.isActive} />
                   </div>
-                  <StatusBadge active={row.isActive} />
+
+                  {/* Referral code */}
+                  {row.referralCode && (
+                    <div style={{ background: '#f8faff', border: '1px solid #e0e7ff', borderRadius: 8, padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.8, fontWeight: 600 }}>Referral</span>
+                      <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: '#4f46e5', letterSpacing: 1 }}>{row.referralCode}</span>
+                    </div>
+                  )}
+
+                  {/* Stats */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                    {[
+                      { label: 'Leads', value: row.stats?.total || 0, color: '#0f172a', bg: '#f8fafc' },
+                      { label: 'Approved', value: row.stats?.approved || 0, color: '#16a34a', bg: '#f0fdf4' },
+                      { label: 'Paid', value: aed(row.stats?.paidCommission), color: '#4f46e5', bg: '#f5f3ff', small: true },
+                    ].map(({ label, value, color, bg, small }) => (
+                      <div key={label} style={{ background: bg, borderRadius: 8, padding: '7px 6px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 9, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.8, fontWeight: 700, marginBottom: 3 }}>{label}</div>
+                        <div style={{ fontWeight: 800, fontSize: small ? 11 : 18, color, lineHeight: 1 }}>{value}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                {row.referralCode && (
-                  <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.5, marginBottom: 2 }}>Referral Code</div>
-                    <div style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: '#1d4ed8' }}>{row.referralCode}</div>
-                  </div>
-                )}
-
-                <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.5 }}>Leads</div>
-                    <div style={{ fontWeight: 700, fontSize: 16 }}>{row.stats?.total || 0}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.5 }}>Approved</div>
-                    <div style={{ fontWeight: 700, fontSize: 16, color: '#16a34a' }}>{row.stats?.approved || 0}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.5 }}>Paid</div>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: '#4f46e5' }}>{aed(row.stats?.paidCommission)}</div>
-                  </div>
-                </div>
-
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(row.createdAt).toLocaleDateString()}</span>
+                {/* Footer */}
+                <div style={{ borderTop: '1px solid #f1f5f9', padding: '9px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fafbfc' }}>
+                  <span style={{ fontSize: 11, color: '#b0bac9', fontWeight: 500 }}>
+                    {new Date(row.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
                   <Space size={4}>
-                    <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
-                    <Button
-                      size="small"
-                      icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
-                      onClick={() => onToggleActive(row)}
-                    />
+                    <Tooltip title="Edit">
+                      <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(row)}
+                        style={{ color: '#64748b' }} />
+                    </Tooltip>
+                    <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
+                      <Button size="small" type="text"
+                        icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
+                        onClick={() => onToggleActive(row)}
+                        style={{ color: row.isActive ? '#f59e0b' : '#16a34a' }} />
+                    </Tooltip>
                     <Popconfirm title="Delete agent?" description="This cannot be undone." onConfirm={() => onDelete(row._id)} okText="Delete" okButtonProps={{ danger: true }}>
-                      <Button size="small" danger icon={<DeleteOutlined />} />
+                      <Tooltip title="Delete">
+                        <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+                      </Tooltip>
                     </Popconfirm>
                   </Space>
                 </div>
-              </Card>
+              </div>
             </Col>
           ))}
         </Row>

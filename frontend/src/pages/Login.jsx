@@ -16,11 +16,15 @@ const FEATURES = [
   { icon: '↗', title: 'Product payouts', sub: 'Live commission ledger' },
 ];
 
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000';
+
 function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user, status, error } = useSelector((s) => s.auth);
   const [form] = Form.useForm();
+
+  const handleUaePass = () => { window.location.href = `${API_BASE}/api/auth/uaepass/init`; };
 
   useEffect(() => {
     if (user) navigate(`/${user.role}`, { replace: true });
@@ -211,6 +215,42 @@ function Login() {
             >
               Continue to dashboard
             </Button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 14px' }}>
+              <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+              <span style={{ fontSize: 12, color: '#94a3b8', whiteSpace: 'nowrap' }}>or sign in with</span>
+              <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleUaePass}
+              style={{
+                width: '100%',
+                height: 48,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                background: '#fff',
+                border: '1.5px solid #d1d5db',
+                borderRadius: 10,
+                cursor: 'pointer',
+                fontSize: 15,
+                fontWeight: 600,
+                color: '#0f172a',
+                letterSpacing: 0.1,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+              }}
+            >
+              <img
+                src="https://www.uaepass.ae/content/dam/uae-pass/images/logo/uae-pass-logo.svg"
+                alt="UAE PASS"
+                style={{ height: 22 }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+              Sign in with UAE PASS
+            </button>
           </Form>
 
           <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: 0, lineHeight: 1.6 }}>

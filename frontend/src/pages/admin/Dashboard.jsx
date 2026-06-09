@@ -213,22 +213,28 @@ function LeadPipeline({ pipeline, totalLeads }) {
                 {stage.label}
               </div>
 
-              <div style={{ flex: 1, height: 32, background: '#eef0f6', borderRadius: 999, overflow: 'hidden' }}>
-                <div style={{
-                  width: `${pct}%`, height: '100%', borderRadius: 999,
-                  background: 'linear-gradient(90deg, #8b5cf6 0%, #6366f1 40%, #60a5fa 100%)',
-                  transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-                  paddingRight: countInside ? 14 : 0,
-                }}>
-                  {countInside && (
-                    <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>{stage.count}</span>
-                  )}
+              <div style={{ flex: 1, position: 'relative' }}>
+                <div style={{ height: 32, background: '#eef0f6', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${pct}%`, height: '100%', borderRadius: 999,
+                    background: 'linear-gradient(90deg, #8b5cf6 0%, #6366f1 40%, #60a5fa 100%)',
+                    transition: 'width 0.7s cubic-bezier(0.4,0,0.2,1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+                    paddingRight: stage.count > 0 ? 14 : 0,
+                  }}>
+                    {stage.count > 0 && (
+                      <span style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>{stage.count}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-
-              <div style={{ width: 28, textAlign: 'right', fontSize: 14, fontWeight: 700, color: '#374151', flexShrink: 0 }}>
-                {!countInside ? stage.count : ''}
+                {stage.count === 0 && (
+                  <div style={{
+                    position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+                    fontSize: 13, fontWeight: 600, color: '#94a3b8',
+                  }}>
+                    0
+                  </div>
+                )}
               </div>
             </div>
           );

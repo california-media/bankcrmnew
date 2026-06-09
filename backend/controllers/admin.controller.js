@@ -58,6 +58,10 @@ exports.listAgents = async (req, res) => {
  */
 exports.overview = async (req, res) => {
   try {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
     const [agents, agencies, banks, totalLeads, approvedLeads, pendingLeads, activeLeads, cpvDoneLeads, activateDoneLeads, paidAgg, payableAgg, pipelineAgg, topAgentsAgg, productPayoutsAgg] = await Promise.all([
       User.countDocuments({ role: 'agent' }),
       User.countDocuments({ role: 'agency' }),
@@ -97,6 +101,16 @@ exports.overview = async (req, res) => {
       { status: 'rejected', label: 'Rejected', count: pipelineMap.rejected || 0 },
     ];
 
+    const [thisMonthLeads, lastMonthLeads, thisMonthPaid, lastMonthPaid, thisMonthActive, lastMonthActive] = await Promise.all([
+      Lead.countDocuments({ createdAt: { $gte: startOfMonth } }),
+      Lead.countDocuments({ createdAt: { $gte: startOfLastMonth, $lt: startOfMonth } }),
+      Lead.aggregate([{ $match: { commissionStatus: 'paid', createdAt: { $gte: startOfMonth } } }, { $group: { _id: null, sum: { $sum: '$commission' } } }]),
+      Lead.aggregate([{ $match: { commissionStatus: 'paid', createdAt: { $gte: startOfLastMonth, $lt: startOfMonth } } }, { $group: { _id: null, sum: { $sum: '$commission' } } }]),
+      Lead.countDocuments({ status: { $in: ['submitted', 'under_review', 'assigned', 'approved'] }, createdAt: { $gte: startOfMonth } }),
+      Lead.countDocuments({ status: { $in: ['submitted', 'under_review', 'assigned', 'approved'] }, createdAt: { $gte: startOfLastMonth, $lt: startOfMonth } }),
+    ]);
+    const delta = (curr, prev) => prev === 0 ? null : +((curr - prev) / prev * 100).toFixed(1);
+
     const PRODUCT_LABELS = { credit_card: 'Credit Card', loan: 'Loan' };
     const productPayouts = productPayoutsAgg.map((p) => ({
       type: p._id,
@@ -120,6 +134,11 @@ exports.overview = async (req, res) => {
       pipeline,
       topAgents: topAgentsAgg,
       productPayouts,
+      trend: {
+        totalLeads: delta(thisMonthLeads, lastMonthLeads),
+        activeLeads: delta(thisMonthActive, lastMonthActive),
+        paidCommission: delta(thisMonthPaid[0]?.sum || 0, lastMonthPaid[0]?.sum || 0),
+      },
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

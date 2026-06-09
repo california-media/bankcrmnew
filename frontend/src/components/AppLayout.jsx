@@ -155,44 +155,54 @@ function AppLayoutInner() {
       <Sider breakpoint="lg" collapsedWidth="0" theme="light" width={240}
         style={{ background: '#ffffff', borderRight: '1px solid #e2e8f0' }}
       >
-        <div style={{ padding: '20px 20px 16px' }}>
+        <div style={{ padding: '16px 16px 12px' }}>
           <div>
-            <img src="/logo.png" alt="Bank CRM" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
-            <div style={{ fontSize: 9.5, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1.4, marginTop: 4 }}>
+            <img src="/logo.png" alt="Bank CRM" style={{ height: 34, width: 'auto', objectFit: 'contain' }} />
+            <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1.4, marginTop: 3, fontWeight: 500 }}>
               {titleByRole[user.role]} Portal
             </div>
           </div>
         </div>
 
-        <div style={{ height: 1, background: '#e2e8f0', margin: '0 16px 8px' }} />
+        <div style={{ height: 1, background: '#e2e8f0', margin: '0 12px 8px' }} />
 
-        <div style={{ padding: '10px 16px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <Avatar size={30} style={{ background: roleColor, fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+        <div style={{ padding: '6px 12px 10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+            <Avatar size={28} style={{ background: roleColor, fontWeight: 600, fontSize: 11, flexShrink: 0 }}>
               {(user.name || user.email)[0].toUpperCase()}
             </Avatar>
             <div style={{ minWidth: 0 }}>
-              <div style={{ color: '#0f172a', fontSize: 12, fontWeight: 600, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ color: '#0f172a', fontSize: 12, fontWeight: 500, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.name || user.email}
               </div>
-              <div style={{ color: '#64748b', fontSize: 10 }}>{titleByRole[user.role]}</div>
+              <div style={{ color: '#64748b', fontSize: 10, fontWeight: 400 }}>{titleByRole[user.role]}</div>
             </div>
           </div>
         </div>
 
         <div style={{ padding: '0 8px' }}>
-          <div style={{ fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: '#94a3b8', padding: '0 8px', marginBottom: 6 }}>
+          <div style={{ fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1.4, color: '#94a3b8', padding: '0 8px', marginBottom: 4 }}>
             Navigation
           </div>
-          <ConfigProvider theme={{ components: { Menu: {
-            itemColor: '#475569', itemHoverColor: '#1e293b', itemHoverBg: '#f1f5f9',
-            itemSelectedColor: '#4f46e5', itemSelectedBg: '#ede9fe', itemBorderRadius: 8,
-          }}}}>
+          <ConfigProvider theme={{
+            token: { fontSize: 13.5 },
+            components: { Menu: {
+              itemColor: '#6b7280',
+              itemHoverColor: '#1e293b',
+              itemHoverBg: '#f1f5f9',
+              itemSelectedColor: '#4f46e5',
+              itemSelectedBg: '#ede9fe',
+              itemBorderRadius: 8,
+              itemHeight: 38,
+              itemMarginInline: 0,
+              itemPaddingInline: 10,
+            }},
+          }}>
             <Menu
               theme="light" mode="inline"
               selectedKeys={[location.pathname]}
               items={items}
-              style={{ borderInlineEnd: 0, background: 'transparent' }}
+              style={{ borderInlineEnd: 0, background: 'transparent', fontWeight: 400 }}
             />
           </ConfigProvider>
         </div>
@@ -200,13 +210,20 @@ function AppLayoutInner() {
 
       <Layout>
         <Header style={{
-          padding: '0 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '0 28px', height: 'auto', lineHeight: 'normal',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 8px rgba(15,23,42,0.05)',
           position: 'sticky', top: 0, zIndex: 100, background: '#ffffff',
+          minHeight: 56,
         }}>
-          <Typography.Text style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
-            {titleByRole[user.role]} Panel
-          </Typography.Text>
+          <div>
+            <Typography.Text style={{ fontSize: 14, fontWeight: 500, color: '#374151', whiteSpace: 'nowrap', display: 'block' }}>
+              {titleByRole[user.role]} Panel
+            </Typography.Text>
+            <div style={{ fontSize: 11, color: '#b0b8c8', marginTop: 1, fontWeight: 400 }}>
+              {dayjs().format('dddd, MMMM D, YYYY')}
+            </div>
+          </div>
 
           <Space size={16} align="center">
             <Popover
@@ -252,8 +269,8 @@ function AppLayoutInner() {
                   {(user.name || user.email)[0].toUpperCase()}
                 </Avatar>
                 <div style={{ lineHeight: 1.2 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>{user.name || user.email}</div>
-                  <div style={{ fontSize: 11, color: token.colorTextSecondary }}>{titleByRole[user.role]}</div>
+                  <div style={{ fontWeight: 500, fontSize: 13, color: '#0f172a' }}>{user.name || user.email}</div>
+                  <div style={{ fontSize: 11, fontWeight: 400, color: token.colorTextSecondary }}>{titleByRole[user.role]}</div>
                 </div>
                 <DownOutlined style={{ fontSize: 10, color: '#94a3b8', marginLeft: 2 }} />
               </div>
@@ -261,8 +278,10 @@ function AppLayoutInner() {
           </Space>
         </Header>
 
-        <Content style={{ margin: '12px 16px 16px', padding: '20px 24px', background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(15,23,42,0.06)', minHeight: 280 }}>
-          <Outlet />
+        <Content style={{ margin: '0', padding: '20px 24px 28px', background: 'transparent', minHeight: 280 }}>
+          <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+            <Outlet />
+          </div>
         </Content>
       </Layout>
     </Layout>

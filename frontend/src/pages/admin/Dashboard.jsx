@@ -43,7 +43,7 @@ const StatCard = ({ title, value, icon, iconColor = '#4f46e5', trend, loading, l
         borderRadius: 16,
         border: '1px solid #edf0f7',
         borderTop: `3px solid ${iconColor}`,
-        background: 'linear-gradient(135deg, #ffffff 0%, #f8faff 100%)',
+        background: `linear-gradient(170deg, ${iconColor}12 0%, #ffffff 45%, #f8faff 100%)`,
         boxShadow: '0 4px 16px rgba(15,23,42,0.08)',
         height: '100%',
         cursor: link ? 'pointer' : 'default',

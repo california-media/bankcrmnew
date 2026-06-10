@@ -45,11 +45,11 @@ const theme = {
     colorPrimary: '#4f46e5',
     colorInfo: '#6366f1',
     borderRadius: 10,
-    colorBgLayout: '#f0f2f8',
+    colorBgLayout: '#fbfcff',
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
   components: {
-    Layout: { siderBg: '#0d1117', headerBg: '#ffffff', bodyBg: '#f0f2f8' },
+    Layout: { siderBg: '#0d1117', headerBg: '#ffffff', bodyBg: '#fbfcff' },
     Card: { borderRadiusLG: 12 },
     Menu: {
       darkItemBg: '#0d1117',

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, Row, Col, Space, Tabs, Card, Empty } from 'antd';
+import { Table, Button, Input, Select, Tabs, Row, Col, Tag } from 'antd';
 import { PlusOutlined, SearchOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
@@ -118,7 +118,7 @@ function MyLeads() {
       width: 175,
       render: (_, row) => (
         <div style={{ lineHeight: 1.5 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.customerName}</div>
+          <div style={{ fontWeight: 500, fontSize: 14, color: '#0f172a' }}>{row.customerName}</div>
           <div style={{ fontSize: 11, color: '#94a3b8' }}>{row.leadNumber || '—'}</div>
           <div style={{ fontSize: 11, color: '#64748b', whiteSpace: 'nowrap' }}>{row.phone}</div>
         </div>
@@ -191,61 +191,43 @@ function MyLeads() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
-        <Col>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>My Leads</Typography.Title>
-          <Typography.Text type="secondary">
-            {leads.length} total · Track every case from submission to commission payout.
-          </Typography.Text>
-        </Col>
-        <Col>
-          <Space>
-            <Button
-              icon={<TableOutlined />}
-              type={viewMode === 'table' ? 'primary' : 'default'}
-              onClick={() => setViewMode('table')}
-            >Table</Button>
-            <Button
-              icon={<AppstoreOutlined />}
-              type={viewMode === 'card' ? 'primary' : 'default'}
-              onClick={() => setViewMode('card')}
-            >Cards</Button>
-            <Link to="/agent/leads/new">
-              <Button type="primary" icon={<PlusOutlined />}>New Lead</Button>
-            </Link>
-          </Space>
-        </Col>
-      </Row>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>My Leads</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+          <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+          <Link to="/agent/leads/new">
+            <Button type="primary" icon={<PlusOutlined />}>New Lead</Button>
+          </Link>
+        </div>
+      </div>
 
-      <Space wrap style={{ margin: '8px 0 12px', width: '100%', justifyContent: 'space-between' }}>
-        <Space wrap>
-          <Input
-            allowClear
-            placeholder="Search by client name or lead ID..."
-            prefix={<SearchOutlined />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 280 }}
-          />
-          <Select
-            allowClear
-            placeholder="All Stages"
-            value={statusFilter}
-            onChange={setStatusFilter}
-            options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
-            style={{ width: 180 }}
-          />
-          <Select
-            allowClear
-            placeholder="All Products"
-            value={productFilter}
-            onChange={setProductFilter}
-            options={PRODUCTS}
-            style={{ width: 180 }}
-          />
-        </Space>
-        <Typography.Text type="secondary">{filtered.length} leads</Typography.Text>
-      </Space>
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <Input
+          allowClear
+          placeholder="Search by client name or lead ID..."
+          prefix={<SearchOutlined />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: 280, flexShrink: 0, borderRadius: 6 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Stages"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
+          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Products"
+          value={productFilter}
+          onChange={setProductFilter}
+          options={PRODUCTS}
+          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+        />
+      </div>
 
       <Tabs
         activeKey={leadsTab}
@@ -260,64 +242,54 @@ function MyLeads() {
       />
 
       {viewMode === 'table' ? (
-        <Table
-          size="small"
-          rowKey="_id"
-          loading={loading}
-          dataSource={filtered}
-          columns={columns}
-
-          onRow={(row) => ({ onClick: () => navigate(`/agent/leads/${row._id}`), style: { cursor: 'pointer' } })}
-        />
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+          <Table
+            size="small"
+            rowKey="_id"
+            loading={loading}
+            dataSource={filtered}
+            columns={columns}
+            onRow={(row) => ({ onClick: () => navigate(`/agent/leads/${row._id}`), style: { cursor: 'pointer' } })}
+          />
+        </div>
       ) : (
         <Row gutter={[14, 14]}>
           {filtered.map((row) => {
             const statusMeta = STATUSES.find((x) => x.value === row.status);
             return (
               <Col key={row._id} xs={24} sm={12} lg={8} xl={6}>
-                <Card
-                  size="small"
-                  hoverable
+                <div
                   onClick={() => navigate(`/agent/leads/${row._id}`)}
-                  style={{ borderRadius: 12, border: '1px solid #e2e8f0', cursor: 'pointer', height: '100%' }}
-                  styles={{ body: { padding: '14px 16px' } }}
+                  className="lead-card"
+                  style={{
+                    borderRadius: 14, border: '1px solid #e0e2f7', cursor: 'pointer', height: '100%',
+                    background: '#fff', padding: '14px 16px',
+                    boxShadow: '0 2px 12px rgba(99,102,241,0.07), 0 1px 3px rgba(99,102,241,0.04)',
+                    transition: 'transform 0.15s, box-shadow 0.15s, border-color 0.15s',
+                  }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <Typography.Text type="secondary" style={{ fontFamily: 'monospace', fontSize: 11 }}>
-                      {row.leadNumber || '—'}
-                    </Typography.Text>
-                    <Tag color={statusMeta?.color} style={{ margin: 0 }}>{statusMeta?.label || row.status}</Tag>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#94a3b8' }}>{row.leadNumber || '—'}</span>
+                    <Tag color={statusMeta?.color} style={{ margin: 0, fontSize: 10 }}>{statusMeta?.label || row.status}</Tag>
                   </div>
-
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', lineHeight: 1.3, marginBottom: 2 }}>
-                    {row.customerName}
+                  <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', marginBottom: 2 }}>{row.customerName}</div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8 }}>{row.phone}</div>
+                  {row.bank?.name && (
+                    <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 500, color: '#4f46e5', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 999, padding: '2px 10px', marginBottom: 10 }}>
+                      {row.bank.name}
+                    </span>
+                  )}
+                  <div style={{ fontSize: 12, fontWeight: 500, color: '#334155' }}>{renderProduct(row)}</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 10 }}>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>{relTime(row.updatedAt || row.createdAt)}</span>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: row.commissionStatus === 'paid' ? '#16a34a' : '#4f46e5' }}>{aed(row.commission)}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>{row.phone}</div>
-
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>{renderProduct(row)}</div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2, marginBottom: 10 }}>{row.bank?.name || '—'}</div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4 }}>
-                    <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                      {new Date(row.updatedAt || row.createdAt).toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' })}
-                    </Typography.Text>
-                    <div style={{ textAlign: 'right' }}>
-                      {row.commissionStatus === 'paid' ? (
-                        <>
-                          <div style={{ fontWeight: 700, fontSize: 13, color: '#16a34a' }}>{aed(row.commission)}</div>
-                          <div style={{ fontSize: 10, color: '#16a34a' }}>Received</div>
-                        </>
-                      ) : (
-                        <span style={{ fontWeight: 700, fontSize: 13 }}>{aed(row.commission)}</span>
-                      )}
-                    </div>
-                  </div>
-                </Card>
+                </div>
               </Col>
             );
           })}
           {filtered.length === 0 && (
-            <Col span={24}><Empty description="No leads found" /></Col>
+            <Col span={24} style={{ textAlign: 'center', color: '#94a3b8', padding: '40px 0' }}>No leads found</Col>
           )}
         </Row>
       )}

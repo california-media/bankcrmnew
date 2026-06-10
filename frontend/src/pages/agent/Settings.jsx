@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, message, Divider, Row, Col, Alert } from 'antd';
-import { BankOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, message, Divider, Row, Col, Alert, Tooltip, Typography } from 'antd';
+import { BankOutlined, LockOutlined, UserOutlined, CopyOutlined, CheckOutlined, LinkOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import api from '../../api/client';
 import { updateProfile } from '../../store/slices/authSlice';
@@ -13,6 +13,7 @@ function AgentSettings() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingBank, setSavingBank] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     api.get('/auth/profile').then((res) => {
@@ -38,13 +39,12 @@ function AgentSettings() {
     try {
       const payload = { name: values.name, phone: values.phone };
       if (values.newPassword) {
-        payload.currentPassword = values.currentPassword;
         payload.newPassword = values.newPassword;
       }
       const result = await dispatch(updateProfile(payload));
       if (updateProfile.rejected.match(result)) throw new Error(result.payload || 'Failed to update profile');
       message.success('Profile updated');
-      profileForm.setFieldsValue({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      profileForm.setFieldsValue({ newPassword: '', confirmPassword: '' });
     } catch (err) {
       message.error(err.message || 'Failed to update profile');
     } finally {
@@ -183,12 +183,7 @@ function AgentSettings() {
           </Divider>
 
           <Row gutter={16}>
-            <Col xs={24} sm={8}>
-              <Form.Item name="currentPassword" label="Current Password">
-                <Input.Password placeholder="Current password" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="newPassword"
                 label="New Password"
@@ -197,7 +192,7 @@ function AgentSettings() {
                 <Input.Password placeholder="New password" />
               </Form.Item>
             </Col>
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="confirmPassword"
                 label="Confirm Password"
@@ -221,6 +216,48 @@ function AgentSettings() {
           </Button>
         </Form>
       </Card>
+
+      {/* Referral Link */}
+      {profile?.referralCode && (
+        <Card
+          style={{ borderRadius: 16, border: '1px solid #e2e8f0', marginTop: 20 }}
+          styles={{ header: { borderBottom: '1px solid #f1f5f9' } }}
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <LinkOutlined style={{ color: '#6366f1' }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>Customer Referral Link</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>Share this link with customers</div>
+              </div>
+            </div>
+          }
+        >
+          <div style={{ padding: '4px 0' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+              Your Link
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', borderRadius: 10, padding: '10px 14px', border: '1px solid #e2e8f0' }}>
+              <span style={{ flex: 1, fontSize: 13, color: '#4f46e5', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {`${window.location.origin}/ref/${profile.referralCode}`}
+              </span>
+              <Tooltip title={copiedLink ? 'Copied!' : 'Copy link'}>
+                <Button
+                  size="small"
+                  icon={copiedLink ? <CheckOutlined /> : <CopyOutlined />}
+                  type={copiedLink ? 'primary' : 'default'}
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/ref/${profile.referralCode}`);
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2000);
+                  }}
+                />
+              </Tooltip>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

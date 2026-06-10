@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Select, DatePicker, Space, Button, Tabs, Tooltip, Card, Row, Col } from 'antd';
+import { Table, Tag, Typography, Input, Select, DatePicker, Space, Button, Tabs, Tooltip, Card, Row, Col, ConfigProvider } from 'antd';
 import { SearchOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
@@ -134,7 +134,7 @@ function AdminLeads() {
       width: 130,
       render: (_, row) => (
         <div style={{ lineHeight: 1.5 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{row.customerName}</div>
+          <div style={{ fontWeight: 500, fontSize: 13, color: '#0f172a' }}>{row.customerName}</div>
           <div style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>{row.leadNumber || '—'}</div>
           <div style={{ fontSize: 11, color: '#64748b' }}>{row.phone}</div>
         </div>
@@ -247,26 +247,15 @@ function AdminLeads() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>All Leads</Typography.Title>
-          <Typography.Text type="secondary">{leads.length} total leads across the system.</Typography.Text>
-        </div>
-        <Space>
-          <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
-          <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
-        </Space>
-      </div>
-
-      <Space wrap style={{ margin: '8px 0 12px', width: '100%', justifyContent: 'space-between' }}>
-        <Space wrap>
+      <ConfigProvider theme={{ token: { borderRadius: 6 } }}>
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
           <Input
             allowClear
             placeholder="Search client or lead ID..."
             prefix={<SearchOutlined />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 280 }}
+            style={{ width: 280, flexShrink: 0 }}
           />
           <Select
             allowClear
@@ -274,7 +263,7 @@ function AdminLeads() {
             value={statusFilter}
             onChange={setStatusFilter}
             options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
-            style={{ width: 180 }}
+            style={{ width: 160, flexShrink: 0 }}
           />
           <Select
             allowClear
@@ -282,36 +271,42 @@ function AdminLeads() {
             value={productFilter}
             onChange={setProductFilter}
             options={PRODUCTS}
-            style={{ width: 180 }}
+            style={{ width: 160, flexShrink: 0 }}
           />
           <DatePicker.RangePicker
             value={dateRange}
             onChange={setDateRange}
             allowClear
-            style={{ width: 240 }}
+            style={{ width: 240, flexShrink: 0 }}
           />
           {(search || statusFilter || productFilter || dateRange) && (
             <Button onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setDateRange(null); }}>
               Clear Filters
             </Button>
           )}
-        </Space>
-        <Typography.Text type="secondary">{filtered.length} shown</Typography.Text>
-      </Space>
-
-      <Tabs
-        activeKey={leadsTab}
-        onChange={setLeadsTab}
-        style={{ marginBottom: 8 }}
-        items={[
-          { key: 'active', label: `Active (${activeCount})` },
-          { key: 'referral', label: `Referral Leads (${referralCount})` },
-          { key: 'rejected', label: `Rejected (${rejectedCount})` },
-          { key: 'archive', label: `Approved (${archiveCount})` },
-        ]}
-      />
+          <div style={{ flex: 1 }} />
+          <Space size={8}>
+            <Typography.Text type="secondary" style={{ whiteSpace: 'nowrap' }}>{filtered.length} shown</Typography.Text>
+            <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+            <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+          </Space>
+        </div>
+      </ConfigProvider>
+        <Tabs
+          activeKey={leadsTab}
+          onChange={setLeadsTab}
+          style={{ marginBottom: 4 }}
+          items={[
+            { key: 'active', label: `Active (${activeCount})` },
+            { key: 'referral', label: `Referral Leads (${referralCount})` },
+            { key: 'rejected', label: `Rejected (${rejectedCount})` },
+            { key: 'archive', label: `Approved (${archiveCount})` },
+          ]}
+        />
       {viewMode === 'table' ? (
-        <Table size="small" rowKey="_id" loading={loading} dataSource={filtered} columns={columns} tableLayout="fixed" onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })} />
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+          <Table size="small" rowKey="_id" loading={loading} dataSource={filtered} columns={columns} tableLayout="fixed" onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })} />
+        </div>
       ) : (
         <Row gutter={[14, 14]}>
           {filtered.map((row) => {
@@ -323,7 +318,8 @@ function AdminLeads() {
                   size="small"
                   hoverable
                   onClick={() => navigate(`/admin/leads/${row._id}`)}
-                  style={{ borderRadius: 12, border: '1px solid #e2e8f0', cursor: 'pointer', height: '100%' }}
+                  className="lead-card"
+                  style={{ borderRadius: 12, border: '1px solid #e0e2f7', cursor: 'pointer', height: '100%', boxShadow: '0 2px 12px rgba(99,102,241,0.10), 0 1px 3px rgba(99,102,241,0.06)', transition: 'all 0.2s ease' }}
                   styles={{ body: { padding: '14px 16px' } }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>

@@ -172,15 +172,11 @@ export default function BucketRequests() {
 
   return (
     <>
-      <div style={{ marginBottom: 16 }}>
-        <Typography.Title level={4} style={{ margin: 0, fontWeight: 700 }}>
-          <WalletOutlined style={{ marginRight: 8, color: '#4f46e5' }} />Bucket Top-Up Requests
-        </Typography.Title>
-        <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-          Approve or reject agency wallet top-up requests
-        </Typography.Text>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Bucket Requests</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+        </div>
       </div>
-
       <Tabs
         activeKey={tab}
         onChange={setTab}
@@ -191,16 +187,18 @@ export default function BucketRequests() {
         ]}
       />
 
-      <Table
-        size="small"
-        rowKey="_id"
-        loading={loading}
-        dataSource={requests}
-        columns={columns}
-        scroll={{ x: 800 }}
-        pagination={{ pageSize: 20, showSizeChanger: false }}
-        style={{ marginTop: 12 }}
-      />
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <Table
+          size="small"
+          rowKey="_id"
+          loading={loading}
+          dataSource={requests}
+          columns={columns}
+          scroll={{ x: 800 }}
+          pagination={{ pageSize: 20, showSizeChanger: false }}
+          style={{ marginTop: 12 }}
+        />
+      </div>
 
       <Modal
         title="Reject Request"

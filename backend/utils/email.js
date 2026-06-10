@@ -75,4 +75,32 @@ const sendInquiryNotification = async ({ name, email, phone, companyName, messag
   });
 };
 
-module.exports = { sendInviteEmail, sendInquiryNotification };
+const sendPasswordResetEmail = async ({ to, resetUrl, name }) => {
+  const t = getTransporter();
+  const subject = 'Reset your Bank CRM password';
+  const html = `
+    <p>Hi ${name || 'there'},</p>
+    <p>We received a request to reset your Bank CRM password.</p>
+    <p>Click the link below to set a new password. This link expires in <strong>1 hour</strong>.</p>
+    <p><a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Reset Password</a></p>
+    <p>Or copy this URL: ${resetUrl}</p>
+    <p>If you did not request this, you can safely ignore this email.</p>
+  `;
+
+  if (!t) {
+    console.log('\n[DEV EMAIL — PASSWORD RESET]');
+    console.log(`To: ${to}`);
+    console.log(`Reset URL: ${resetUrl}\n`);
+    return { dev: true, resetUrl };
+  }
+
+  await t.sendMail({
+    from: process.env.SMTP_FROM || 'no-reply@bankcrm.local',
+    to,
+    subject,
+    html,
+  });
+  return { dev: false };
+};
+
+module.exports = { sendInviteEmail, sendInquiryNotification, sendPasswordResetEmail };

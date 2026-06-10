@@ -1,5 +1,7 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
+const { sendPasswordResetEmail } = require('../utils/email');
 
 /**
  * Public-safe user shape returned to clients.
@@ -244,9 +246,6 @@ exports.updateProfile = async (req, res) => {
     }
 
     if (newPassword) {
-      if (!currentPassword) return res.status(400).json({ message: 'Current password required' });
-      const ok = await user.comparePassword(currentPassword);
-      if (!ok) return res.status(400).json({ message: 'Current password is incorrect' });
       if (newPassword.length < 6) return res.status(400).json({ message: 'New password must be at least 6 characters' });
       user.password = newPassword;
     }
@@ -257,6 +256,58 @@ exports.updateProfile = async (req, res) => {
       .populate('agency', 'name email phone')
       .populate('referredBy', 'name email referralCode');
     res.json({ user: sanitizeFull(updated) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/auth/forgot-password  (public)
+ */
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const user = await User.findOne({ email: email.toLowerCase() });
+    // Always respond success to prevent email enumeration
+    if (!user) return res.json({ message: 'If that email exists, a reset link has been sent.' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await user.save();
+
+    const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+    await sendPasswordResetEmail({ to: user.email, resetUrl, name: user.name });
+
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/auth/reset-password  (public)
+ */
+exports.resetPassword = async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ message: 'Token and password are required' });
+    if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: new Date() },
+    });
+    if (!user) return res.status(400).json({ message: 'Reset link is invalid or has expired' });
+
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Password reset successful. You can now log in.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

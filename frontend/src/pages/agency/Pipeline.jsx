@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Typography, Spin, message, Segmented, Select } from 'antd';
+import { Spin, message, Segmented, Select } from 'antd';
 import { CreditCardOutlined, BankOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -54,13 +54,13 @@ function uniq(arr, key) {
   });
 }
 
-function LeadCard({ lead, onClick, accentColor }) {
+function LeadCard({ lead, onClick }) {
   const isLoan = lead.productType === 'loan';
   const productName = isLoan
     ? (lead.loanProduct?.loanCategory
         ? (PRODUCT_TYPE_LABELS[lead.loanProduct.loanCategory] || lead.loanProduct.loanCategory.toUpperCase())
-        : 'Loan')
-    : 'Credit Card';
+        : 'LOAN')
+    : 'CREDIT CARD';
   const bankName = lead.bank?.name || '—';
   const amount = isLoan && lead.loanAmount ? aed(lead.loanAmount) : null;
   const commission = lead.grossCommission > 0 ? aed(lead.grossCommission) : null;
@@ -73,45 +73,38 @@ function LeadCard({ lead, onClick, accentColor }) {
         background: '#ffffff',
         borderRadius: 12,
         border: '1px solid #e8edf3',
-        padding: '12px 14px',
+        padding: '14px 14px 12px',
         cursor: 'pointer',
-        boxShadow: '0 2px 8px rgba(15,23,42,0.07)',
+        boxShadow: '0 1px 4px rgba(15,23,42,0.06)',
         transition: 'box-shadow 0.18s, transform 0.12s, border-color 0.18s',
         userSelect: 'none',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = `0 6px 20px ${accentColor}40, 0 2px 6px ${accentColor}20`;
-        e.currentTarget.style.borderColor = `${accentColor}55`;
+        e.currentTarget.style.boxShadow = '0 6px 20px rgba(99,102,241,0.18), 0 2px 6px rgba(99,102,241,0.10)';
+        e.currentTarget.style.borderColor = '#a5b4fc';
         e.currentTarget.style.transform = 'translateY(-2px)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '0 2px 8px rgba(15,23,42,0.07)';
+        e.currentTarget.style.boxShadow = '0 1px 4px rgba(15,23,42,0.06)';
         e.currentTarget.style.borderColor = '#e8edf3';
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      {/* Name */}
-      <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 2 }}>
+      <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 3 }}>
         {lead.customerName}
       </div>
-
-      {/* Lead ID · Bank */}
-      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 8, fontFamily: 'monospace', letterSpacing: 0.2 }}>
+      <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10, letterSpacing: 0.1 }}>
         {leadNum} · {bankName}
       </div>
-
-      {/* Product type + Amount */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
         <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8 }}>
           {productName}
         </span>
         {amount && (
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{amount}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{amount}</span>
         )}
       </div>
-
-      {/* Time + Commission */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 8 }}>
         <span style={{ fontSize: 11, color: '#94a3b8' }}>{relTime(lead.updatedAt)}</span>
         {commission && (
           <span style={{ fontSize: 12, fontWeight: 700, color: '#4f46e5' }}>{commission}</span>
@@ -202,14 +195,46 @@ export default function Pipeline() {
   }
 
   return (
-    <>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-        <div>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 700 }}>Pipeline board</Typography.Title>
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            Kanban view of every lead by stage · {filtered.length} leads
-          </Typography.Text>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 88px)', overflow: 'hidden' }}>
+      {/* Filter bar */}
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexShrink: 0, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Select
+            allowClear
+            placeholder="All Banks"
+            value={bankFilter}
+            onChange={setBankFilter}
+            options={bankOptions}
+            style={{ minWidth: 160, borderRadius: 6 }}
+          />
+          {role !== 'employee' && (
+            <Select
+              allowClear
+              placeholder="All Agents"
+              value={agentFilter}
+              onChange={setAgentFilter}
+              options={agentOptions}
+              style={{ minWidth: 160 }}
+            />
+          )}
+          {role === 'admin' && (
+            <Select
+              allowClear
+              placeholder="All Agencies"
+              value={agencyFilter}
+              onChange={setAgencyFilter}
+              options={agencyOptions}
+              style={{ minWidth: 160 }}
+            />
+          )}
+          {(bankFilter || agentFilter || agencyFilter) && (
+            <button
+              onClick={() => { setBankFilter(null); setAgentFilter(null); setAgencyFilter(null); }}
+              style={{ fontSize: 12, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', fontWeight: 500 }}
+            >
+              Clear
+            </button>
+          )}
         </div>
 
         <Segmented
@@ -244,58 +269,15 @@ export default function Pipeline() {
         />
       </div>
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
-        <Select
-          allowClear
-          placeholder="All Banks"
-          value={bankFilter}
-          onChange={setBankFilter}
-          options={bankOptions}
-          style={{ minWidth: 150 }}
-          size="small"
-        />
-        {role !== 'employee' && (
-          <Select
-            allowClear
-            placeholder="All Agents"
-            value={agentFilter}
-            onChange={setAgentFilter}
-            options={agentOptions}
-            style={{ minWidth: 150 }}
-            size="small"
-          />
-        )}
-        {role === 'admin' && (
-          <Select
-            allowClear
-            placeholder="All Agencies"
-            value={agencyFilter}
-            onChange={setAgencyFilter}
-            options={agencyOptions}
-            style={{ minWidth: 150 }}
-            size="small"
-          />
-        )}
-        {(bankFilter || agentFilter || agencyFilter) && (
-          <button
-            onClick={() => { setBankFilter(null); setAgentFilter(null); setAgencyFilter(null); }}
-            style={{ fontSize: 11, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}
-          >
-            Clear filters
-          </button>
-        )}
-      </div>
-
       {/* Kanban board */}
       <div
         style={{
+          flex: 1,
+          minHeight: 0,
           display: 'flex',
-          gap: 16,
+          gap: 14,
           overflowX: 'auto',
-          alignItems: 'flex-start',
-          paddingBottom: 20,
-          paddingTop: 4,
+          overflowY: 'hidden',
         }}
       >
         {columns.map((col) => {
@@ -307,36 +289,32 @@ export default function Pipeline() {
             <div
               key={colId}
               style={{
-                minWidth: 260,
-                width: 260,
+                minWidth: 270,
+                width: 270,
                 flexShrink: 0,
-                background: '#f8fafc',
-                borderRadius: 16,
-                boxShadow: '0 4px 16px rgba(15,23,42,0.08)',
-                border: '1px solid #e8edf3',
                 display: 'flex',
                 flexDirection: 'column',
-                overflow: 'hidden',
+                height: '100%',
+                background: '#ffffff',
+                borderRadius: 16,
+                border: '1px solid #e8edf3',
               }}
             >
               {/* Column header */}
               <div style={{
-                padding: '12px 14px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: '#fff',
-                borderBottom: '1px solid #f1f5f9',
+                padding: '12px 14px 10px',
               }}>
-                {/* Status pill */}
                 <div style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
                   background: colors.bg,
-                  border: `1.5px solid ${colors.dot}22`,
+                  border: `1.5px solid ${colors.dot}33`,
                   borderRadius: 999,
-                  padding: '4px 10px 4px 8px',
+                  padding: '5px 12px 5px 9px',
                 }}>
                   <span style={{
                     width: 7,
@@ -357,15 +335,13 @@ export default function Pipeline() {
                     {col.label}
                   </span>
                 </div>
-
-                {/* Count badge */}
                 <span style={{
                   fontSize: 12,
                   fontWeight: 700,
                   color: '#64748b',
                   background: '#f1f5f9',
                   borderRadius: 999,
-                  padding: '2px 8px',
+                  padding: '2px 9px',
                   minWidth: 24,
                   textAlign: 'center',
                 }}>
@@ -373,21 +349,19 @@ export default function Pipeline() {
                 </span>
               </div>
 
-              {/* Cards */}
+              {/* Cards scroll area */}
               <div style={{
-                padding: '10px 10px',
+                flex: 1,
+                overflowY: 'auto',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 8,
-                minHeight: 80,
-                maxHeight: 'calc(100vh - 260px)',
-                overflowY: 'auto',
+                padding: '4px 10px 10px',
               }}>
                 {colLeads.map((lead) => (
                   <LeadCard
                     key={lead._id}
                     lead={lead}
-                    accentColor={colors.dot}
                     onClick={() => navigate(`${leadPath}/${lead._id}`)}
                   />
                 ))}
@@ -396,7 +370,7 @@ export default function Pipeline() {
                     textAlign: 'center',
                     color: '#cbd5e1',
                     fontSize: 12,
-                    padding: '24px 0',
+                    padding: '32px 0',
                     fontStyle: 'italic',
                   }}>
                     No leads
@@ -413,6 +387,6 @@ export default function Pipeline() {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

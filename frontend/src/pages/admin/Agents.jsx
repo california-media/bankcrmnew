@@ -44,12 +44,11 @@ const AgentAvatar = ({ name }) => {
   const initials = (name || '?').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   return (
     <div style={{
-      width: 42, height: 42, borderRadius: 12,
-      background: getGradient(name),
+      width: 52, height: 52, borderRadius: '50%',
+      background: '#6366f1',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 15, fontWeight: 800, color: '#fff',
+      fontSize: 17, fontWeight: 700, color: '#fff',
       letterSpacing: 0.5, flexShrink: 0,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
     }}>
       {initials}
     </div>
@@ -135,14 +134,14 @@ function AdminAgents() {
       title: <ColHead>Agent</ColHead>,
       render: (_, row) => (
         <div style={{ lineHeight: 1.5 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.name || '—'}</div>
+          <div style={{ fontWeight: 500, fontSize: 14, color: '#0f172a' }}>{row.name || '—'}</div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.email}</div>
           {row.phone && <div style={{ fontSize: 11, color: '#64748b' }}>{row.phone}</div>}
         </div>
       ),
     },
     {
-      title: <ColHead>Referral Code</ColHead>,
+      title: <ColHead>Agent Code</ColHead>,
       dataIndex: 'referralCode',
       width: 130,
       render: (v) => <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#1d4ed8' }}>{v || '—'}</span>,
@@ -193,28 +192,22 @@ function AdminAgents() {
     },
     {
       title: <ColHead>Actions</ColHead>,
-      width: 200,
+      width: 120,
       render: (_, row) => (
-        <Space size={6} style={{ flexWrap: 'nowrap' }}>
-          <Button
-            size="small"
-            onClick={() => onToggleActive(row)}
-            style={row.isActive
-              ? { borderColor: '#ef4444', color: '#ef4444', fontWeight: 600 }
-              : { borderColor: '#22c55e', color: '#22c55e', fontWeight: 600 }}
-          >
-            {row.isActive ? 'Deactivate' : 'Activate'}
-          </Button>
-          <Button size="small" icon={<EyeOutlined />} onClick={() => navigate(`/admin/agents/${row._id}`)}>View</Button>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)}>Edit</Button>
-          <Popconfirm
-            title="Delete agent?"
-            description="This cannot be undone."
-            onConfirm={() => onDelete(row._id)}
-            okText="Delete"
-            okButtonProps={{ danger: true }}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />}>Delete</Button>
+        <Space size={4} style={{ flexWrap: 'nowrap' }}>
+          <Tooltip title="View">
+            <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => navigate(`/admin/agents/${row._id}`)} style={{ color: '#64748b' }} />
+          </Tooltip>
+          <Tooltip title="Edit">
+            <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} style={{ color: '#64748b' }} />
+          </Tooltip>
+          <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
+            <Button size="small" type="text" icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />} onClick={() => onToggleActive(row)} style={{ color: row.isActive ? '#f59e0b' : '#16a34a' }} />
+          </Tooltip>
+          <Popconfirm title="Delete agent?" description="This cannot be undone." onConfirm={() => onDelete(row._id)} okText="Delete" okButtonProps={{ danger: true }}>
+            <Tooltip title="Delete">
+              <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+            </Tooltip>
           </Popconfirm>
         </Space>
       ),
@@ -223,103 +216,95 @@ function AdminAgents() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
-        <Col>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Agents</Typography.Title>
-          <Typography.Text type="secondary">All registered agents and their lead/commission summary.</Typography.Text>
-        </Col>
-        <Col>
-          <Space>
-            <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
-            <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setOpen(true); }}>
-              Add Agent
-            </Button>
-          </Space>
-        </Col>
-      </Row>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Agents</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+          <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setOpen(true); }}>
+            Add Agent
+          </Button>
+        </div>
+      </div>
 
       {viewMode === 'table' ? (
-        <Table size="small" rowKey="_id" loading={loading} dataSource={agents} columns={columns} />
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+          <Table size="small" rowKey="_id" loading={loading} dataSource={agents} columns={columns} />
+        </div>
       ) : (
         <Row gutter={[14, 14]}>
           {agents.map((row) => (
-            <Col key={row._id} xs={24} sm={12} lg={8} xl={6}>
+            <Col key={row._id} xs={24} sm={12} lg={8}>
               <div style={{
                 borderRadius: 16,
-                border: '1px solid #e8edf5',
+                border: '1px solid #e0e2f7',
                 background: '#fff',
                 height: '100%',
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)',
+                boxShadow: '0 2px 12px rgba(99,102,241,0.08), 0 1px 3px rgba(99,102,241,0.05)',
                 transition: 'box-shadow 0.2s, transform 0.2s',
-                cursor: 'default',
+                cursor: 'pointer',
               }}
-                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                onClick={() => navigate(`/admin/agents/${row._id}`)}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 28px rgba(99,102,241,0.18)'; e.currentTarget.style.transform = 'translateY(-1.5px)'; e.currentTarget.style.borderColor = '#a5b4fc'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(99,102,241,0.08), 0 1px 3px rgba(99,102,241,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = '#e0e2f7'; }}
               >
-                {/* Accent bar */}
-                <div style={{ height: 4, background: getGradient(row.name), flexShrink: 0 }} />
-
-                <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+                <div style={{ padding: '20px 20px 16px', display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
                   {/* Header */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                     <AgentAvatar name={row.name} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontWeight: 600, fontSize: 16, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {row.name || '—'}
                       </div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.email}</div>
-                      {row.phone && <div style={{ fontSize: 11, color: '#64748b' }}>{row.phone}</div>}
+                      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span>✉</span>
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.email}</span>
+                      </div>
                     </div>
-                    <StatusBadge active={row.isActive} />
                   </div>
 
-                  {/* Referral code */}
-                  {row.referralCode && (
-                    <div style={{ background: '#f8faff', border: '1px solid #e0e7ff', borderRadius: 8, padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.8, fontWeight: 600 }}>Referral</span>
-                      <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: '#4f46e5', letterSpacing: 1 }}>{row.referralCode}</span>
+                  {/* Agency tag */}
+                  {row.agency?.name && (
+                    <div style={{ display: 'inline-flex' }}>
+                      <span style={{ fontSize: 12, color: '#6366f1', background: '#f0f0ff', border: '1px solid #e0e0ff', borderRadius: 20, padding: '2px 12px', fontWeight: 500 }}>
+                        {row.agency.name}
+                      </span>
                     </div>
                   )}
 
                   {/* Stats */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                     {[
-                      { label: 'Leads', value: row.stats?.total || 0, color: '#0f172a', bg: '#f8fafc' },
-                      { label: 'Approved', value: row.stats?.approved || 0, color: '#16a34a', bg: '#f0fdf4' },
-                      { label: 'Paid', value: aed(row.stats?.paidCommission), color: '#4f46e5', bg: '#f5f3ff', small: true },
-                    ].map(({ label, value, color, bg, small }) => (
-                      <div key={label} style={{ background: bg, borderRadius: 8, padding: '7px 6px', textAlign: 'center' }}>
-                        <div style={{ fontSize: 9, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.8, fontWeight: 700, marginBottom: 3 }}>{label}</div>
-                        <div style={{ fontWeight: 800, fontSize: small ? 11 : 18, color, lineHeight: 1 }}>{value}</div>
+                      { label: 'Leads', value: row.stats?.total || 0 },
+                      { label: 'Pending', value: row.stats?.pending || 0 },
+                      { label: 'Paid', value: row.stats?.approved || 0 },
+                    ].map(({ label, value }) => (
+                      <div key={label} style={{ background: '#fafbff', border: '1px solid #ebebf8', borderRadius: 12, padding: '12px 8px', textAlign: 'center' }}>
+                        <div style={{ fontWeight: 700, fontSize: 22, color: '#0f172a', lineHeight: 1, marginBottom: 6 }}>{value}</div>
+                        <div style={{ fontSize: 10, textTransform: 'uppercase', color: '#94a3b8', letterSpacing: 0.8, fontWeight: 600 }}>{label}</div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Footer */}
-                <div style={{ borderTop: '1px solid #f1f5f9', padding: '9px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fafbfc' }}>
-                  <span style={{ fontSize: 11, color: '#b0bac9', fontWeight: 500 }}>
-                    {new Date(row.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </span>
-                  <Space size={4}>
+                <div style={{ borderTop: '1px solid #f1f5f9', padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontSize: 13, color: '#94a3b8' }}>Earnings</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: '#4f46e5', marginLeft: 8 }}>{aed(row.stats?.paidCommission)}</span>
+                  </div>
+                  <Space size={4} onClick={e => e.stopPropagation()}>
                     <Tooltip title="Edit">
-                      <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(row)}
-                        style={{ color: '#64748b' }} />
+                      <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} style={{ color: '#64748b' }} />
                     </Tooltip>
                     <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
-                      <Button size="small" type="text"
-                        icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />}
-                        onClick={() => onToggleActive(row)}
-                        style={{ color: row.isActive ? '#f59e0b' : '#16a34a' }} />
+                      <Button size="small" type="text" icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />} onClick={() => onToggleActive(row)} style={{ color: row.isActive ? '#f59e0b' : '#16a34a' }} />
                     </Tooltip>
                     <Popconfirm title="Delete agent?" description="This cannot be undone." onConfirm={() => onDelete(row._id)} okText="Delete" okButtonProps={{ danger: true }}>
-                      <Tooltip title="Delete">
-                        <Button size="small" type="text" danger icon={<DeleteOutlined />} />
-                      </Tooltip>
+                      <Tooltip title="Delete"><Button size="small" type="text" danger icon={<DeleteOutlined />} /></Tooltip>
                     </Popconfirm>
                   </Space>
                 </div>

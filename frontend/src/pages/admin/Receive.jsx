@@ -217,32 +217,27 @@ export default function Receive() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
-        <Col>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Receive</Typography.Title>
-          <Typography.Text type="secondary">Track commission payments received from agencies.</Typography.Text>
-        </Col>
-        <Col>
-          <Space>
-            {tab === 'receipt' && selectedReceipt.length > 0 && (
-              <Button type="primary" icon={<InboxOutlined />} onClick={() => openNoteModal(selectedReceipt)}>
-                Mark Received ({selectedReceipt.length} selected)
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Receive</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {tab === 'receipt' && selectedReceipt.length > 0 && (
+            <Button type="primary" icon={<InboxOutlined />} onClick={() => openNoteModal(selectedReceipt)}>
+              Mark Received ({selectedReceipt.length} selected)
+            </Button>
+          )}
+          {tab === 'receipt' && stats.receiptCount > 0 && (
+            <Popconfirm
+              title={`Mark all ${stats.receiptCount} receipt(s) as confirmed received?`}
+              onConfirm={() => openNoteModal(receiptLeads.map((l) => l._id))}
+              okText="Confirm"
+            >
+              <Button icon={<InboxOutlined />} loading={saving}>
+                Mark All Received
               </Button>
-            )}
-            {tab === 'receipt' && stats.receiptCount > 0 && (
-              <Popconfirm
-                title={`Mark all ${stats.receiptCount} receipt(s) as confirmed received?`}
-                onConfirm={() => openNoteModal(receiptLeads.map((l) => l._id))}
-                okText="Confirm"
-              >
-                <Button icon={<InboxOutlined />} loading={saving}>
-                  Mark All Received
-                </Button>
-              </Popconfirm>
-            )}
-          </Space>
-        </Col>
-      </Row>
+            </Popconfirm>
+          )}
+        </div>
+      </div>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={8}>
@@ -304,18 +299,20 @@ export default function Receive() {
           />
           <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
         </Space>
-        <Table
-          size="small"
-          rowKey="_id"
-          loading={loading}
-          dataSource={filtered}
-          columns={columns}
-          rowSelection={
-            tab === 'receipt'
-              ? { selectedRowKeys, onChange: setSelectedRowKeys }
-              : undefined
-          }
-        />
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+          <Table
+            size="small"
+            rowKey="_id"
+            loading={loading}
+            dataSource={filtered}
+            columns={columns}
+            rowSelection={
+              tab === 'receipt'
+                ? { selectedRowKeys, onChange: setSelectedRowKeys }
+                : undefined
+            }
+          />
+        </div>
       </div>
 
       <Modal

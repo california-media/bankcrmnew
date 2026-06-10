@@ -158,7 +158,7 @@ export default function ReferralForm() {
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item name="companyName" label="Company">
-                <Input placeholder="Emirates NBD" size="large" />
+                <Input placeholder="Your company" size="large" />
               </Form.Item>
             </Col>
           </Row>

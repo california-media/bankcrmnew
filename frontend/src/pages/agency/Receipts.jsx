@@ -184,70 +184,61 @@ export default function AgencyReceipts() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
-        <Col>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Receipts</Typography.Title>
-          <Typography.Text type="secondary">
-            Upload disbursement receipts. Select multiple leads to upload one receipt for all at once.
-          </Typography.Text>
-        </Col>
-        <Col>
-          {selectedRowKeys.length > 0 && (
-            <Button
-              type="primary"
-              icon={<FileTextOutlined />}
-              onClick={() => openModal(selectedLeads)}
-            >
-              Upload Receipt for Selected ({selectedRowKeys.length})
-            </Button>
-          )}
-        </Col>
-      </Row>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Receipts</h2>
+        {selectedRowKeys.length > 0 && (
+          <Button
+            type="primary"
+            icon={<FileTextOutlined />}
+            onClick={() => openModal(selectedLeads)}
+          >
+            Upload Receipt for Selected ({selectedRowKeys.length})
+          </Button>
+        )}
+      </div>
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
+      <Row gutter={16} style={{ marginBottom: 20 }}>
         <Col xs={24} sm={8}>
-          <Card>
-            <Statistic title="Total Disbursed" value={stats.total} valueStyle={{ fontWeight: 700 }} />
+          <Card size="small" style={{ borderRadius: 10, borderLeft: '4px solid #6366f1', background: '#eef2ff', border: '1px solid #c7d2fe' }} styles={{ body: { padding: '14px 16px' } }}>
+            <Statistic title={<span style={{ fontSize: 12, color: '#4f46e5', fontWeight: 600 }}>Total Disbursed</span>} value={stats.total} valueStyle={{ fontWeight: 800, color: '#4f46e5', fontSize: 22 }} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card>
-            <Statistic title="Receipts Submitted" value={stats.submitted} valueStyle={{ color: '#16a34a', fontWeight: 700 }} />
+          <Card size="small" style={{ borderRadius: 10, borderLeft: '4px solid #22c55e', background: '#f0fdf4', border: '1px solid #bbf7d0' }} styles={{ body: { padding: '14px 16px' } }}>
+            <Statistic title={<span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Receipts Submitted</span>} value={stats.submitted} valueStyle={{ color: '#16a34a', fontWeight: 800, fontSize: 22 }} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Receipts Missing"
-              value={stats.missing}
-              valueStyle={{ color: stats.missing > 0 ? '#d97706' : '#16a34a', fontWeight: 700 }}
-            />
+          <Card size="small" style={{ borderRadius: 10, borderLeft: `4px solid ${stats.missing > 0 ? '#f59e0b' : '#22c55e'}`, background: stats.missing > 0 ? '#fffbeb' : '#f0fdf4', border: `1px solid ${stats.missing > 0 ? '#fde68a' : '#bbf7d0'}` }} styles={{ body: { padding: '14px 16px' } }}>
+            <Statistic title={<span style={{ fontSize: 12, color: stats.missing > 0 ? '#92400e' : '#15803d', fontWeight: 600 }}>Receipts Missing</span>} value={stats.missing} valueStyle={{ color: stats.missing > 0 ? '#d97706' : '#16a34a', fontWeight: 800, fontSize: 22 }} />
           </Card>
         </Col>
       </Row>
 
-      <Space style={{ marginBottom: 16 }}>
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <Input
           allowClear
           placeholder="Search client or lead ID..."
           prefix={<SearchOutlined />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 280 }}
+          style={{ width: 280, borderRadius: 20 }}
         />
-        <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
-      </Space>
+        <span style={{ fontSize: 12, color: '#94a3b8' }}>{filtered.length} records</span>
+      </div>
 
-      <Table
-        size="small"
-        rowKey="_id"
-        loading={loading}
-        dataSource={filtered}
-        columns={columns}
-        scroll={{ x: 'max-content' }}
-        rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-        onRow={(row) => ({ onClick: () => navigate(`/agency/leads/${row._id}`), style: { cursor: 'pointer' } })}
-      />
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <Table
+          size="small"
+          rowKey="_id"
+          loading={loading}
+          dataSource={filtered}
+          columns={columns}
+          scroll={{ x: 'max-content' }}
+          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+          onRow={(row) => ({ onClick: () => navigate(`/agency/leads/${row._id}`), style: { cursor: 'pointer' } })}
+        />
+      </div>
 
       <Modal
         title={isBulk ? `Upload Receipt for ${modalLeads.length} Leads` : 'Disbursement Receipt'}

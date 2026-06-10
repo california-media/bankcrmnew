@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Table, Typography, Button, Modal, Form, Input, Select, message, Space, Row, Col, Popconfirm, Card } from 'antd';
-import { EditOutlined, DeleteOutlined, LockOutlined, UserAddOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Select, message, Space, Row, Col, Popconfirm, Tooltip } from 'antd';
+import { EditOutlined, DeleteOutlined, LockOutlined, UserAddOutlined, TableOutlined, AppstoreOutlined, PoweroffOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 const ColHead = ({ children }) => (
@@ -172,95 +172,171 @@ function Employees() {
     },
     {
       title: <ColHead>Actions</ColHead>,
-      width: 280,
+      width: 180,
       render: (_, row) => (
-        <Space size={6} style={{ flexWrap: 'nowrap' }}>
-          <Button
-            size="small"
-            onClick={() => toggleActive(row._id)}
-            style={row.isActive
-              ? { borderColor: '#ef4444', color: '#ef4444', fontWeight: 600 }
-              : { borderColor: '#22c55e', color: '#22c55e', fontWeight: 600 }}
-          >
-            {row.isActive ? 'Deactivate' : 'Activate'}
-          </Button>
-          <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)}>Edit</Button>
-          <Button size="small" icon={<LockOutlined />} onClick={() => openPassword(row)}>Password</Button>
-          <Popconfirm
-            title="Delete this employee?"
-            description="This cannot be undone."
-            onConfirm={() => deleteEmployee(row._id)}
-            okText="Delete"
-            okButtonProps={{ danger: true }}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />}>Delete</Button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
+            <button
+              onClick={() => toggleActive(row._id)}
+              style={{
+                width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: row.isActive ? '#fef2f2' : '#f0fdf4',
+                color: row.isActive ? '#ef4444' : '#22c55e',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+              }}
+            >
+              {row.isActive ? <PoweroffOutlined /> : <CheckCircleOutlined />}
+            </button>
+          </Tooltip>
+          <Tooltip title="Edit">
+            <button
+              onClick={() => openEdit(row)}
+              style={{
+                width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: '#eef2ff', color: '#4f46e5',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+              }}
+            >
+              <EditOutlined />
+            </button>
+          </Tooltip>
+          <Tooltip title="Change Password">
+            <button
+              onClick={() => openPassword(row)}
+              style={{
+                width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: '#f0f9ff', color: '#0891b2',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+              }}
+            >
+              <LockOutlined />
+            </button>
+          </Tooltip>
+          <Popconfirm title="Delete this employee?" description="This cannot be undone." onConfirm={() => deleteEmployee(row._id)} okText="Delete" okButtonProps={{ danger: true }}>
+            <Tooltip title="Delete">
+              <button
+                style={{
+                  width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                  background: '#fef2f2', color: '#ef4444',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                }}
+              >
+                <DeleteOutlined />
+              </button>
+            </Tooltip>
           </Popconfirm>
-        </Space>
+        </div>
       ),
     },
   ];
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
-        <Col>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Employees</Typography.Title>
-          <Typography.Text type="secondary">Manage your agency's employees.</Typography.Text>
-        </Col>
-        <Col>
-          <Space>
-            <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
-            <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
-            <Button type="primary" icon={<UserAddOutlined />} onClick={() => { addForm.resetFields(); setAddOpen(true); }}>
-              Add Employee
-            </Button>
-          </Space>
-        </Col>
-      </Row>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Employees</h2>
+        <Space>
+          <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+          <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+          <Button type="primary" icon={<UserAddOutlined />} onClick={() => { addForm.resetFields(); setAddOpen(true); }}>
+            Add Employee
+          </Button>
+        </Space>
+      </div>
 
       {viewMode === 'table' ? (
-        <Table
-          size="small"
-          rowKey="_id"
-          loading={loading}
-          dataSource={employees}
-          columns={columns}
-          onRow={() => ({ style: { cursor: 'default' } })}
-        />
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+          <Table
+            size="small"
+            rowKey="_id"
+            loading={loading}
+            dataSource={employees}
+            columns={columns}
+            onRow={() => ({ style: { cursor: 'default' } })}
+          />
+        </div>
       ) : (
         <Row gutter={[14, 14]}>
           {employees.map((row) => (
             <Col key={row._id} xs={24} sm={12} lg={8}>
-              <Card
-                size="small"
-                style={{ borderRadius: 12, border: '1px solid #e2e8f0', height: '100%' }}
-                styles={{ body: { padding: '16px' } }}
+              <div
+                className="lead-card"
+                style={{
+                  borderRadius: 14, border: '1px solid #e0e2f7', height: '100%',
+                  background: '#fafbff', padding: '16px',
+                  boxShadow: '0 2px 12px rgba(99,102,241,0.07), 0 1px 3px rgba(99,102,241,0.04)',
+                  transition: 'transform 0.15s, box-shadow 0.15s, border-color 0.15s',
+                }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{row.name || '—'}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{row.name || '—'}</div>
                     <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{row.email}</div>
                   </div>
                   <StatusBadge active={row.isActive} />
                 </div>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   <TypePill type={row.employeeType} />
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 12 }}>
                   Joined {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '—'}
                 </div>
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  <Button size="small" onClick={() => toggleActive(row._id)}
-                    style={row.isActive ? { borderColor: '#ef4444', color: '#ef4444' } : { borderColor: '#22c55e', color: '#22c55e' }}>
-                    {row.isActive ? 'Deactivate' : 'Activate'}
-                  </Button>
-                  <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)}>Edit</Button>
-                  <Button size="small" icon={<LockOutlined />} onClick={() => openPassword(row)}>Password</Button>
+                <div style={{ borderTop: '1px solid #f0f0f8', paddingTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
+                    <button
+                      onClick={() => toggleActive(row._id)}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                        background: row.isActive ? '#fef2f2' : '#f0fdf4',
+                        color: row.isActive ? '#ef4444' : '#22c55e',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      {row.isActive ? <PoweroffOutlined /> : <CheckCircleOutlined />}
+                    </button>
+                  </Tooltip>
+                  <Tooltip title="Edit">
+                    <button
+                      onClick={() => openEdit(row)}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                        background: '#eef2ff', color: '#4f46e5',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      <EditOutlined />
+                    </button>
+                  </Tooltip>
+                  <Tooltip title="Change Password">
+                    <button
+                      onClick={() => openPassword(row)}
+                      style={{
+                        width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                        background: '#f0f9ff', color: '#0891b2',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      <LockOutlined />
+                    </button>
+                  </Tooltip>
                   <Popconfirm title="Delete this employee?" description="This cannot be undone." onConfirm={() => deleteEmployee(row._id)} okText="Delete" okButtonProps={{ danger: true }}>
-                    <Button size="small" danger icon={<DeleteOutlined />}>Delete</Button>
+                    <Tooltip title="Delete">
+                      <button
+                        style={{
+                          width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                          background: '#fef2f2', color: '#ef4444',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
+                          transition: 'background 0.15s',
+                        }}
+                      >
+                        <DeleteOutlined />
+                      </button>
+                    </Tooltip>
                   </Popconfirm>
                 </div>
-              </Card>
+              </div>
             </Col>
           ))}
           {employees.length === 0 && (

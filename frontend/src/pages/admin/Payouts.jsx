@@ -345,26 +345,21 @@ export default function Payouts() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 12 }}>
-        <Col>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Payouts to Agents</Typography.Title>
-          <Typography.Text type="secondary">Send commission payouts to agents in bulk.</Typography.Text>
-        </Col>
-        <Col>
-          <Space>
-            {selectedPayable.length > 0 && (
-              <Button type="primary" icon={<DollarOutlined />} onClick={() => openPayModal(selectedPayable)}>
-                Pay Selected ({selectedPayable.length})
-              </Button>
-            )}
-            {stats.payable > 0 && (
-              <Button icon={<DollarOutlined />} onClick={() => openPayModal(null)}>
-                Pay All Ready ({stats.payable})
-              </Button>
-            )}
-          </Space>
-        </Col>
-      </Row>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Payouts</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {selectedPayable.length > 0 && (
+            <Button type="primary" icon={<DollarOutlined />} onClick={() => openPayModal(selectedPayable)}>
+              Pay Selected ({selectedPayable.length})
+            </Button>
+          )}
+          {stats.payable > 0 && (
+            <Button icon={<DollarOutlined />} onClick={() => openPayModal(null)}>
+              Pay All Ready ({stats.payable})
+            </Button>
+          )}
+        </div>
+      </div>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={8}>
@@ -456,29 +451,33 @@ export default function Payouts() {
                 )}
               </div>
             )}
-            <Table
-              size="small"
-              rowKey="_id"
-              loading={holdsLoading}
-              dataSource={holds}
-              columns={holdColumns}
-              rowSelection={{ selectedRowKeys: selectedHoldKeys, onChange: setSelectedHoldKeys }}
-              locale={{ emptyText: 'No active holds' }}
-            />
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+              <Table
+                size="small"
+                rowKey="_id"
+                loading={holdsLoading}
+                dataSource={holds}
+                columns={holdColumns}
+                rowSelection={{ selectedRowKeys: selectedHoldKeys, onChange: setSelectedHoldKeys }}
+                locale={{ emptyText: 'No active holds' }}
+              />
+            </div>
           </>
         ) : (
-          <Table
-            size="small"
-            rowKey={tab === 'paid' ? '_rowKey' : '_id'}
-            loading={loading}
-            dataSource={tab === 'paid' ? paidRows : filtered}
-            columns={tab === 'paid' ? adminPaidColumns : columns}
-            rowSelection={
-              tab === 'payable'
-                ? { selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (row) => ({ disabled: row.commissionStatus !== 'payable' }) }
-                : undefined
-            }
-          />
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+            <Table
+              size="small"
+              rowKey={tab === 'paid' ? '_rowKey' : '_id'}
+              loading={loading}
+              dataSource={tab === 'paid' ? paidRows : filtered}
+              columns={tab === 'paid' ? adminPaidColumns : columns}
+              rowSelection={
+                tab === 'payable'
+                  ? { selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (row) => ({ disabled: row.commissionStatus !== 'payable' }) }
+                  : undefined
+              }
+            />
+          </div>
         )}
       </div>
 

@@ -72,17 +72,14 @@ function AgencyBanks() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>My Banks</Typography.Title>
-          <Typography.Text type="secondary">
-            The banks your agency services. Agents can only file leads against these.
-          </Typography.Text>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>My Banks</h2>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bank</Button>
       </div>
 
-      <Table size="small" rowKey="_id" loading={loading} dataSource={banks} columns={columns} />
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <Table size="small" rowKey="_id" loading={loading} dataSource={banks} columns={columns} />
+      </div>
 
       <Modal
         title={editing ? 'Edit Bank' : 'Add Bank'}

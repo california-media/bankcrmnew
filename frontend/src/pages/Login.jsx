@@ -172,16 +172,14 @@ function Login() {
               />
             </Form.Item>
 
-            <Form.Item
-              name="password"
-              label={<span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Password</span>}
-              rules={[{ required: true, message: 'Password required' }]}
-              style={{ marginBottom: 24 }}
-            >
-              <Input.Password
-                size="large"
-                style={{ borderRadius: 10, fontSize: 14 }}
-              />
+            <Form.Item style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Password</span>
+                <Link to="/forgot-password" style={{ fontSize: 12, color: '#6366f1', fontWeight: 500 }}>Forgot password?</Link>
+              </div>
+              <Form.Item name="password" noStyle rules={[{ required: true, message: 'Password required' }]}>
+                <Input.Password size="large" style={{ borderRadius: 10, fontSize: 14 }} />
+              </Form.Item>
             </Form.Item>
 
             {/* Demo role picker */}

@@ -209,19 +209,18 @@ function StatusTable({ statusType }) {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
-        <Col>
-          <Typography.Text strong style={{ fontSize: 14 }}>{label}</Typography.Text>
-          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block' }}>{desc}</Typography.Text>
-        </Col>
-        <Col>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Lead Status</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => { addForm.resetFields(); setAddOpen(true); }}>
             Add Status
           </Button>
-        </Col>
-      </Row>
+        </div>
+      </div>
 
-      <Table size="small" rowKey="_id" loading={loading} dataSource={statuses} columns={columns} />
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <Table size="small" rowKey="_id" loading={loading} dataSource={statuses} columns={columns} />
+      </div>
 
       <Modal title="Add Status" open={addOpen} onCancel={() => setAddOpen(false)} onOk={addStatus} okText="Add" confirmLoading={addSaving} destroyOnClose>
         <Form form={addForm} layout="vertical" initialValues={{ color: 'default' }}>
@@ -257,8 +256,6 @@ function StatusTable({ statusType }) {
 function EmployeeStatuses() {
   return (
     <>
-      <Typography.Title level={4} style={{ margin: '0 0 12px', fontWeight: 500 }}>Lead Status</Typography.Title>
-
       <Tabs
         defaultActiveKey="lead_label"
         items={[

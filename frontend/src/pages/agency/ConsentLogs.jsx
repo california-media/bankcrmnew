@@ -64,33 +64,46 @@ export default function ConsentLogs() {
   const apiUrl  = API_BY_ROLE[role]  || '/leads/agency';
   const leadPath = PATH_BY_ROLE[role] || '/agency/leads';
   const [leads, setLeads]   = useState([]);
+  const [allStatuses, setAllStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    api.get(apiUrl)
-      .then((r) => setLeads([...r.data].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))))
+    Promise.all([
+      api.get(apiUrl),
+      api.get('/employee-statuses?statusType=whatsapp_consent'),
+    ])
+      .then(([leadsRes, statusRes]) => {
+        setLeads([...leadsRes.data].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+        setAllStatuses(statusRes.data.filter((s) => s.isActive));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [apiUrl]);
 
   // Count leads per current consentStatus
   const consentCounts = useMemo(() => {
-    const map = {};
-    let noStatus = 0;
+    const countMap = {};
     for (const lead of leads) {
       if (lead.consentStatus) {
         const k = String(lead.consentStatus._id);
-        if (!map[k]) map[k] = { ...lead.consentStatus, count: 0 };
-        map[k].count++;
-      } else {
-        noStatus++;
+        countMap[k] = (countMap[k] || 0) + 1;
       }
     }
-    const items = Object.values(map).sort((a, b) => b.count - a.count);
-    if (noStatus > 0) items.unshift({ _id: '__none__', label: 'No Status', color: 'default', count: noStatus });
-    return items;
-  }, [leads]);
+    const ORDER = ['sent', 'pending', 'confirmed', 'declined', 'rejected'];
+    const rank = (label) => {
+      const l = (label || '').toLowerCase();
+      const i = ORDER.findIndex((k) => l.includes(k));
+      return i === -1 ? 99 : i;
+    };
+    const base = allStatuses.length > 0
+      ? allStatuses.map((s) => ({ ...s, count: countMap[String(s._id)] || 0 }))
+      : Object.entries(countMap).map(([id, count]) => {
+          const s = leads.find((l) => l.consentStatus && String(l.consentStatus._id) === id)?.consentStatus;
+          return { ...(s || { _id: id, label: id, color: 'default' }), count };
+        });
+    return base.sort((a, b) => rank(a.label) - rank(b.label));
+  }, [leads, allStatuses]);
 
   // Flatten all consentStatusHistory entries across all leads into a single feed
   const feed = useMemo(() => {

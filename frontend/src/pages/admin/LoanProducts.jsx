@@ -3,7 +3,7 @@ import {
   Button, Table, Modal, Form, Input, InputNumber, Select, Space,
   Popconfirm, Typography, Tag, message, Divider, Tabs,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import QuillEditor from '../../components/QuillEditor';
 import api from '../../api/client';
 
@@ -41,6 +41,9 @@ function LoanProducts() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [loanSearch, setLoanSearch] = useState('');
+  const [bankFilter, setBankFilter] = useState(null);
+  const [agencyFilter, setAgencyFilter] = useState(null);
   const [benefitsHtml, setBenefitsHtml] = useState('');
   const [feesHtml, setFeesHtml] = useState('');
   const [form] = Form.useForm();
@@ -165,16 +168,46 @@ function LoanProducts() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Loan Products</Typography.Title>
-          <Typography.Text type="secondary">
-            Manage loan products. Commission brackets define receivable and payable rates (% of loan amount) per salary tier.
-          </Typography.Text>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Loan Products</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Loan</Button>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Loan</Button>
       </div>
 
-      <Table size="small" rowKey="_id" loading={loading} dataSource={loans} columns={columns} />
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <Input
+          allowClear
+          placeholder="Search loan name..."
+          prefix={<SearchOutlined />}
+          value={loanSearch}
+          onChange={(e) => setLoanSearch(e.target.value)}
+          style={{ width: 260, flexShrink: 0, borderRadius: 6 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Banks"
+          value={bankFilter}
+          onChange={setBankFilter}
+          options={banks.map((b) => ({ value: b._id, label: b.name }))}
+          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Agencies"
+          value={agencyFilter}
+          onChange={setAgencyFilter}
+          options={agencies.map((a) => ({ value: a._id, label: a.name }))}
+          style={{ width: 180, flexShrink: 0 }}
+        />
+      </div>
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <Table size="small" rowKey="_id" loading={loading} dataSource={loans.filter((l) => {
+          if (loanSearch.trim() && !l.name.toLowerCase().includes(loanSearch.trim().toLowerCase())) return false;
+          if (bankFilter && l.bank?._id !== bankFilter) return false;
+          if (agencyFilter && l.agency?._id !== agencyFilter) return false;
+          return true;
+        })} columns={columns} />
+      </div>
 
       <Modal
         title={editing ? 'Edit Loan Product' : 'Add Loan Product'}

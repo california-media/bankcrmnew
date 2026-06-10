@@ -9,7 +9,7 @@ import api from '../../api/client';
 
 dayjs.extend(relativeTime);
 
-const { Title, Text, Paragraph } = Typography;
+const { Text, Paragraph } = Typography;
 
 export default function Inquiries() {
   const [inquiries, setInquiries] = useState([]);
@@ -104,17 +104,11 @@ export default function Inquiries() {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      <Space style={{ marginBottom: 20 }}>
-        <MailOutlined style={{ fontSize: 22, color: '#4f46e5' }} />
-        <Title level={4} style={{ margin: 0 }}>
-          Site Inquiries
-          {unreadCount > 0 && (
-            <Badge count={unreadCount} style={{ marginLeft: 10, backgroundColor: '#4f46e5' }} />
-          )}
-        </Title>
-      </Space>
-
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Inquiries</h2>
+      </div>
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
       <Table
         rowKey="_id"
         dataSource={inquiries}
@@ -124,6 +118,7 @@ export default function Inquiries() {
         pagination={{ pageSize: 20 }}
         onRow={(record) => ({ onClick: () => open(record), style: { cursor: 'pointer' } })}
       />
+      </div>
 
       <Modal
         open={!!selected}
@@ -133,12 +128,7 @@ export default function Inquiries() {
             key="del"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: 'Delete inquiry?',
-                onOk: () => remove(selected._id),
-              });
-            }}
+            onClick={() => remove(selected._id)}
           >
             Delete
           </Button>,

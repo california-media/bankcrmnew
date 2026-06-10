@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Tag, Typography, message, Alert, Tooltip, Popconfirm, Space, Row, Col, Card, Tabs, Badge, Descriptions } from 'antd';
-import { PlusOutlined, MailOutlined, CopyOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined, TableOutlined, AppstoreOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Form, Input, Tag, Typography, message, Alert, Tooltip, Popconfirm, Space, Tabs, Badge, Descriptions } from 'antd';
+import { PlusOutlined, MailOutlined, CopyOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 function Agencies() {
@@ -14,7 +14,6 @@ function Agencies() {
   const [detailTarget, setDetailTarget] = useState(null);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
-  const [viewMode, setViewMode] = useState('table');
   const [tab, setTab] = useState('all');
 
   const load = async () => {
@@ -206,18 +205,11 @@ function Agencies() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Agencies</Typography.Title>
-          <Typography.Text type="secondary">
-            Each agency manages their own banks and commission rules after activating.
-          </Typography.Text>
-        </div>
-        <Space>
-          <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
-          <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Agencies</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Invite Agency</Button>
-        </Space>
+        </div>
       </div>
 
       <Tabs
@@ -227,33 +219,10 @@ function Agencies() {
           {
             key: 'all',
             label: <span>All Agencies ({agencies.length})</span>,
-            children: viewMode === 'table' ? (
-              <Table size="small" rowKey="_id" loading={loading} dataSource={agencies} columns={columns} />
-            ) : (
-              <Row gutter={[14, 14]}>
-                {agencies.map((row) => (
-                  <Col key={row._id} xs={24} sm={12} lg={8} xl={6}>
-                    <Card
-                      size="small" hoverable
-                      style={{ borderRadius: 12, border: '1px solid #e2e8f0', height: '100%' }}
-                      styles={{ body: { padding: '14px 16px' } }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>
-                            {row.name || <Typography.Text type="secondary">No name set</Typography.Text>}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{row.email}</div>
-                        </div>
-                        {row.isActive ? <Tag color="green">Active</Tag> : <Tag color="orange">Pending</Tag>}
-                      </div>
-                      <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
-                        {renderActions(row)}
-                      </div>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
+            children: (
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                <Table size="small" rowKey="_id" loading={loading} dataSource={agencies} columns={columns} />
+              </div>
             ),
           },
           {
@@ -272,15 +241,17 @@ function Agencies() {
                 {pending.length === 0 && !pendingLoading && (
                   <Alert type="info" showIcon message="No pending agency registrations." style={{ marginBottom: 12 }} />
                 )}
-                <Table
-                  size="small"
-                  rowKey="_id"
-                  loading={pendingLoading}
-                  dataSource={pending}
-                  columns={pendingColumns}
-                  scroll={{ x: 860 }}
-                  locale={{ emptyText: 'No pending registrations' }}
-                />
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <Table
+                    size="small"
+                    rowKey="_id"
+                    loading={pendingLoading}
+                    dataSource={pending}
+                    columns={pendingColumns}
+                    scroll={{ x: 860 }}
+                    locale={{ emptyText: 'No pending registrations' }}
+                  />
+                </div>
               </>
             ),
           },

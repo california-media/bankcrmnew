@@ -110,12 +110,11 @@ function AdminBanks() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Banks</Typography.Title>
-          <Typography.Text type="secondary">Inactive banks hide all their card and loan products from agents.</Typography.Text>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Banks</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bank</Button>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bank</Button>
       </div>
 
       <Input
@@ -127,16 +126,18 @@ function AdminBanks() {
         style={{ width: 280, marginBottom: 16 }}
       />
 
-      <Table
-        size="small"
-        rowKey="_id"
-        loading={loading}
-        dataSource={banks.filter((b) => {
-          const q = search.trim().toLowerCase();
-          return !q || b.name.toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q);
-        })}
-        columns={columns}
-      />
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <Table
+          size="small"
+          rowKey="_id"
+          loading={loading}
+          dataSource={banks.filter((b) => {
+            const q = search.trim().toLowerCase();
+            return !q || b.name.toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q);
+          })}
+          columns={columns}
+        />
+      </div>
 
       <Modal
         title={editing ? 'Edit Bank' : 'Add Bank'}

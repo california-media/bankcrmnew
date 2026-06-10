@@ -5,6 +5,8 @@ import Register from './pages/Register';
 import RegisterAgency from './pages/RegisterAgency';
 import ReferralForm from './pages/ReferralForm';
 import SetPassword from './pages/SetPassword';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import AppLayout from './components/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -45,11 +47,11 @@ const theme = {
     colorPrimary: '#4f46e5',
     colorInfo: '#6366f1',
     borderRadius: 10,
-    colorBgLayout: '#fbfcff',
+    colorBgLayout: '#fdfeff',
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
   components: {
-    Layout: { siderBg: '#0d1117', headerBg: '#ffffff', bodyBg: '#fbfcff' },
+    Layout: { siderBg: '#0d1117', headerBg: '#ffffff', bodyBg: '#fdfeff' },
     Card: { borderRadiusLG: 12 },
     Menu: {
       darkItemBg: '#0d1117',
@@ -62,7 +64,7 @@ const theme = {
       itemSelectedColor: '#a5b4fc',
     },
     Statistic: { titleFontSize: 12 },
-    Table: { rowSelectedBg: '#eff6ff', rowSelectedHoverBg: '#dbeafe', borderRadius: 12 },
+    Table: { rowSelectedBg: '#eff6ff', rowSelectedHoverBg: '#dbeafe', borderRadius: 12, headerBg: '#fdfeff' },
     Button: { fontWeight: 500 },
   },
 };
@@ -75,6 +77,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/register/agency" element={<RegisterAgency />} />
         <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/auth/uaepass/callback" element={<UaePassCallback />} />
         <Route path="/ref/:code" element={<ReferralForm />} />

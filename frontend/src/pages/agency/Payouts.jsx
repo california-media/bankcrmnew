@@ -249,24 +249,17 @@ function AgencyPayouts() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Payouts to Admin</Typography.Title>
-          <Typography.Text type="secondary">
-            Pay outstanding gross commissions for disbursed leads. Overpayments go into your bucket.
-          </Typography.Text>
-        </Col>
-        <Col>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => { walletForm.resetFields(); setWalletFileList([]); setWalletOpen(true); }}
-            style={{ background: '#4f46e5', borderColor: '#4f46e5' }}
-          >
-            Add to Wallet
-          </Button>
-        </Col>
-      </Row>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Payouts to Admin</h2>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => { walletForm.resetFields(); setWalletFileList([]); setWalletOpen(true); }}
+          style={{ background: '#4f46e5', borderColor: '#4f46e5' }}
+        >
+          Add to Wallet
+        </Button>
+      </div>
 
       <Row gutter={16} style={{ marginBottom: 12 }}>
         <Col xs={24} sm={12} md={6}>
@@ -361,29 +354,31 @@ function AgencyPayouts() {
                     }
                   />
                 )}
-                <Table
-                  size="small"
-                  rowKey="_id"
-                  loading={loading}
-                  dataSource={newLeads}
-                  columns={pendingColumns}
-                  scroll={{ x: 860 }}
-                  rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-                  pagination={{ pageSize: 15, showSizeChanger: false }}
-                  summary={(data) => {
-                    const total = data.reduce((s, r) => s + (r.grossCommission || 0), 0);
-                    return (
-                      <Table.Summary.Row>
-                        <Table.Summary.Cell index={0} colSpan={4} />
-                        <Table.Summary.Cell index={4} align="right">
-                          <Typography.Text strong>Total: {aed(total)}</Typography.Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={5} />
-                        <Table.Summary.Cell index={6} />
-                      </Table.Summary.Row>
-                    );
-                  }}
-                />
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <Table
+                    size="small"
+                    rowKey="_id"
+                    loading={loading}
+                    dataSource={newLeads}
+                    columns={pendingColumns}
+                    scroll={{ x: 860 }}
+                    rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+                    pagination={{ pageSize: 15, showSizeChanger: false }}
+                    summary={(data) => {
+                      const total = data.reduce((s, r) => s + (r.grossCommission || 0), 0);
+                      return (
+                        <Table.Summary.Row>
+                          <Table.Summary.Cell index={0} colSpan={4} />
+                          <Table.Summary.Cell index={4} align="right">
+                            <Typography.Text strong>Total: {aed(total)}</Typography.Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={5} />
+                          <Table.Summary.Cell index={6} />
+                        </Table.Summary.Row>
+                      );
+                    }}
+                  />
+                </div>
               </>
             ),
           },
@@ -398,28 +393,30 @@ function AgencyPayouts() {
                   showIcon
                   message="These leads have been submitted to admin. Once admin confirms receipt, they will move to agent payout queue."
                 />
-                <Table
-                  size="small"
-                  rowKey="_id"
-                  loading={loading}
-                  dataSource={submittedLeads}
-                  columns={pendingColumns}
-                  scroll={{ x: 860 }}
-                  pagination={{ pageSize: 15, showSizeChanger: false }}
-                  summary={(data) => {
-                    const total = data.reduce((s, r) => s + (r.grossCommission || 0), 0);
-                    return (
-                      <Table.Summary.Row>
-                        <Table.Summary.Cell index={0} colSpan={4} />
-                        <Table.Summary.Cell index={4} align="right">
-                          <Typography.Text strong>Total: {aed(total)}</Typography.Text>
-                        </Table.Summary.Cell>
-                        <Table.Summary.Cell index={5} />
-                        <Table.Summary.Cell index={6} />
-                      </Table.Summary.Row>
-                    );
-                  }}
-                />
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <Table
+                    size="small"
+                    rowKey="_id"
+                    loading={loading}
+                    dataSource={submittedLeads}
+                    columns={pendingColumns}
+                    scroll={{ x: 860 }}
+                    pagination={{ pageSize: 15, showSizeChanger: false }}
+                    summary={(data) => {
+                      const total = data.reduce((s, r) => s + (r.grossCommission || 0), 0);
+                      return (
+                        <Table.Summary.Row>
+                          <Table.Summary.Cell index={0} colSpan={4} />
+                          <Table.Summary.Cell index={4} align="right">
+                            <Typography.Text strong>Total: {aed(total)}</Typography.Text>
+                          </Table.Summary.Cell>
+                          <Table.Summary.Cell index={5} />
+                          <Table.Summary.Cell index={6} />
+                        </Table.Summary.Row>
+                      );
+                    }}
+                  />
+                </div>
               </>
             ),
           },
@@ -427,15 +424,17 @@ function AgencyPayouts() {
             key: 'history',
             label: <span><HistoryOutlined /> Paid History ({history.length})</span>,
             children: (
-              <Table
-                size="small"
-                rowKey="_id"
-                loading={loading}
-                dataSource={history}
-                columns={historyColumns}
-                scroll={{ x: 860 }}
-                pagination={{ pageSize: 15, showSizeChanger: false }}
-              />
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                <Table
+                  size="small"
+                  rowKey="_id"
+                  loading={loading}
+                  dataSource={history}
+                  columns={historyColumns}
+                  scroll={{ x: 860 }}
+                  pagination={{ pageSize: 15, showSizeChanger: false }}
+                />
+              </div>
             ),
           },
           {
@@ -451,6 +450,7 @@ function AgencyPayouts() {
               </span>
             ),
             children: (
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
               <Table
                 size="small"
                 rowKey="_id"
@@ -496,6 +496,7 @@ function AgencyPayouts() {
                   },
                 ]}
               />
+              </div>
             ),
           },
         ]}

@@ -95,17 +95,14 @@ function AgencyCommissionRules() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Commission Rules</Typography.Title>
-          <Typography.Text type="secondary">
-            What your agency pays an agent for an approved lead. Each rule is tied to a specific bank + product pair.
-          </Typography.Text>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Commission Rules</h2>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Rule</Button>
       </div>
 
-      <Table size="small" rowKey="_id" loading={loading} dataSource={rules} columns={columns} />
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <Table size="small" rowKey="_id" loading={loading} dataSource={rules} columns={columns} />
+      </div>
 
       <Modal
         title={editing ? 'Edit Rule' : 'Add Rule'}

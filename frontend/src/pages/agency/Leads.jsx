@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, DatePicker, Row, Col, Space, message, Modal, Form, InputNumber, Descriptions, Tabs, Card, Empty } from 'antd';
+import { Table, Tag, Typography, Button, Input, Select, DatePicker, Row, Col, Space, message, Modal, Form, InputNumber, Descriptions, Tabs } from 'antd';
 import { SearchOutlined, EditOutlined, UserAddOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
@@ -452,69 +452,51 @@ function AgencyLeads() {
 
   return (
     <>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
-        <Col>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Lead Queue</Typography.Title>
-          <Typography.Text type="secondary">
-            Leads filed to your agency.
-          </Typography.Text>
-        </Col>
-        <Col>
-          <Space>
-            <Button
-              icon={<TableOutlined />}
-              type={viewMode === 'table' ? 'primary' : 'default'}
-              onClick={() => setViewMode('table')}
-            >Table</Button>
-            <Button
-              icon={<AppstoreOutlined />}
-              type={viewMode === 'card' ? 'primary' : 'default'}
-              onClick={() => setViewMode('card')}
-            >Cards</Button>
-          </Space>
-        </Col>
-      </Row>
-
-      <Space wrap style={{ margin: '10px 0 8px', width: '100%', justifyContent: 'space-between' }}>
-        <Space wrap>
-          <Input
-            allowClear
-            placeholder="Search client or lead ID..."
-            prefix={<SearchOutlined />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 280 }}
-          />
-          <Select
-            allowClear
-            placeholder="All Stages"
-            value={statusFilter}
-            onChange={setStatusFilter}
-            options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
-            style={{ width: 180 }}
-          />
-          <Select
-            allowClear
-            placeholder="All Products"
-            value={productFilter}
-            onChange={setProductFilter}
-            options={PRODUCTS}
-            style={{ width: 180 }}
-          />
-          <DatePicker.RangePicker
-            value={dateRange}
-            onChange={setDateRange}
-            allowClear
-            style={{ width: 240 }}
-          />
-          {(search || statusFilter || productFilter || dateRange) && (
-            <Button onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setDateRange(null); }}>
-              Clear Filters
-            </Button>
-          )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Lead Queue</h2>
+        <Space>
+          <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+          <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
         </Space>
-        <Typography.Text type="secondary">{filtered.length} leads</Typography.Text>
-      </Space>
+      </div>
+
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+        <Input
+          allowClear
+          placeholder="Search client or lead ID..."
+          prefix={<SearchOutlined />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: 260, flexShrink: 0, borderRadius: 6 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Stages"
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
+          style={{ width: 160, flexShrink: 0, borderRadius: 6 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Products"
+          value={productFilter}
+          onChange={setProductFilter}
+          options={PRODUCTS}
+          style={{ width: 160, flexShrink: 0, borderRadius: 6 }}
+        />
+        <DatePicker.RangePicker
+          value={dateRange}
+          onChange={setDateRange}
+          allowClear
+          style={{ width: 230, flexShrink: 0, borderRadius: 6 }}
+        />
+        {(search || statusFilter || productFilter || dateRange) && (
+          <Button size="small" type="text" style={{ color: '#6366f1' }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setDateRange(null); }}>
+            Clear
+          </Button>
+        )}
+      </div>
 
       {selectedRowKeys.length > 0 && (
         <div style={{ marginBottom: 12 }}>
@@ -536,54 +518,50 @@ function AgencyLeads() {
       />
 
       {viewMode === 'table' ? (
-        <Table
-          size="small"
-          rowKey="_id"
-          loading={loading}
-          dataSource={filtered}
-          columns={columns}
-          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
-          onRow={(row) => ({ onClick: () => navigate(`/agency/leads/${row._id}`), style: { cursor: 'pointer' } })}
-          pagination={{ pageSize: 15, showSizeChanger: false }}
-        />
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+          <Table
+            size="small"
+            rowKey="_id"
+            loading={loading}
+            dataSource={filtered}
+            columns={columns}
+            rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+            onRow={(row) => ({ onClick: () => navigate(`/agency/leads/${row._id}`), style: { cursor: 'pointer' } })}
+            pagination={{ pageSize: 15, showSizeChanger: false }}
+          />
+        </div>
       ) : (
         <Row gutter={[14, 14]}>
           {filtered.map((row) => {
             const statusMeta = STATUSES.find((x) => x.value === row.status);
-            const canAssign = !TERMINAL_STATUSES.includes(row.status);
             return (
-              <Col key={row._id} xs={24} sm={12} lg={8} xl={6}>
+              <Col key={row._id} xs={24} sm={12} lg={8}>
                 <div
+                  className="lead-card"
                   onClick={() => navigate(`/agency/leads/${row._id}`)}
-                  style={{ cursor: 'pointer', height: '100%' }}
+                  style={{
+                    cursor: 'pointer', height: '100%', borderRadius: 14,
+                    border: '1px solid #e0e2f7', background: '#fafbff',
+                    padding: '14px 16px',
+                    boxShadow: '0 2px 12px rgba(99,102,241,0.07), 0 1px 3px rgba(99,102,241,0.04)',
+                    transition: 'transform 0.15s, box-shadow 0.15s, border-color 0.15s',
+                  }}
                 >
-                  <Card
-                    size="small"
-                    hoverable
-                    style={{ borderRadius: 12, border: '1px solid #e2e8f0', height: '100%' }}
-                    styles={{ body: { padding: '14px 16px' } }}
-                  >
                     {/* Header: Lead ID + Status */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <Typography.Text type="secondary" style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#94a3b8' }}>
                         {row.leadNumber || '—'}
-                      </Typography.Text>
-                      <Tag color={statusMeta?.color} style={{ margin: 0 }}>{statusMeta?.label || row.status}</Tag>
+                      </span>
+                      <Tag color={statusMeta?.color} style={{ margin: 0, fontSize: 10 }}>{statusMeta?.label || row.status}</Tag>
                     </div>
 
                     {/* Customer */}
                     <div style={{ marginBottom: 8 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', lineHeight: 1.3 }}>{row.customerName}</div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', lineHeight: 1.3 }}>{row.customerName}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                         <span style={{ fontSize: 11, color: '#94a3b8' }}>{row.phone}</span>
                         {row.phone && (
-                          <a
-                            href={buildWhatsAppUrl(row)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, lineHeight: 0 }}
-                          >
+                          <a href={buildWhatsAppUrl(row)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, lineHeight: 0 }}>
                             <WaIcon />
                           </a>
                         )}
@@ -593,43 +571,37 @@ function AgencyLeads() {
                     {/* Product + Bank */}
                     <div style={{ marginBottom: 8 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>{renderProduct(row)}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{row.bank?.name || '—'}</div>
+                      {row.bank?.name && (
+                        <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 500, color: '#4f46e5', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 999, padding: '1px 8px', marginTop: 4 }}>
+                          {row.bank.name}
+                        </span>
+                      )}
                     </div>
 
                     {/* Employee status */}
                     {row.employeeStatus && (
-                      <div style={{ marginBottom: 8 }}>
+                      <div style={{ marginBottom: 6 }}>
                         <Tag color={row.employeeStatus.color} style={{ fontSize: 11 }}>{row.employeeStatus.label}</Tag>
                       </div>
                     )}
 
-                    {/* Assign dropdowns */}
-                    {canAssign && (
-                      <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>
-                        <Select size="small" allowClear placeholder="CPV employee"
-                          loading={assigningLead === `${row._id}-cpv`}
-                          value={row.assignedCpvEmployee?._id || undefined}
-                          onChange={(val) => assignSingle(row._id, val || null, 'cpv')}
-                          style={{ width: '100%', marginBottom: 6 }}
-                          options={employees.filter((e) => e.isActive && e.employeeType === 'cpv').map((e) => ({ value: e._id, label: e.name || e.email }))}
-                        />
-                        <Select size="small" allowClear placeholder="Sales employee"
-                          loading={assigningLead === `${row._id}-sales`}
-                          value={row.assignedSalesEmployee?._id || undefined}
-                          onChange={(val) => assignSingle(row._id, val || null, 'sales')}
-                          style={{ width: '100%' }}
-                          options={employees.filter((e) => e.isActive && e.employeeType === 'sales').map((e) => ({ value: e._id, label: e.name || e.email }))}
-                        />
-                      </div>
-                    )}
-                    {!canAssign && (row.assignedCpvEmployee || row.assignedSalesEmployee) && (
-                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 8 }}>
-                        {row.assignedCpvEmployee && <div>CPV: {row.assignedCpvEmployee.name || row.assignedCpvEmployee.email}</div>}
-                        {row.assignedSalesEmployee && <div>Sales: {row.assignedSalesEmployee.name || row.assignedSalesEmployee.email}</div>}
+                    {/* Assigned employees (read-only pills) */}
+                    {(row.assignedCpvEmployee || row.assignedSalesEmployee) && (
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+                        {row.assignedCpvEmployee && (
+                          <span style={{ fontSize: 10, fontWeight: 600, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 999, padding: '1px 7px' }}>
+                            CPV: {row.assignedCpvEmployee.name || row.assignedCpvEmployee.email}
+                          </span>
+                        )}
+                        {row.assignedSalesEmployee && (
+                          <span style={{ fontSize: 10, fontWeight: 600, color: '#7e22ce', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 999, padding: '1px 7px' }}>
+                            Sales: {row.assignedSalesEmployee.name || row.assignedSalesEmployee.email}
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    {/* Actions */}
+                    {/* Footer: time + actions */}
                     {(() => {
                       const canReject   = REJECTABLE_FROM.includes(row.status);
                       const canEditLoan = row.productType === 'loan' && LOAN_EDITABLE_FROM.includes(row.status);
@@ -637,25 +609,29 @@ function AgencyLeads() {
                       const canCpv      = row.status === 'approved' && !row.cpvDone;
                       const canActivate = row.status === 'approved' && !row.activateDone;
                       const canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
-                      if (!canApprove && !canCpv && !canActivate && !canDisburse && !canEditLoan && !canReject) return null;
+                      const hasActions  = canApprove || canCpv || canActivate || canDisburse || canEditLoan || canReject;
                       return (
-                        <Space size={4} style={{ marginTop: 10, flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
-                          {canApprove && <Button size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>}
-                          {canCpv && <Button size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV</Button>}
-                          {canActivate && <Button size="small" onClick={() => openActionModal(row._id, 'activate')}>Activated</Button>}
-                          {canDisburse && <Button size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>}
-                          {canEditLoan && <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />}
-                          {canReject && <Button size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>}
-                        </Space>
+                        <div style={{ borderTop: '1px solid #f0f0f8', paddingTop: 8, marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: 11, color: '#94a3b8' }}>{relTime(row.updatedAt || row.createdAt)}</span>
+                          {hasActions && (
+                            <Space size={4} onClick={(e) => e.stopPropagation()}>
+                              {canApprove && <Button size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>}
+                              {canCpv && <Button size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV</Button>}
+                              {canActivate && <Button size="small" onClick={() => openActionModal(row._id, 'activate')}>Activate</Button>}
+                              {canDisburse && <Button size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>}
+                              {canEditLoan && <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />}
+                              {canReject && <Button size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>}
+                            </Space>
+                          )}
+                        </div>
                       );
                     })()}
-                  </Card>
                 </div>
               </Col>
             );
           })}
           {filtered.length === 0 && (
-            <Col span={24}><Empty description="No leads found" /></Col>
+            <Col span={24}><div style={{ textAlign: 'center', color: '#94a3b8', padding: '40px 0' }}>No leads found</div></Col>
           )}
         </Row>
       )}

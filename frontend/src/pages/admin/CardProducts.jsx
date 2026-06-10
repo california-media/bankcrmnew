@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Button, Table, Modal, Form, Input, InputNumber, Select, Space,
-  Popconfirm, Typography, Tag, message, Divider, Upload, Tabs,
+  Popconfirm, Typography, Tag, message, Divider, Upload, Tabs, Row, Col,
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons';
 import QuillEditor from '../../components/QuillEditor';
@@ -31,6 +31,8 @@ function CardProducts() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [cardSearch, setCardSearch] = useState('');
+  const [bankFilter, setBankFilter] = useState(null);
+  const [agencyFilter, setAgencyFilter] = useState(null);
   const [fileList, setFileList] = useState([]);
   const [benefitsHtml, setBenefitsHtml] = useState('');
   const [feesHtml, setFeesHtml] = useState('');
@@ -188,32 +190,52 @@ function CardProducts() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Card Products</Typography.Title>
-          <Typography.Text type="secondary">
-            Manage credit card products. Commission brackets define receivable and payable amounts per salary tier.
-          </Typography.Text>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Card Products</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Card</Button>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Card</Button>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <Input
           allowClear
           placeholder="Search card name..."
           prefix={<SearchOutlined />}
           value={cardSearch}
           onChange={(e) => setCardSearch(e.target.value)}
-          style={{ width: 280 }}
+          style={{ width: 260, flexShrink: 0, borderRadius: 6 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Banks"
+          value={bankFilter}
+          onChange={setBankFilter}
+          options={banks.map((b) => ({ value: b._id, label: b.name }))}
+          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Agencies"
+          value={agencyFilter}
+          onChange={setAgencyFilter}
+          options={agencies.map((a) => ({ value: a._id, label: a.name }))}
+          style={{ width: 180, flexShrink: 0 }}
         />
       </div>
-      <Table
-        size="small"
-        rowKey="_id"
-        loading={loading}
-        dataSource={cardSearch.trim() ? cards.filter((c) => c.name.toLowerCase().includes(cardSearch.trim().toLowerCase())) : cards}
-        columns={columns}
-      />
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <Table
+          size="small"
+          rowKey="_id"
+          loading={loading}
+          dataSource={cards.filter((c) => {
+            if (cardSearch.trim() && !c.name.toLowerCase().includes(cardSearch.trim().toLowerCase())) return false;
+            if (bankFilter && c.bank?._id !== bankFilter) return false;
+            if (agencyFilter && c.agency?._id !== agencyFilter) return false;
+            return true;
+          })}
+          columns={columns}
+        />
+      </div>
 
       <Modal
         title={editing ? 'Edit Card Product' : 'Add Card Product'}
@@ -222,64 +244,82 @@ function CardProducts() {
         onOk={onSubmit}
         okText="Save"
         destroyOnClose
-        width={640}
+        width={720}
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Card Name" rules={[{ required: true, message: 'Card name is required' }]}>
-            <Input placeholder="e.g. Emirates NBD Signature Card" />
-          </Form.Item>
-          <Form.Item name="cardType" label="Card Type" rules={[{ required: true, message: 'Card type is required' }]}>
-            <Select options={CARD_TYPES} placeholder="Select card type" />
-          </Form.Item>
-          <Form.Item name="bank" label="Bank" rules={[{ required: true, message: 'Bank is required' }]}>
-            <Select
-              showSearch
-              options={bankOptions}
-              placeholder="Select bank"
-              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
-            />
-          </Form.Item>
-          <Form.Item name="agency" label="Agency" rules={[{ required: true, message: 'Agency is required' }]}>
-            <Select
-              showSearch
-              options={agencyOptions}
-              placeholder="Select agency"
-              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
-            />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="name" label="Card Name" rules={[{ required: true, message: 'Card name is required' }]}>
+                <Input placeholder="e.g. Emirates NBD Signature Card" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="cardType" label="Card Type" rules={[{ required: true, message: 'Card type is required' }]}>
+                <Select options={CARD_TYPES} placeholder="Select card type" />
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <Form.Item label="Card Image">
-            <Upload
-              listType="picture-card"
-              fileList={fileList}
-              beforeUpload={(file) => {
-                setFileList([{ uid: file.uid, name: file.name, status: 'done', originFileObj: file }]);
-                return false;
-              }}
-              onRemove={() => { setFileList([]); return false; }}
-              accept=".jpg,.jpeg,.png,.webp"
-              maxCount={1}
-            >
-              {fileList.length === 0 && (
-                <div>
-                  <UploadOutlined />
-                  <div style={{ marginTop: 8, fontSize: 12 }}>Upload</div>
-                </div>
-              )}
-            </Upload>
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              JPG, PNG, or WebP — max 10 MB
-            </Typography.Text>
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="bank" label="Bank" rules={[{ required: true, message: 'Bank is required' }]}>
+                <Select
+                  showSearch
+                  options={bankOptions}
+                  placeholder="Select bank"
+                  filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="agency" label="Agency" rules={[{ required: true, message: 'Agency is required' }]}>
+                <Select
+                  showSearch
+                  options={agencyOptions}
+                  placeholder="Select agency"
+                  filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <Form.Item
-            name="clawbackDays"
-            label="Clawback Period (days)"
-            tooltip="Number of days the agent's hold % is retained before admin can release it. Set 0 for no clawback."
-            initialValue={30}
-          >
-            <InputNumber min={0} max={1095} style={{ width: '100%' }} placeholder="e.g. 30" />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Card Image">
+                <Upload
+                  listType="picture-card"
+                  fileList={fileList}
+                  beforeUpload={(file) => {
+                    setFileList([{ uid: file.uid, name: file.name, status: 'done', originFileObj: file }]);
+                    return false;
+                  }}
+                  onRemove={() => { setFileList([]); return false; }}
+                  accept=".jpg,.jpeg,.png,.webp"
+                  maxCount={1}
+                >
+                  {fileList.length === 0 && (
+                    <div>
+                      <UploadOutlined />
+                      <div style={{ marginTop: 8, fontSize: 12 }}>Upload</div>
+                    </div>
+                  )}
+                </Upload>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  JPG, PNG, or WebP — max 10 MB
+                </Typography.Text>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="clawbackDays"
+                label="Clawback Period (days)"
+                tooltip="Number of days the agent's hold % is retained before admin can release it. Set 0 for no clawback."
+                initialValue={30}
+              >
+                <InputNumber min={0} max={1095} style={{ width: '100%' }} placeholder="e.g. 30" />
+              </Form.Item>
+            </Col>
+          </Row>
 
           <Divider orientation="left" style={{ fontSize: 13 }}>Commission Brackets</Divider>
           <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 12, fontSize: 12 }}>

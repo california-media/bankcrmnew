@@ -81,7 +81,6 @@ export default function AgentDetail() {
   };
 
   const statCards = [
-    { label: 'Total Leads', value: stats.total, color: '#4f46e5', bg: '#eef2ff', icon: <AuditOutlined /> },
     { label: 'Approved', value: stats.approved, color: '#16a34a', bg: '#f0fdf4', icon: <CheckCircleOutlined /> },
     { label: 'Pending', value: stats.pending, color: '#f59e0b', bg: '#fffbeb', icon: <ClockCircleOutlined /> },
     { label: 'Commission Paid', value: aed(stats.paidCommission), color: '#7c3aed', bg: '#faf5ff', icon: <DollarOutlined /> },

@@ -43,6 +43,8 @@ const userSchema = new mongoose.Schema(
     // Invitation flow (agencies created by admin)
     inviteToken: { type: String },
     inviteTokenExpires: { type: Date },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
     isActive: { type: Boolean, default: false },
   },
   { timestamps: true }

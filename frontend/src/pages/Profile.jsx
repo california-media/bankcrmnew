@@ -1,19 +1,50 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  Card, Row, Col, Avatar, Typography, Tag, Form, Input, Button,
-  Space, Divider, message, Descriptions, Tooltip,
+  Row, Col, Avatar, Tag, Form, Input, Button,
+  Space, Divider, message, Tooltip,
 } from 'antd';
 import {
   UserOutlined, MailOutlined, PhoneOutlined, CalendarOutlined,
   CopyOutlined, CheckOutlined, LockOutlined, EditOutlined, SaveOutlined,
-  CloseOutlined, BankOutlined, IdcardOutlined,
+  CloseOutlined, BankOutlined, IdcardOutlined, LinkOutlined,
 } from '@ant-design/icons';
 import { updateProfile } from '../store/slices/authSlice';
 import api from '../api/client';
 
-const ROLE_COLORS = { admin: 'red', agency: 'blue', agent: 'green', employee: 'purple' };
+const ROLE_BG    = { admin: '#7c3aed', agency: '#1e40af', agent: '#4f46e5', employee: '#b45309' };
+const ROLE_LIGHT = { admin: '#ede9fe', agency: '#dbeafe', agent: '#e0e7ff', employee: '#fef3c7' };
+const ROLE_TEXT  = { admin: '#7c3aed', agency: '#1e40af', agent: '#4f46e5', employee: '#b45309' };
 const ROLE_LABELS = { admin: 'Admin', agency: 'Agency', agent: 'Agent', employee: 'Employee' };
+
+const Section = ({ children, style }) => (
+  <div style={{
+    background: '#fff',
+    borderRadius: 14,
+    border: '1px solid #e0e2f7',
+    boxShadow: '0 2px 12px rgba(99,102,241,0.07), 0 1px 3px rgba(99,102,241,0.04)',
+    marginBottom: 20,
+    overflow: 'hidden',
+    ...style,
+  }}>
+    {children}
+  </div>
+);
+
+const SectionHeader = ({ title, action }) => (
+  <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{title}</span>
+    {action}
+  </div>
+);
+
+const InfoRow = ({ icon, label, value }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: '1px solid #f8fafc' }}>
+    <span style={{ color: '#94a3b8', fontSize: 15, width: 20, flexShrink: 0 }}>{icon}</span>
+    <span style={{ fontSize: 12, color: '#94a3b8', width: 110, flexShrink: 0 }}>{label}</span>
+    <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 500 }}>{value || '—'}</span>
+  </div>
+);
 
 export default function Profile() {
   const dispatch = useDispatch();
@@ -27,6 +58,7 @@ export default function Profile() {
   const [savingPwd, setSavingPwd]     = useState(false);
   const [savingBank, setSavingBank]   = useState(false);
   const [copied, setCopied]           = useState(false);
+  const [copiedLink, setCopiedLink]   = useState(false);
 
   const [infoForm] = Form.useForm();
   const [pwdForm]  = Form.useForm();
@@ -47,18 +79,10 @@ export default function Profile() {
   useEffect(() => { load(); }, []);
 
   const startEdit = () => {
-    infoForm.setFieldsValue({
-      name: profile.name,
-      phone: profile.phone || '',
-      emiratesId: profile.emiratesId || '',
-    });
+    infoForm.setFieldsValue({ name: profile.name, phone: profile.phone || '', emiratesId: profile.emiratesId || '' });
     setEditing(true);
   };
-
-  const cancelEdit = () => {
-    infoForm.resetFields();
-    setEditing(false);
-  };
+  const cancelEdit = () => { infoForm.resetFields(); setEditing(false); };
 
   const saveInfo = async () => {
     const values = await infoForm.validateFields();
@@ -77,16 +101,10 @@ export default function Profile() {
 
   const savePassword = async () => {
     const values = await pwdForm.validateFields();
-    if (values.newPassword !== values.confirmPassword) {
-      message.error('Passwords do not match');
-      return;
-    }
+    if (values.newPassword !== values.confirmPassword) { message.error('Passwords do not match'); return; }
     setSavingPwd(true);
     try {
-      await dispatch(updateProfile({
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword,
-      })).unwrap();
+      await dispatch(updateProfile({ newPassword: values.newPassword })).unwrap();
       message.success('Password changed');
       pwdForm.resetFields();
     } catch (err) {
@@ -106,11 +124,7 @@ export default function Profile() {
     });
     setEditingBank(true);
   };
-
-  const cancelEditBank = () => {
-    bankForm.resetFields();
-    setEditingBank(false);
-  };
+  const cancelEditBank = () => { bankForm.resetFields(); setEditingBank(false); };
 
   const saveBank = async () => {
     const values = await bankForm.validateFields();
@@ -127,252 +141,182 @@ export default function Profile() {
     }
   };
 
-  const [copiedLink, setCopiedLink] = useState(false);
-
   const copyCode = () => {
     navigator.clipboard.writeText(profile.referralCode || '');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
   };
-
   const copyLink = () => {
-    const link = `${window.location.origin}/ref/${profile.referralCode}`;
-    navigator.clipboard.writeText(link);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    navigator.clipboard.writeText(`${window.location.origin}/ref/${profile.referralCode}`);
+    setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000);
   };
 
   if (loading || !profile) {
-    return <Card loading style={{ maxWidth: 800, margin: '0 auto' }} />;
+    return <div style={{ maxWidth: 860, margin: '0 auto', height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Loading…</div>;
   }
 
-  const initials = (profile.name || profile.email || '?')[0].toUpperCase();
+  const initials = (profile.name || profile.email || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const role = profile.role;
   const bd = profile.bankDetails || {};
   const hasBankDetails = bd.accountHolderName || bd.bankName || bd.accountNumber || bd.iban;
+  const avatarBg = ROLE_BG[role] || '#4f46e5';
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto' }}>
+    <div style={{ maxWidth: 860, margin: '0 auto' }}>
 
-      {/* Header card */}
-      <Card style={{ marginBottom: 24 }}>
-        <Row gutter={24} align="middle">
-          <Col>
-            <Avatar
-              size={80}
-              style={{ backgroundColor: '#1677ff', fontSize: 32, fontWeight: 700 }}
-            >
-              {initials}
-            </Avatar>
-          </Col>
-          <Col flex="auto">
-            <Space direction="vertical" size={4}>
-              <Space align="center">
-                <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>
-                  {profile.name || '—'}
-                </Typography.Title>
-                <Tag color={ROLE_COLORS[role]}>{ROLE_LABELS[role]}</Tag>
-                <Tag color={profile.isActive ? 'green' : 'default'}>
-                  {profile.isActive ? 'Active' : 'Inactive'}
-                </Tag>
-              </Space>
-              <Space size={16}>
-                <Typography.Text type="secondary">
-                  <MailOutlined style={{ marginRight: 4 }} />{profile.email}
-                </Typography.Text>
-                {profile.phone && (
-                  <Typography.Text type="secondary">
-                    <PhoneOutlined style={{ marginRight: 4 }} />{profile.phone}
-                  </Typography.Text>
-                )}
-                {role !== 'agent' && (
-                  <Typography.Text type="secondary">
-                    <CalendarOutlined style={{ marginRight: 4 }} />
-                    Joined {new Date(profile.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-                  </Typography.Text>
-                )}
-              </Space>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+      {/* Hero header */}
+      <div style={{
+        background: `linear-gradient(135deg, ${avatarBg}18 0%, #e0e7ff44 100%)`,
+        border: '1px solid #e0e2f7',
+        borderRadius: 16,
+        padding: '28px 28px 24px',
+        marginBottom: 20,
+        boxShadow: '0 2px 12px rgba(99,102,241,0.07)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 20,
+      }}>
+        <Avatar
+          size={72}
+          style={{ background: `linear-gradient(135deg, ${avatarBg}, ${avatarBg}cc)`, fontSize: 26, fontWeight: 800, flexShrink: 0, boxShadow: `0 4px 16px ${avatarBg}44` }}
+        >
+          {initials}
+        </Avatar>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 20, color: '#0f172a' }}>{profile.name || '—'}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: ROLE_TEXT[role], background: ROLE_LIGHT[role], borderRadius: 999, padding: '3px 10px', border: `1px solid ${ROLE_TEXT[role]}22` }}>
+              {ROLE_LABELS[role]}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: profile.isActive ? '#15803d' : '#64748b', background: profile.isActive ? '#f0fdf4' : '#f1f5f9', borderRadius: 999, padding: '3px 10px', border: `1px solid ${profile.isActive ? '#86efac' : '#e2e8f0'}` }}>
+              {profile.isActive ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <MailOutlined style={{ fontSize: 12 }} />{profile.email}
+            </span>
+            {profile.phone && (
+              <span style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <PhoneOutlined style={{ fontSize: 12 }} />{profile.phone}
+              </span>
+            )}
+            <span style={{ fontSize: 13, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <CalendarOutlined style={{ fontSize: 12 }} />
+              Joined {new Date(profile.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+            </span>
+          </div>
+        </div>
+      </div>
 
-      <Row gutter={24}>
+      <Row gutter={20}>
         <Col xs={24} lg={14}>
 
-          {/* Edit info */}
-          <Card
-            title="Profile Information"
-            extra={
-              editing ? null : (
-                <Button icon={<EditOutlined />} type="text" onClick={startEdit}>Edit</Button>
-              )
-            }
-            style={{ marginBottom: 24 }}
-          >
+          {/* Profile info */}
+          <Section>
+            <SectionHeader
+              title="Profile Information"
+              action={!editing && <Button size="small" icon={<EditOutlined />} type="text" onClick={startEdit} style={{ color: '#6366f1' }}>Edit</Button>}
+            />
             {editing ? (
-              <Form form={infoForm} layout="vertical">
-                <Form.Item name="name" label="Full Name" rules={[{ required: true, message: 'Name is required' }]}>
-                  <Input prefix={<UserOutlined />} placeholder="Your name" />
-                </Form.Item>
-                <Form.Item name="phone" label="Phone">
-                  <Input prefix={<PhoneOutlined />} placeholder="+971 50 000 0000" />
-                </Form.Item>
-                <Form.Item name="emiratesId" label="Emirates ID">
-                  <Input prefix={<IdcardOutlined />} placeholder="784-XXXX-XXXXXXX-X" />
-                </Form.Item>
-                <Space>
-                  <Button type="primary" icon={<SaveOutlined />} loading={savingInfo} onClick={saveInfo}>
-                    Save Changes
-                  </Button>
-                  <Button icon={<CloseOutlined />} onClick={cancelEdit}>Cancel</Button>
-                </Space>
-              </Form>
+              <div style={{ padding: 20 }}>
+                <Form form={infoForm} layout="vertical">
+                  <Form.Item name="name" label="Full Name" rules={[{ required: true }]}>
+                    <Input prefix={<UserOutlined style={{ color: '#94a3b8' }} />} placeholder="Your name" />
+                  </Form.Item>
+                  <Form.Item name="phone" label="Phone">
+                    <Input prefix={<PhoneOutlined style={{ color: '#94a3b8' }} />} placeholder="+971 50 000 0000" />
+                  </Form.Item>
+                  <Form.Item name="emiratesId" label="Emirates ID">
+                    <Input prefix={<IdcardOutlined style={{ color: '#94a3b8' }} />} placeholder="784-XXXX-XXXXXXX-X" />
+                  </Form.Item>
+                  <Space>
+                    <Button type="primary" icon={<SaveOutlined />} loading={savingInfo} onClick={saveInfo}>Save</Button>
+                    <Button icon={<CloseOutlined />} onClick={cancelEdit}>Cancel</Button>
+                  </Space>
+                </Form>
+              </div>
             ) : (
-              <Descriptions column={1} size="small">
-                <Descriptions.Item label="Full Name">{profile.name || '—'}</Descriptions.Item>
-                <Descriptions.Item label="Email">{profile.email}</Descriptions.Item>
-                <Descriptions.Item label="Phone">{profile.phone || '—'}</Descriptions.Item>
-                <Descriptions.Item label="Emirates ID">
-                  {profile.emiratesId ? (
-                    <Typography.Text code style={{ fontSize: 12 }}>{profile.emiratesId}</Typography.Text>
-                  ) : (
-                    <Typography.Text type="secondary">—</Typography.Text>
-                  )}
-                </Descriptions.Item>
-                {role !== 'agent' && (
-                  <Descriptions.Item label="Role">
-                    <Tag color={ROLE_COLORS[role]}>{ROLE_LABELS[role]}</Tag>
-                  </Descriptions.Item>
-                )}
-                {role !== 'agent' && (
-                  <Descriptions.Item label="Joined">
-                    {new Date(profile.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </Descriptions.Item>
-                )}
-              </Descriptions>
+              <div>
+                <InfoRow icon={<UserOutlined />}    label="Full Name"   value={profile.name} />
+                <InfoRow icon={<MailOutlined />}    label="Email"       value={profile.email} />
+                <InfoRow icon={<PhoneOutlined />}   label="Phone"       value={profile.phone} />
+                <InfoRow icon={<IdcardOutlined />}  label="Emirates ID" value={profile.emiratesId} />
+              </div>
             )}
-          </Card>
+          </Section>
 
           {/* Bank details — agents only */}
           {role === 'agent' && (
-            <Card
-              title={<span><BankOutlined style={{ marginRight: 6 }} />Bank Details</span>}
-              extra={
-                editingBank ? null : (
-                  <Button icon={<EditOutlined />} type="text" onClick={startEditBank}>Edit</Button>
-                )
-              }
-              style={{ marginBottom: 24 }}
-            >
+            <Section>
+              <SectionHeader
+                title={<span><BankOutlined style={{ marginRight: 6, color: '#6366f1' }} />Bank Details</span>}
+                action={!editingBank && <Button size="small" icon={<EditOutlined />} type="text" onClick={startEditBank} style={{ color: '#6366f1' }}>Edit</Button>}
+              />
               {editingBank ? (
-                <Form form={bankForm} layout="vertical">
-                  <Form.Item name="accountHolderName" label="Account Holder Name">
-                    <Input placeholder="As per bank records" />
-                  </Form.Item>
-                  <Form.Item name="bankName" label="Bank Name">
-                    <Input placeholder="e.g. Emirates NBD" />
-                  </Form.Item>
-                  <Form.Item name="accountNumber" label="Account Number">
-                    <Input placeholder="Account number" />
-                  </Form.Item>
-                  <Form.Item name="iban" label="IBAN">
-                    <Input placeholder="AE000000000000000000000" />
-                  </Form.Item>
-                  <Form.Item name="swiftCode" label="SWIFT / BIC Code">
-                    <Input placeholder="e.g. EBILAEAD" />
-                  </Form.Item>
-                  <Space>
-                    <Button type="primary" icon={<SaveOutlined />} loading={savingBank} onClick={saveBank}>
-                      Save Bank Details
-                    </Button>
-                    <Button icon={<CloseOutlined />} onClick={cancelEditBank}>Cancel</Button>
-                  </Space>
-                </Form>
+                <div style={{ padding: 20 }}>
+                  <Form form={bankForm} layout="vertical">
+                    <Form.Item name="accountHolderName" label="Account Holder Name">
+                      <Input placeholder="As per bank records" />
+                    </Form.Item>
+                    <Form.Item name="bankName" label="Bank Name">
+                      <Input placeholder="e.g. Emirates NBD" />
+                    </Form.Item>
+                    <Form.Item name="accountNumber" label="Account Number">
+                      <Input placeholder="Account number" />
+                    </Form.Item>
+                    <Form.Item name="iban" label="IBAN">
+                      <Input placeholder="AE000000000000000000000" />
+                    </Form.Item>
+                    <Form.Item name="swiftCode" label="SWIFT / BIC Code">
+                      <Input placeholder="e.g. EBILAEAD" />
+                    </Form.Item>
+                    <Space>
+                      <Button type="primary" icon={<SaveOutlined />} loading={savingBank} onClick={saveBank}>Save</Button>
+                      <Button icon={<CloseOutlined />} onClick={cancelEditBank}>Cancel</Button>
+                    </Space>
+                  </Form>
+                </div>
               ) : hasBankDetails ? (
-                <Descriptions column={1} size="small">
-                  <Descriptions.Item label="Account Holder">{bd.accountHolderName || '—'}</Descriptions.Item>
-                  <Descriptions.Item label="Bank">{bd.bankName || '—'}</Descriptions.Item>
-                  <Descriptions.Item label="Account No.">
-                    {bd.accountNumber ? (
-                      <Typography.Text code style={{ fontSize: 12 }}>{bd.accountNumber}</Typography.Text>
-                    ) : '—'}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="IBAN">
-                    {bd.iban ? (
-                      <Typography.Text code style={{ fontSize: 12 }}>{bd.iban}</Typography.Text>
-                    ) : '—'}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="SWIFT">
-                    {bd.swiftCode || '—'}
-                  </Descriptions.Item>
-                </Descriptions>
+                <div>
+                  <InfoRow icon={<UserOutlined />} label="Account Holder" value={bd.accountHolderName} />
+                  <InfoRow icon={<BankOutlined />} label="Bank"           value={bd.bankName} />
+                  <InfoRow icon={<IdcardOutlined />} label="Account No."  value={bd.accountNumber} />
+                  <InfoRow icon={<IdcardOutlined />} label="IBAN"         value={bd.iban} />
+                  <InfoRow icon={<IdcardOutlined />} label="SWIFT"        value={bd.swiftCode} />
+                </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                  <BankOutlined style={{ fontSize: 32, color: '#cbd5e1', marginBottom: 8 }} />
-                  <div>
-                    <Typography.Text type="secondary">No bank details added yet.</Typography.Text>
-                  </div>
-                  <Button type="dashed" icon={<EditOutlined />} style={{ marginTop: 12 }} onClick={startEditBank}>
-                    Add Bank Details
-                  </Button>
+                <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                  <BankOutlined style={{ fontSize: 32, color: '#c7d2fe', marginBottom: 10 }} />
+                  <div style={{ color: '#94a3b8', fontSize: 13, marginBottom: 12 }}>No bank details added yet</div>
+                  <Button type="dashed" icon={<EditOutlined />} onClick={startEditBank}>Add Bank Details</Button>
                 </div>
               )}
-            </Card>
+            </Section>
           )}
 
         </Col>
 
         <Col xs={24} lg={10}>
 
-          {/* Role-specific info */}
+          {/* Agent details + referral */}
           {role === 'agent' && (
-            <Card title="Agent Details" style={{ marginBottom: 24 }}>
-              <Descriptions column={1} size="small">
-                <Descriptions.Item label="Lead Count">{profile.leadCount ?? 0}</Descriptions.Item>
+            <Section>
+              <SectionHeader title="Agent Details" />
+              <div>
                 {profile.referredBy && (
-                  <Descriptions.Item label="Referred By">
-                    {profile.referredBy.name || profile.referredBy.email}
-                    {profile.referredBy.referralCode && (
-                      <Typography.Text type="secondary" style={{ fontSize: 11, marginLeft: 6 }}>
-                        ({profile.referredBy.referralCode})
-                      </Typography.Text>
-                    )}
-                  </Descriptions.Item>
+                  <InfoRow icon={<UserOutlined />} label="Referred By" value={profile.referredBy.name || profile.referredBy.email} />
                 )}
-              </Descriptions>
+              </div>
               {profile.referralCode && (
-                <>
-                  <Divider style={{ margin: '12px 0' }} />
-                  <Typography.Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    Your Referral Code
-                  </Typography.Text>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                    <Typography.Text
-                      code
-                      style={{ fontSize: 18, letterSpacing: 3, fontWeight: 700, flex: 1, textAlign: 'center' }}
-                    >
-                      {profile.referralCode}
-                    </Typography.Text>
-                    <Tooltip title={copied ? 'Copied!' : 'Copy code'}>
-                      <Button
-                        icon={copied ? <CheckOutlined /> : <CopyOutlined />}
-                        type={copied ? 'primary' : 'default'}
-                        onClick={copyCode}
-                      />
-                    </Tooltip>
-                  </div>
-                  <Typography.Text type="secondary" style={{ fontSize: 11, marginTop: 6, display: 'block' }}>
-                    Share this code so other agents can join under you.
-                  </Typography.Text>
-                  <Divider style={{ margin: '12px 0' }} />
-                  <Typography.Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
                     Customer Referral Link
-                  </Typography.Text>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px' }}>
-                    <Typography.Text ellipsis style={{ flex: 1, fontSize: 12, color: '#4f46e5', fontFamily: 'monospace' }}>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', borderRadius: 10, padding: '9px 12px', border: '1px solid #e2e8f0' }}>
+                    <LinkOutlined style={{ color: '#6366f1', flexShrink: 0 }} />
+                    <span style={{ flex: 1, fontSize: 12, color: '#4f46e5', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {`${window.location.origin}/ref/${profile.referralCode}`}
-                    </Typography.Text>
+                    </span>
                     <Tooltip title={copiedLink ? 'Copied!' : 'Copy link'}>
                       <Button
                         size="small"
@@ -382,72 +326,47 @@ export default function Profile() {
                       />
                     </Tooltip>
                   </div>
-                  <Typography.Text type="secondary" style={{ fontSize: 11, marginTop: 6, display: 'block' }}>
-                    Share this link with customers to submit their details directly.
-                  </Typography.Text>
-                </>
+                </div>
               )}
-            </Card>
+            </Section>
           )}
 
           {role === 'employee' && profile.agency && (
-            <Card title="Agency" style={{ marginBottom: 24 }}>
-              <Descriptions column={1} size="small">
-                <Descriptions.Item label="Name">{profile.agency.name || '—'}</Descriptions.Item>
-                <Descriptions.Item label="Email">{profile.agency.email}</Descriptions.Item>
-                {profile.agency.phone && (
-                  <Descriptions.Item label="Phone">{profile.agency.phone}</Descriptions.Item>
-                )}
-              </Descriptions>
-            </Card>
+            <Section>
+              <SectionHeader title="Agency" />
+              <InfoRow icon={<UserOutlined />}  label="Name"  value={profile.agency.name} />
+              <InfoRow icon={<MailOutlined />}  label="Email" value={profile.agency.email} />
+              {profile.agency.phone && <InfoRow icon={<PhoneOutlined />} label="Phone" value={profile.agency.phone} />}
+            </Section>
           )}
 
-          {/* Account status card */}
-          {role !== 'agent' && <Card title="Account Status" style={{ marginBottom: 24 }}>
-            <Descriptions column={1} size="small">
-              <Descriptions.Item label="Status">
-                <Tag color={profile.isActive ? 'green' : 'default'}>
-                  {profile.isActive ? 'Active' : 'Inactive'}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Role">
-                <Tag color={ROLE_COLORS[role]}>{ROLE_LABELS[role]}</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Member Since">
-                {new Date(profile.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })}
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>}
+          {role !== 'agent' && (
+            <Section>
+              <SectionHeader title="Account Status" />
+              <InfoRow icon={<UserOutlined />}    label="Status" value={<Tag color={profile.isActive ? 'green' : 'default'}>{profile.isActive ? 'Active' : 'Inactive'}</Tag>} />
+              <InfoRow icon={<IdcardOutlined />}  label="Role"   value={<Tag color="purple">{ROLE_LABELS[role]}</Tag>} />
+              <InfoRow icon={<CalendarOutlined />} label="Member Since" value={new Date(profile.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })} />
+            </Section>
+          )}
 
           {/* Change password */}
-          <Card title="Change Password">
-            <Form form={pwdForm} layout="vertical">
-              <Form.Item
-                name="currentPassword"
-                label="Current Password"
-                rules={[{ required: true, message: 'Enter current password' }]}
-              >
-                <Input.Password prefix={<LockOutlined />} placeholder="Current password" />
-              </Form.Item>
-              <Form.Item
-                name="newPassword"
-                label="New Password"
-                rules={[{ required: true, min: 6, message: 'At least 6 characters' }]}
-              >
-                <Input.Password prefix={<LockOutlined />} placeholder="New password" />
-              </Form.Item>
-              <Form.Item
-                name="confirmPassword"
-                label="Confirm New Password"
-                rules={[{ required: true, message: 'Confirm your new password' }]}
-              >
-                <Input.Password prefix={<LockOutlined />} placeholder="Repeat new password" />
-              </Form.Item>
-              <Button type="primary" loading={savingPwd} onClick={savePassword}>
-                Update Password
-              </Button>
-            </Form>
-          </Card>
+          <Section>
+            <SectionHeader title={<span><LockOutlined style={{ marginRight: 6, color: '#6366f1' }} />Change Password</span>} />
+            <div style={{ padding: 20 }}>
+              <Form form={pwdForm} layout="vertical">
+                <Form.Item name="newPassword" label="New Password" rules={[{ required: true, min: 6, message: 'At least 6 characters' }]}>
+                  <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="New password" />
+                </Form.Item>
+                <Form.Item name="confirmPassword" label="Confirm New Password" rules={[{ required: true, message: 'Confirm your new password' }]}>
+                  <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="Repeat new password" />
+                </Form.Item>
+                <Button type="primary" loading={savingPwd} onClick={savePassword} icon={<LockOutlined />}>
+                  Update Password
+                </Button>
+              </Form>
+            </div>
+          </Section>
+
         </Col>
       </Row>
     </div>

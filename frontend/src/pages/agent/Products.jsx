@@ -41,18 +41,25 @@ function ProductCard({ product, onClick }) {
     <Card
       size="small"
       onClick={onClick}
-      style={{ borderRadius: 12, border: '1px solid #e2e8f0', height: '100%', cursor: 'pointer' }}
+      className="lead-card"
+      style={{
+        borderRadius: 12,
+        border: '1px solid #e0e2f7',
+        height: '100%',
+        cursor: 'pointer',
+        boxShadow: '0 2px 12px rgba(99,102,241,0.07), 0 1px 3px rgba(99,102,241,0.04)',
+        transition: 'transform 0.15s, box-shadow 0.15s, border-color 0.15s',
+      }}
       styles={{ body: { padding: '16px' } }}
-      hoverable
     >
-      <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', lineHeight: 1.3, marginBottom: 8 }}>
+      <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', lineHeight: 1.3, marginBottom: 6 }}>
         {product.name}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-        <Typography.Text style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>Authorized</Typography.Text>
-      </div>
+      {product.bank?.name && (
+        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>{product.bank.name}</div>
+      )}
+
 
       {firstBracket && (
         <div style={{ background: '#f8fafc', borderRadius: 8, padding: '12px 14px' }}>
@@ -106,6 +113,7 @@ function Products() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [bankFilter, setBankFilter] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
@@ -132,15 +140,24 @@ function Products() {
     };
   }, [allProducts, cards, loans]);
 
+  const bankOptions = useMemo(() => {
+    const seen = new Set();
+    return allProducts
+      .filter((p) => p.bank?._id && !seen.has(p.bank._id) && seen.add(p.bank._id))
+      .map((p) => ({ value: p.bank._id, label: p.bank.name }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [allProducts]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return allProducts.filter((p) => {
       if (typeFilter === 'credit_card' && p.productType !== 'credit_card') return false;
       if (typeFilter === 'loan' && p.productType !== 'loan') return false;
+      if (bankFilter && p.bank?._id !== bankFilter) return false;
       if (q && !p.name.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [allProducts, search, typeFilter]);
+  }, [allProducts, search, typeFilter, bankFilter]);
 
   return (
     <>
@@ -164,14 +181,14 @@ function Products() {
         </Col>
       </Row>
 
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+      <div className="leads-filter-bar" style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
         <Input
           allowClear
           placeholder="Search products..."
           prefix={<SearchOutlined />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 260 }}
+          style={{ width: 260, borderRadius: 6 }}
         />
         <Select
           value={typeFilter}
@@ -183,7 +200,14 @@ function Products() {
             { value: 'loan', label: 'Loans' },
           ]}
         />
-        <Typography.Text type="secondary">{filtered.length} product{filtered.length !== 1 ? 's' : ''}</Typography.Text>
+        <Select
+          allowClear
+          placeholder="All Banks"
+          value={bankFilter}
+          onChange={setBankFilter}
+          options={bankOptions}
+          style={{ width: 200, borderRadius: 6 }}
+        />
       </div>
 
       {loading ? (
@@ -199,7 +223,7 @@ function Products() {
       ) : (
         <Row gutter={[16, 16]}>
           {filtered.map((p) => (
-            <Col key={p._id} xs={24} sm={12} lg={6}>
+            <Col key={p._id} xs={24} sm={12} lg={8}>
               <ProductCard product={p} onClick={() => setSelectedProduct(p)} />
             </Col>
           ))}

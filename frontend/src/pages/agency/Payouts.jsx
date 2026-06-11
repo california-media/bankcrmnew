@@ -60,7 +60,7 @@ function AgencyPayouts() {
     [pendingLeads]
   );
   const paidTotal = useMemo(
-    () => history.reduce((s, h) => s + (h.amountPaid || 0), 0),
+    () => history.reduce((s, h) => s + (h.amountPaid || 0) + (h.bucketUsed || 0), 0),
     [history]
   );
 
@@ -261,73 +261,33 @@ function AgencyPayouts() {
         </Button>
       </div>
 
-      <Row gutter={16} style={{ marginBottom: 12 }}>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            size="small"
-            style={{ borderRadius: 10, borderLeft: '4px solid #f59e0b', background: '#fffbeb' }}
-            styles={{ body: { padding: '14px 16px' } }}
-          >
-            <Statistic
-              title={<span style={{ fontSize: 12, color: '#92400e' }}><ClockCircleOutlined style={{ marginRight: 5 }} />Pending Amount</span>}
-              value={pendingTotal}
-              prefix="AED"
-              formatter={(v) => Number(v).toLocaleString()}
-              valueStyle={{ color: '#b45309', fontWeight: 800, fontSize: 18 }}
-            />
-            <div style={{ fontSize: 11, color: '#a16207', marginTop: 2 }}>
-              {newLeads.length} unpaid · {submittedLeads.length} submitted
+      <Row gutter={16} style={{ marginBottom: 20 }}>
+        {[
+          { color: '#f59e0b', icon: <ClockCircleOutlined />, label: 'PENDING AMOUNT', value: aed(pendingTotal), sub: `${newLeads.length} unpaid · ${submittedLeads.length} submitted` },
+          { color: '#22c55e', icon: <CheckCircleOutlined />, label: 'TOTAL PAID TO ADMIN', value: aed(paidTotal), sub: `${history.length} payout${history.length !== 1 ? 's' : ''} submitted` },
+          { color: '#6366f1', icon: <WalletOutlined />, label: 'BUCKET BALANCE', value: aed(bucketBalance), sub: 'Available as credit' },
+          { color: '#06b6d4', icon: <TransactionOutlined />, label: 'NET OUTSTANDING', value: aed(Math.max(0, pendingTotal - bucketBalance)), sub: 'Pending minus bucket' },
+        ].map((s) => (
+          <Col xs={24} sm={12} md={6} key={s.label}>
+            <div
+              style={{
+                borderRadius: 14, border: '1px solid #edf0f7', borderTop: `3px solid ${s.color}`,
+                background: `linear-gradient(170deg, ${s.color}12 0%, #ffffff 45%, #f8faff 100%)`,
+                boxShadow: '0 4px 16px rgba(15,23,42,0.08)', padding: '18px 20px',
+                transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'default',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 24px ${s.color}28`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(15,23,42,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#94a3b8' }}>{s.label}</div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: `${s.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.color, fontSize: 16 }}>{s.icon}</div>
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>{s.sub}</div>
             </div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            size="small"
-            style={{ borderRadius: 10, borderLeft: '4px solid #22c55e', background: '#f0fdf4' }}
-            styles={{ body: { padding: '14px 16px' } }}
-          >
-            <Statistic
-              title={<span style={{ fontSize: 12, color: '#15803d' }}><CheckCircleOutlined style={{ marginRight: 5 }} />Total Paid to Admin</span>}
-              value={paidTotal}
-              prefix="AED"
-              formatter={(v) => Number(v).toLocaleString()}
-              valueStyle={{ color: '#16a34a', fontWeight: 800, fontSize: 18 }}
-            />
-            <div style={{ fontSize: 11, color: '#15803d', marginTop: 2 }}>{history.length} payout{history.length !== 1 ? 's' : ''} submitted</div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            size="small"
-            style={{ borderRadius: 10, borderLeft: '4px solid #6366f1', background: '#eef2ff' }}
-            styles={{ body: { padding: '14px 16px' } }}
-          >
-            <Statistic
-              title={<span style={{ fontSize: 12, color: '#4f46e5' }}><WalletOutlined style={{ marginRight: 5 }} />Bucket Balance</span>}
-              value={bucketBalance}
-              prefix="AED"
-              formatter={(v) => Number(v).toLocaleString()}
-              valueStyle={{ color: '#4f46e5', fontWeight: 800, fontSize: 18 }}
-            />
-            <div style={{ fontSize: 11, color: '#6366f1', marginTop: 2 }}>Available as credit</div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card
-            size="small"
-            style={{ borderRadius: 10, borderLeft: '4px solid #06b6d4', background: '#ecfeff' }}
-            styles={{ body: { padding: '14px 16px' } }}
-          >
-            <Statistic
-              title={<span style={{ fontSize: 12, color: '#0e7490' }}><TransactionOutlined style={{ marginRight: 5 }} />Net Outstanding</span>}
-              value={Math.max(0, pendingTotal - bucketBalance)}
-              prefix="AED"
-              formatter={(v) => Number(v).toLocaleString()}
-              valueStyle={{ color: '#0891b2', fontWeight: 800, fontSize: 18 }}
-            />
-            <div style={{ fontSize: 11, color: '#0e7490', marginTop: 2 }}>Pending minus bucket</div>
-          </Card>
-        </Col>
+          </Col>
+        ))}
       </Row>
 
       <Tabs

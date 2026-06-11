@@ -135,31 +135,29 @@ export default function ConsentLogs() {
 
     {/* Consent status counts */}
     {!loading && consentCounts.length > 0 && (
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 14, marginBottom: 20, flexWrap: 'wrap' }}>
         {consentCounts.map((cs) => {
           const hex = STATUS_COLOR[cs.color] || STATUS_COLOR.default;
           return (
-            <div key={cs._id} style={{
-              flex: '1 1 140px', minWidth: 130,
-              background: '#fff', borderRadius: 14,
-              border: '1px solid #e2e8f0',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-              padding: '14px 18px',
-              display: 'flex', alignItems: 'center', gap: 14,
-            }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                background: `${hex}18`,
-                color: hex,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 20,
-              }}>
-                {iconForLabel(cs.label)}
+            <div
+              key={cs._id}
+              style={{
+                flex: '1 1 150px', minWidth: 140,
+                borderRadius: 14, border: '1px solid #edf0f7', borderTop: `3px solid ${hex}`,
+                background: `linear-gradient(170deg, ${hex}12 0%, #ffffff 45%, #f8faff 100%)`,
+                boxShadow: '0 4px 16px rgba(15,23,42,0.08)', padding: '16px 18px',
+                transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'default',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 24px ${hex}28`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(15,23,42,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#94a3b8' }}>{cs.label}</div>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: `${hex}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: hex, fontSize: 15 }}>
+                  {iconForLabel(cs.label)}
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{cs.count}</div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>{cs.label}</div>
-              </div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#1e293b', lineHeight: 1 }}>{cs.count}</div>
             </div>
           );
         })}

@@ -72,15 +72,16 @@ const LeadPipeline = ({ pipelineStats }) => {
   );
 };
 
-const StatCard = ({ title, value, icon, gradient, loading }) =>
+const StatCard = ({ title, value, icon, gradient, shadowColor, loading }) =>
   loading ? (
     <Card styles={{ body: { padding: '22px 24px' } }} style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}>
       <Skeleton active paragraph={{ rows: 1 }} />
     </Card>
   ) : (
-    <Card
-      styles={{ body: { padding: '24px', position: 'relative', overflow: 'hidden' } }}
-      style={{ borderRadius: 16, border: 'none', background: gradient, boxShadow: '0 6px 24px rgba(0,0,0,0.13)', height: '100%', overflow: 'hidden' }}
+    <div
+      style={{ borderRadius: 16, background: gradient, boxShadow: `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`, height: '100%', overflow: 'hidden', padding: '24px', position: 'relative', transition: 'box-shadow 0.25s, transform 0.25s', cursor: 'default' }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 20px 52px ${shadowColor}70, 0 6px 18px ${shadowColor}45`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
       <div style={{ position: 'absolute', right: -12, top: -12, fontSize: 88, color: 'rgba(255,255,255,0.13)', lineHeight: 1, pointerEvents: 'none' }}>
         {icon}
@@ -91,18 +92,19 @@ const StatCard = ({ title, value, icon, gradient, loading }) =>
       <div style={{ fontSize: 30, fontWeight: 800, color: '#fff', lineHeight: 1 }}>
         {value ?? '—'}
       </div>
-    </Card>
+    </div>
   );
 
-const PayoutCard = ({ title, value, sub, icon, gradient, loading }) =>
+const PayoutCard = ({ title, value, sub, icon, gradient, shadowColor, loading }) =>
   loading ? (
     <Card styles={{ body: { padding: '20px 24px' } }} style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}>
       <Skeleton active paragraph={{ rows: 1 }} />
     </Card>
   ) : (
-    <Card
-      styles={{ body: { padding: '24px', position: 'relative', overflow: 'hidden' } }}
-      style={{ borderRadius: 16, border: 'none', background: gradient, boxShadow: '0 6px 24px rgba(0,0,0,0.13)', height: '100%', overflow: 'hidden' }}
+    <div
+      style={{ borderRadius: 16, background: gradient, boxShadow: `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`, height: '100%', overflow: 'hidden', padding: '24px', position: 'relative', transition: 'box-shadow 0.25s, transform 0.25s', cursor: 'default' }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 20px 52px ${shadowColor}70, 0 6px 18px ${shadowColor}45`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
       <div style={{ position: 'absolute', right: -12, top: -12, fontSize: 88, color: 'rgba(255,255,255,0.13)', lineHeight: 1, pointerEvents: 'none' }}>
         {icon}
@@ -112,7 +114,7 @@ const PayoutCard = ({ title, value, sub, icon, gradient, loading }) =>
       </div>
       <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1, marginBottom: 8 }}>{value}</div>
       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>{sub}</div>
-    </Card>
+    </div>
   );
 
 function AgencyDashboard() {
@@ -180,16 +182,16 @@ function AgencyDashboard() {
     : null;
 
   const cards = [
-    { key: 'total', title: 'Total Leads', value: stats?.total, icon: <AuditOutlined />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)' },
-    { key: 'pending', title: 'Awaiting Action', value: stats?.pending, icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)' },
-    { key: 'approved', title: 'Approved', value: stats?.approved, icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)' },
-    { key: 'rejected', title: 'Rejected', value: stats?.rejected, icon: <CloseCircleOutlined />, gradient: 'linear-gradient(135deg, #b91c1c 0%, #f87171 100%)' },
+    { key: 'total', title: 'Total Leads', value: stats?.total, icon: <AuditOutlined />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)', shadowColor: '#1d4ed8' },
+    { key: 'pending', title: 'Awaiting Action', value: stats?.pending, icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)', shadowColor: '#b45309' },
+    { key: 'approved', title: 'Approved', value: stats?.approved, icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)', shadowColor: '#15803d' },
+    { key: 'rejected', title: 'Rejected', value: stats?.rejected, icon: <CloseCircleOutlined />, gradient: 'linear-gradient(135deg, #b91c1c 0%, #f87171 100%)', shadowColor: '#b91c1c' },
   ];
 
   const payoutCards = [
-    { key: 'expected', title: 'Expected Payout', value: aed(stats?.expectedPayout), sub: 'Active leads — not yet disbursed', icon: <RiseOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)' },
-    { key: 'total', title: 'Total Payout to Admin', value: aed(stats?.totalPayout), sub: 'Disbursed leads (paid + pending)', icon: <DollarOutlined />, gradient: 'linear-gradient(135deg, #0369a1 0%, #38bdf8 100%)' },
-    { key: 'paid', title: 'Paid to Admin', value: aed(stats?.paidToAdmin), sub: 'Commissions already settled', icon: <BankOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)' },
+    { key: 'expected', title: 'Expected Payout', value: aed(stats?.expectedPayout), sub: 'Active leads — not yet disbursed', icon: <RiseOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)', shadowColor: '#b45309' },
+    { key: 'total', title: 'Total Payout to Admin', value: aed(stats?.totalPayout), sub: 'Disbursed leads (paid + pending)', icon: <DollarOutlined />, gradient: 'linear-gradient(135deg, #0369a1 0%, #38bdf8 100%)', shadowColor: '#0369a1' },
+    { key: 'paid', title: 'Paid to Admin', value: aed(stats?.paidToAdmin), sub: 'Commissions already settled', icon: <BankOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)', shadowColor: '#15803d' },
   ];
 
   return (

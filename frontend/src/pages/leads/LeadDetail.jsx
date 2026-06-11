@@ -791,7 +791,7 @@ export default function LeadDetail() {
               {isLoan && (lead.loanAmount > 0 || lead.loanType) && (
                 <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {lead.loanAmount > 0 && <InfoItem label="Loan Amount" value={aed(lead.loanAmount)} />}
-                  {lead.loanType && <InfoItem label="Loan Type" value={{ new_stl_loan: 'New STL Loan', buyout: 'Buyout', pdc: 'PDC' }[lead.loanType] || lead.loanType} />}
+                  {lead.loanType && <InfoItem label="Loan Type" value={{ new_stl_loan: 'New STL Loan', buyout: 'Buyout', pdc: 'PDC', business_loan: 'Business Loan' }[lead.loanType] || lead.loanType} />}
                   {lead.loanProduct?.maxLoanAmount > 0 && <InfoItem label="Max Loan" value={aed(lead.loanProduct.maxLoanAmount)} />}
                 </div>
               )}
@@ -959,9 +959,10 @@ export default function LeadDetail() {
               </Form.Item>
               <Form.Item name="loanType" label="Loan Type">
                 <Select placeholder="Select type" allowClear options={[
-                  { value: 'new_stl_loan', label: 'New STL Loan' },
-                  { value: 'buyout', label: 'Buyout' },
-                  { value: 'pdc', label: 'PDC' },
+                  { value: 'new_stl_loan',  label: 'New STL Loan' },
+                  { value: 'buyout',        label: 'Buyout' },
+                  { value: 'pdc',           label: 'PDC' },
+                  { value: 'business_loan', label: 'Business Loan' },
                 ]} />
               </Form.Item>
             </>

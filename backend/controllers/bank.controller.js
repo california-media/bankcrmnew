@@ -1,5 +1,11 @@
+const path = require('path');
+const fs = require('fs');
 const Bank = require('../models/Bank');
-const User = require('../models/User');
+
+const deleteLogo = (filename) => {
+  if (!filename) return;
+  fs.unlink(path.join(__dirname, `../uploads/bank-logos/${filename}`), () => {});
+};
 
 exports.list = async (req, res) => {
   try {
@@ -19,7 +25,10 @@ exports.create = async (req, res) => {
     const dupe = await Bank.findOne({ name });
     if (dupe) return res.status(409).json({ message: 'A bank with this name already exists' });
 
-    const bank = await Bank.create({ name, code, description });
+    const bank = await Bank.create({
+      name, code, description,
+      logo: req.file ? req.file.filename : undefined,
+    });
     res.status(201).json(bank);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -35,6 +44,12 @@ exports.update = async (req, res) => {
     if (description !== undefined) update.description = description;
     if (isActive !== undefined) update.isActive = isActive;
 
+    if (req.file) {
+      const existing = await Bank.findById(req.params.id, 'logo');
+      if (existing?.logo) deleteLogo(existing.logo);
+      update.logo = req.file.filename;
+    }
+
     const bank = await Bank.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!bank) return res.status(404).json({ message: 'Bank not found' });
     res.json(bank);
@@ -47,6 +62,7 @@ exports.remove = async (req, res) => {
   try {
     const bank = await Bank.findByIdAndDelete(req.params.id);
     if (!bank) return res.status(404).json({ message: 'Bank not found' });
+    if (bank.logo) deleteLogo(bank.logo);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });

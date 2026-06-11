@@ -7,18 +7,24 @@ import api from '../../api/client';
 const UPLOADS_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '/uploads');
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
-function StatCard({ icon, iconColor, label, value, borderColor, bg }) {
+function StatCard({ icon, iconColor, label, value, borderColor }) {
   return (
-    <Card
-      size="small"
-      style={{ borderRadius: 12, borderLeft: `4px solid ${borderColor}`, background: bg, border: `1px solid ${borderColor}22`, height: '100%' }}
-      styles={{ body: { padding: '18px 20px' } }}
+    <div
+      style={{
+        borderRadius: 14, border: '1px solid #edf0f7', borderTop: `3px solid ${borderColor}`,
+        background: `linear-gradient(170deg, ${borderColor}12 0%, #ffffff 45%, #f8faff 100%)`,
+        boxShadow: '0 4px 16px rgba(15,23,42,0.08)', padding: '18px 20px', height: '100%',
+        transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'default',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 24px ${borderColor}28`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(15,23,42,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
-      <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: iconColor, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 14 }}>{icon}</span>{label}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#94a3b8' }}>{label}</div>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: `${borderColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconColor, fontSize: 16 }}>{icon}</div>
       </div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: iconColor, lineHeight: 1.2 }}>{value}</div>
-    </Card>
+      <div style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>{value}</div>
+    </div>
   );
 }
 
@@ -52,8 +58,18 @@ function ProductCard({ product, onClick }) {
       }}
       styles={{ body: { padding: '16px' } }}
     >
-      <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', lineHeight: 1.3, marginBottom: 6 }}>
-        {product.name}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', lineHeight: 1.3 }}>
+          {product.name}
+        </div>
+        {product.productType === 'loan' && product.bank?.logo && (
+          <img
+            src={`${UPLOADS_BASE}/bank-logos/${product.bank.logo}`}
+            alt={product.bank?.name || ''}
+            style={{ height: 32, width: 'auto', maxWidth: 72, objectFit: 'contain', flexShrink: 0, marginTop: 2 }}
+            onError={(e) => { e.target.style.display = 'none'; }}
+          />
+        )}
       </div>
 
       {product.bank?.name && (

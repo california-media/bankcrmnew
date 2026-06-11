@@ -4,7 +4,7 @@ const CardProduct = require('../models/CardProduct');
 const User = require('../models/User');
 
 const POPULATE = [
-  { path: 'bank', select: 'name code isActive' },
+  { path: 'bank', select: 'name code isActive logo' },
   { path: 'agency', select: 'name email' },
 ];
 

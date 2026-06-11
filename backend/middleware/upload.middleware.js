@@ -23,3 +23,4 @@ const makeUpload = (subdir, allowedExts) => {
 
 module.exports = makeUpload('receipts', ['jpeg', 'jpg', 'png', 'pdf']);
 module.exports.cardImages = makeUpload('card-images', ['jpeg', 'jpg', 'png', 'webp', 'svg']);
+module.exports.bankLogos = makeUpload('bank-logos', ['jpeg', 'jpg', 'png', 'webp', 'svg']);

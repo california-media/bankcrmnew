@@ -98,6 +98,7 @@ function AgencyLeads() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState();
   const [productFilter, setProductFilter] = useState();
+  const [employeeFilter, setEmployeeFilter] = useState();
   const [dateRange, setDateRange] = useState(null);
   const [leadsTab, setLeadsTab] = useState('active');
 
@@ -262,11 +263,15 @@ function AgencyLeads() {
       if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
       if (statusFilter && String(l.employeeStatus?._id) !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
+      if (employeeFilter) {
+        const emp = l.assignedSalesEmployee || l.assignedCpvEmployee || l.assignedEmployee;
+        if (!emp || String(emp._id) !== employeeFilter) return false;
+      }
       if (from && dayjs(l.createdAt).isBefore(from.startOf('day'))) return false;
       if (to && dayjs(l.createdAt).isAfter(to.endOf('day'))) return false;
       return true;
     });
-  }, [leads, search, statusFilter, productFilter, dateRange, leadsTab]);
+  }, [leads, search, statusFilter, productFilter, employeeFilter, dateRange, leadsTab]);
 
   const renderProduct = (row) => {
     if (row.productType === 'credit_card' && row.cardProduct) {
@@ -485,14 +490,24 @@ function AgencyLeads() {
           options={PRODUCTS}
           style={{ width: 160, flexShrink: 0, borderRadius: 6 }}
         />
+        <Select
+          allowClear
+          showSearch
+          placeholder="All Employees"
+          value={employeeFilter}
+          onChange={setEmployeeFilter}
+          options={employees.filter(e => e.isActive).map(e => ({ value: String(e._id), label: e.name || e.email }))}
+          filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+        />
         <DatePicker.RangePicker
           value={dateRange}
           onChange={setDateRange}
           allowClear
           style={{ width: 230, flexShrink: 0, borderRadius: 6 }}
         />
-        {(search || statusFilter || productFilter || dateRange) && (
-          <Button size="small" type="text" style={{ color: '#6366f1' }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setDateRange(null); }}>
+        {(search || statusFilter || productFilter || employeeFilter || dateRange) && (
+          <Button size="small" type="text" style={{ color: '#6366f1' }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setEmployeeFilter(undefined); setDateRange(null); }}>
             Clear
           </Button>
         )}

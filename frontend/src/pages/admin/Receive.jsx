@@ -240,45 +240,31 @@ export default function Receive() {
       </div>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
-          <Card
-            size="small"
-            style={{ borderRadius: 12, borderLeft: '4px solid #f59e0b', background: '#fffbeb', border: '1px solid #f59e0b22' }}
-            styles={{ body: { padding: '18px 20px' } }}
-          >
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#b45309', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <ClockCircleOutlined /> Awaiting Receipt
+        {[
+          { color: '#f59e0b', icon: <ClockCircleOutlined />, label: 'AWAITING RECEIPT', value: aed(stats.pendingAmount), sub: `${stats.pendingCount} lead${stats.pendingCount !== 1 ? 's' : ''} — no agency receipt yet` },
+          { color: '#2563eb', icon: <InboxOutlined />, label: 'RECEIPT SUBMITTED', value: aed(stats.receiptAmount), sub: `${stats.receiptCount} lead${stats.receiptCount !== 1 ? 's' : ''} — awaiting confirmation` },
+          { color: '#16a34a', icon: <CheckCircleOutlined />, label: 'CONFIRMED RECEIVED', value: aed(stats.confirmedAmount), sub: `${stats.confirmedCount} payment${stats.confirmedCount !== 1 ? 's' : ''} confirmed` },
+        ].map((s) => (
+          <Col xs={24} sm={8} key={s.label}>
+            <div
+              style={{
+                borderRadius: 14, border: '1px solid #edf0f7', borderTop: `3px solid ${s.color}`,
+                background: `linear-gradient(170deg, ${s.color}12 0%, #ffffff 45%, #f8faff 100%)`,
+                boxShadow: '0 4px 16px rgba(15,23,42,0.08)', padding: '18px 20px',
+                transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'default',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 24px ${s.color}28`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(15,23,42,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#94a3b8' }}>{s.label}</div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: `${s.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.color, fontSize: 16 }}>{s.icon}</div>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>{s.sub}</div>
             </div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: '#92400e', lineHeight: 1.2 }}>{aed(stats.pendingAmount)}</div>
-            <div style={{ fontSize: 12, color: '#b45309', marginTop: 6, opacity: 0.8 }}>{stats.pendingCount} lead{stats.pendingCount !== 1 ? 's' : ''} — no agency receipt yet</div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card
-            size="small"
-            style={{ borderRadius: 12, borderLeft: '4px solid #2563eb', background: '#eff6ff', border: '1px solid #2563eb22' }}
-            styles={{ body: { padding: '18px 20px' } }}
-          >
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#1d4ed8', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <InboxOutlined /> Receipt Submitted
-            </div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: '#1e40af', lineHeight: 1.2 }}>{aed(stats.receiptAmount)}</div>
-            <div style={{ fontSize: 12, color: '#2563eb', marginTop: 6, opacity: 0.8 }}>{stats.receiptCount} lead{stats.receiptCount !== 1 ? 's' : ''} — awaiting your confirmation</div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card
-            size="small"
-            style={{ borderRadius: 12, borderLeft: '4px solid #22c55e', background: '#f0fdf4', border: '1px solid #22c55e22' }}
-            styles={{ body: { padding: '18px 20px' } }}
-          >
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#16a34a', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircleOutlined /> Confirmed Received
-            </div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: '#15803d', lineHeight: 1.2 }}>{aed(stats.confirmedAmount)}</div>
-            <div style={{ fontSize: 12, color: '#16a34a', marginTop: 6, opacity: 0.8 }}>{stats.confirmedCount} payment{stats.confirmedCount !== 1 ? 's' : ''} confirmed → agent payout ready</div>
-          </Card>
-        </Col>
+          </Col>
+        ))}
       </Row>
 
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '0 24px 24px' }}>

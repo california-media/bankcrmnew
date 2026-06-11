@@ -261,31 +261,41 @@ function Employees() {
               <div
                 className="lead-card"
                 style={{
-                  borderRadius: 14, border: '1px solid #e0e2f7', height: '100%',
-                  background: '#fafbff', padding: '16px',
-                  boxShadow: '0 2px 12px rgba(99,102,241,0.07), 0 1px 3px rgba(99,102,241,0.04)',
+                  borderRadius: 16, border: '1px solid #e8eaf6', height: '100%',
+                  background: '#ffffff', padding: '20px',
+                  boxShadow: '0 4px 20px rgba(99,102,241,0.08), 0 1px 4px rgba(99,102,241,0.05)',
                   transition: 'transform 0.15s, box-shadow 0.15s, border-color 0.15s',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{row.name || '—'}</div>
-                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{row.email}</div>
+                {/* Top row: avatar + info | badges */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 12,
+                      background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 16, fontWeight: 700, color: '#fff', flexShrink: 0,
+                    }}>
+                      {(row.name || row.email || '?')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', lineHeight: 1.3 }}>{row.name || '—'}</div>
+                      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{row.email}</div>
+                    </div>
                   </div>
-                  <StatusBadge active={row.isActive} />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                    <StatusBadge active={row.isActive} />
+                    <TypePill type={row.employeeType} />
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                  <TypePill type={row.employeeType} />
-                </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 12 }}>
-                  Joined {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '—'}
-                </div>
-                <div style={{ borderTop: '1px solid #f0f0f8', paddingTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
+
+                {/* Action buttons */}
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 14, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
                   <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
                     <button
                       onClick={() => toggleActive(row._id)}
                       style={{
-                        width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                        width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer',
                         background: row.isActive ? '#fef2f2' : '#f0fdf4',
                         color: row.isActive ? '#ef4444' : '#22c55e',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
@@ -299,7 +309,7 @@ function Employees() {
                     <button
                       onClick={() => openEdit(row)}
                       style={{
-                        width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                        width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer',
                         background: '#eef2ff', color: '#4f46e5',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
                         transition: 'background 0.15s',
@@ -312,7 +322,7 @@ function Employees() {
                     <button
                       onClick={() => openPassword(row)}
                       style={{
-                        width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                        width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer',
                         background: '#f0f9ff', color: '#0891b2',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
                         transition: 'background 0.15s',
@@ -325,7 +335,7 @@ function Employees() {
                     <Tooltip title="Delete">
                       <button
                         style={{
-                          width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
+                          width: 36, height: 36, borderRadius: 10, border: 'none', cursor: 'pointer',
                           background: '#fef2f2', color: '#ef4444',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15,
                           transition: 'background 0.15s',
@@ -335,6 +345,9 @@ function Employees() {
                       </button>
                     </Tooltip>
                   </Popconfirm>
+                  <div style={{ fontSize: 11, color: '#b0b8c8', marginLeft: 'auto' }}>
+                    Joined {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '—'}
+                  </div>
                 </div>
               </div>
             </Col>

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Space, Popconfirm, Typography, message, Switch, Tag } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Form, Input, Space, Popconfirm, Typography, message, Switch, Tag, Upload, Avatar } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, BankOutlined } from '@ant-design/icons';
 import api from '../../api/client';
+
+const UPLOADS_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:4000/api').replace(/\/api$/, '/uploads');
 
 function AdminBanks() {
   const [banks, setBanks] = useState([]);
@@ -10,6 +12,7 @@ function AdminBanks() {
   const [editing, setEditing] = useState(null);
   const [toggling, setToggling] = useState(null);
   const [search, setSearch] = useState('');
+  const [fileList, setFileList] = useState([]);
   const [form] = Form.useForm();
 
   const load = async () => {
@@ -24,19 +27,54 @@ function AdminBanks() {
 
   useEffect(() => { load(); }, []);
 
-  const openCreate = () => { setEditing(null); form.resetFields(); form.setFieldsValue({ isActive: true }); setOpen(true); };
-  const openEdit = (bank) => { setEditing(bank); form.setFieldsValue(bank); setOpen(true); };
+  const openCreate = () => {
+    setEditing(null);
+    form.resetFields();
+    form.setFieldsValue({ isActive: true });
+    setFileList([]);
+    setOpen(true);
+  };
+
+  const openEdit = (bank) => {
+    setEditing(bank);
+    form.setFieldsValue(bank);
+    setFileList(bank.logo ? [{
+      uid: '-1', name: bank.logo, status: 'done',
+      url: `${UPLOADS_BASE}/bank-logos/${bank.logo}`,
+    }] : []);
+    setOpen(true);
+  };
 
   const onSubmit = async () => {
     const values = await form.validateFields();
     try {
-      if (editing) {
-        await api.put(`/banks/${editing._id}`, values);
-        message.success('Bank updated');
+      const newFile = fileList.find((f) => f.originFileObj);
+      if (newFile) {
+        const formData = new FormData();
+        formData.append('name', values.name || '');
+        formData.append('code', values.code || '');
+        formData.append('description', values.description || '');
+        formData.append('isActive', values.isActive !== false ? 'true' : 'false');
+        formData.append('logo', newFile.originFileObj);
+        if (editing) {
+          await api.put(`/banks/${editing._id}`, formData);
+        } else {
+          await api.post('/banks', formData);
+        }
       } else {
-        await api.post('/banks', values);
-        message.success('Bank created');
+        const payload = {
+          name: values.name || '',
+          code: values.code || '',
+          description: values.description || '',
+          isActive: values.isActive !== false,
+        };
+        if (editing) {
+          await api.put(`/banks/${editing._id}`, payload);
+        } else {
+          await api.post('/banks', payload);
+        }
       }
+      message.success(editing ? 'Bank updated' : 'Bank created');
       setOpen(false);
       load();
     } catch (err) {
@@ -68,6 +106,13 @@ function AdminBanks() {
   };
 
   const columns = [
+    {
+      title: 'Logo',
+      width: 60,
+      render: (_, row) => row.logo
+        ? <Avatar src={`${UPLOADS_BASE}/bank-logos/${row.logo}`} shape="square" size={36} style={{ borderRadius: 8 }} />
+        : <Avatar shape="square" size={36} style={{ borderRadius: 8, background: '#eef2ff' }} icon={<BankOutlined style={{ color: '#6366f1' }} />} />,
+    },
     {
       title: 'Name',
       dataIndex: 'name',
@@ -112,9 +157,7 @@ function AdminBanks() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Banks</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bank</Button>
-        </div>
+        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bank</Button>
       </div>
 
       <Input
@@ -155,7 +198,28 @@ function AdminBanks() {
             <Input />
           </Form.Item>
           <Form.Item name="description" label="Description">
-            <Input.TextArea rows={3} />
+            <Input.TextArea rows={2} />
+          </Form.Item>
+          <Form.Item label="Bank Logo">
+            <Upload
+              listType="picture-card"
+              fileList={fileList}
+              beforeUpload={(file) => {
+                setFileList([{ uid: file.uid, name: file.name, status: 'done', originFileObj: file }]);
+                return false;
+              }}
+              onRemove={() => { setFileList([]); return false; }}
+              accept=".jpg,.jpeg,.png,.webp,.svg"
+              maxCount={1}
+            >
+              {fileList.length === 0 && (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8, fontSize: 12 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>JPG, PNG, WebP or SVG — max 10 MB</Typography.Text>
           </Form.Item>
           <Form.Item name="isActive" label="Status" valuePropName="checked">
             <Switch checkedChildren="Active" unCheckedChildren="Inactive" />

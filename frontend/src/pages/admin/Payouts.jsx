@@ -362,33 +362,31 @@ export default function Payouts() {
       </div>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={8}>
-          <Card size="small" style={{ borderRadius: 12, background: '#ecfeff', border: '1px solid #06b6d422' }} styles={{ body: { padding: '18px 20px' } }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#0891b2', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <DollarOutlined />Payout Ready for Agent
+        {[
+          { color: '#0891b2', icon: <DollarOutlined />, label: 'PAYOUT READY FOR AGENT', value: aed(stats.totalPayable), sub: `${stats.payable} lead${stats.payable !== 1 ? 's' : ''} ready to pay` },
+          { color: '#16a34a', icon: <CheckCircleOutlined />, label: 'TOTAL PAID OUT TO AGENT', value: aed(stats.totalPaid), sub: `${stats.paid} payout${stats.paid !== 1 ? 's' : ''} completed` },
+          { color: '#f59e0b', icon: <LockOutlined />, label: 'TOTAL ON HOLD', value: aed(stats.totalHeld), sub: `${holds.length} hold${holds.length !== 1 ? 's' : ''} pending release` },
+        ].map((s) => (
+          <Col xs={24} sm={8} key={s.label}>
+            <div
+              style={{
+                borderRadius: 14, border: '1px solid #edf0f7', borderTop: `3px solid ${s.color}`,
+                background: `linear-gradient(170deg, ${s.color}12 0%, #ffffff 45%, #f8faff 100%)`,
+                boxShadow: '0 4px 16px rgba(15,23,42,0.08)', padding: '18px 20px',
+                transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'default',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 24px ${s.color}28`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(15,23,42,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#94a3b8' }}>{s.label}</div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: `${s.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.color, fontSize: 16 }}>{s.icon}</div>
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>{s.sub}</div>
             </div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: '#0e7490', lineHeight: 1.2 }}>{aed(stats.totalPayable)}</div>
-            <div style={{ fontSize: 12, color: '#0891b2', marginTop: 6, opacity: 0.8 }}>{stats.payable} lead{stats.payable !== 1 ? 's' : ''} ready to pay</div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card size="small" style={{ borderRadius: 12, background: '#f0fdf4', border: '1px solid #22c55e22' }} styles={{ body: { padding: '18px 20px' } }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#16a34a', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CheckCircleOutlined />Total Paid Out to Agent
-            </div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: '#15803d', lineHeight: 1.2 }}>{aed(stats.totalPaid)}</div>
-            <div style={{ fontSize: 12, color: '#16a34a', marginTop: 6, opacity: 0.8 }}>{stats.paid} payout{stats.paid !== 1 ? 's' : ''} completed</div>
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card size="small" style={{ borderRadius: 12, background: '#fffbeb', border: '1px solid #f59e0b22' }} styles={{ body: { padding: '18px 20px' } }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#b45309', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <LockOutlined />Total On Hold
-            </div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: '#92400e', lineHeight: 1.2 }}>{aed(stats.totalHeld)}</div>
-            <div style={{ fontSize: 12, color: '#b45309', marginTop: 6, opacity: 0.8 }}>{holds.length} hold{holds.length !== 1 ? 's' : ''} pending release</div>
-          </Card>
-        </Col>
+          </Col>
+        ))}
       </Row>
 
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '0 24px 24px' }}>

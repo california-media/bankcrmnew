@@ -276,7 +276,7 @@ function SubmitLead() {
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Item name="companyName" label="Company">
-                    <Input placeholder="Emirates NBD" />
+                    <Input placeholder="Your company" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
@@ -397,9 +397,10 @@ function SubmitLead() {
                   )}
                   <Form.Item name="loanType" label="Loan Type" rules={[{ required: true, message: 'Select loan type' }]}>
                     <Select placeholder="Select loan type" options={[
-                      { value: 'new_stl_loan', label: 'New STL Loan' },
-                      { value: 'buyout',       label: 'Buyout' },
-                      { value: 'pdc',          label: 'PDC' },
+                      { value: 'new_stl_loan',    label: 'New STL Loan' },
+                      { value: 'buyout',          label: 'Buyout' },
+                      { value: 'pdc',             label: 'PDC' },
+                      { value: 'business_loan',   label: 'Business Loan' },
                     ]} />
                   </Form.Item>
                   <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount required' }]}>

@@ -86,15 +86,16 @@ const LeadPipeline = ({ stats }) => {
   );
 };
 
-const StatCard = ({ title, value, sub, icon, gradient, loading }) =>
+const StatCard = ({ title, value, sub, icon, gradient, shadowColor, loading }) =>
   loading ? (
     <Card styles={{ body: { padding: '22px 24px' } }} style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}>
       <Skeleton active paragraph={{ rows: 2 }} />
     </Card>
   ) : (
-    <Card
-      styles={{ body: { padding: '24px', position: 'relative', overflow: 'hidden' } }}
-      style={{ borderRadius: 16, border: 'none', background: gradient, boxShadow: '0 6px 24px rgba(0,0,0,0.13)', height: '100%', overflow: 'hidden' }}
+    <div
+      style={{ borderRadius: 16, background: gradient, boxShadow: `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`, height: '100%', overflow: 'hidden', padding: '24px', position: 'relative', transition: 'box-shadow 0.25s, transform 0.25s', cursor: 'default' }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 20px 52px ${shadowColor}70, 0 6px 18px ${shadowColor}45`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
       <div style={{ position: 'absolute', right: -12, top: -12, fontSize: 88, color: 'rgba(255,255,255,0.13)', lineHeight: 1, pointerEvents: 'none' }}>
         {icon}
@@ -106,7 +107,7 @@ const StatCard = ({ title, value, sub, icon, gradient, loading }) =>
         {value}
       </div>
       {sub && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>{sub}</div>}
-    </Card>
+    </div>
   );
 
 function AgentDashboard() {
@@ -121,10 +122,10 @@ function AgentDashboard() {
   }, []);
 
   const cards = [
-    { key: 'paid', title: 'Payout Earned', value: aed(stats?.paidEarnings), sub: 'Lifetime payout', icon: <DollarOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)' },
-    { key: 'pending', title: 'Pending Payout', value: aed(stats?.pendingEarnings), sub: `Across ${stats?.active || 0} active cases`, icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)' },
-    { key: 'active', title: 'Active Cases', value: stats?.active ?? 0, sub: 'In pipeline', icon: <FolderOpenOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)' },
-    { key: 'closed', title: 'Closed Deals', value: stats?.disbursed ?? 0, sub: 'Successfully disbursed', icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)' },
+    { key: 'paid', title: 'Payout Earned', value: aed(stats?.paidEarnings), sub: 'Lifetime payout', icon: <DollarOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)', shadowColor: '#15803d' },
+    { key: 'pending', title: 'Pending Payout', value: aed(stats?.pendingEarnings), sub: `Across ${stats?.active || 0} active cases`, icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)', shadowColor: '#1d4ed8' },
+    { key: 'active', title: 'Active Cases', value: stats?.active ?? 0, sub: 'In pipeline', icon: <FolderOpenOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)', shadowColor: '#b45309' },
+    { key: 'closed', title: 'Closed Deals', value: stats?.disbursed ?? 0, sub: 'Successfully disbursed', icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)', shadowColor: '#6d28d9' },
   ];
 
   const columns = [

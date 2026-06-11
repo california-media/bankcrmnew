@@ -105,22 +105,28 @@ function Commissions() {
     },
   ];
 
-  const StatCard = ({ loading, icon, iconColor, label, value, sub, borderColor, bg, valueColor }) => (
-    <Card
-      size="small"
-      style={{ borderRadius: 12, borderLeft: `4px solid ${borderColor}`, background: bg, border: `1px solid ${borderColor}22`, height: '100%' }}
-      styles={{ body: { padding: '18px 20px' } }}
+  const StatCard = ({ loading, icon, iconColor, label, value, sub, borderColor }) => (
+    <div
+      style={{
+        borderRadius: 14, border: '1px solid #edf0f7', borderTop: `3px solid ${borderColor}`,
+        background: `linear-gradient(170deg, ${borderColor}12 0%, #ffffff 45%, #f8faff 100%)`,
+        boxShadow: '0 4px 16px rgba(15,23,42,0.08)', padding: '18px 20px', height: '100%',
+        transition: 'box-shadow 0.2s, transform 0.2s', cursor: 'default',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 24px ${borderColor}28`; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(15,23,42,0.08)'; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
       {loading ? <Skeleton active paragraph={{ rows: 1 }} /> : (
         <>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: iconColor, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 14 }}>{icon}</span>{label}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#94a3b8' }}>{label}</div>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: `${borderColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconColor, fontSize: 16 }}>{icon}</div>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: valueColor || '#1e293b', lineHeight: 1.2 }}>{value}</div>
-          <div style={{ fontSize: 12, color: iconColor, marginTop: 6, opacity: 0.8 }}>{sub}</div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>{value}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>{sub}</div>
         </>
       )}
-    </Card>
+    </div>
   );
 
   return (

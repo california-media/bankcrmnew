@@ -6,6 +6,7 @@ const bankSchema = new mongoose.Schema(
     code: { type: String, trim: true },
     description: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
+    logo: { type: String },
   },
   { timestamps: true }
 );

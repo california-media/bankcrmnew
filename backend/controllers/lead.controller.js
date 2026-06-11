@@ -6,6 +6,7 @@ const LoanProduct = require('../models/LoanProduct');
 const EmployeeStatus = require('../models/EmployeeStatus');
 const commissionService = require('../services/commission.service');
 const { createAndEmit, getAdminIds, formatStatus } = require('../utils/notify');
+const waba = require('../services/waba.service');
 
 const POPULATE_FIELDS = [
   { path: 'bank', select: 'name code' },
@@ -110,6 +111,12 @@ exports.create = async (req, res) => {
 
     const lead = await Lead.create(leadData);
     const populated = await lead.populate(POPULATE_FIELDS);
+
+    // Send WhatsApp consent message — fire and forget, never block lead creation
+    waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id })
+      .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
+      .catch(() => {});
+
     try {
       const adminIds = await getAdminIds();
       const productName = populated.productType === 'credit_card'

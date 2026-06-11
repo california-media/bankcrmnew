@@ -103,4 +103,43 @@ const sendPasswordResetEmail = async ({ to, resetUrl, name }) => {
   return { dev: false };
 };
 
-module.exports = { sendInviteEmail, sendInquiryNotification, sendPasswordResetEmail };
+const sendInquiryConfirmation = async ({ name, email }) => {
+  const t = getTransporter();
+  const subject = 'Thanks for reaching out — Inizio Global';
+  const html = `
+    <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1e293b;">
+      <div style="background:linear-gradient(135deg,#4c1d95,#6d28d9);padding:32px 36px;border-radius:12px 12px 0 0;">
+        <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Inizio Global</h1>
+        <p style="margin:6px 0 0;color:rgba(255,255,255,0.72);font-size:13px;">UAE Banking Referral Infrastructure</p>
+      </div>
+      <div style="background:#fff;padding:32px 36px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;">
+        <p style="font-size:16px;font-weight:600;margin:0 0 12px;">Hi ${name},</p>
+        <p style="font-size:14px;color:#475569;line-height:1.7;margin:0 0 20px;">
+          Thank you for getting in touch with us. We've received your inquiry and our team will review it shortly.
+        </p>
+        <p style="font-size:14px;color:#475569;line-height:1.7;margin:0 0 24px;">
+          We typically respond within <strong>1–2 business days</strong>. If your matter is urgent, feel free to reach out directly.
+        </p>
+        <div style="background:#f8fafc;border-left:4px solid #6d28d9;border-radius:4px;padding:14px 18px;margin-bottom:28px;">
+          <p style="margin:0;font-size:13px;color:#64748b;">Our team will contact you at this email address.</p>
+        </div>
+        <p style="font-size:13px;color:#94a3b8;margin:0;">— The Inizio Global Team</p>
+      </div>
+    </div>
+  `;
+
+  if (!t) {
+    console.log('\n[DEV EMAIL — INQUIRY CONFIRMATION]');
+    console.log(`To: ${email}`);
+    return;
+  }
+
+  await t.sendMail({
+    from: `Inizio Global <${process.env.SMTP_FROM || 'no-reply@inizioglobal.com'}>`,
+    to: email,
+    subject,
+    html,
+  });
+};
+
+module.exports = { sendInviteEmail, sendInquiryNotification, sendInquiryConfirmation, sendPasswordResetEmail };

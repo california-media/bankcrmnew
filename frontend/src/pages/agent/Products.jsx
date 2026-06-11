@@ -206,16 +206,32 @@ function Products() {
           onChange={(e) => setSearch(e.target.value)}
           style={{ width: 260, borderRadius: 6 }}
         />
-        <Select
-          value={typeFilter}
-          onChange={setTypeFilter}
-          style={{ width: 160 }}
-          options={[
-            { value: 'all', label: 'All Types' },
-            { value: 'credit_card', label: 'Credit Cards' },
-            { value: 'loan', label: 'Loans' },
-          ]}
-        />
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[
+            { value: 'all',         label: 'All',          color: '#6366f1', bg: '#eef2ff', border: '#6366f1' },
+            { value: 'credit_card', label: 'Credit Cards', color: '#0891b2', bg: '#ecfeff', border: '#06b6d4' },
+            { value: 'loan',        label: 'Loans',        color: '#15803d', bg: '#f0fdf4', border: '#22c55e' },
+          ].map((opt) => {
+            const active = typeFilter === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setTypeFilter(opt.value)}
+                style={{
+                  padding: '5px 14px', borderRadius: 8, fontSize: 13, fontWeight: active ? 700 : 500,
+                  border: active ? `2px solid ${opt.border}` : '2px solid #e2e8f0',
+                  background: active ? opt.bg : '#f8fafc',
+                  color: active ? opt.color : '#94a3b8',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  boxShadow: active ? `0 2px 8px ${opt.border}30` : 'none',
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
         <Select
           allowClear
           placeholder="All Banks"

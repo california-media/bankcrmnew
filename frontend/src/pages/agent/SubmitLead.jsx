@@ -227,198 +227,201 @@ function SubmitLead() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <Typography.Title level={4} style={{ margin: 0, fontWeight: 600 }}>New Lead</Typography.Title>
-        <Link to="/agent/leads">
-          <Button size="small" icon={<ArrowLeftOutlined />}>Back</Button>
-        </Link>
-      </div>
 
-      <Form form={form} layout="vertical" size="small">
+      <Form form={form} layout="vertical">
         <Row gutter={12} align="stretch">
           {/* LEFT — Client */}
           <Col xs={24} lg={14}>
-            <Card
-              title="Client Information"
-              size="small"
-              style={{ height: '100%' }}
-              styles={{ body: { paddingBottom: 4 } }}
-            >
-              <Row gutter={[12, 0]}>
+            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8ecf4', borderTop: '3px solid #6366f1', boxShadow: '0 4px 18px rgba(99,102,241,0.08)', padding: '14px 18px', height: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, paddingBottom: 10, borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#1e1b4b' }}>Client Information</div>
+              </div>
+
+              <Row gutter={[10, 0]}>
                 <Col xs={24} sm={12}>
-                  <Form.Item name="customerName" label="Full Name" rules={[{ required: true }]}>
-                    <Input placeholder="Mohammed Ahmed" />
+                  <Form.Item name="customerName" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Full Name <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Name required' }]} style={{ marginBottom: 10 }}>
+                    <Input size="middle" placeholder="Mohammed Ahmed" style={{ borderRadius: 8 }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item name="phone" label="Mobile Number" rules={[{ required: true }]}>
-                    <Input placeholder="+971 50 xxx xxxx" />
+                  <Form.Item name="phone" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Mobile Number <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Phone required' }]} style={{ marginBottom: 10 }}>
+                    <Input size="middle" placeholder="+971 50 xxx xxxx" style={{ borderRadius: 8 }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item name="email" label="Email">
-                    <Input placeholder="client@email.com" />
+                  <Form.Item name="email" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Email</span>} style={{ marginBottom: 10 }}>
+                    <Input size="middle" placeholder="client@email.com" style={{ borderRadius: 8 }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item name="nationality" label="Nationality">
-                    <Select
-                      showSearch allowClear placeholder="Select"
-                      options={NATIONALITIES}
-                      filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
-                    />
+                  <Form.Item name="nationality" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Nationality</span>} style={{ marginBottom: 10 }}>
+                    <Select size="middle" showSearch allowClear placeholder="Select nationality" options={NATIONALITIES} filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item name="visaType" label="Visa Type">
-                    <Select allowClear placeholder="Select" options={VISA_OPTIONS} />
+                  <Form.Item name="visaType" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Visa Type</span>} style={{ marginBottom: 10 }}>
+                    <Select size="middle" allowClear placeholder="Select visa type" options={VISA_OPTIONS} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item name="companyName" label="Company">
-                    <Input placeholder="Your company" />
+                  <Form.Item name="companyName" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Company</span>} style={{ marginBottom: 10 }}>
+                    <Input size="middle" placeholder="Your company" style={{ borderRadius: 8 }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item name="jobTitle" label="Job Title">
-                    <Input placeholder="Sales Manager" />
+                  <Form.Item name="jobTitle" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Job Title</span>} style={{ marginBottom: 10 }}>
+                    <Input size="middle" placeholder="Sales Manager" style={{ borderRadius: 8 }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item name="yearsOfExperience" label="Experience (yrs)">
-                    <InputNumber min={0} max={60} style={{ width: '100%' }} placeholder="0" />
+                  <Form.Item name="yearsOfExperience" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Experience (yrs)</span>} style={{ marginBottom: 10 }}>
+                    <InputNumber size="middle" min={0} max={60} style={{ width: '100%', borderRadius: 8 }} placeholder="0" />
                   </Form.Item>
                 </Col>
                 <Col xs={24}>
-                  <Form.Item name="notes" label="Notes" style={{ marginBottom: 4 }}>
-                    <Input.TextArea rows={2} placeholder="Anything the agency should know about this client." />
+                  <Form.Item name="notes" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Notes</span>} style={{ marginBottom: 4 }}>
+                    <Input.TextArea rows={2} placeholder="Anything the agency should know about this client." style={{ borderRadius: 8, resize: 'none' }} />
                   </Form.Item>
                 </Col>
               </Row>
-            </Card>
+            </div>
           </Col>
 
           {/* RIGHT — Product */}
           <Col xs={24} lg={10}>
-            <Card
-              title="Product"
-              size="small"
-              style={{ height: '100%' }}
-              styles={{ body: { paddingBottom: 4 } }}
-            >
-              <Form.Item label="Type" style={{ marginBottom: 10 }}>
-                <Segmented
-                  value={productType}
-                  onChange={onProductTypeChange}
-                  size="small"
-                  options={[
-                    { value: 'credit_card', label: 'Credit Card', icon: <CreditCardOutlined /> },
-                    { value: 'loan',        label: 'Loan',        icon: <BankOutlined /> },
-                  ]}
-                />
-              </Form.Item>
+            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8ecf4', borderTop: `3px solid ${productType === 'credit_card' ? '#6366f1' : '#22c55e'}`, boxShadow: `0 4px 18px ${productType === 'credit_card' ? 'rgba(99,102,241,0.08)' : 'rgba(34,197,94,0.08)'}`, padding: '14px 18px', height: '100%', transition: 'border-top-color 0.2s, box-shadow 0.2s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: productType === 'credit_card' ? '#eef2ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>
+                  {productType === 'credit_card'
+                    ? <CreditCardOutlined style={{ color: '#6366f1', fontSize: 14 }} />
+                    : <BankOutlined style={{ color: '#16a34a', fontSize: 14 }} />
+                  }
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#1e1b4b' }}>Product</div>
+              </div>
+
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.6 }}>Type</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[
+                    { value: 'credit_card', label: 'Credit Card', icon: <CreditCardOutlined />, activeColor: '#4f46e5', activeBg: '#eef2ff', activeBorder: '#6366f1' },
+                    { value: 'loan',        label: 'Loan',        icon: <BankOutlined />,       activeColor: '#15803d', activeBg: '#f0fdf4', activeBorder: '#22c55e' },
+                  ].map((opt) => {
+                    const active = productType === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => onProductTypeChange(opt.value)}
+                        style={{
+                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          padding: '7px 10px', borderRadius: 8,
+                          border: active ? `2px solid ${opt.activeBorder}` : '2px solid #e2e8f0',
+                          background: active ? opt.activeBg : '#f8fafc',
+                          color: active ? opt.activeColor : '#94a3b8',
+                          fontWeight: active ? 700 : 500, fontSize: 13, cursor: 'pointer',
+                          transition: 'all 0.15s',
+                          boxShadow: active ? `0 2px 10px ${opt.activeBorder}35` : 'none',
+                        }}
+                      >
+                        <span style={{ fontSize: 14 }}>{opt.icon}</span>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               {productType === 'credit_card' && (
                 <>
-                  <Form.Item name="cardProduct" label="Card Product" rules={[{ required: true, message: 'Select a card' }]}>
-                    <Select
-                      loading={loading} showSearch
-                      filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())}
-                      placeholder="Select card product"
-                      options={cardOptions}
-                      onChange={onCardSelect}
-                    />
+                  <Form.Item name="cardProduct" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Card Product <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select a card' }]} style={{ marginBottom: 10 }}>
+                    <Select size="middle" loading={loading} showSearch filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())} placeholder="Select card product" options={cardOptions} onChange={onCardSelect} />
                   </Form.Item>
                   {selectedCard && (
-                    <div style={{ display: 'flex', gap: 10, marginBottom: 8, alignItems: 'flex-start' }}>
-                      {selectedCard.cardImage && (
-                        <img
-                          src={`${API_BASE}/uploads/card-images/${selectedCard.cardImage}`}
-                          alt={selectedCard.name}
-                          style={{ width: 100, height: 63, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0', flexShrink: 0 }}
-                        />
-                      )}
-                      <Descriptions size="small" column={1} style={{ flex: 1 }}>
-                        <Descriptions.Item label="Bank">{selectedCard.bank?.name}</Descriptions.Item>
-                        <Descriptions.Item label="Type">
-                          {({ regular: 'Regular', premium: 'Premium', rewards_lifestyle: 'Rewards', travel: 'Travel', ecommerce: 'E-Commerce', legacy: 'Legacy' })[selectedCard.cardType] || selectedCard.cardType}
-                        </Descriptions.Item>
-                        {selectedBracket?.feeType && (
-                          <Descriptions.Item label="Fee">
-                            <span style={{ fontWeight: 700, color: selectedBracket.feeType === 'free' ? '#16a34a' : '#2563eb' }}>
+                    <div style={{ background: '#f8faff', borderRadius: 8, border: '1px solid #e0e7ff', padding: '8px 10px', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        {selectedCard.cardImage && (
+                          <img src={`${API_BASE}/uploads/card-images/${selectedCard.cardImage}`} alt={selectedCard.name} style={{ width: 72, height: 46, objectFit: 'cover', borderRadius: 5, border: '1px solid #dde3f5', flexShrink: 0 }} />
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedCard.bank?.name}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{({ regular: 'Regular', premium: 'Premium', rewards_lifestyle: 'Rewards', travel: 'Travel', ecommerce: 'E-Commerce', legacy: 'Legacy' })[selectedCard.cardType] || selectedCard.cardType}</div>
+                          {selectedBracket?.feeType && (
+                            <span style={{ display: 'inline-block', marginTop: 3, fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 999, background: selectedBracket.feeType === 'free' ? '#f0fdf4' : '#eff6ff', color: selectedBracket.feeType === 'free' ? '#16a34a' : '#2563eb', border: `1px solid ${selectedBracket.feeType === 'free' ? '#bbf7d0' : '#bfdbfe'}` }}>
                               {selectedBracket.feeType === 'free' ? 'Free' : 'Paid'}
                             </span>
-                          </Descriptions.Item>
-                        )}
-                      </Descriptions>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
                   {selectedCard && activeBrackets.length > 0 && (
-                    <Form.Item name="salaryBracket" label="Salary Bracket" rules={[{ required: true, message: 'Select salary bracket' }]}>
-                      <Select placeholder="Select minimum salary tier" options={activeBrackets} onChange={onBracketSelect} />
+                    <Form.Item name="salaryBracket" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Salary Bracket <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select salary bracket' }]} style={{ marginBottom: 10 }}>
+                      <Select size="middle" placeholder="Select minimum salary tier" options={activeBrackets} onChange={onBracketSelect} />
                     </Form.Item>
                   )}
                   {selectedBracket && (
-                    <Alert type="success" showIcon style={{ marginBottom: 8, padding: '4px 10px' }}
-                      message={<span style={{ fontSize: 12 }}>Payout: <strong>{aed(selectedBracket.payable)}</strong></span>}
-                    />
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Estimated Payout</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>{aed(selectedBracket.payable)}</span>
+                    </div>
                   )}
                 </>
               )}
 
               {productType === 'loan' && (
                 <>
-                  <Form.Item name="loanProduct" label="Loan Product" rules={[{ required: true, message: 'Select a loan' }]}>
-                    <Select
-                      loading={loading} showSearch
-                      filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())}
-                      placeholder="Select loan product"
-                      options={loanOptions}
-                      onChange={onLoanSelect}
-                    />
+                  <Form.Item name="loanProduct" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Product <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select a loan' }]} style={{ marginBottom: 10 }}>
+                    <Select size="middle" loading={loading} showSearch filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())} placeholder="Select loan product" options={loanOptions} onChange={onLoanSelect} />
                   </Form.Item>
                   {selectedLoan && (
-                    <Descriptions size="small" column={2} style={{ marginBottom: 8 }}>
-                      <Descriptions.Item label="Bank">{selectedLoan.bank?.name}</Descriptions.Item>
-                      <Descriptions.Item label="Category">
-                        {selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal'}
-                      </Descriptions.Item>
-                    </Descriptions>
+                    <div style={{ background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', padding: '8px 12px', marginBottom: 10, display: 'flex', gap: 16 }}>
+                      <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Bank</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.bank?.name}</div></div>
+                      <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Category</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal'}</div></div>
+                    </div>
                   )}
                   {selectedLoan && activeBrackets.length > 0 && (
-                    <Form.Item name="salaryBracket" label="Salary Bracket" rules={[{ required: true, message: 'Select salary bracket' }]}>
-                      <Select placeholder="Select minimum salary tier" options={activeBrackets} onChange={onBracketSelect} />
+                    <Form.Item name="salaryBracket" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Salary Bracket <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select salary bracket' }]} style={{ marginBottom: 10 }}>
+                      <Select size="middle" placeholder="Select minimum salary tier" options={activeBrackets} onChange={onBracketSelect} />
                     </Form.Item>
                   )}
                   {selectedBracket && (
-                    <Alert type="success" showIcon style={{ marginBottom: 8, padding: '4px 10px' }}
-                      message={<span style={{ fontSize: 12 }}>Payout: <strong>{selectedBracket.payable}%</strong> of loan amount</span>}
-                    />
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Estimated Payout</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>{selectedBracket.payable}% of loan</span>
+                    </div>
                   )}
-                  <Form.Item name="loanType" label="Loan Type" rules={[{ required: true, message: 'Select loan type' }]}>
-                    <Select placeholder="Select loan type" options={[
-                      { value: 'new_stl_loan',    label: 'New STL Loan' },
-                      { value: 'buyout',          label: 'Buyout' },
-                      { value: 'pdc',             label: 'PDC' },
-                      { value: 'business_loan',   label: 'Business Loan' },
+                  <Form.Item name="loanType" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Type <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select loan type' }]} style={{ marginBottom: 10 }}>
+                    <Select size="middle" placeholder="Select loan type" options={[
+                      { value: 'new_stl_loan',  label: 'New STL Loan' },
+                      { value: 'buyout',        label: 'Buyout' },
+                      { value: 'pdc',           label: 'PDC' },
+                      { value: 'business_loan', label: 'Business Loan' },
                     ]} />
                   </Form.Item>
-                  <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount required' }]}>
-                    <InputNumber min={1} step={1000} style={{ width: '100%' }} placeholder="e.g. 100000" />
+                  <Form.Item name="loanAmount" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Amount (AED) <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Loan amount required' }]} style={{ marginBottom: 4 }}>
+                    <InputNumber size="middle" min={1} step={1000} style={{ width: '100%', borderRadius: 8 }} placeholder="e.g. 100000" />
                   </Form.Item>
                 </>
               )}
-
-            </Card>
+            </div>
           </Col>
         </Row>
 
-        <div style={{ marginTop: 10 }}>
+        {/* Submit bar */}
+        <div style={{ marginTop: 10, background: '#fff', borderRadius: 12, border: '1px solid #e8ecf4', padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 10px rgba(15,23,42,0.06)' }}>
+          <div style={{ fontSize: 12, color: '#94a3b8' }}>Review details before submitting.</div>
           <Space>
-            <Button type="primary" icon={<SendOutlined />} loading={submitting} onClick={onFormSubmit}>
+            <Button size="middle" onClick={() => { form.resetFields(); resetProduct(); }} style={{ borderRadius: 8 }}>Reset</Button>
+            <Button
+              type="primary" size="middle" icon={<SendOutlined />} loading={submitting} onClick={onFormSubmit}
+              style={{ borderRadius: 8, background: 'linear-gradient(90deg, #4f46e5, #7c3aed)', border: 'none', fontWeight: 700, paddingLeft: 20, paddingRight: 20, height: 38, boxShadow: '0 4px 14px rgba(99,102,241,0.40)' }}
+            >
               Submit Lead
             </Button>
-            <Button onClick={() => { form.resetFields(); resetProduct(); }}>Reset</Button>
           </Space>
         </div>
       </Form>

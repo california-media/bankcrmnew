@@ -1,5 +1,5 @@
 const SiteInquiry = require('../models/SiteInquiry');
-const { sendInquiryNotification } = require('../utils/email');
+const { sendInquiryNotification, sendInquiryConfirmation } = require('../utils/email');
 
 exports.submit = async (req, res) => {
   try {
@@ -10,6 +10,9 @@ exports.submit = async (req, res) => {
 
     sendInquiryNotification({ name, email, phone, companyName, message }).catch((err) =>
       console.error('[inquiry email]', err.message)
+    );
+    sendInquiryConfirmation({ name, email }).catch((err) =>
+      console.error('[inquiry confirmation]', err.message)
     );
 
     res.status(201).json({ ok: true, id: inquiry._id });

@@ -73,6 +73,7 @@ app.use('/api/employee-statuses', require('./routes/employeeStatus.routes'));
 app.use('/api/agency-payouts',    require('./routes/agencyPayout.routes'));
 app.use('/api/notifications',     require('./routes/notification.routes'));
 app.use('/api/inquiries',         require('./routes/inquiry.routes'));
+app.use('/api/webhooks',          require('./routes/webhook.routes'));
 
 app.use((err, req, res, _next) => {
   console.error(err);

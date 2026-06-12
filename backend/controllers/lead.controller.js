@@ -113,7 +113,7 @@ exports.create = async (req, res) => {
     const populated = await lead.populate(POPULATE_FIELDS);
 
     // Send WhatsApp consent message — fire and forget, never block lead creation
-    waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id })
+    waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName })
       .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
       .catch(() => {});
 

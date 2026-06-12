@@ -1,27 +1,30 @@
 const http = require('http');
 const https = require('https');
 
-const WABA_API_URL  = process.env.WABA_API_URL  || 'http://localhost:4004/api/external/consent/send';
+const WABA_API_URL  = process.env.WABA_API_URL  || 'https://nf6fp9tcn6.execute-api.eu-north-1.amazonaws.com/api/external/consent/send';
 const WABA_API_KEY  = process.env.WABA_API_KEY  || '';
-const TEMPLATE_NAME = process.env.WABA_TEMPLATE || 'thankyou';
+const TEMPLATE_NAME = process.env.WABA_TEMPLATE || 'consent_message';
 const YES_BUTTON    = process.env.WABA_YES_BUTTON || 'YES';
 
 function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
-function sendConsentMessage({ phone, externalLeadId }) {
-  return new Promise((resolve, reject) => {
+function sendConsentMessage({ phone, externalLeadId, customerName }) {
+  return new Promise((resolve) => {
     if (!WABA_API_KEY) return resolve({ skipped: true, reason: 'WABA_API_KEY not set' });
 
     const normalized = normalizePhone(phone);
     if (!normalized) return resolve({ skipped: true, reason: 'no phone' });
 
-    const body = JSON.stringify({
+    const payload = JSON.stringify({
       phone: normalized,
       externalLeadId: String(externalLeadId),
       templateName: TEMPLATE_NAME,
       yesButtonText: YES_BUTTON,
+      params: {
+        body: [customerName || 'Customer'],
+      },
     });
 
     const url = new URL(WABA_API_URL);
@@ -32,7 +35,7 @@ function sendConsentMessage({ phone, externalLeadId }) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body),
+        'Content-Length': Buffer.byteLength(payload),
         'x-api-key': WABA_API_KEY,
       },
     };
@@ -57,7 +60,7 @@ function sendConsentMessage({ phone, externalLeadId }) {
       resolve({ error: 'timeout' });
     });
 
-    req.write(body);
+    req.write(payload);
     req.end();
   });
 }

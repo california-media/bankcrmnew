@@ -40,13 +40,21 @@ function sendConsentMessage({ phone, externalLeadId, customerName }) {
       },
     };
 
+    console.log(`[WABA] Sending consent to phone=${normalized} externalLeadId=${externalLeadId} customer="${customerName || 'Customer'}"`);
+
     const lib = url.protocol === 'https:' ? https : http;
     const req = lib.request(options, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
-        try { resolve({ status: res.statusCode, body: JSON.parse(data) }); }
-        catch (_) { resolve({ status: res.statusCode, body: data }); }
+        try {
+          const parsed = JSON.parse(data);
+          console.log(`[WABA] Response status=${res.statusCode} body=${JSON.stringify(parsed)}`);
+          resolve({ status: res.statusCode, body: parsed });
+        } catch (_) {
+          console.log(`[WABA] Response status=${res.statusCode} body=${data}`);
+          resolve({ status: res.statusCode, body: data });
+        }
       });
     });
 

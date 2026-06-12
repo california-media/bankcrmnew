@@ -33,10 +33,15 @@ exports.wabaConsent = async (req, res) => {
 
     console.log(`[WABA webhook] Found confirmed status: "${confirmedStatus.label}" (${confirmedStatus._id})`);
 
-    const lead = await Lead.findOne({ leadNumber: externalLeadId });
+    // Try leadNumber first, then _id as fallback (sent when leadNumber was null at creation)
+    let lead = await Lead.findOne({ leadNumber: externalLeadId });
+
+    if (!lead && externalLeadId.match(/^[a-f\d]{24}$/i)) {
+      lead = await Lead.findById(externalLeadId);
+    }
 
     if (!lead) {
-      console.warn(`[WABA webhook] Lead not found: ${externalLeadId}`);
+      console.warn(`[WABA webhook] Lead not found by leadNumber or _id: "${externalLeadId}" — ID format unrecognised, may be external test`);
       return res.status(404).json({ ok: false, message: `Lead not found: ${externalLeadId}` });
     }
 

@@ -972,7 +972,7 @@
    MySilah — Personal Loans data layer (dynamic, fetched from API)
    ══════════════════════════════════════════════════════════════════ */
 
-const API_BASE = window.location.port === '5500' ? 'http://localhost:8000' : '';
+const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:8000' : 'https://api.mysilah.ae';
 
 // Cosmetic + editorial metadata per bank (cosmetic data kept client-side)
 const BANK_META_BY_NAME = {

@@ -237,7 +237,7 @@ a.logo img {
 <script>
 (async () => {
   try {
-    const r = await fetch('/api/legal/privacy-policy');
+    const r = await fetch('https://api.mysilah.ae/api/legal/privacy-policy');
     if (!r.ok) return;
     const d = await r.json();
     const el = document.querySelector('.legal-content');

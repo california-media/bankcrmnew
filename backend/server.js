@@ -59,14 +59,6 @@ app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Public site static assets (mysilah.svg, video.mov, etc.)
-const SITE_DIR = path.join(__dirname, '../inzigo-site');
-app.use(express.static(SITE_DIR));
-
-// Named page routes
-app.get('/credit-cards', (req, res) => res.sendFile(path.join(SITE_DIR, 'mysilah-redesign.html')));
-app.get('/loans', (req, res) => res.sendFile(path.join(SITE_DIR, 'mysilah-personal-loans.html')));
-
 app.get('/', (req, res) => res.json({ message: 'Bank CRM API' }));
 
 app.use('/api/public',            require('./routes/public.routes'));

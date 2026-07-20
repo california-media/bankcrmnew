@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MySilah — 183 cards. One tied to you.</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RBBQLTFE0R"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-RBBQLTFE0R');
+  </script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+/* ── INZIGO NAV ── */
+.nav{position:sticky;top:0;z-index:200;background:rgba(255,255,255,0.88);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(232,232,238,0.8)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:72px;gap:24px;max-width:1240px;margin:0 auto;padding:0 32px}
+.logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo img{width:112px;display:block}
+.nav-menu{display:flex;align-items:center;gap:28px;background:none;border:none;padding:0;height:auto;}
+.nav-menu a{font-size:14px;color:#1A2036;font-weight:450;text-decoration:none;transition:color .2s}
+.nav-menu a:hover{color:#7C3AED}
+.nav-menu a.active{color:#7C3AED;font-weight:600}
+.nav-cta{display:flex;align-items:center;gap:10px;flex-shrink:0;background:none!important;box-shadow:none!important;padding:0!important;border-radius:0!important}
+.btn{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;padding:10px 18px;border-radius:999px;transition:all .25s cubic-bezier(.2,.7,.3,1);white-space:nowrap;text-decoration:none;cursor:pointer;border:none;font-family:inherit}
+.nav-cta .btn-ghost{color:#1A2036!important;background:none!important;border:none!important;padding:10px 18px!important;font-size:14px!important;font-weight:500!important;border-radius:999px!important;box-shadow:none!important}
+.nav-cta .btn-ghost:hover{color:#7C3AED!important}
+.nav-cta .btn-grad{background:linear-gradient(135deg,#7C3AED 0%,#8B5CF6 45%,#0EA5E9 100%)!important;color:#fff!important;box-shadow:0 12px 48px -12px rgba(124,58,237,0.45)!important;padding:10px 18px!important;font-size:14px!important;font-weight:500!important;border-radius:999px!important;border:none!important}
+.nav-cta .btn-grad:hover{transform:translateY(-1px);box-shadow:0 16px 56px -12px rgba(124,58,237,0.55)!important}
+.wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+@media(max-width:980px){.nav-menu{display:none}}
+@media(max-width:768px){.wrap{padding:0 20px}}
+
+/* ── INZIGO FOOTER ── */
+footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
+.foot-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px}
+@media(max-width:768px){.foot-grid{grid-template-columns:1fr 1fr;gap:32px}}
+.foot-grid h5{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.14em;color:#0B0F1E;margin-bottom:18px;font-weight:600}
+.foot-grid ul{list-style:none;display:flex;flex-direction:column;gap:12px;padding:0;margin:0}
+.foot-grid ul a{font-size:14px;color:#6B7186;transition:color .2s;text-decoration:none}
+.foot-grid ul a:hover{color:#7C3AED}
+.foot-grid .brand{display:flex!important;flex-direction:row!important;align-items:flex-start!important;gap:24px!important;flex-wrap:nowrap}
+.foot-grid .brand .logo{flex-shrink:0!important;width:auto;display:block!important}
+.foot-grid .brand .logo img{width:90px!important}
+.foot-grid .brand p{font-size:14px!important;color:#6B7186!important;line-height:1.55;margin:0!important;max-width:260px;flex:1}
+.foot-bottom{padding-top:32px;border-top:1px solid #E8E8EE;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+.foot-bottom .left{font-size:13px;color:#6B7186;font-family:'Geist Mono',ui-monospace,monospace}
+.foot-bottom .right{font-size:13px;color:#6B7186}
+  :root{
+    --ink:#0A0E23; --blue:#2F6EFF; --violet:#7B3FE4; --cyan:#43D2F0;
+    --mist:#8B92B8; --surface:#F4F5FC; --white:#fff;
+    --green:#16A87A; --green-bg:#E8F9F2;
+    --line: linear-gradient(120deg, var(--blue) 0%, var(--violet) 65%, var(--cyan) 130%);
+    --line-soft: linear-gradient(120deg, rgba(47,110,255,.09), rgba(123,63,228,.09));
+    --font-d:'Sora',sans-serif; --font-b:'Inter',sans-serif; --font-m:'JetBrains Mono',monospace;
+    --shadow-lg: 0 28px 70px rgba(10,14,35,.18);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:auto;}
+  body{font-family:var(--font-b);background:var(--surface);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  ::selection{background:var(--violet);color:#fff;}
+
+  nav{position:sticky; top:0; z-index:200; display:flex; align-items:center; justify-content:space-between; padding:0 48px; height:72px; background:rgba(244,245,252,.85); backdrop-filter:blur(18px); border-bottom:1px solid rgba(139,146,184,.15);}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-logo{height:34px; width:auto; display:block;}
+  .nav-links{display:flex; gap:30px;}
+  .nav-links a{font-size:14px; font-weight:500; color:var(--mist); text-decoration:none;}
+  .nav-links a.active{color:var(--ink); font-weight:600;}
+  .nav-cta{font-family:var(--font-b); font-weight:600; font-size:13.5px; color:#fff; border:none; cursor:pointer; padding:11px 24px; border-radius:100px; background:var(--line); box-shadow:0 8px 24px rgba(123,63,228,.28); transition:transform .2s;}
+  .nav-cta:hover{transform:translateY(-2px);}
+
+  .thread-scope{position:relative;}
+  .thread-svg{position:absolute; top:0; left:0; width:44px; height:100%; z-index:1; pointer-events:none; opacity:.9;}
+  @media(max-width:960px){ .thread-svg{display:none;} }
+
+  .hero{position:relative; padding:80px 48px 60px 96px; display:grid; grid-template-columns:1fr 1fr; gap:40px; align-items:center; overflow:hidden;}
+  .hero::before{content:''; position:absolute; top:-260px; right:-200px; width:640px; height:640px; border-radius:50%; background:radial-gradient(circle, rgba(67,210,240,.14), transparent 70%); pointer-events:none;}
+  .eyebrow{display:inline-flex; align-items:center; gap:8px; font-size:11.5px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:var(--violet); background:var(--line-soft); border:1px solid rgba(123,63,228,.18); padding:7px 14px; border-radius:100px; margin-bottom:22px;}
+  .eyebrow::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--line);}
+  .hero h1{font-family:var(--font-d); font-weight:800; font-size:clamp(34px,4vw,50px); line-height:1.08; letter-spacing:-1.2px; margin-bottom:18px;}
+  .hero h1 .g{background:var(--line); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;}
+  .hero-sub{font-size:16px; line-height:1.65; color:var(--mist); max-width:440px; margin-bottom:30px;}
+  .hero-actions{display:flex; gap:12px; margin-bottom:36px;}
+  .btn-primary{font-family:var(--font-b); font-weight:600; font-size:14.5px; color:#fff; border:none; cursor:pointer; padding:16px 28px; border-radius:14px; background:var(--line); box-shadow:0 12px 28px rgba(123,63,228,.3); transition:transform .2s;}
+  .btn-primary:hover{transform:translateY(-2px);}
+  .btn-ghost{font-family:var(--font-b); font-weight:600; font-size:14.5px; color:var(--ink); border:1.5px solid rgba(139,146,184,.35); background:#fff; cursor:pointer; padding:16px 26px; border-radius:14px; transition:all .2s;}
+  .btn-ghost:hover{border-color:var(--violet); background:var(--line-soft);}
+  .hero-trust{display:flex; gap:36px; padding-top:26px; border-top:1px solid rgba(139,146,184,.2);}
+  .ht-num{font-family:var(--font-m); font-weight:600; font-size:21px;}
+  .ht-lbl{font-size:11px; color:var(--mist); margin-top:2px;}
+
+  .hero-visual{position:relative; display:flex; align-items:center; justify-content:center; min-height:440px;}
+  .dot-bg{position:absolute; inset:-30px; background-image:radial-gradient(rgba(139,146,184,.5) 1.4px, transparent 1.4px); background-size:16px 16px; -webkit-mask-image:radial-gradient(circle, black 35%, transparent 72%); mask-image:radial-gradient(circle, black 35%, transparent 72%);}
+  .laptop{position:relative; width:100%; max-width:400px; z-index:2;}
+  .laptop-screen{background:#1B1F38; border-radius:16px 16px 3px 3px; padding:12px 12px 8px; box-shadow:0 44px 90px rgba(10,14,35,.4);}
+  .laptop-bar{display:flex; align-items:center; gap:5px; margin-bottom:9px;}
+  .laptop-dot{width:7px;height:7px;border-radius:50%;}
+  .laptop-url{flex:1; margin-left:8px; background:rgba(255,255,255,.08); border-radius:100px; font-family:var(--font-m); font-size:8.5px; color:rgba(255,255,255,.5); padding:4px 10px;}
+  .laptop-content{border-radius:8px; overflow:hidden; min-height:238px; display:block; background:#000;}
+  .laptop-content video{width:100%; height:100%; display:block; object-fit:cover;}
+  .laptop-num-row{display:flex; align-items:center; gap:5px; margin-bottom:6px;}
+  .laptop-num{font-family:var(--font-d); font-weight:800; font-size:50px; letter-spacing:-2px; line-height:.9;}
+  .laptop-num.grad{background:var(--line); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;}
+  .laptop-num.outline{color:transparent; -webkit-text-stroke:2px var(--ink);}
+  .laptop-tie{width:30px;height:30px;}
+  .laptop-caption{font-family:var(--font-d); font-weight:700; font-size:12px; margin-bottom:16px;}
+  .laptop-mini-ticket{display:flex; align-items:center; gap:9px; background:#fff; border:1px solid rgba(139,146,184,.2); border-radius:10px; padding:8px 13px; box-shadow:0 8px 20px rgba(10,14,35,.1);}
+  .laptop-mini-badge{width:26px;height:26px;border-radius:7px; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff; flex-shrink:0;}
+  .laptop-mini-text-h{font-size:10px; font-weight:700; text-align:left;}
+  .laptop-mini-text-s{font-size:9px; color:var(--green); font-weight:600; text-align:left;}
+  .laptop-base{height:13px; background:linear-gradient(180deg,#d7dae8,#b9bdd1); border-radius:0 0 8px 8px; position:relative;}
+  .laptop-base::after{content:''; position:absolute; left:50%; transform:translateX(-50%); bottom:0; width:58px; height:5px; background:#9aa0b8; border-radius:0 0 6px 6px;}
+  .laptop-shadow{width:78%; height:18px; margin:10px auto 0; background:radial-gradient(ellipse, rgba(10,14,35,.2), transparent 72%);}
+  .float-badge{position:absolute; background:#fff; border-radius:14px; padding:10px 14px; box-shadow:0 16px 40px rgba(10,14,35,.16); display:flex; align-items:center; gap:9px; z-index:3; animation:floaty 5s ease-in-out infinite;}
+  .float-badge.fb1{top:2%; left:-4%; animation-delay:0s;}
+  .float-badge.fb2{bottom:14%; right:-9%; animation-delay:.7s;}
+  .float-badge.fb3{top:48%; right:-11%; animation-delay:1.4s;}
+  @keyframes floaty{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+  .fb-ic{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px; flex-shrink:0;}
+  .fb-h{font-size:11px;font-weight:700; white-space:nowrap;}
+  .fb-s{font-size:9.5px;color:var(--mist); white-space:nowrap;}
+  @media(max-width:960px){ .hero{grid-template-columns:1fr; padding:64px 24px 40px;} .hero-visual{min-height:340px; margin-top:20px;} .float-badge.fb1{left:0; top:-4%;} .float-badge.fb2{right:0; bottom:6%;} .float-badge.fb3{display:none;} }
+
+  .torn{display:block; width:100%; height:24px;}
+
+  .filter-rail{background:var(--ink); padding:20px 48px 20px 96px; position:relative; z-index:2;}
+  .filter-inner{display:flex; gap:10px; overflow-x:auto; scrollbar-width:none;}
+  .filter-inner::-webkit-scrollbar{display:none;}
+  .chip{flex-shrink:0; display:flex; align-items:center; gap:6px; font-family:var(--font-b); font-size:13px; font-weight:600; color:rgba(255,255,255,.55); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); cursor:pointer; padding:9px 16px; border-radius:100px; transition:all .2s; white-space:nowrap;}
+  .chip:hover{color:#fff;}
+  .chip.active{color:#fff; background:var(--line); border-color:transparent; box-shadow:0 6px 18px rgba(123,63,228,.4);}
+
+  .results-bar{display:flex; align-items:center; justify-content:space-between; padding:10px 48px 8px 96px; max-width:1500px; margin:0 auto; flex-wrap:wrap; gap:10px;}
+  .results-count{font-size:13.5px; color:var(--mist); font-weight:500;}
+  .results-count strong{color:var(--ink); font-family:var(--font-m); font-weight:600;}
+  .sort-select{font-family:var(--font-b); font-size:13px; font-weight:600; color:var(--ink); border:1.5px solid rgba(139,146,184,.25); background:#fff; padding:9px 34px 9px 14px; border-radius:10px; appearance:none; cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B92B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center;}
+  .flip-hint{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--violet); font-weight:600; background:var(--line-soft); padding:7px 14px; border-radius:100px; border:1px solid rgba(123,63,228,.2);}
+
+  .main{display:grid; grid-template-columns:230px 1fr; gap:32px; padding:0 48px 40px 96px; max-width:1500px; margin:0 auto;}
+  .sidebar{padding-top:8px;}
+  .sb-sticky{position:sticky; top:88px; max-height:calc(100vh - 100px); overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(139,146,184,.3) transparent;}
+  .sb-sticky::-webkit-scrollbar{width:4px;}
+  .sb-sticky::-webkit-scrollbar-track{background:transparent;}
+  .sb-sticky::-webkit-scrollbar-thumb{background:rgba(139,146,184,.3); border-radius:4px;}
+  .sb-group{margin-bottom:24px;}
+  .sb-title{font-family:var(--font-d); font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--mist); margin-bottom:12px;}
+  .sb-opt{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:500; color:var(--ink);}
+  .sb-more-toggle{display:flex; align-items:center; gap:6px; padding:8px 10px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; color:var(--violet);}
+  .sb-more-toggle:hover{background:#fff;}
+  .sb-opt:hover{background:#fff;}
+  .sb-opt input{width:16px;height:16px;accent-color:var(--violet); cursor:pointer;}
+  .sb-opt .cnt{margin-left:auto; font-family:var(--font-m); font-size:10.5px; color:var(--mist);}
+  .sb-div{height:1px; background:rgba(139,146,184,.2); margin:16px 0;}
+  .sb-range{width:100%; accent-color:var(--violet); margin:10px 0;}
+  .sb-range-lbl{display:flex; justify-content:space-between; font-family:var(--font-m); font-size:10.5px; color:var(--mist);}
+  .sb-apply{width:100%; font-family:var(--font-b); font-weight:600; font-size:13.5px; color:#fff; border:none; cursor:pointer; padding:13px; border-radius:12px; background:var(--line); margin-top:4px;}
+  .sb-clear{width:100%; font-family:var(--font-b); font-weight:600; font-size:13px; color:var(--mist); border:1.5px solid rgba(139,146,184,.25); cursor:pointer; padding:11px; border-radius:12px; background:#fff; margin-top:8px; transition:all .2s;}
+  .sb-clear:hover{border-color:var(--violet); color:var(--violet); background:var(--line-soft);}
+  .no-results{display:none; flex-direction:column; align-items:center; text-align:center; padding:60px 24px; background:#fff; border-radius:20px; border:1.5px dashed rgba(139,146,184,.3);}
+  .no-results.show{display:flex;}
+  .no-results-ic{font-size:38px; margin-bottom:14px;}
+  .no-results-title{font-family:var(--font-d); font-weight:800; font-size:18px; margin-bottom:6px;}
+  .no-results-sub{font-size:13.5px; color:var(--mist); max-width:340px; line-height:1.6; margin-bottom:18px;}
+  .active-filter-chip{display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--violet); background:var(--line-soft); border:1px solid rgba(123,63,228,.2); padding:6px 12px; border-radius:100px;}
+
+  .section-head{display:flex; align-items:center; justify-content:space-between; margin:44px 0 20px;}
+  .section-head.first{margin-top:0;}
+  .section-title{font-family:var(--font-d); font-weight:700; font-size:18px; display:flex; align-items:center; gap:9px;}
+  .section-count{font-family:var(--font-m); font-size:10.5px; color:var(--mist); background:#fff; padding:3px 10px; border-radius:100px; border:1px solid rgba(139,146,184,.2);}
+  .section-view{font-size:12.5px; font-weight:600; color:var(--violet); text-decoration:none; display:flex; align-items:center; gap:4px; white-space:nowrap;}
+
+  .flip-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(272px,1fr)); gap:26px; margin-bottom:8px;}
+  .flip-tile{perspective:1600px; cursor:pointer;}
+  .flip-tile.featured{grid-column:1 / -1; height:480px;}
+  .flip-inner{position:relative; width:100%; transition:transform .75s cubic-bezier(.4,.05,.2,1); transform-style:preserve-3d;}
+  .flip-tile.flipped .flip-inner{transform:rotateY(180deg);}
+  .flip-face{backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:22px; overflow:hidden; box-shadow:0 14px 36px rgba(10,14,35,.1); display:flex; flex-direction:column; border:1px solid rgba(139,146,184,.14);}
+  .flip-tile.featured .flip-inner{height:100%;}
+  .flip-tile.featured .flip-face{position:absolute; inset:0;}
+  .flip-tile:hover .flip-face{box-shadow:var(--shadow-lg);}
+
+  .flip-front{background:#fff;}
+  .card-stage{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:22px 22px 0; background:radial-gradient(circle at 30% 10%, rgba(123,63,228,.07), transparent 60%); position:relative; perspective:900px;}
+  .rcard-full{position:relative; width:100%; max-width:280px; margin:0 auto; aspect-ratio:1.586/1; border-radius:16px; overflow:hidden; box-shadow:0 20px 40px rgba(20,24,51,.4); display:flex; flex-direction:column; justify-content:space-between; padding:15px 17px; transition:transform .6s cubic-bezier(.23,1,.32,1);}
+  .rcard-photo-wrap{position:relative; width:100%; max-width:280px; margin:0 auto; aspect-ratio:1.586/1; border-radius:16px; overflow:visible; transition:transform .5s cubic-bezier(.23,1,.32,1);}
+  .rcard-photo{position:relative; z-index:2; width:100%; height:100%; object-fit:cover; display:block; border-radius:15px; box-shadow:0 20px 38px -10px rgba(15,18,40,.45), 0 6px 14px -4px rgba(15,18,40,.3), 0 0 0 1px rgba(255,255,255,.1); transition:transform .4s cubic-bezier(.23,1,.32,1), box-shadow .4s ease;}
+  .rcard-photo-sheen{position:absolute; inset:0; z-index:3; border-radius:15px; pointer-events:none; background:linear-gradient(115deg, rgba(255,255,255,.4) 0%, rgba(255,255,255,0) 26%, rgba(255,255,255,0) 76%, rgba(255,255,255,.18) 100%); mix-blend-mode:overlay;}
+  .rcard-photo-wrap:hover .rcard-photo{transform:translateY(-9px) scale(1.025); box-shadow:0 32px 54px -10px rgba(15,18,40,.52), 0 12px 24px -6px rgba(123,63,228,.32), 0 0 0 1px rgba(255,255,255,.16);}
+  .rcard-photo-wrap:hover .rcard-photo-sheen{background:linear-gradient(115deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 74%, rgba(255,255,255,.22) 100%);}
+  .rcard-photo-wrap.no-box .rcard-photo{object-fit:contain; border-radius:0; box-shadow:none; background:transparent;}
+  .rcard-photo-wrap.no-box:hover .rcard-photo{transform:translateY(-9px) scale(1.025); box-shadow:none;}
+  .card-glow-pad{width:62%; max-width:170px; height:20px; margin:6px auto 2px; border-radius:50%; background:radial-gradient(ellipse, rgba(123,63,228,.32), transparent 72%); filter:blur(6px); pointer-events:none;}
+  .rcard-full::after{content:''; position:absolute; inset:0; background:linear-gradient(135deg, rgba(255,255,255,.22) 0%, transparent 30%, transparent 70%, rgba(255,255,255,.08) 100%); mix-blend-mode:overlay; pointer-events:none;}
+  .holo-sheen{position:absolute; inset:0; background:radial-gradient(circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.65), rgba(255,255,255,0) 55%); mix-blend-mode:overlay; opacity:0; transition:opacity .4s; pointer-events:none; z-index:3;}
+  .holo-rainbow{position:absolute; inset:0; opacity:0; mix-blend-mode:color-dodge; background:repeating-linear-gradient(115deg, #ff2d6b 0%, #ffb400 16%, #3af7c9 32%, #2f6eff 48%, #7b3fe4 64%, #ff2d6b 80%); background-size:250% 250%; background-position:var(--mx,50%) var(--my,50%); transition:opacity .4s; pointer-events:none; z-index:2;}
+  .card-stage:hover .holo-sheen{opacity:1;}
+  .card-stage:hover .holo-rainbow{opacity:.22;}
+  .rcard-holo{position:absolute; top:12px; right:12px; width:17px; height:17px; border-radius:50%; background:conic-gradient(from 180deg,#43D2F0,#7B3FE4,#2F6EFF,#43D2F0); opacity:.9; z-index:4; animation:holoSpin 4s linear infinite;}
+  @keyframes holoSpin{ to{ filter:hue-rotate(360deg); } }
+  .rcard-chip{width:28px; height:20px; border-radius:4px; background:linear-gradient(135deg,#E8C97A,#C9A84C); position:relative;}
+  .rcard-chip::after{content:''; position:absolute; inset:3px; background:repeating-linear-gradient(90deg, rgba(0,0,0,.18) 0 2px, transparent 2px 4px);}
+  .rcard-number{font-family:var(--font-m); font-size:11px; letter-spacing:2.5px; color:rgba(255,255,255,.6); margin-top:8px;}
+  .rcard-holder{font-family:var(--font-m); font-size:8px; letter-spacing:1.6px; color:rgba(255,255,255,.4); text-transform:uppercase; margin-top:5px;}
+  .rcard-bottom{display:flex; justify-content:space-between; align-items:flex-end;}
+  .rcard-bank{font-size:8.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:rgba(255,255,255,.65);}
+  .rcard-network{font-family:var(--font-d); font-weight:800; font-size:12px; font-style:italic; color:#fff; opacity:.92;}
+  .card-ribbon{position:absolute; top:15px; left:-32px; width:135px; text-align:center; transform:rotate(-45deg); background:var(--line); color:#fff; font-size:8.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; padding:4px 0; box-shadow:0 4px 10px rgba(0,0,0,.28); z-index:4;}
+  .flip-hint{position:absolute; top:12px; right:12px; z-index:10; width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.92); border:1.5px solid rgba(123,63,228,.25); box-shadow:0 4px 14px rgba(123,63,228,.22); display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0; transform:scale(.8); transition:opacity .25s, transform .25s, background .2s; pointer-events:none;}
+  .flip-tile:hover .flip-hint{opacity:1; transform:scale(1); pointer-events:auto;}
+  .flip-hint svg{width:16px; height:16px; flex-shrink:0;}
+  .flip-hint:hover{background:linear-gradient(135deg,#7B3FE4,#2F6EFF); box-shadow:0 6px 18px rgba(123,63,228,.45);}
+  .flip-hint:hover svg path{stroke:#fff;}
+
+  .front-label{display:flex; flex-direction:column; padding:6px 20px 18px; gap:2px; flex:1 1 auto; min-height:0;}
+  .fl-name{font-family:var(--font-d); font-weight:800; font-size:16.5px; line-height:1.25; color:var(--ink); margin-bottom:2px; text-align:center; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; text-overflow:ellipsis; flex-shrink:0;}
+  .fl-bank{font-size:11px; color:var(--mist); font-weight:600; text-align:center; margin-bottom:14px;}
+  .info-rows{margin-bottom:12px;}
+  .info-row{display:flex; align-items:baseline; gap:6px; font-size:11.5px; margin-bottom:8px;}
+  .info-row .lbl{color:var(--mist); font-weight:600; white-space:nowrap;}
+  .info-row .dots{flex:1; border-bottom:1.5px dotted rgba(139,146,184,.4); transform:translateY(-3px); min-width:12px;}
+  .info-row .val{font-family:var(--font-m); font-weight:700; color:var(--ink); white-space:nowrap;}
+  .info-row .val.green{color:var(--green);}
+  .front-offer{display:flex; align-items:flex-start; gap:7px; background:var(--green-bg); border:1px solid rgba(22,168,122,.22); border-radius:10px; padding:10px 12px; font-size:11px; line-height:1.4; color:#0E6B4F; font-weight:600; margin-bottom:12px; min-height:0;}
+  .front-offer .oi{flex-shrink:0; font-size:13px;}
+  .front-offer span:last-child{display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden;}
+  .front-apply{width:100%; font-family:var(--font-b); font-weight:700; font-size:13px; color:#fff; border:none; cursor:pointer; padding:13px; border-radius:12px; background:var(--line); box-shadow:0 10px 24px rgba(123,63,228,.3); transition:transform .2s; margin-bottom:12px;}
+  .front-apply:hover{transform:translateY(-1px);}
+  .card-foot-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding-top:11px; border-top:1px dashed rgba(139,146,184,.25); flex-wrap:wrap;}
+  .compare-check{display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--mist); cursor:pointer;}
+  .compare-check input{width:14px; height:14px; accent-color:var(--violet); cursor:pointer;}
+  .view-details{background:none; border:1.5px solid rgba(123,63,228,.3); color:var(--violet); font-family:var(--font-b); font-weight:600; font-size:11px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:100px; transition:all .2s;}
+  .view-details:hover{background:var(--line-soft);}
+  .view-details .chev{transition:transform .3s; font-size:9px;}
+  .view-details.open .chev{transform:rotate(180deg);}
+
+  /* back face — compact Features + Benefits (deep-dive content lives here) */
+  .back-h{font-family:var(--font-d); font-weight:700; font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:rgba(255,255,255,.5); margin:0 0 8px; display:flex; align-items:center; gap:6px;}
+  .benefit-block{margin-bottom:11px;}
+  .benefit-block:last-child{margin-bottom:0;}
+  .benefit-block-h{font-family:var(--font-d); font-weight:700; font-size:11px; color:var(--cyan); margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid rgba(67,210,240,.22);}
+  .legal-links{margin:2px 0 12px; padding-top:10px; border-top:1px solid rgba(255,255,255,.14); display:flex; flex-direction:column; gap:5px;}
+  .legal-links a{font-size:10.5px; font-weight:600; color:var(--cyan); text-decoration:none; display:inline-flex; align-items:center; gap:5px; width:fit-content;}
+  .legal-links a:hover{text-decoration:underline;}
+  .legal-disclaimer{font-size:9.5px; color:rgba(255,255,255,.42); line-height:1.5; margin-top:1px;}
+
+  .flip-back{position:absolute; inset:0; background:linear-gradient(160deg,#11142B,#1C2247); color:#fff; padding:20px 20px 18px; transform:rotateY(180deg);}
+  .back-top{display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px;}
+  .back-title{font-family:var(--font-d); font-weight:700; font-size:14px; line-height:1.2;}
+  .back-sub{font-size:10px; color:rgba(255,255,255,.45); margin-top:2px;}
+  .back-flip{width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.08); border:none; color:#fff; cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:transform .3s; flex-shrink:0;}
+  .back-flip:hover{transform:rotate(-180deg); background:rgba(255,255,255,.16);}
+  .back-stats{display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:13px;}
+  .bs-l{font-size:8px; text-transform:uppercase; letter-spacing:.5px; color:rgba(255,255,255,.4); margin-bottom:2px;}
+  .bs-v{font-family:var(--font-m); font-weight:600; font-size:12.5px;}
+  .bs-v.green{color:#3FE0A0;}
+  .back-perks{list-style:none; display:flex; flex-direction:column; gap:6px; flex:1; overflow:hidden;}
+  .back-perks li{font-size:10.8px; display:flex; gap:6px; align-items:flex-start; color:rgba(255,255,255,.82); line-height:1.35;}
+  .back-perks li::before{content:'✓'; color:#43D2F0; font-weight:700; flex-shrink:0;}
+  .back-apply{width:100%; font-family:var(--font-b); font-weight:700; font-size:13px; color:var(--ink); border:none; cursor:pointer; padding:12px; border-radius:11px; background:#fff; margin-top:12px; transition:transform .2s;}
+  .back-apply:hover{transform:translateY(-2px);}
+
+  .flip-tile.featured .flip-front{flex-direction:row;}
+  .flip-tile.featured .card-stage{flex:0 0 300px; padding:26px;}
+  .flip-tile.featured .rcard-full{max-width:300px;}
+  .flip-tile.featured .front-label{flex:1; flex-direction:column; align-items:flex-start; justify-content:center; padding:24px 28px 24px 4px; gap:2px;}
+  .flip-tile.featured .fl-name{font-size:23px;}
+  .feat-perks-row{display:flex; gap:6px; flex-wrap:wrap; margin:2px 0 12px;}
+  .feat-perk-chip{font-size:10px; font-weight:600; padding:4px 9px; border-radius:100px; background:var(--surface); border:1px solid rgba(139,146,184,.18); white-space:nowrap;}
+  .flip-tile.featured .feat-perks-row{gap:7px; margin-top:4px;}
+  .flip-tile.featured .feat-perk-chip{font-size:11px; padding:5px 11px;}
+  .flip-tile.featured .front-apply{width:240px; margin-top:2px;}
+  .flip-tile.featured .flip-back{flex-direction:row; align-items:stretch; gap:28px;}
+  .flip-tile.featured .back-col{flex:1;}
+  .flip-tile.featured .back-stats{grid-template-columns:repeat(4,1fr);}
+  .flip-tile.featured .back-apply-col{flex:0 0 200px; display:flex; flex-direction:column; justify-content:center;}
+  .flip-tile.featured .back-apply{margin-top:0; padding:16px; font-size:14px;}
+
+  .mini-t1{background:linear-gradient(135deg,#141833,#2A3168);}
+  .mini-t2{background:linear-gradient(135deg,#0B3D2E,#12694A);}
+  .mini-t3{background:linear-gradient(135deg,#2B0F45,#5A2599);}
+  .mini-t4{background:linear-gradient(135deg,#0F2A4D,#1E4E8C);}
+  .mini-t5{background:linear-gradient(135deg,#241128,#4A1F52);}
+  .mini-t6{background:linear-gradient(135deg,#0A2E38,#136173);}
+  .citi-1{background:linear-gradient(135deg,#001A41,#003D79);}
+  .citi-2{background:linear-gradient(135deg,#003D79,#0066B3);}
+  .citi-accent{position:absolute; bottom:14px; left:14px; width:16px; height:16px; border-radius:50%; background:#D62D20; opacity:.9;}
+
+  @media(max-width:640px){
+    .flip-tile.featured{height:auto;}
+    .flip-tile.featured .flip-inner{height:auto;}
+    .flip-tile.featured .flip-face{position:relative;}
+    .flip-tile.featured .flip-front{flex-direction:column;}
+    .flip-tile.featured .card-stage{flex:none;}
+    .flip-tile.featured .front-label{padding:18px;}
+    .flip-tile.featured .flip-back{flex-direction:column;}
+    .flip-tile.featured .back-apply-col{flex:none;}
+  }
+
+  .insight-card{position:relative; overflow:hidden; border-radius:22px; background:var(--ink); padding:44px 36px; margin:44px 0; text-align:center;}
+  .insight-card::before{content:'';position:absolute; top:-140px;left:50%;transform:translateX(-50%);width:420px;height:420px;border-radius:50%;background:radial-gradient(circle, rgba(123,63,228,.28), transparent 70%);}
+  .insight-eyebrow{font-size:10.5px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--cyan); margin-bottom:12px; position:relative;}
+  .insight-h{font-family:var(--font-d); font-weight:700; font-size:clamp(20px,2.4vw,28px); color:#fff; max-width:620px; margin:0 auto 14px; line-height:1.3; position:relative;}
+  .insight-h .g{background:var(--line); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;}
+  .insight-p{color:rgba(255,255,255,.5); font-size:13.5px; max-width:440px; margin:0 auto 24px; position:relative;}
+  .insight-btn{font-family:var(--font-b); font-weight:600; font-size:13.5px; color:var(--ink); border:none; cursor:pointer; padding:13px 28px; border-radius:12px; background:#fff; position:relative; transition:transform .2s;}
+  .insight-btn:hover{transform:translateY(-2px);}
+
+  .trust{background:#fff; padding:44px 48px; display:flex; gap:52px; justify-content:center; flex-wrap:wrap; border-top:1px solid rgba(139,146,184,.15);}
+  .trust-item{display:flex; align-items:center; gap:12px;}
+  .trust-ic{width:42px;height:42px; border-radius:12px; background:var(--line-soft); display:flex; align-items:center; justify-content:center; font-size:18px;}
+  .trust-h{font-family:var(--font-d); font-weight:700; font-size:14px;}
+  .trust-s{font-size:11.5px; color:var(--mist);}
+  footer{background:#fff!important; padding:64px 0 40px!important; color:#6B7186!important; border-top:1px solid #E8E8EE!important;}
+  footer a{color:#6B7186!important; text-decoration:none; font-size:14px; margin-bottom:0;}
+  footer a:hover{color:#7C3AED!important;}
+  .foot-bottom{display:flex; justify-content:space-between; align-items:center; border-top:1px solid #E8E8EE!important; padding-top:32px; font-size:13px; flex-wrap:wrap; gap:16px;}
+  .foot-bottom .left,.foot-bottom .right{color:#6B7186!important;}
+
+  @media(max-width:960px){
+    .filter-rail, .results-bar, .main{padding-left:24px;}
+    .main{grid-template-columns:1fr; padding-right:24px;}
+    .sidebar{display:flex; flex-wrap:wrap; gap:14px; border-bottom:1px solid rgba(139,146,184,.15); padding-bottom:10px; margin-bottom:6px; position:static;}
+    .sb-group{margin-bottom:0;}
+    nav{padding:0 24px;} .nav-links{display:none;}
+    .trust{padding:36px 24px;} footer{padding:44px 24px 24px;} .foot-grid{grid-template-columns:1fr 1fr;}
+  }
+  @media(max-width:640px){ .foot-grid{grid-template-columns:1fr;} .foot-bottom{flex-direction:column; gap:14px; text-align:center;} }
+
+  /* ══════════ APPLY MODAL ══════════ */
+  .apply-overlay{position:fixed; inset:0; z-index:1000; background:rgba(10,14,35,.55); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .25s ease;}
+  .apply-overlay.open{opacity:1; pointer-events:auto;}
+  .apply-modal{width:100%; max-width:460px; max-height:88vh; overflow-y:auto; background:#fff; border-radius:20px; box-shadow:var(--shadow-lg); padding:30px 28px 28px; position:relative; transform:translateY(18px) scale(.98); opacity:0; transition:transform .3s cubic-bezier(.23,1,.32,1), opacity .3s ease;}
+  #matchOverlay .apply-modal{max-height:none; overflow-y:visible;}
+  .apply-overlay.open .apply-modal{transform:translateY(0) scale(1); opacity:1;}
+  .apply-modal-close{position:absolute; top:16px; right:16px; width:32px;height:32px; border-radius:50%; border:none; background:var(--surface); color:var(--mist); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s;}
+  .apply-modal-close:hover{background:var(--line-soft); color:var(--violet);}
+  .apply-modal-head{margin-bottom:20px; padding-right:26px;}
+  .apply-modal-eyebrow{display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--violet); background:var(--line-soft); border:1px solid rgba(123,63,228,.18); padding:5px 12px; border-radius:100px; margin-bottom:12px;}
+  .apply-modal-title{font-family:var(--font-d); font-weight:800; font-size:21px; letter-spacing:-.4px; margin-bottom:4px;}
+  .apply-modal-sub{font-size:13px; color:var(--mist);}
+  .apply-modal-sub strong{color:var(--ink);}
+  .af-group{margin-bottom:14px;}
+  .af-row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .af-label{display:block; font-size:12.5px; font-weight:600; color:var(--ink); margin-bottom:6px;}
+  .af-input, .af-select{width:100%; font-family:var(--font-b); font-size:14px; color:var(--ink); background:var(--surface); border:1.5px solid rgba(139,146,184,.25); border-radius:11px; padding:12px 14px; transition:border-color .2s; appearance:none;}
+  .af-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B92B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center;}
+  .af-input:focus, .af-select:focus{outline:none; border-color:var(--violet); background:#fff;}
+  .af-input::placeholder{color:var(--mist);}
+  .af-consent{display:flex; align-items:flex-start; gap:9px; font-size:11.5px; color:var(--mist); line-height:1.5; margin:16px 0 20px;}
+  .af-consent input{margin-top:2px; accent-color:var(--violet); flex-shrink:0;}
+  .af-submit{width:100%; font-family:var(--font-b); font-weight:600; font-size:14.5px; color:#fff; border:none; cursor:pointer; padding:15px; border-radius:13px; background:var(--line); box-shadow:0 12px 28px rgba(123,63,228,.3); transition:transform .2s;}
+  .af-submit:hover{transform:translateY(-2px);}
+  .af-secure{display:flex; align-items:center; justify-content:center; gap:6px; font-size:11px; color:var(--mist); margin-top:14px;}
+  .apply-success{display:none; text-align:center; padding:20px 6px 6px;}
+  .apply-success.show{display:block;}
+  .apply-success-ic{width:56px;height:56px; border-radius:50%; background:var(--green-bg); color:var(--green); font-size:26px; display:flex; align-items:center; justify-content:center; margin:0 auto 18px;}
+  .apply-success-title{font-family:var(--font-d); font-weight:800; font-size:19px; margin-bottom:8px;}
+  .apply-success-sub{font-size:13.5px; color:var(--mist); line-height:1.6; margin-bottom:22px;}
+  .apply-form.hide{display:none;}
+  @media(max-width:520px){ .af-row{grid-template-columns:1fr;} }
+
+  .mf-chip-grid{display:flex; flex-wrap:wrap; gap:8px;}
+  .mf-chip{display:flex; align-items:center; gap:6px; font-family:var(--font-b); font-size:12.5px; font-weight:600; color:var(--ink); background:var(--surface); border:1.5px solid rgba(139,146,184,.25); padding:8px 14px; border-radius:100px; cursor:pointer; transition:all .18s; user-select:none;}
+  .mf-chip:hover{border-color:var(--violet);}
+  .mf-chip.active{color:#fff; background:var(--line); border-color:transparent; box-shadow:0 6px 16px rgba(123,63,228,.32);}
+  .af-hint{font-weight:400; color:var(--mist); font-size:11.5px;}
+
+  /* ══════════ MATCH SAVINGS RESULT ══════════ */
+  .match-savings-hero{background:var(--line); border-radius:16px; padding:18px 20px; margin:18px 0; text-align:center;}
+  .msh-lbl{font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:rgba(255,255,255,.75);}
+  .msh-val{font-family:var(--font-d); font-weight:800; font-size:32px; color:#fff; letter-spacing:-.5px; margin:4px 0 2px;}
+  .msh-sub{font-size:12px; color:rgba(255,255,255,.85);}
+  .runner-up-list{margin:4px 0 18px; text-align:left;}
+  .runner-up-title{font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--mist); margin-bottom:8px;}
+  .runner-up-item{display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--surface); border-radius:11px; padding:10px 14px; margin-bottom:8px; font-size:12.5px;}
+  .ru-name{font-weight:700; color:var(--ink);}
+  .ru-bank{color:var(--mist); font-size:11px;}
+  .ru-amt{font-family:var(--font-m); font-weight:600; color:var(--green); white-space:nowrap;}
+  .savings-badge{display:flex; align-items:center; gap:6px; background:var(--green-bg); color:var(--green); font-size:11.5px; font-weight:700; padding:7px 12px; border-radius:10px; margin-bottom:10px;}
+  .fee-breakdown{background:var(--surface); border:1.5px solid rgba(139,146,184,.2); border-radius:13px; padding:14px 16px; margin:0 0 18px; text-align:left; font-size:12.5px; line-height:1.7; color:var(--ink);}
+  .fee-breakdown .fb-row{display:flex; justify-content:space-between; padding:3px 0;}
+  .fee-breakdown .fb-row.total{border-top:1px dashed rgba(139,146,184,.35); margin-top:4px; padding-top:8px; font-weight:700;}
+  .fee-breakdown .fb-row.total .fb-pos{color:var(--green);}
+  .fee-breakdown .fb-row.total .fb-neg{color:#D14343;}
+  .fee-breakdown .fb-verdict{margin-top:10px; font-size:12px; color:var(--mist); line-height:1.55;}
+  .match-best-card{display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--surface); border:1.5px solid rgba(139,146,184,.25); border-radius:14px; padding:14px 16px; margin:2px 0 16px; text-align:left;}
+  .mbc-name{font-family:var(--font-d); font-weight:700; font-size:14px; color:var(--ink);}
+  .mbc-bank{font-size:11.5px; color:var(--mist); margin-top:2px;}
+  .mbc-apply{flex-shrink:0; font-family:var(--font-b); font-weight:600; font-size:12.5px; color:#fff; border:none; cursor:pointer; padding:10px 18px; border-radius:10px; background:var(--line); box-shadow:0 8px 18px rgba(123,63,228,.28); transition:transform .2s; white-space:nowrap;}
+  .mbc-apply:hover{transform:translateY(-2px);}
+  .ru-apply{flex-shrink:0; font-family:var(--font-b); font-weight:600; font-size:11px; color:var(--violet); border:1.5px solid rgba(123,63,228,.3); cursor:pointer; padding:6px 12px; border-radius:100px; background:#fff; transition:all .18s; white-space:nowrap;}
+  .ru-apply:hover{background:var(--line); color:#fff; border-color:transparent;}
+</style>
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a href="https://mysilah.ae/" class="logo">
+        <img src="mysilah.svg">
+    </a>
+    <nav class="nav-menu">
+      <a href="index.html#home">Home</a>
+      <a href="index.html#agents">Agents</a>
+      <a href="index.html#agencies">Partner Agencies</a>
+      <a href="index.html#banks">Banks &amp; FIs</a>
+      <a href="index.html#features">Services</a>
+      <a href="/credit-cards" class="active">Credit Cards</a>
+      <a href="/loans">Personal Loans</a>
+      <a href="index.html#contact">Contact</a>
+    </nav>
+    <div class="nav-cta">
+      <a target="_blank" href="https://app.mysilah.ae/login/" class="btn btn-ghost">Sign in</a>
+      <a target="_blank" href="https://app.mysilah.ae/register/" class="btn btn-grad">Get started</a>
+    </div>
+  </div>
+</header>
+<div class="thread-scope">
+  <svg class="thread-svg" viewBox="0 0 40 3200" preserveAspectRatio="none">
+    <defs><linearGradient id="threadg" x1="0" y1="0" x2="0" y2="3200" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2F6EFF"/><stop offset="45%" stop-color="#7B3FE4"/><stop offset="100%" stop-color="#43D2F0"/>
+    </linearGradient></defs>
+    <path d="M20,0 C4,200 36,380 20,580 C4,780 36,960 20,1160 C4,1360 36,1540 20,1740 C4,1940 36,2120 20,2320 C4,2520 36,2700 20,2900 C10,3020 30,3100 20,3200" stroke="url(#threadg)" stroke-width="2.5" fill="none" opacity="0.5"/>
+    <circle cx="20" cy="0" r="5" fill="#2F6EFF"/><circle cx="20" cy="580" r="5" fill="#5F5AE0"/><circle cx="20" cy="1160" r="5" fill="#7B3FE4"/>
+    <circle cx="20" cy="1740" r="5" fill="#7156DB"/><circle cx="20" cy="2320" r="5" fill="#579FE8"/><circle cx="20" cy="2900" r="5" fill="#43D2F0"/>
+  </svg>
+
+  <section class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow">Connect · Empower · Grow</div>
+      <h1>183 cards on the market. <span class="g">One tied to you.</span></h1>
+      <p class="hero-sub">Tell us your salary and spending habits once — MySilah threads through every UAE bank card and hands you the single match worth applying for.</p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="openMatchModal();">Find My Match →</button>
+        <button class="btn-ghost" onclick="document.querySelector('.filter-rail').scrollIntoView({behavior:'smooth'});">Browse All 183</button>
+      </div>
+      <div class="hero-trust">
+        <div><div class="ht-num">183</div><div class="ht-lbl">Cards Threaded</div></div>
+        <div><div class="ht-num">24</div><div class="ht-lbl">UAE Banks</div></div>
+        <div><div class="ht-num">2 min</div><div class="ht-lbl">To Your Match</div></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="dot-bg"></div>
+      <div class="float-badge fb1"><div class="fb-ic" style="background:var(--green-bg);">🎯</div><div><div class="fb-h">98% Match Found</div><div class="fb-s">FAB Cashback+</div></div></div>
+      <div class="float-badge fb2"><div class="fb-ic" style="background:var(--line-soft);">💰</div><div><div class="fb-h">AED 750</div><div class="fb-s">Cashback / yr</div></div></div>
+      <div class="float-badge fb3"><div class="fb-ic" style="background:#EEF0FF;">🤝</div><div><div class="fb-h">26 Banks</div><div class="fb-s">One profile</div></div></div>
+      <div class="laptop">
+        <div class="laptop-screen">
+          <div class="laptop-bar"><div class="laptop-dot" style="background:#FF5F57;"></div><div class="laptop-dot" style="background:#FEBC2E;"></div><div class="laptop-dot" style="background:#28C840;"></div><div class="laptop-url">mysilah.ae/match</div></div>
+          <div class="laptop-content">
+            <video autoplay muted loop playsinline>
+              <source src="video.mov" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+        <div class="laptop-base"></div>
+        <div class="laptop-shadow"></div>
+      </div>
+    </div>
+  </section>
+
+  <svg class="torn" viewBox="0 0 1200 24" preserveAspectRatio="none"><path d="M0,24 L0,4 L24,20 L48,4 L72,20 L96,4 L120,20 L144,4 L168,20 L192,4 L216,20 L240,4 L264,20 L288,4 L312,20 L336,4 L360,20 L384,4 L408,20 L432,4 L456,20 L480,4 L504,20 L528,4 L552,20 L576,4 L600,20 L624,4 L648,20 L672,4 L696,20 L720,4 L744,20 L768,4 L792,20 L816,4 L840,20 L864,4 L888,20 L912,4 L936,20 L960,4 L984,20 L1008,4 L1032,20 L1056,4 L1080,20 L1104,4 L1128,20 L1152,4 L1176,20 L1200,4 L1200,24 Z" fill="#0A0E23"/></svg>
+
+  <div class="filter-rail">
+    <div class="filter-inner">
+      <button class="chip active" data-chip="all" onclick="setChip(this)">All Matches · 183</button>
+      <button class="chip" data-chip="cashback" onclick="setChip(this)">💰 Cashback</button>
+      <button class="chip" data-chip="travel" onclick="setChip(this)">✈️ Travel Miles</button>
+      <button class="chip" data-chip="zerofee" onclick="setChip(this)">🆓 Zero Fee</button>
+      <button class="chip" data-chip="shopping" onclick="setChip(this)">🛍️ Shopping</button>
+      <button class="chip" data-chip="premium" onclick="setChip(this)">🏆 Premium</button>
+      <button class="chip" data-chip="islamic" onclick="setChip(this)">☪️ Islamic</button>
+    </div>
+  </div>
+
+  <svg class="torn" viewBox="0 0 1200 24" preserveAspectRatio="none" style="transform:scaleY(-1);"><path d="M0,24 L0,4 L24,20 L48,4 L72,20 L96,4 L120,20 L144,4 L168,20 L192,4 L216,20 L240,4 L264,20 L288,4 L312,20 L336,4 L360,20 L384,4 L408,20 L432,4 L456,20 L480,4 L504,20 L528,4 L552,20 L576,4 L600,20 L624,4 L648,20 L672,4 L696,20 L720,4 L744,20 L768,4 L792,20 L816,4 L840,20 L864,4 L888,20 L912,4 L936,20 L960,4 L984,20 L1008,4 L1032,20 L1056,4 L1080,20 L1104,4 L1128,20 L1152,4 L1176,20 L1200,4 L1200,24 Z" fill="var(--surface)"/></svg>
+
+  <div class="results-bar">
+    <div class="flip-hint">🔄 Flip any card for fees, features & benefits</div>
+    <select class="sort-select" id="sortSelect" style="display:none;">
+      <option value="best">Best Match for You</option>
+      <option value="cashback">Highest Cashback</option>
+      <option value="fee">Lowest Annual Fee</option>
+      <option value="miles">Most Miles Earned</option>
+    </select>
+  </div>
+
+  <div class="main">
+    <aside class="sidebar">
+      <div class="sb-sticky">
+        <div class="sb-group">
+          <div class="sb-title">Bank</div>
+          <div id="bankFilterList"></div>
+        </div>
+        <div class="sb-div"></div>
+        <div class="sb-group">
+          <div class="sb-title">Spend Category</div>
+          <div id="spendCategoryFilterList"></div>
+        </div>
+        <div class="sb-div"></div>
+        <div class="sb-group">
+          <div class="sb-title">Annual Fee</div>
+          <label class="sb-opt"><input type="checkbox" class="fee-chk" value="free"/> Free forever <span class="cnt">24</span></label>
+          <label class="sb-opt"><input type="checkbox" class="fee-chk" value="500"/> Up to AED 500 <span class="cnt">30</span></label>
+          <label class="sb-opt"><input type="checkbox" class="fee-chk" value="1500"/> AED 500–1,500 <span class="cnt">25</span></label>
+        </div>
+        <div class="sb-div"></div>
+        <div class="sb-group">
+          <div class="sb-title">Min. Salary (AED/mo)</div>
+          <input type="range" class="sb-range" id="salaryRange" min="3000" max="50000" value="50000" step="500" oninput="document.getElementById('salaryRangeVal').textContent = Number(this.value).toLocaleString();"/>
+          <div class="sb-range-lbl"><span>3,000</span><span id="salaryRangeVal">50,000</span></div>
+        </div>
+        <div class="sb-div"></div>
+        <button class="sb-apply" onclick="applyAllFilters();">Apply Filters</button>
+        <button class="sb-clear" id="sbClearBtn" onclick="clearSidebarFilters();" style="display:none;">Clear Filters</button>
+      </div>
+    </aside>
+
+    <div class="grid-col">
+
+
+      <div id="sec-mymatch" style="display:none;">
+        <div class="section-head">
+          <div class="section-title">🎯 Your Personalized Matches <span class="section-count" id="cnt-mymatch">0</span></div>
+        </div>
+        <div class="flip-grid" data-cat="mymatch" id="mymatchGrid"></div>
+      </div>
+
+
+      <div class="insight-card" id="silahInsightCard" style="display:none;">
+        <div class="insight-eyebrow">Silah Insight</div>
+        <div class="insight-h">Your salary of <span class="g" id="insightSalary">AED 8,000</span> just untied <span id="insightCount">14</span> more cards you didn't know you qualified for.</div>
+        <p class="insight-p">Update your profile once — every ranking on this page re-threads instantly.</p>
+        <button class="insight-btn" onclick="openMatchModal();">Update My Profile</button>
+      </div>
+
+      <div id="sec-cashback">
+        <div class="section-head">
+          <div class="section-title">💰 Best Cashback Cards <span class="section-count" id="cnt-cashback">5</span></div>
+        </div>
+        <div class="flip-grid" data-cat="cashback"></div>
+      </div>
+
+      <div id="sec-travel">
+        <div class="section-head">
+          <div class="section-title">✈️ Best for Travel & Miles <span class="section-count" id="cnt-travel">5</span></div>
+        </div>
+        <div class="flip-grid" data-cat="travel"></div>
+      </div>
+
+      <div id="sec-freefee">
+        <div class="section-head">
+          <div class="section-title">🆓 Zero Annual Fee <span class="section-count" id="cnt-freefee">5</span></div>
+        </div>
+        <div class="flip-grid" data-cat="freefee"></div>
+      </div>
+
+      <div class="no-results" id="noResultsBlock">
+        <div class="no-results-ic">🧵</div>
+        <div class="no-results-title">No cards match these filters</div>
+        <div class="no-results-sub">Try unchecking a spend category, widening the salary range, or clearing filters to see all 183 cards again.</div>
+        <button class="sb-clear" style="width:auto; padding:11px 26px;" onclick="clearSidebarFilters();">Clear Filters</button>
+      </div>
+
+      <div style="display:flex; justify-content:center; padding-top:20px;">
+        <button onclick="window.scrollTo({top:0,behavior:'smooth'})" style="font-family:'Inter',sans-serif; font-weight:600; font-size:14px; padding:14px 46px; background:#fff; border:1.5px solid rgba(139,146,184,.3); border-radius:100px; cursor:pointer; color:var(--ink);">↑ Back to Top — All 183 Shown</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="trust">
+  <div class="trust-item"><div class="trust-ic">🔒</div><div><div class="trust-h">Bank-Grade Security</div><div class="trust-s">Your data stays yours</div></div></div>
+  <div class="trust-item"><div class="trust-ic">⚡</div><div><div class="trust-h">Instant Matching</div><div class="trust-s">Ranked results in seconds</div></div></div>
+  <div class="trust-item"><div class="trust-ic">🆓</div><div><div class="trust-h">Always Free</div><div class="trust-s">We never charge applicants</div></div></div>
+  <div class="trust-item"><div class="trust-ic">🤝</div><div><div class="trust-h">26 Bank Partners</div><div class="trust-s">Every major UAE issuer</div></div></div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="brand">
+        <a href="https://mysilah.ae/" class="logo">
+        <img src="mysilah.svg">
+    </a>
+        <p> A premium, professional lead referral platform for referral partner, agencies and financial institutions across the UAE.</p>
+      </div>
+      <div><h5>Platform</h5><ul><li><a href="index.html#agents">For Professional Referral Partners</a></li><li><a href="index.html#agencies">For Partner Agencies</a></li><li><a href="index.html#banks">For Banks &amp; FIs</a></li><li><a href="index.html#features">Features</a></li></ul></div>
+      <div><h5>Company</h5><ul><li><a href="index.html#home">Home</a></li><li><a href="index.html#home">About</a></li><li><a href="index.html#features">Products</a></li><li><a href="index.html#contact">Contact</a></li></ul></div>
+      <div><h5>Legal</h5><ul><li><a href="https://mysilah.ae/terms.html">Terms &amp; Conditions</a></li><li><a href="https://mysilah.ae/privacy-policy.html">Privacy Policy</a></li><li><a href="https://mysilah.ae/cookie-policy.html">Cookies</a></li><li><a href="https://mysilah.ae/data-policy.html">Data policy</a></li></ul></div>
+    </div>
+    <div style="border-top:1px solid #E8E8EE;padding:24px 0 8px;margin-top:8px;background:#fff">
+      <p style="font-size:11px;color:#6B7186;line-height:1.7;max-width:1100px"><strong style="color:#0B0F1E;font-weight:600">Important Disclaimer:</strong> MySilah is a digital customer introduction platform and is not a bank, financial institution, licensed lender, financial advisor, or regulated financial services provider. MySilah does not assess creditworthiness, approve or decline applications, or provide any financial advice. All banking products referenced are offered, assessed, and approved exclusively by the respective UAE partner banks, each of which holds the relevant regulatory authorisations. Incentives are performance-based, subject to partner bank program terms, and are not guaranteed. This platform is intended for UAE residents above the age of 18. Customer referrals require explicit customer consent. MySilah operates in accordance with UAE data protection and consumer protection regulations.</p>
+    </div>
+    <div class="foot-bottom">
+      <div class="left">© 2026 Mysilah · Meydan FZ, Dubai</div>
+      <div class="right">A premium banking referral platform for the UAE.</div>
+    </div>
+  </div>
+</footer>
+
+<div class="apply-overlay" id="applyOverlay" onclick="if(event.target===this) closeApplyModal();">
+  <div class="apply-modal">
+    <button class="apply-modal-close" onclick="closeApplyModal();">✕</button>
+
+    <div class="apply-form" id="applyFormWrap">
+      <div class="apply-modal-head">
+        <div class="apply-modal-eyebrow">🧵 Quick Application</div>
+        <div class="apply-modal-title" id="applyCardName">Card Name</div>
+        <div class="apply-modal-sub" id="applyCardBank">Issued by <strong>Bank</strong></div>
+      </div>
+      <form id="applyForm" onsubmit="submitApplyForm(event);">
+        <div class="af-group">
+          <label class="af-label">Full Name (as per Emirates ID)</label>
+          <input class="af-input" type="text" name="fullName" placeholder="e.g. Ahmed Al Mansoori" required/>
+        </div>
+        <div class="af-row">
+          <div class="af-group">
+            <label class="af-label">Mobile Number</label>
+            <input class="af-input" type="tel" name="mobile" placeholder="+971 5X XXX XXXX" required/>
+          </div>
+          <div class="af-group">
+            <label class="af-label">Email Address</label>
+            <input class="af-input" type="email" name="email" placeholder="you@email.com" required/>
+          </div>
+        </div>
+        <div class="af-row">
+          <div class="af-group">
+            <label class="af-label">Monthly Salary (AED)</label>
+            <select class="af-select" name="salary" required>
+              <option value="" disabled selected>Select range</option>
+              <option>Below 5,000</option>
+              <option>5,000 – 10,000</option>
+              <option>10,000 – 15,000</option>
+              <option>15,000 – 25,000</option>
+              <option>25,000+</option>
+            </select>
+          </div>
+          <div class="af-group">
+            <label class="af-label">Emirate of Residence</label>
+            <select class="af-select" name="emirate" required>
+              <option value="" disabled selected>Select emirate</option>
+              <option>Dubai</option>
+              <option>Abu Dhabi</option>
+              <option>Sharjah</option>
+              <option>Ajman</option>
+              <option>Ras Al Khaimah</option>
+              <option>Fujairah</option>
+              <option>Umm Al Quwain</option>
+            </select>
+          </div>
+        </div>
+        <label class="af-consent">
+          <input type="checkbox" required/>
+          <span>I authorize MySilah to share these details with the issuing bank to process my application, and agree to the Terms &amp; Privacy Policy.</span>
+        </label>
+        <button type="submit" class="af-submit">Submit Application →</button>
+        <div class="af-secure">🔒 256-bit encrypted · We never sell your data</div>
+        <div class="af-error" id="applyFormError" style="display:none; margin-top:10px; padding:10px 12px; border-radius:10px; background:rgba(239,68,68,.08); color:#b91c1c; font-size:12.5px; line-height:1.5;"></div>
+      </form>
+    </div>
+
+    <div class="apply-success" id="applySuccess">
+      <div class="apply-success-ic">✓</div>
+      <div class="apply-success-title">Application Sent!</div>
+      <div class="apply-success-sub">Your application for <strong id="applySuccessCard">this card</strong> has been received.</div>
+      <button class="af-submit" style="background:var(--ink); box-shadow:none;" onclick="closeApplyModal();">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="apply-overlay" id="matchOverlay" onclick="if(event.target===this) closeMatchModal();">
+  <div class="apply-modal" style="max-width:540px;">
+    <button class="apply-modal-close" onclick="closeMatchModal();">✕</button>
+
+    <div class="apply-form" id="matchFormWrap">
+      <div class="apply-modal-head">
+        <div class="apply-modal-eyebrow">🎯 Find My Match</div>
+        <div class="apply-modal-title">Let's thread your match</div>
+        <div class="apply-modal-sub">Tell us your monthly spend — we'll estimate real cashback &amp; rewards value.</div>
+      </div>
+      <form id="matchForm" onsubmit="submitMatchForm(event);">
+        <div class="af-group">
+          <label class="af-label">Full Name</label>
+          <input class="af-input" type="text" id="matchFullName" placeholder="e.g. Ahmed Al Mansoori" required/>
+        </div>
+        <div class="af-row">
+          <div class="af-group">
+            <label class="af-label">Mobile Number</label>
+            <input class="af-input" type="tel" id="matchMobile" placeholder="+971 5X XXX XXXX" required/>
+          </div>
+          <div class="af-group">
+            <label class="af-label">Email Address</label>
+            <input class="af-input" type="email" id="matchEmail" placeholder="you@email.com" required/>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:4px;">
+          <div class="af-group" style="margin-bottom:0;">
+            <label class="af-label">Monthly Salary (AED)</label>
+            <select class="af-select" id="matchSalary" required>
+              <option value="" disabled selected>Select range</option>
+              <option>Below 5,000</option>
+              <option>5,000 – 10,000</option>
+              <option>10,000 – 15,000</option>
+              <option>15,000 – 25,000</option>
+              <option>25,000+</option>
+            </select>
+          </div>
+          <div id="dynamicSpendFields" style="display:contents;">
+            <div class="af-group" style="grid-column:2/-1; text-align:center; padding:12px 0; color:var(--mist); font-size:13px;">⏳ Loading…</div>
+          </div>
+        </div>
+        <div class="af-group">
+          <label class="af-label">What matters most for the annual fee?</label>
+          <select class="af-select" id="cardPreference">
+            <option value="value">💰 Best Overall Value — a paid card is fine if it pays for itself</option>
+            <option value="free">🆓 Free for Life Only — no annual fee, ever</option>
+            <option value="lowrate">📉 Lowest Interest Rate — I sometimes carry a balance</option>
+          </select>
+        </div>
+        <div class="af-hint" style="display:block; margin:-6px 0 14px; line-height:1.5;">💡 Industry note: groceries, dining &amp; international spend usually earn the highest cashback in the UAE; fuel, utilities, telecom, Salik &amp; school fees are often "restricted categories" that earn reduced rates on most cards.</div>
+        <button type="submit" class="af-submit">Find My Match →</button>
+        <div class="af-secure">🔒 Free forever · Estimates are indicative, not guaranteed</div>
+      </form>
+    </div>
+
+    <div class="apply-success" id="matchSuccess">
+      <div class="apply-success-ic" id="matchSuccessIcon">🎯</div>
+      <div class="apply-success-title" id="matchSuccessTitle">Match Found!</div>
+      <div class="apply-success-sub" id="matchResultText">The <strong>FAB Cashback+ Signature</strong> is your best match.</div>
+      <div class="match-best-card" id="matchBestCard" style="display:none;">
+        <div class="mbc-info">
+          <div class="mbc-name" id="mbcName">Card Name</div>
+          <div class="mbc-bank" id="mbcBank">Bank</div>
+        </div>
+        <button class="mbc-apply" onclick="applyToBestMatch();">Apply Now →</button>
+      </div>
+      <div class="match-savings-hero" id="matchSavingsHero" style="display:none;">
+        <div class="msh-lbl">Estimated Net Monthly Savings</div>
+        <div class="msh-val" id="matchSavingsAmount">AED 0</div>
+        <div class="msh-sub">≈ AED <span id="matchSavingsYear">0</span> / year, after any annual fee</div>
+      </div>
+      <div class="fee-breakdown" id="feeBreakdown" style="display:none;"></div>
+      <div id="matchRunnerUps"></div>
+      <button class="af-submit" onclick="viewMyMatch();">View My Match →</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  const API_BASE = (!location.hostname || location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000/api'
+    : 'https://api.inizioglobal.com/ms/api';
+  const UPLOADS_BASE = 'https://mysilah.s3.us-east-1.amazonaws.com';
+  let ALL_CARDS = [];
+  let FILTERED_CARDS = [];
+
+  const TYPE_THEME = {
+    regular: 'mini-t1',
+    premium: 'mini-t3',
+    rewards_lifestyle: 'mini-t2',
+    travel: 'mini-t4',
+    ecommerce: 'mini-t5',
+    legacy: 'mini-t6',
+  };
+  const TYPE_NETWORK = {
+    regular: 'VISA',
+    premium: 'MC',
+    rewards_lifestyle: 'MC',
+    travel: 'VISA',
+    ecommerce: 'MC',
+    legacy: 'VISA',
+  };
+
+  function flipTile(id){ document.getElementById(id).classList.toggle('flipped'); }
+
+  /* ══════════ APPLY MODAL ══════════ */
+  function openApplyModal(cardName, bankName, cardId){
+    window._applyCardId = cardId || '';
+    document.getElementById('applyCardName').textContent = cardName || 'This Card';
+    document.getElementById('applyCardBank').innerHTML = 'Issued by <strong>' + (bankName || 'Partner Bank') + '</strong>';
+    document.getElementById('applySuccessCard').textContent = cardName || 'this card';
+    document.getElementById('applyForm').reset();
+    const ud = window._matchUserData;
+    if(ud){
+      const af = document.getElementById('applyForm');
+      af.querySelector('[name="fullName"]').value = ud.fullName || '';
+      af.querySelector('[name="mobile"]').value = ud.mobile || '';
+      af.querySelector('[name="email"]').value = ud.email || '';
+      if(ud.salary) af.querySelector('[name="salary"]').value = ud.salary;
+    }
+    const errorEl = document.getElementById('applyFormError');
+    if(errorEl) errorEl.style.display = 'none';
+    const submitBtn = document.querySelector('#applyForm .af-submit');
+    if(submitBtn){ submitBtn.disabled = false; submitBtn.textContent = 'Submit Application →'; }
+    document.getElementById('applyFormWrap').classList.remove('hide');
+    document.getElementById('applySuccess').classList.remove('show');
+    document.getElementById('applyOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeApplyModal(){
+    document.getElementById('applyOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  async function submitApplyForm(e){
+    e.preventDefault();
+    const form = document.getElementById('applyForm');
+    const errorEl = document.getElementById('applyFormError');
+    const submitBtn = form.querySelector('.af-submit');
+    errorEl.style.display = 'none';
+
+    const cardName = document.getElementById('applyCardName').textContent || 'Unknown Card';
+
+    // Parse salary range string into numeric value
+    const salaryStr = form.salary.value;
+    let salaryNum = 0;
+    if(salaryStr === 'Below 5,000') salaryNum = 0;
+    else if(salaryStr === '5,000 – 10,000') salaryNum = 5000;
+    else if(salaryStr === '10,000 – 15,000') salaryNum = 10000;
+    else if(salaryStr === '15,000 – 25,000') salaryNum = 15000;
+    else if(salaryStr === '25,000+') salaryNum = 25000;
+    else salaryNum = Number(salaryStr.replace(/[^0-9]/g, '')) || 0;
+
+    const payload = {
+      customerName: form.fullName.value,
+      phone: form.mobile.value,
+      email: form.email.value,
+      salary: salaryNum,
+      city: form.emirate.value,
+      cardProductId: window._applyCardId || '',
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+
+    try {
+      const res = await fetch(`${API_BASE}/public/apply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(()=>({}));
+        throw new Error(d.message || `Error ${res.status}`);
+      }
+      await res.json();
+      document.getElementById('applyFormWrap').classList.add('hide');
+      document.getElementById('applySuccess').classList.add('show');
+    } catch(err) {
+      errorEl.textContent = err.message;
+      errorEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit Application →';
+    }
+  }
+
+
+  /* ══════════ FIND MY MATCH MODAL ══════════ */
+  let FEATURED_CARD = {name:'Cashback+ Signature', bank:'First Abu Dhabi Bank'};
+  let CURRENT_BEST_MATCH = null;
+  function applyToBestMatch(){
+    if(!CURRENT_BEST_MATCH) return;
+    closeMatchModal();
+    openApplyModal(CURRENT_BEST_MATCH.name, CURRENT_BEST_MATCH.bank, CURRENT_BEST_MATCH.id);
+  }
+  function applyToCard(name, bank, cardId){
+    closeMatchModal();
+    openApplyModal(name, bank, cardId);
+  }
+
+  function openMatchModal(){
+    document.getElementById('matchForm').reset();
+    const _eduGroup = document.getElementById('eduFeeGroup');
+    if(_eduGroup) _eduGroup.style.display = 'none';
+    document.getElementById('matchFormWrap').classList.remove('hide');
+    document.getElementById('matchSuccess').classList.remove('show');
+    document.getElementById('matchSavingsHero').style.display = 'none';
+    document.getElementById('feeBreakdown').style.display = 'none';
+    document.getElementById('matchBestCard').style.display = 'none';
+    document.getElementById('matchRunnerUps').innerHTML = '';
+    document.getElementById('matchOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeMatchModal(){
+    document.getElementById('matchOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  const SALARY_BRACKET_MAX = {
+    'Below 5,000': 4999,
+    '5,000 – 10,000': 10000,
+    '10,000 – 15,000': 15000,
+    '15,000 – 25,000': 25000,
+    '25,000+': 50000
+  };
+
+  /* Estimate what a given card would pay back monthly, from real spend amounts.
+     Uses each card's own reward %s where they exist; falls back to a modest
+     indicative rate where a card doesn't publish a rate for that category. */
+  function findRewardPct(c, category){
+    const keywords = CATEGORY_KEYWORDS[category] || [category.toLowerCase()];
+    const rewards = c.cardRewards || [];
+    for(const r of rewards){
+      const txt = ((r.label||'') + ' ' + (r.text||'')).toLowerCase();
+      if(keywords.some(k=>txt.includes(k)) && typeof r.pct === 'number') return r.pct;
+    }
+    return null;
+  }
+  function categorySavings(c, category, spend, fallbackPct){
+    if(!spend) return 0;
+    // If card has explicit categories assigned, only reward spend that matches one of them
+    if(c.cashbackCategoryNames && c.cashbackCategoryNames.length > 0){
+      const keywords = CATEGORY_KEYWORDS[category] || [category.toLowerCase()];
+      const matches = c.cashbackCategoryNames.some(n => keywords.some(k => n.includes(k)) || n === category.toLowerCase());
+      if(!matches) return 0;
+    }
+    let pct = findRewardPct(c, category);
+    if(pct == null) pct = fallbackPct; // use industry average when no rate stored
+    return spend * pct / 100;
+  }
+  function travelSavings(c, tripsPerYear){
+    if(!tripsPerYear) return 0;
+    const catNames = c.cashbackCategoryNames || [];
+    const hasTravelPerk = catNames.length > 0
+      ? catNames.some(n => n.includes('lounge') || n.includes('travel') || n.includes('miles') || n.includes('airline'))
+      : (cardMatchesCategory(c, 'Airport Lounge') || cardMatchesCategory(c, 'Travel & Miles'));
+    if(!hasTravelPerk) return 0;
+    const perTripValueAED = 75; // approx value of lounge access / travel insurance per trip
+    return (tripsPerYear * perTripValueAED) / 12;
+  }
+  function estimateMonthlySavings(c, spend){
+    // Fallback rates are indicative industry averages: groceries, dining &
+    // international spend are typically the highest-rewarded UAE categories;
+    // fuel, utilities/telecom, Salik and school fees are usually "restricted"
+    // categories that earn reduced rates on most cashback cards.
+    const grocery = categorySavings(c, 'Groceries', spend.grocery, 3);
+    const dining = categorySavings(c, 'Dining', spend.dining, 4);
+    const fuel = categorySavings(c, 'Fuel', spend.fuel, 2);
+    const salik = categorySavings(c, 'Salik & Parking', spend.salik, 2);
+    const utilities = categorySavings(c, 'Utilities & Telecom', spend.utilities, 1.5);
+    const onlineShopping = categorySavings(c, 'Online Shopping', spend.onlineShopping, 2);
+    const international = categorySavings(c, 'International Spend', spend.international, 2.5);
+    const education = categorySavings(c, 'Education', spend.education, 2);
+    const travel = travelSavings(c, spend.tripsPerYear);
+    return grocery + dining + fuel + salik + utilities + onlineShopping + international + education + travel;
+  }
+  function annualFeeOf(c){
+    const feeStr = String(c.fee).toLowerCase();
+    if(feeStr.includes('free')) return 0;
+    const n = cardFeeValue(c);
+    return n == null ? 0 : n; // fee not published — treated as 0 for comparison purposes
+  }
+  function parseRateValue(c){
+    const n = parseFloat(String(c.rate).replace(/[^0-9.]/g,''));
+    return isNaN(n) ? 999 : n;
+  }
+  /* Build the ranked candidate list for a given spend profile + fee preference.
+     Every candidate carries both its gross monthly reward value and its net
+     value after the annual fee is amortized monthly — so a paid card can
+     still win if what it pays back is worth more than the fee. */
+  function rankCandidates(eligible, spend, preference){
+    let pool = eligible;
+    if(preference === 'free') pool = eligible.filter(c=>annualFeeOf(c) === 0);
+    const scored = pool.map(c=>{
+      const gross = estimateMonthlySavings(c, spend);
+      const fee = annualFeeOf(c);
+      const net = gross - (fee/12);
+      return {c, gross, fee, net};
+    });
+    if(preference === 'lowrate'){
+      scored.sort((a,b)=> parseRateValue(a.c) - parseRateValue(b.c) || b.net - a.net);
+    } else {
+      // 'value' (default) and 'free' both rank by net monthly benefit
+      scored.sort((a,b)=> b.net - a.net);
+    }
+    return scored;
+  }
+  function updateFeaturedTile(card, net){
+    document.getElementById('featTitle').textContent = card.name;
+    document.getElementById('featBackTitle').textContent = card.name;
+    document.getElementById('featBankLine').textContent = card.bank + (net != null ? ' · Your Best Match' : '');
+    document.getElementById('featBankMini').textContent = card.bank;
+    document.getElementById('featNetworkMini').textContent = card.network || 'VISA';
+    document.getElementById('featBackSub').textContent = card.bank;
+    document.getElementById('featRate').textContent = card.rate;
+    const feeEl = document.getElementById('featFee');
+    feeEl.textContent = card.fee;
+    feeEl.classList.toggle('green', !!card.feeGreen);
+    const salaryN = parseInt(String(card.salary).replace(/,/g,''),10);
+    document.getElementById('featSalaryTransfer').textContent = card.salaryTransfer || (salaryN >= 15000 ? 'Yes' : 'No');
+    document.getElementById('featMinSalary').textContent = 'AED ' + card.salary;
+    document.getElementById('featOffer').textContent = card.offer || '';
+    document.getElementById('featChips').innerHTML = (card.cardRewards||[]).slice(0,3).map(r=>
+      `<div class="feat-perk-chip">${r.icon} ${r.text || (r.pct+'% '+r.label)}</div>`).join('');
+    const extras = card.extras || [];
+    document.getElementById('featBackPerks').innerHTML = (card.perks||[]).map(p=>`<li>${p}</li>`).join('');
+    document.getElementById('featBackExtras').innerHTML = extras.map(p=>`<li>${p}</li>`).join('');
+    const badge = document.getElementById('featSavingsBadge');
+    if(net != null && net > 0){
+      badge.style.display = 'flex';
+      badge.textContent = '💸 Est. AED ' + Math.round(net).toLocaleString() + '/mo net back for you';
+    } else {
+      badge.style.display = 'none';
+    }
+    FEATURED_CARD = {name: card.name, bank: card.bank, id: card._id || card.id || ''};
+  }
+
+  const _SALARY_RANGE_TO_NUM = {
+    'Below 5,000': 4000,
+    '5,000 – 10,000': 7500,
+    '10,000 – 15,000': 12500,
+    '15,000 – 25,000': 20000,
+    '25,000+': 25000,
+  };
+
+  function submitMatchForm(e){
+    e.preventDefault();
+
+    // Create lead in CRM (fire-and-forget — don't block the UI)
+    (function(){
+      const _salary = _SALARY_RANGE_TO_NUM[document.getElementById('matchSalary').value] || 5000;
+      fetch(API_BASE + '/public/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: document.getElementById('matchFullName').value.trim(),
+          phone:        document.getElementById('matchMobile').value.trim(),
+          email:        document.getElementById('matchEmail').value.trim(),
+          salary:       _salary,
+        }),
+      }).catch(function(){});
+    })();
+
+    const salaryBracket = document.getElementById('matchSalary').value;
+    const maxSalary = SALARY_BRACKET_MAX[salaryBracket] || 50000;
+    const preference = document.getElementById('cardPreference').value;
+    window._matchUserData = {
+      fullName: document.getElementById('matchFullName').value,
+      mobile: document.getElementById('matchMobile').value,
+      email: document.getElementById('matchEmail').value,
+      salary: salaryBracket,
+    };
+    // Collect dynamic category spend values
+    const spend = { tripsPerYear: 0 };
+    document.querySelectorAll('#dynamicSpendFields input[data-cat-id]').forEach(inp => {
+      const catName = inp.dataset.catName || '';
+      spend[catName] = parseFloat(inp.value) || 0;
+    });
+    // Map dynamic category names to scoring keys
+    spend.grocery      = spend['Groceries'] || spend['Groceries & Supermarkets'] || 0;
+    spend.dining       = spend['Dining'] || spend['Dining & Food Delivery'] || 0;
+    spend.fuel         = spend['Fuel'] || spend['Fuel & Automobile'] || spend['spent fuel'] || 0;
+    spend.salik        = spend['Salik & Parking'] || spend['Salik'] || 0;
+    spend.utilities    = spend['Utilities & Telecom'] || spend['Utilities'] || 0;
+    spend.onlineShopping = spend['Online Shopping'] || spend['Online'] || 0;
+    spend.international = spend['International Spend'] || spend['International'] || 0;
+    spend.education    = spend['Education'] || spend['School Fees / Education'] || 0;
+    // Travel — flights maps to tripsPerYear (approx: AED 1,000 spend ≈ 1 trip)
+    if(spend['Travel — flights'] || spend['Travel'] || spend['Travel & Miles']) {
+      const travelSpend = spend['Travel — flights'] || spend['Travel'] || spend['Travel & Miles'] || 0;
+      spend.tripsPerYear = Math.round(travelSpend / 1000);
+    }
+
+    const eligible = getFilteredCards({maxSalary});
+    const ranked = rankCandidates(eligible, spend, preference);
+
+    const savingsMap = {};
+    ranked.forEach(r=>{ savingsMap[r.c.id] = r.net; });
+
+    const top = ranked.slice(0, 5);
+    const best = top[0];
+
+    let titleText, resultText;
+    const feeBreakdownEl = document.getElementById('feeBreakdown');
+    if(best && best.net > 0){
+      titleText = 'Best Match Found!';
+      resultText = 'Based on your spend, the <strong>' + best.c.name + '</strong> by <strong>' + best.c.bank + '</strong> gives you the most value back.';
+      document.getElementById('matchSavingsHero').style.display = 'block';
+      document.getElementById('matchSavingsAmount').textContent = 'AED ' + Math.round(best.net).toLocaleString();
+      document.getElementById('matchSavingsYear').textContent = Math.round(best.net * 12).toLocaleString();
+
+      if(best.fee > 0){
+        const grossAnnual = Math.round(best.gross * 12);
+        const netAnnual = Math.round(best.net * 12);
+        feeBreakdownEl.style.display = 'block';
+        feeBreakdownEl.innerHTML =
+          '<div class="fb-row"><span>Estimated rewards / year</span><span>AED ' + grossAnnual.toLocaleString() + '</span></div>' +
+          '<div class="fb-row"><span>Annual fee</span><span>− AED ' + Math.round(best.fee).toLocaleString() + '</span></div>' +
+          '<div class="fb-row total"><span>Net benefit / year</span><span class="' + (netAnnual >= 0 ? 'fb-pos' : 'fb-neg') + '">' + (netAnnual >= 0 ? '+' : '') + 'AED ' + netAnnual.toLocaleString() + '</span></div>' +
+          '<div class="fb-verdict">' + (netAnnual >= 0
+            ? 'You\u2019re paying AED ' + Math.round(best.fee).toLocaleString() + ' but getting back roughly AED ' + grossAnnual.toLocaleString() + ' in value \u2014 worth taking the fee.'
+            : 'The AED ' + Math.round(best.fee).toLocaleString() + ' fee costs more than the rewards it earns for your spend \u2014 a free card may suit you better.') + '</div>';
+      } else {
+        feeBreakdownEl.style.display = 'block';
+        feeBreakdownEl.innerHTML = '<div class="fb-verdict">This card has no annual fee, so the full AED ' + Math.round(best.gross*12).toLocaleString() + '/year in rewards stays in your pocket.</div>';
+      }
+    } else if(best){
+      titleText = 'A Match, With Modest Returns';
+      resultText = 'The <strong>' + best.c.name + '</strong> by <strong>' + best.c.bank + '</strong> is your best eligible option, though your spend pattern won&#39;t earn much back on any card here.';
+      document.getElementById('matchSavingsHero').style.display = 'none';
+      feeBreakdownEl.style.display = 'none';
+    } else {
+      titleText = 'No Eligible Cards Found';
+      resultText = preference === 'free'
+        ? 'No free-for-life cards match that salary bracket — try "Best Overall Value" instead.'
+        : 'No cards match that salary bracket — try selecting a higher range.';
+      document.getElementById('matchSavingsHero').style.display = 'none';
+      feeBreakdownEl.style.display = 'none';
+    }
+    document.getElementById('matchSuccessIcon').textContent = best ? '🎯' : '🧵';
+    document.getElementById('matchSuccessTitle').textContent = titleText;
+    document.getElementById('matchResultText').innerHTML = resultText;
+
+    const bestCardEl = document.getElementById('matchBestCard');
+    if(best){
+      CURRENT_BEST_MATCH = {name: best.c.name, bank: best.c.bank, id: best.c._id || best.c.id || ''};
+      document.getElementById('mbcName').textContent = best.c.name;
+      document.getElementById('mbcBank').textContent = best.c.bank;
+      bestCardEl.style.display = 'flex';
+    } else {
+      CURRENT_BEST_MATCH = null;
+      bestCardEl.style.display = 'none';
+    }
+
+    const runnerUps = top.slice(1, 4).filter(r=>r.net > 0);
+    const ruBlock = document.getElementById('matchRunnerUps');
+    if(runnerUps.length){
+      ruBlock.innerHTML = '<div class="runner-up-list"><div class="runner-up-title">Other Strong Options</div>' +
+        runnerUps.map(r=>'<div class="runner-up-item"><div><div class="ru-name">' + r.c.name + '</div><div class="ru-bank">' + r.c.bank + (r.fee > 0 ? ' · AED '+Math.round(r.fee)+'/yr fee' : ' · Free') + '</div></div><div style="display:flex; align-items:center; gap:10px;"><div class="ru-amt">AED ' + Math.round(r.net).toLocaleString() + '/mo net</div><button class="ru-apply" onclick="applyToCard(\'' + r.c.name.replace(/'/g,"\\'") + '\', \'' + r.c.bank.replace(/'/g,"\\'") + '\', \'' + (r.c._id||r.c.id||'') + '\');">Apply</button></div></div>').join('') +
+        '</div>';
+    } else {
+      ruBlock.innerHTML = '';
+    }
+
+    document.getElementById('matchFormWrap').classList.add('hide');
+    document.getElementById('matchSuccess').classList.add('show');
+
+    // Sync sidebar salary + fee-preference filters, and re-render catalog + personalized matches
+    document.querySelectorAll('.cat-chk, .bank-chk, .fee-chk').forEach(el=>{ el.checked = false; });
+    if(preference === 'free'){
+      const freeChk = document.querySelector('.fee-chk[value="free"]');
+      if(freeChk) freeChk.checked = true;
+    }
+    document.getElementById('salaryRange').value = maxSalary;
+    document.getElementById('salaryRangeVal').textContent = maxSalary.toLocaleString();
+    document.getElementById('sortSelect').value = 'best';
+    currentChip = 'all';
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    const allChipEl = document.querySelector('.chip[data-chip="all"]');
+    if(allChipEl) allChipEl.classList.add('active');
+    document.getElementById('sbClearBtn').style.display = 'block';
+    renderFilteredGrid(preference === 'free' ? eligible.filter(c=>annualFeeOf(c)===0) : eligible);
+    renderMyMatches(top.map(r=>r.c), savingsMap);
+    if(best) updateFeaturedTile(best.c, best.net);
+
+    // Reveal Silah Insight with dynamic salary + eligible card count
+    const insightEl = document.getElementById('silahInsightCard');
+    if(insightEl && eligible.length > 0){
+      document.getElementById('insightSalary').textContent = 'AED ' + maxSalary.toLocaleString();
+      document.getElementById('insightCount').textContent = eligible.length;
+      insightEl.style.display = '';
+      insightEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+  function viewMyMatch(){
+    closeMatchModal();
+    const el = document.getElementById('sec-mymatch');
+    if(el && el.style.display !== 'none') el.scrollIntoView({behavior:'smooth', block:'start'});
+    else document.querySelector('.main').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape'){ closeApplyModal(); closeMatchModal(); }
+  });
+
+  const ROT = [-2, 1.5, -1, 2, -1.5, 1];
+
+  const CATS = ['cashback','travel','freefee'];
+
+  function featureSetFor(c){
+    if(c.cardType === 'travel') return 'travel';
+    if((c.cashbackCategoryNames||[]).some(n=>n.includes('travel')||n.includes('flight')||n.includes('lounge')||n.includes('miles'))) return 'travel';
+    if(annualFeeOf(c) === 0) return 'freefee';
+    return 'cashback';
+  }
+
+  function cardHTML(c, idx, savings){
+    const rot = ROT[idx % ROT.length];
+    const id = 'tile-' + c.cat + '-' + idx + '-' + (c.id || idx);
+    const ribbon = c.ribbon ? `<div class="card-ribbon">${c.ribbon}</div>` : '';
+    const safeName = (c.name || '').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const safeBank = (c.bank || '').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const offer = c.offer || '';
+    const salaryN = parseInt(String(c.salary).replace(/,/g,''),10);
+    const salaryTransfer = c.salaryTransfer || (salaryN >= 15000 ? 'Yes' : 'No');
+    const rewardChips = c.cardRewards.map(r=>`<div class="feat-perk-chip">${r.icon} ${r.text ? (r.pct ? r.text+' · '+r.pct+'%' : r.text) : (r.pct ? r.pct+'%' : '')}</div>`).join('');
+    const savingsBadge = (savings != null) ? `<div class="savings-badge">💸 Est. AED ${Math.round(savings).toLocaleString()}/mo back for you</div>` : '';
+    let legalLinks = '';
+    if(c.cat === 'fab'){
+      legalLinks = `
+          <div class="legal-links">
+            <a href="https://apply.bankfab.com/-/media/fabgroup/home/personal/key-facts-statements/fab-consolidated-credit-cards.pdf?view=1" target="_blank" rel="noopener" onclick="event.stopPropagation();">📄 Key Facts Statement</a>
+            <div class="legal-disclaimer">Rates, fees and benefits shown are indicative and may change. Always verify current terms directly with FAB before applying.</div>
+          </div>`;
+    } else if(c.kfsLink){
+      legalLinks = `
+          <div class="legal-links">
+            <a href="${c.kfsLink}" target="_blank" rel="noopener" onclick="event.stopPropagation();">📄 Key Facts Statement</a>
+            <div class="legal-disclaimer">Rates, fees and benefits shown are indicative and may change. Always verify current terms directly with ${c.bank} before applying.</div>
+          </div>`;
+    }
+    const _imgSrc = c.imgUrl || c.image || null;
+    const cardVisual = _imgSrc
+      ? (c.imageNoBox
+          ? `<div class="rcard-photo-wrap no-box" style="transform:rotate(${rot}deg);">${ribbon}<img src="${_imgSrc}" alt="${c.imageAlt || c.name}" class="rcard-photo"/></div>`
+          : `<div class="rcard-photo-wrap" style="transform:rotate(${rot}deg);">${ribbon}<img src="${_imgSrc}" alt="${c.imageAlt || c.name}" class="rcard-photo"/><div class="rcard-photo-sheen"></div></div>`)
+      : `<div class="rcard-full ${c.theme}" data-rot="${rot}" style="transform:rotate(${rot}deg);">
+              ${ribbon}
+              <div class="holo-sheen"></div>
+              <div class="holo-rainbow"></div>
+              <div class="rcard-holo"></div>
+              <div><div class="rcard-chip"></div></div>
+              <div class="rcard-bottom"><div class="rcard-bank">${c.bank}</div><div class="rcard-network">${c.network}</div></div>
+            </div>`;
+    return `
+    <div class="flip-tile" id="${id}" onclick="flipTile('${id}')">
+      <div class="flip-inner">
+        <div class="flip-face flip-front">
+          <div class="card-stage">
+            ${cardVisual}
+            <div class="card-glow-pad"></div>
+            <button class="flip-hint" onclick="event.stopPropagation(); flipTile('${id}')" title="See details">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 4v6h6M23 20v-6h-6" stroke="#7B3FE4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="#7B3FE4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="front-label">
+            <div class="fl-name">${c.name}</div>
+            <div class="fl-bank">${c.bank}</div>
+            ${savingsBadge}
+            <div class="feat-perks-row">${rewardChips}</div>
+            <div class="info-rows">
+              <div class="info-row"><span class="lbl">Rate</span><span class="dots"></span><span class="val">${c.rate}</span></div>
+              <div class="info-row"><span class="lbl">Annual Fee</span><span class="dots"></span><span class="val ${c.feeGreen?'green':''}">${c.fee}</span></div>
+              <div class="info-row"><span class="lbl">Salary Transfer</span><span class="dots"></span><span class="val">${salaryTransfer}</span></div>
+              <div class="info-row"><span class="lbl">Minimum Salary</span><span class="dots"></span><span class="val">AED ${c.salary}</span></div>
+            </div>
+            <div class="front-offer"><span class="oi">🤝</span><span>${offer}</span></div>
+            <button class="front-apply" onclick="event.stopPropagation(); openApplyModal('${safeName}', '${safeBank}', '${c._id||c.id||""}');">Apply Now →</button>
+            <div class="card-foot-row">
+              <button class="view-details" onclick="event.stopPropagation(); flipTile('${id}')">🧵 Untie the Details <span class="chev">▾</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="flip-face flip-back">
+          <div class="back-top">
+            <div><div class="back-title">${c.name}</div><div class="back-sub">${c.bank}</div></div>
+            <button class="back-flip" onclick="event.stopPropagation(); flipTile('${id}')">↺</button>
+          </div>
+          ${c.keyFeatures && c.keyFeatures.length ? `<div class="back-h">✅ Key Features</div><div class="benefit-block"><ul class="back-perks">${c.keyFeatures.map(p=>`<li>${p}</li>`).join('')}</ul></div>` : ''}
+          <div class="back-h">⭐ Benefits</div>
+          <div class="benefit-block">
+            <div class="benefit-block-h">Rewards Program</div>
+            <ul class="back-perks">${c.perks.map(p=>`<li>${p}</li>`).join('')}</ul>
+          </div>
+          <div class="benefit-block">
+            <div class="benefit-block-h">Additional Benefits</div>
+            <ul class="back-perks">${(c.extras||[]).map(p=>`<li>${p}</li>`).join('')}</ul>
+          </div>
+          ${legalLinks}
+          <button class="front-apply" style="margin-top:auto; margin-bottom:0;" onclick="event.stopPropagation(); openApplyModal('${safeName}', '${safeBank}', '${c._id||c.id||""}');">Apply Now →</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* ══════════ FILTER ENGINE — used by sidebar filters + Find My Match ══════════ */
+  const ALL_CATS = CATS;
+
+  const CATEGORY_KEYWORDS = {
+    'Groceries': ['grocery','groceries','supermarket','hypermarket'],
+    'Fuel': ['fuel','petrol','gas station','automobile','car servicing'],
+    'Salik & Parking': ['salik','toll','nol','parking'],
+    'Airport Lounge': ['lounge'],
+    'Dining': ['dining','restaurant','food delivery','food'],
+    'Travel & Miles': ['travel','miles','mile','airline','flight'],
+    'Online Shopping': ['online shopping','shopping','e-commerce','online'],
+    'Entertainment': ['entertainment','cinema','vox'],
+    'Utilities & Telecom': ['utilities','bills','utility','telecom','dewa','etisalat','du bill'],
+    'Education': ['education','school fee','school fees','tuition'],
+    'International Spend': ['international','overseas','non-aed','foreign','fx'],
+  };
+
+  function cardTextBlob(c){
+    const features = c.features || [];
+    const extras = c.extras || [];
+    const perks = c.perks || [];
+    const rewardsTxt = (c.cardRewards||[]).map(r => (r.label||'') + ' ' + (r.text||'')).join(' ');
+    return [rewardsTxt, features.join(' '), extras.join(' '), perks.join(' '), c.offer||''].join(' ').toLowerCase();
+  }
+  function cardMatchesCategory(c, categoryLabel){
+    const keywords = CATEGORY_KEYWORDS[categoryLabel] || [categoryLabel.toLowerCase()];
+    const blob = cardTextBlob(c);
+    return keywords.some(k => blob.includes(k));
+  }
+  function categoryMatchCount(c, categories){
+    return categories.filter(cat=>cardMatchesCategory(c, cat)).length;
+  }
+  function cardFeeValue(c){
+    const n = parseInt(String(c.fee).replace(/[^0-9]/g,''),10);
+    return isNaN(n) ? null : n;
+  }
+  function cardMatchesFeeRange(c, range){
+    const feeStr = String(c.fee).toLowerCase();
+    if(range === 'free') return feeStr.includes('free');
+    const n = cardFeeValue(c);
+    if(n === null) return false;
+    if(range === '500') return n <= 500;
+    if(range === '1500') return n > 500 && n <= 1500;
+    return true;
+  }
+  function getFilteredCards({banks=[], categories=[], feeRanges=[], maxSalary=null} = {}){
+    return ALL_CARDS.filter(c=>{
+      if(banks.length && !banks.includes(c.bank)) return false;
+      if(categories.length && !categories.some(cat=>{
+        // Direct match against DB category names stored on card
+        const catLower = cat.toLowerCase();
+        if((c.cashbackCategoryNames||[]).some(n=>n===catLower || n.includes(catLower) || catLower.includes(n))) return true;
+        return cardMatchesCategory(c, cat);
+      })) return false;
+      if(feeRanges.length && !feeRanges.some(r=>cardMatchesFeeRange(c, r))) return false;
+      if(maxSalary != null){
+        const salN = parseInt(String(c.salary).replace(/,/g,''),10);
+        if(!isNaN(salN) && salN > maxSalary) return false;
+      }
+      return true;
+    });
+  }
+  function matchesGenericCat(c, cat){
+    const fset = featureSetFor(c);
+    if(cat === 'freefee') return fset === 'freefee';
+    if(cat === 'travel')  return fset === 'travel';
+    if(cat === 'cashback') return fset === 'cashback';
+    if(cat === 'top') return c.ribbon === 'Premium';
+    return c.cat === cat;
+  }
+  function renderFilteredGrid(items, savingsMap){
+    ALL_CATS.forEach(cat=>{
+      const container = document.querySelector('.flip-grid[data-cat="'+cat+'"]');
+      if(!container) return;
+      const catItems = items.filter(c=>matchesGenericCat(c, cat));
+      container.innerHTML = catItems.map((c,i)=>{
+        try{ return cardHTML(c,i, savingsMap ? savingsMap[c.id] : null); }
+        catch(e){ console.warn('cardHTML error:', c?.name, e); return ''; }
+      }).join('');
+      const countEl = document.getElementById('cnt-'+cat);
+      if(countEl) countEl.textContent = catItems.length;
+      const section = document.getElementById('sec-'+cat);
+      if(section) section.style.display = catItems.length ? '' : 'none';
+    });
+    initHoloTilt();
+
+    const total = items.length;
+    const countText = document.getElementById('resultsCountText');
+    if(countText){
+      countText.innerHTML = total
+        ? 'Threading you to <strong>' + total + ' card' + (total===1?'':'s') + '</strong>, ranked by fit'
+        : 'No cards match your filters';
+    }
+    const noResults = document.getElementById('noResultsBlock');
+    if(noResults) noResults.classList.toggle('show', total===0);
+  }
+  function renderMyMatches(items, savingsMap){
+    const sec = document.getElementById('sec-mymatch');
+    const grid = document.getElementById('mymatchGrid');
+    const cnt = document.getElementById('cnt-mymatch');
+    if(!sec || !grid) return;
+    if(!items.length){ sec.style.display = 'none'; return; }
+    sec.style.display = '';
+    grid.innerHTML = items.map((c,i)=>{ try{ return cardHTML(c,i, savingsMap[c.id]); } catch(e){ console.warn('cardHTML error:', c?.name, e); return ''; } }).join('');
+    if(cnt) cnt.textContent = items.length;
+    initHoloTilt();
+  }
+  let currentChip = 'all';
+
+  function chipMatches(c, chipType){
+    switch(chipType){
+      case 'cashback': return featureSetFor(c) === 'cashback' || (c.cardType && ['regular','rewards_lifestyle','ecommerce','premium','legacy'].includes(c.cardType));
+      case 'travel': return featureSetFor(c) === 'travel' || cardMatchesCategory(c,'Travel & Miles') || cardMatchesCategory(c,'Airport Lounge');
+      case 'zerofee': return annualFeeOf(c) === 0;
+      case 'shopping': return cardMatchesCategory(c,'Online Shopping');
+      case 'premium': return c.ribbon === 'Premium';
+      case 'islamic': return c.ribbon === 'Islamic';
+      default: return true;
+    }
+  }
+  function maxRewardPct(c){
+    const pcts = (c.cardRewards||[]).map(r=>typeof r.pct === 'number' ? r.pct : 0);
+    return pcts.length ? Math.max(...pcts) : 0;
+  }
+  function milesScore(c){
+    let score = 0;
+    if(featureSetFor(c) === 'travel') score += 2;
+    if(cardMatchesCategory(c,'Travel & Miles')) score += 2;
+    if(cardMatchesCategory(c,'Airport Lounge')) score += 1;
+    if(cardTextBlob(c).includes('mile')) score += 2;
+    return score;
+  }
+  function sortCards(items, sortType){
+    const arr = items.slice();
+    if(sortType === 'cashback') arr.sort((a,b)=> maxRewardPct(b) - maxRewardPct(a));
+    else if(sortType === 'fee') arr.sort((a,b)=> annualFeeOf(a) - annualFeeOf(b));
+    else if(sortType === 'miles') arr.sort((a,b)=> milesScore(b) - milesScore(a));
+    return arr;
+  }
+  function setChip(el){
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+    currentChip = el.getAttribute('data-chip') || 'all';
+    applyAllFilters();
+  }
+
+  function renderSpendCategoryFilter(cats){
+    // cats = [{_id, name}] from API; counts from ALL_CARDS
+    const emojiMap = {
+      groceries:'🛒', grocery:'🛒', supermarket:'🛒',
+      dining:'🍽️', food:'🍽️', restaurant:'🍽️',
+      fuel:'⛽', petrol:'⛽', automobile:'⛽',
+      salik:'🛣️', parking:'🛣️', toll:'🛣️',
+      utilities:'💡', telecom:'📱', bills:'💡',
+      online:'🛍️', shopping:'🛍️', ecommerce:'🛍️',
+      international:'🌍', overseas:'🌍', foreign:'🌍',
+      travel:'✈️', flight:'✈️', airline:'✈️',
+      education:'🎓', school:'🎓',
+      entertainment:'🎬', cinema:'🎬',
+      lounge:'🛋️', airport:'🛋️',
+      healthcare:'🏥', medical:'🏥',
+    };
+    const getEmoji = name => {
+      const lower = name.toLowerCase();
+      for(const [k,v] of Object.entries(emojiMap)) if(lower.includes(k)) return v;
+      return '💳';
+    };
+    const counts = {};
+    ALL_CARDS.forEach(c => {
+      (c.cashbackCategoryNames||[]).forEach(n => { counts[n] = (counts[n]||0) + 1; });
+    });
+    const container = document.getElementById('spendCategoryFilterList');
+    if(!container) return;
+    if(!cats.length){ container.innerHTML = ''; return; }
+    container.innerHTML = cats.map(cat => {
+      const n = cat.name;
+      const lower = n.toLowerCase();
+      const cnt = counts[lower] || 0;
+      const icon = getEmoji(n);
+      const val = n.replace(/"/g,'&quot;');
+      return `<label class="sb-opt"><input type="checkbox" class="cat-chk" value="${val}" onchange="applyAllFilters();"/> ${icon} ${n} <span class="cnt">${cnt}</span></label>`;
+    }).join('');
+  }
+
+  function toggleMoreBanks(){
+    const list = document.getElementById('moreBanksList');
+    const toggle = document.getElementById('moreBanksToggle');
+    const willShow = list.style.display === 'none';
+    list.style.display = willShow ? 'block' : 'none';
+    toggle.textContent = willShow ? '− Show less' : ('+ ' + list.querySelectorAll('.bank-chk').length + ' more');
+  }
+
+  function applyAllFilters(){
+    const banks = Array.from(document.querySelectorAll('.bank-chk:checked')).map(el=>el.value);
+    const categories = Array.from(document.querySelectorAll('.cat-chk:checked')).map(el=>el.value);
+    const feeRanges = Array.from(document.querySelectorAll('.fee-chk:checked')).map(el=>el.value);
+    const maxSalary = parseInt(document.getElementById('salaryRange').value, 10);
+    let filtered = getFilteredCards({banks, categories, feeRanges, maxSalary});
+    filtered = filtered.filter(c=>chipMatches(c, currentChip));
+    const sortType = document.getElementById('sortSelect').value;
+    filtered = sortCards(filtered, sortType);
+    renderFilteredGrid(filtered);
+    const anyActive = banks.length || categories.length || feeRanges.length || maxSalary < 50000 || currentChip !== 'all' || sortType !== 'best';
+    document.getElementById('sbClearBtn').style.display = anyActive ? 'block' : 'none';
+  }
+  function clearSidebarFilters(){
+    document.querySelectorAll('.bank-chk, .cat-chk, .fee-chk').forEach(el=>{ el.checked = false; });
+    document.getElementById('salaryRange').value = 50000;
+    document.getElementById('salaryRangeVal').textContent = '50,000';
+    document.getElementById('sortSelect').value = 'best';
+    currentChip = 'all';
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    const allChip = document.querySelector('.chip[data-chip="all"]');
+    if(allChip) allChip.classList.add('active');
+    document.getElementById('sbClearBtn').style.display = 'none';
+    const mySec = document.getElementById('sec-mymatch');
+    if(mySec) mySec.style.display = 'none';
+    applyAllFilters();
+  }
+
+  function renderFeeFilter(){
+    const freeCount  = ALL_CARDS.filter(c => cardMatchesFeeRange(c,'free')).length;
+    const u500Count  = ALL_CARDS.filter(c => !cardMatchesFeeRange(c,'free') && cardMatchesFeeRange(c,'500')).length;
+    const u1500Count = ALL_CARDS.filter(c => cardMatchesFeeRange(c,'1500')).length;
+    const labels = document.querySelectorAll('.fee-chk');
+    labels.forEach(chk => {
+      const cnt = chk.parentElement.querySelector('.cnt');
+      if(!cnt) return;
+      if(chk.value === 'free')  cnt.textContent = freeCount;
+      if(chk.value === '500')   cnt.textContent = u500Count;
+      if(chk.value === '1500')  cnt.textContent = u1500Count;
+    });
+  }
+
+  function renderBankFilterList(){
+    const counts = {};
+    ALL_CARDS.forEach(c=>{ counts[c.bank] = (counts[c.bank]||0) + 1; });
+    const banks = Object.keys(counts).sort((a,b)=> counts[b]-counts[a]);
+    const topN = 5;
+    const top = banks.slice(0, topN);
+    const rest = banks.slice(topN);
+    const row = b => '<label class="sb-opt"><input type="checkbox" class="bank-chk" onchange="applyAllFilters();" value="' + b.replace(/"/g,'&quot;') + '"/> ' + b + ' <span class="cnt">' + counts[b] + '</span></label>';
+    let html = top.map(row).join('');
+    if(rest.length){
+      html += '<div id="moreBanksList" style="display:none;">' + rest.map(row).join('') + '</div>';
+      html += '<div class="sb-more-toggle" id="moreBanksToggle" onclick="toggleMoreBanks();">+ ' + rest.length + ' more</div>';
+    }
+    const container = document.getElementById('bankFilterList');
+    if(container) container.innerHTML = html;
+  }
+  function toggleMoreBanks(){
+    const list = document.getElementById('moreBanksList');
+    const toggle = document.getElementById('moreBanksToggle');
+    if(!list) return;
+    const willShow = list.style.display === 'none';
+    list.style.display = willShow ? 'block' : 'none';
+    toggle.textContent = willShow ? '− Show less' : ('+ ' + list.querySelectorAll('.bank-chk').length + ' more');
+  }
+
+  /* ══════════ HOLOGRAPHIC TILT — signature card interaction ══════════
+     Real-time 3D tilt + light-catching foil sheen that follows the
+     cursor, like a trading card caught in the light. */
+  function initHoloTilt(){
+    document.querySelectorAll('.card-stage').forEach(stage=>{
+      const card = stage.querySelector('.rcard-full');
+      if(!card || card.dataset.holoBound) return;
+      card.dataset.holoBound = '1';
+      const baseRot = card.dataset.rot || 0;
+
+      stage.addEventListener('pointerenter', ()=>{ card.style.transition = 'transform .08s linear'; });
+
+      stage.addEventListener('pointermove', (e)=>{
+        const r = stage.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width;
+        const py = (e.clientY - r.top) / r.height;
+        const rotY = (px - 0.5) * 26;
+        const rotX = (0.5 - py) * 20;
+        card.style.setProperty('--mx', (px*100)+'%');
+        card.style.setProperty('--my', (py*100)+'%');
+        card.style.transform = `rotate(${baseRot}deg) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.08)`;
+      });
+
+      stage.addEventListener('pointerleave', ()=>{
+        card.style.transition = 'transform .6s cubic-bezier(.23,1,.32,1)';
+        card.style.transform = `rotate(${baseRot}deg) rotateX(0deg) rotateY(0deg) scale(1)`;
+      });
+    });
+  }
+  initHoloTilt();
+
+  /* ══════════ DYNAMIC API FETCH ══════════ */
+  function stripHtml(html){
+    if(!html) return '';
+    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  function parseBullets(html, count){
+    if(!html) return [];
+    // Try <li> items first (proper bullet list)
+    const liMatches = html.match(/<li[^>]*>([\s\S]*?)<\/li>/gi) || [];
+    if(liMatches.length){
+      return liMatches.slice(0,count).map(m=>stripHtml(m)).filter(s=>s.length>2);
+    }
+    // Fall back to <p> tags — join short fragments into sentences
+    const pMatches = html.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || [];
+    if(pMatches.length){
+      const texts = pMatches.map(m=>stripHtml(m)).filter(s=>s.length>2);
+      // Join consecutive short fragments (< 50 chars, no period at end)
+      const joined = [];
+      let buf = '';
+      for(const t of texts){
+        if(buf && (buf.length < 50 && !buf.match(/[.!?]$/))) {
+          buf = buf + ' ' + t;
+        } else {
+          if(buf) joined.push(buf);
+          buf = t;
+        }
+      }
+      if(buf) joined.push(buf);
+      return joined.slice(0,count);
+    }
+    // Plain text fallback
+    const txt = stripHtml(html);
+    return txt ? [txt.slice(0,160)] : [];
+  }
+  function mapApiCard(card){
+    const feeType = card.commissionBrackets && card.commissionBrackets.length
+      ? card.commissionBrackets.reduce((min,b)=> b.minimumSalary < min.minimumSalary ? b : min, card.commissionBrackets[0]).feeType
+      : 'paid';
+    const lowestBracket = card.commissionBrackets && card.commissionBrackets.length
+      ? card.commissionBrackets.reduce((min,b)=> b.minimumSalary < min.minimumSalary ? b : min, card.commissionBrackets[0])
+      : null;
+    let fee, feeGreen;
+    if(feeType === 'free'){ fee = 'Free'; feeGreen = true; }
+    else if(feeType === 'free_tnc'){ fee = 'Free*'; feeGreen = true; }
+    else { fee = lowestBracket ? String(lowestBracket.payable || 0) : '—'; feeGreen = false; }
+    const salary = lowestBracket && lowestBracket.minimumSalary
+      ? Number(lowestBracket.minimumSalary).toLocaleString()
+      : 'No min.';
+    const theme = TYPE_THEME[card.cardType] || 'mini-t1';
+    const network = TYPE_NETWORK[card.cardType] || 'VISA';
+    const bankName = card.bank ? card.bank.name : '';
+    const bankSlug = bankName.toLowerCase().replace(/\s+/g,'-') || 'bank';
+    const imgUrl = card.cardImage ? (UPLOADS_BASE + '/card-images/' + card.cardImage) : null;
+    const ribbon = card.cardType === 'premium' ? 'Premium' : (feeType === 'free' ? 'Free' : null);
+    const offerText = card.feesEligibility ? stripHtml(card.feesEligibility).slice(0,120) : '';
+    const allBullets = parseBullets(card.benefits, 12);
+    const perks = allBullets.slice(0, 4);
+    const features = allBullets.slice(4, 8);
+    const cardRewards = (card.cashbackCategories || []).map(c=>({icon:'\uD83D\uDCB3', text: c.category?.name || c.name || '', pct: (c.rate != null && c.rate > 0) ? c.rate : undefined}));
+    const cashbackCategoryNames = (card.cashbackCategories || []).map(c=>(c.category?.name || c.name || '').toLowerCase());
+    return {
+      id: card._id,
+      _id: card._id,
+      cat: bankSlug,
+      cardType: card.cardType || '',
+      theme,
+      network,
+      bank: bankName || '',
+      name: card.name || '',
+      cardRewards,
+      cashbackCategoryNames,
+      fee,
+      feeGreen,
+      salary,
+      rate: '—',
+      salaryTransfer: 'No',
+      ribbon,
+      offer: offerText,
+      perks,
+      features,
+      extras: parseBullets(card.feesEligibility, 6),
+      keyFeatures: parseBullets(card.keyFeatures, 8),
+      imgUrl,
+    };
+  }
+
+  async function fetchCategories(){
+    const container = document.getElementById('dynamicSpendFields');
+    try {
+      const res = await fetch(`${API_BASE}/public/card-categories`);
+      if(!res.ok) throw new Error();
+      const cats = await res.json();
+      window._cachedCats = cats;
+      if(!cats.length){ container.innerHTML = ''; return; }
+
+      // Emoji map for common category names
+      const emojiMap = {
+        groceries: '🛒', grocery: '🛒', supermarket: '🛒',
+        dining: '🍽️', food: '🍽️', restaurant: '🍽️',
+        fuel: '⛽', petrol: '⛽', automobile: '⛽',
+        salik: '🛣️', parking: '🛣️', toll: '🛣️',
+        utilities: '💡', telecom: '💡', telecom: '📱',
+        online: '🛍️', shopping: '🛍️', ecommerce: '🛍️',
+        international: '🌍', overseas: '🌍', foreign: '🌍',
+        travel: '✈️', flight: '✈️', airline: '✈️',
+        education: '🎓', school: '🎓', fees: '🎓',
+        entertainment: '🎬', cinema: '🎬',
+        lounge: '🛋️', airport: '🛋️',
+        healthcare: '🏥', medical: '🏥',
+        insurance: '🛡️',
+        miles: '🏆', rewards: '🏆', points: '🏆',
+      };
+      const getEmoji = (name) => {
+        const low = name.toLowerCase();
+        for(const [key, emoji] of Object.entries(emojiMap)){
+          if(low.includes(key)) return emoji;
+        }
+        return '💳';
+      };
+
+      // Render flat af-group divs — parent 3-col grid places salary col1, cats fill remaining cols
+      container.innerHTML = cats.map(cat => `
+        <div class="af-group" style="margin-bottom:0;">
+          <label class="af-label">${getEmoji(cat.name)} ${cat.name} / mo (AED)</label>
+          <input class="af-input" type="number" min="0" step="50"
+            data-cat-id="${cat._id}"
+            data-cat-name="${cat.name.replace(/"/g,'&quot;')}"
+            placeholder="e.g. 500"/>
+        </div>
+      `).join('');
+    } catch(err) {
+      // Fallback: hide the container silently
+      if(container) container.innerHTML = '';
+      console.warn('Could not load categories:', err);
+    }
+  }
+
+  async function fetchAndInit(){
+    // Show loading state
+    const countText = document.getElementById('resultsCountText');
+    if(countText) countText.innerHTML = 'Loading cards…';
+    ALL_CATS.forEach(cat=>{
+      const container = document.querySelector('.flip-grid[data-cat="'+cat+'"]');
+      if(container) container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--mist);font-size:14px;">⏳ Loading…</div>';
+    });
+
+    try {
+      const [cardsRes, _catsRes] = await Promise.all([
+        fetch(`${API_BASE}/public/card-products`),
+        fetchCategories(),
+      ]);
+      if(!cardsRes.ok) throw new Error('Failed to load cards');
+      const data = await cardsRes.json();
+      ALL_CARDS = data.map(mapApiCard);
+      console.log('[mysilah] loaded', ALL_CARDS.length, 'cards');
+    } catch(err) {
+      if(countText) countText.innerHTML = 'Could not load cards. Please refresh.';
+      console.error('[mysilah] fetchAndInit error:', err);
+      return;
+    }
+
+    try { renderBankFilterList(); } catch(e){ console.warn('renderBankFilterList error:', e); }
+    try { renderFeeFilter(); } catch(e){ console.warn('renderFeeFilter error:', e); }
+    try { renderSpendCategoryFilter(window._cachedCats || []); } catch(e){ console.warn('renderSpendCategoryFilter error:', e); }
+    try { renderFilteredGrid(ALL_CARDS); } catch(e){ console.error('renderFilteredGrid error:', e); }
+  }
+
+  fetchAndInit();
+</script>
+</body>
+</html>

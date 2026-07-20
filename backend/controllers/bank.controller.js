@@ -1,0 +1,66 @@
+const Bank = require('../models/Bank');
+const { getFilename, deleteFromS3 } = require('../middleware/upload.middleware');
+
+const deleteLogo = (filename) => deleteFromS3('bank-logos', filename);
+
+exports.list = async (req, res) => {
+  try {
+    const filter = req.user.role === 'admin' ? {} : { isActive: true };
+    const banks = await Bank.find(filter).sort({ name: 1 });
+    res.json(banks);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.create = async (req, res) => {
+  try {
+    const { name, code, description } = req.body;
+    if (!name) return res.status(400).json({ message: 'Bank name is required' });
+
+    const dupe = await Bank.findOne({ name });
+    if (dupe) return res.status(409).json({ message: 'A bank with this name already exists' });
+
+    const bank = await Bank.create({
+      name, code, description,
+      logo: req.file ? getFilename(req.file) : undefined,
+    });
+    res.status(201).json(bank);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.update = async (req, res) => {
+  try {
+    const { name, code, description, isActive } = req.body;
+    const update = {};
+    if (name !== undefined) update.name = name;
+    if (code !== undefined) update.code = code;
+    if (description !== undefined) update.description = description;
+    if (isActive !== undefined) update.isActive = isActive;
+
+    if (req.file) {
+      const existing = await Bank.findById(req.params.id, 'logo');
+      if (existing?.logo) deleteLogo(existing.logo);
+      update.logo = getFilename(req.file);
+    }
+
+    const bank = await Bank.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!bank) return res.status(404).json({ message: 'Bank not found' });
+    res.json(bank);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.remove = async (req, res) => {
+  try {
+    const bank = await Bank.findByIdAndDelete(req.params.id);
+    if (!bank) return res.status(404).json({ message: 'Bank not found' });
+    if (bank.logo) deleteLogo(bank.logo);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

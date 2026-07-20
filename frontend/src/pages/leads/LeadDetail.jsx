@@ -1,0 +1,1171 @@
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import {
+  Card, Col, Row, Typography, Tag, Space, Button, Descriptions, Skeleton,
+  Timeline, Divider, message, Modal, Form, InputNumber, Input, Select, Image, Tabs, Alert, Segmented, Upload,
+} from 'antd';
+import {
+  ArrowLeftOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, FileOutlined, DollarOutlined, ThunderboltOutlined,
+  PaperClipOutlined, UploadOutlined, SendOutlined,
+} from '@ant-design/icons';
+import api from '../../api/client';
+import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
+
+const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
+
+1. Accuracy of Information
+   You confirm that all client information provided (name, phone number, salary, and product selection) is accurate and obtained with the client's knowledge and consent.
+
+2. Client Consent
+   You confirm that the client has agreed to be contacted by the agency regarding the selected financial product.
+
+3. Data Privacy
+   Client data will be used solely for processing this lead and will be handled in accordance with applicable data protection regulations.
+
+4. No Duplicate Submissions
+   You confirm this lead has not been previously submitted through this or any other channel.
+
+5. Agent Responsibility
+   You acknowledge responsibility for the quality and authenticity of the lead. Submitting false or duplicate leads may result in account suspension.
+
+6. Commission Terms
+   Commission eligibility is subject to the agency's approval and the successful disbursement of the financial product. Rates are subject to change.
+
+7. Compliance
+   This submission must comply with all applicable UAE Central Bank regulations and the agency's internal compliance policies.
+
+By accepting these terms, you confirm all above conditions are met and authorize submission of this lead to the agency.`;
+
+const STATUSES = {
+  draft:           { color: 'default',  label: 'Draft' },
+  submitted:       { color: 'blue',     label: 'Submitted' },
+  under_review:    { color: 'gold',     label: 'Under Review' },
+  assigned:        { color: 'cyan',     label: 'Assigned' },
+  approved:        { color: 'green',    label: 'Approved' },
+  rejected:        { color: 'red',      label: 'Rejected' },
+  disbursed:       { color: 'purple',   label: 'Disbursed' },
+  cpv_done:        { color: 'teal',     label: 'CPV Done' },
+  activate_done:   { color: 'lime',     label: 'Activate Done' },
+  employee_status: { color: 'orange',   label: 'Employee Status' },
+  loan_status:     { color: 'blue',     label: 'Loan Status' },
+};
+
+const AGENCY_STATUSES = {
+  ...STATUSES,
+  submitted: { color: 'blue', label: 'New Lead' },
+};
+
+const COMM_COLORS = { paid: 'green', payable: 'cyan', pending: 'gold', none: 'default' };
+const COMM_LABELS = { paid: 'Paid', payable: 'Payout Ready', pending: 'Pending', none: '—' };
+
+const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
+const pct = (n) => `${Number(n || 0)}%`;
+
+const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned', 'approved'];
+const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
+const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || `${API_BASE}/uploads`;
+
+const VISA_LABELS = { employment: 'Employment', residence: 'Residence', investor: 'Investor', golden: 'Golden', freelance: 'Freelance', tourist: 'Tourist', other: 'Other' };
+
+const InfoItem = ({ label, value, sub }) => {
+  if (value == null || value === '' || value === false) return null;
+  return (
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 13, color: '#334155', fontWeight: 500, wordBreak: 'break-word' }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{sub}</div>}
+    </div>
+  );
+};
+
+export default function LeadDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useSelector((s) => s.auth);
+  const role = user.role;
+
+  const [lead, setLead] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const [docFileList, setDocFileList] = useState([]);
+  const [docLabel, setDocLabel] = useState('');
+  const [docUploading, setDocUploading] = useState(false);
+
+  const [editingRef, setEditingRef] = useState(false);
+  const [refValue, setRefValue] = useState('');
+  const [refSaving, setRefSaving] = useState(false);
+
+  const uploadDocuments = async () => {
+    if (!docFileList.length) return;
+    setDocUploading(true);
+    try {
+      const formData = new FormData();
+      docFileList.forEach((f) => { if (f.originFileObj) formData.append('documents', f.originFileObj); });
+      if (docLabel.trim()) formData.append('label', docLabel.trim());
+      const { data } = await api.post(`/leads/${lead._id}/documents`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setLead((prev) => ({ ...prev, documents: data.documents }));
+      setDocFileList([]);
+      setDocLabel('');
+      message.success('Document(s) added');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Upload failed');
+    } finally {
+      setDocUploading(false);
+    }
+  };
+
+  const saveReferenceNo = async () => {
+    setRefSaving(true);
+    try {
+      const { data } = await api.patch(`/leads/${lead._id}/reference-no`, { referenceNo: refValue });
+      setLead((prev) => ({ ...prev, referenceNo: data.referenceNo }));
+      setEditingRef(false);
+      message.success('Reference number updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    } finally {
+      setRefSaving(false);
+    }
+  };
+
+  const [loanOpen, setLoanOpen]       = useState(false);
+  const [statusModal, setStatusModal] = useState({ open: false, status: null, label: '' });
+  const [loanForm]                    = Form.useForm();
+  const [statusNoteForm]              = Form.useForm();
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [noteSubmitting, setNoteSubmitting] = useState(false);
+  const [deletingNoteId, setDeletingNoteId] = useState(null);
+
+  const [employees, setEmployees] = useState([]);
+  const [assigningEmployee, setAssigningEmployee] = useState(null);
+
+  const [actionModal, setActionModal] = useState({ open: false, type: null });
+  const [actionForm] = Form.useForm();
+  const [actionSaving, setActionSaving] = useState(false);
+
+  const [labelStatuses, setLabelStatuses] = useState([]);
+  const [consentStatuses, setConsentStatuses] = useState([]);
+  const [loanStatuses, setLoanStatuses] = useState([]);
+  const [empStatusSaving, setEmpStatusSaving] = useState(false);
+  const [consentStatusSaving, setConsentStatusSaving] = useState(false);
+  const [loanStatusSaving, setLoanStatusSaving] = useState(false);
+  const [benefitsOpen, setBenefitsOpen] = useState(false);
+
+  const [completeOpen, setCompleteOpen]   = useState(false);
+  const [completeForm]                    = Form.useForm();
+  const [completeProdType, setCompleteProdType] = useState('credit_card');
+  const [cardProducts, setCardProducts]   = useState([]);
+  const [loanProducts, setLoanProducts]   = useState([]);
+  const [selectedCard, setSelectedCard]   = useState(null);
+  const [selectedBracket, setSelectedBracket] = useState(null);
+  const [completing, setCompleting]       = useState(false);
+  const [termsOpen, setTermsOpen]         = useState(false);
+  const [pendingCompleteValues, setPendingCompleteValues] = useState(null);
+
+  const [loadError, setLoadError] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const { data } = await api.get(`/leads/${id}`);
+      setLead(data);
+    } catch (err) {
+      setLoadError(err.response?.data?.message || 'Lead not found or access denied');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, [id]);
+
+  useEffect(() => {
+    if (role === 'agent') {
+      Promise.all([api.get('/card-products'), api.get('/loan-products')])
+        .then(([cardsRes, loansRes]) => {
+          setCardProducts(cardsRes.data.filter((c) => c.isActive && c.bank?.isActive !== false));
+          setLoanProducts(loansRes.data.filter((l) => l.isActive && l.bank?.isActive !== false));
+        })
+        .catch(() => {});
+    }
+    if (role === 'agency') {
+      api.get('/employees').then((res) => setEmployees(res.data)).catch(() => {});
+    }
+    if (role === 'employee' || role === 'agency' || role === 'admin') {
+      api.get('/employee-statuses?statusType=lead_label').then((res) => setLabelStatuses(res.data.filter((s) => s.isActive))).catch(() => {});
+      api.get('/employee-statuses?statusType=whatsapp_consent').then((res) => setConsentStatuses(res.data.filter((s) => s.isActive))).catch(() => {});
+      api.get('/employee-statuses?statusType=loan_status').then((res) => setLoanStatuses(res.data.filter((s) => s.isActive))).catch(() => {});
+    }
+  }, [role]);
+
+  const openStatusModal = (status, label) => {
+    statusNoteForm.resetFields();
+    setStatusModal({ open: true, status, label });
+  };
+
+  const confirmStatusUpdate = async () => {
+    setStatusSaving(true);
+    try {
+      const { note } = statusNoteForm.getFieldsValue();
+      await api.patch(`/leads/${id}/status`, { status: statusModal.status, note: note || undefined });
+      message.success(`Marked as ${statusModal.label}`);
+      setStatusModal({ open: false, status: null, label: '' });
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const saveLoanAmount = async () => {
+    const { loanAmount } = await loanForm.validateFields();
+    try {
+      await api.patch(`/leads/${id}/loan-amount`, { loanAmount });
+      message.success('Loan amount updated');
+      setLoanOpen(false);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const assignEmployee = async (employeeId, type) => {
+    setAssigningEmployee(type);
+    try {
+      const { data } = await api.patch(`/leads/${id}/assign-employee`, { employeeId: employeeId || null, type });
+      setLead(data);
+      message.success(employeeId ? `${type === 'cpv' ? 'CPV' : 'Sales'} employee assigned` : 'Assignment cleared');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to assign');
+    } finally {
+      setAssigningEmployee(null);
+    }
+  };
+
+  const confirmAction = async () => {
+    setActionSaving(true);
+    try {
+      const { note } = actionForm.getFieldsValue();
+      const { data } = await api.patch(`/leads/${id}/${actionModal.type}`, { note: note || undefined });
+      setLead(data);
+      message.success(actionModal.type === 'cpv' ? 'CPV marked done' : 'Activated marked done');
+      setActionModal({ open: false, type: null });
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Action failed');
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
+  const updateEmpStatus = async (employeeStatusId) => {
+    setEmpStatusSaving(true);
+    try {
+      const { data } = await api.patch(`/leads/${id}/employee-status`, { employeeStatusId: employeeStatusId || null });
+      setLead(data);
+      message.success('Status updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update status');
+    } finally {
+      setEmpStatusSaving(false);
+    }
+  };
+
+  const updateConsentStatus = async (consentStatusId) => {
+    setConsentStatusSaving(true);
+    try {
+      const { data } = await api.patch(`/leads/${id}/consent-status`, { consentStatusId: consentStatusId || null });
+      setLead(data);
+      message.success('Consent status updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update consent status');
+    } finally {
+      setConsentStatusSaving(false);
+    }
+  };
+
+  const updateLoanStatus = async (loanStatusId) => {
+    setLoanStatusSaving(true);
+    try {
+      const { data } = await api.patch(`/leads/${id}/loan-status`, { loanStatusId: loanStatusId || null });
+      setLead(data);
+      message.success('Loan status updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update loan status');
+    } finally {
+      setLoanStatusSaving(false);
+    }
+  };
+
+  const addNote = async () => {
+    if (!noteText.trim()) return;
+    setNoteSubmitting(true);
+    try {
+      const { data } = await api.post(`/leads/${id}/notes`, { text: noteText.trim() });
+      setLead(data);
+      setNoteText('');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to add note');
+    } finally {
+      setNoteSubmitting(false);
+    }
+  };
+
+  const deleteNote = async (noteId) => {
+    setDeletingNoteId(noteId);
+    try {
+      const { data } = await api.delete(`/leads/${id}/notes/${noteId}`);
+      setLead(data);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to delete note');
+    } finally {
+      setDeletingNoteId(null);
+    }
+  };
+
+  const openCompleteModal = () => {
+    completeForm.resetFields();
+    setCompleteProdType('credit_card');
+    setSelectedCard(null);
+    setSelectedBracket(null);
+    setCompleteOpen(true);
+  };
+
+  const onCompleteCardSelect = (id) => {
+    const card = cardProducts.find((c) => c._id === id) || null;
+    setSelectedCard(card);
+    if (card?.commissionBrackets?.length) {
+      const min = [...card.commissionBrackets].sort((a, b) => a.minimumSalary - b.minimumSalary)[0];
+      setSelectedBracket(min);
+      completeForm.setFieldValue('salaryBracket', min.minimumSalary);
+    } else {
+      setSelectedBracket(null);
+      completeForm.resetFields(['salaryBracket']);
+    }
+  };
+
+  const onCompleteBracketSelect = (minSalary) => {
+    const brackets = selectedCard?.commissionBrackets || [];
+    setSelectedBracket(brackets.find((b) => b.minimumSalary === minSalary) || null);
+  };
+
+  const submitCompleteReferral = async () => {
+    try {
+      const values = await completeForm.validateFields();
+      setPendingCompleteValues(values);
+      setTermsOpen(true);
+    } catch { /* validation errors shown inline */ }
+  };
+
+  const confirmCompleteReferral = async () => {
+    setTermsOpen(false);
+    setCompleting(true);
+    try {
+      const values = pendingCompleteValues;
+      const payload = { productType: completeProdType };
+      if (completeProdType === 'credit_card') {
+        payload.cardProduct = values.cardProduct;
+        if (values.salaryBracket != null) payload.customerSalary = values.salaryBracket;
+      } else {
+        payload.loanProduct = values.loanProduct;
+        if (values.loanAmount) payload.loanAmount = values.loanAmount;
+        if (values.loanType) payload.loanType = values.loanType;
+      }
+      const { data } = await api.patch(`/leads/${id}/complete-referral`, payload);
+      setLead(data);
+      message.success('Lead completed and sent to agency');
+      setCompleteOpen(false);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to complete lead');
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const backPath = role === 'admin' ? '/admin/leads' : role === 'agency' ? '/agency/leads' : role === 'employee' ? '/employee/leads' : '/agent/leads';
+
+  if (loading) {
+    return (
+      <Card>
+        <Skeleton active paragraph={{ rows: 8 }} />
+      </Card>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Card style={{ borderRadius: 12, borderTop: '3px solid #ef4444' }}>
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>Lead Not Found</div>
+          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>{loadError}</div>
+          <Button type="primary" onClick={() => navigate(backPath)}>← Back to Leads</Button>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!lead) return null;
+
+  const statusMap = role === 'agency' ? AGENCY_STATUSES : STATUSES;
+  const statusMeta = statusMap[lead.status] || { color: 'default', label: lead.status };
+  const isLoan = lead.productType === 'loan';
+  const product = isLoan ? lead.loanProduct : lead.cardProduct;
+
+  // Find the bracket that matches the customer's salary (mirrors backend findBracket logic)
+  const matchedCardBracket = (() => {
+    const brackets = lead.cardProduct?.commissionBrackets;
+    if (!brackets?.length) return null;
+    const sorted = [...brackets].sort((a, b) => a.minimumSalary - b.minimumSalary);
+    if (!lead.customerSalary) return sorted[0];
+    const eligible = sorted.filter(b => b.minimumSalary <= lead.customerSalary);
+    return eligible.length ? eligible[eligible.length - 1] : sorted[0];
+  })();
+
+  const cardStyle = { borderRadius: 12, marginBottom: 12, borderTop: '3px solid #7C3AED' };
+  const cardBodyStyle = { padding: '14px 16px' };
+  const sectionLabel = (text) => (
+    <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.7 }}>{text}</span>
+  );
+
+  return (
+    <>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+        <Space size={8} wrap>
+          <Button size="small" icon={<ArrowLeftOutlined />} onClick={() => navigate(backPath)}>Back</Button>
+          <span style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', fontFamily: 'monospace' }}>
+            {lead.leadNumber || `LD-${String(lead._id).slice(-6)}`}
+          </span>
+          <Tag color={statusMeta.color} style={{ margin: 0 }}>{statusMeta.label}</Tag>
+          {lead.cpvDone && <Tag color="green" style={{ margin: 0 }}>CPV ✓</Tag>}
+          {lead.activateDone && <Tag color="green" style={{ margin: 0 }}>Activated ✓</Tag>}
+          {role !== 'employee' && lead.commissionStatus !== 'none' && (
+            <Tag color={COMM_COLORS[lead.commissionStatus]} style={{ margin: 0 }}>{COMM_LABELS[lead.commissionStatus]}</Tag>
+          )}
+        </Space>
+        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+          Created {new Date(lead.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+          {' · '}Updated {new Date(lead.updatedAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+        </Typography.Text>
+      </div>
+
+      {role === 'agent' && lead.isReferral && !lead.productType && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12, borderRadius: 10 }}
+          message="Referral Lead — Action Required"
+          description="This lead was submitted by a customer via your referral link. Select a product to complete the lead and send it to the agency."
+          action={
+            <Button size="small" type="primary" icon={<ThunderboltOutlined />} onClick={openCompleteModal} style={{ background: '#d97706', borderColor: '#d97706' }}>
+              Complete Lead
+            </Button>
+          }
+        />
+      )}
+
+      <Row gutter={[12, 12]}>
+        {/* LEFT COLUMN */}
+        <Col xs={24} lg={16}>
+
+          {/* Customer */}
+          <Card size="small" style={cardStyle} styles={{ body: cardBodyStyle }}>
+            <div style={{ marginBottom: 10 }}>
+              {sectionLabel('Customer')}
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a', marginTop: 4 }}>{lead.customerName}</div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px 16px' }}>
+              {lead.phone && <InfoItem label="Phone" value={lead.phone} />}
+              {lead.email && <InfoItem label="Email" value={lead.email} />}
+              {role === 'agent' && String(lead.agent?._id || lead.agent) === String(user.id || user._id) ? (
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>Reference No.</div>
+                  {editingRef ? (
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <Input
+                        size="small"
+                        value={refValue}
+                        onChange={(e) => setRefValue(e.target.value)}
+                        style={{ borderRadius: 6, fontSize: 13, width: 140 }}
+                        autoFocus
+                        onPressEnter={saveReferenceNo}
+                      />
+                      <Button size="small" type="primary" loading={refSaving} onClick={saveReferenceNo} icon={<CheckOutlined />} />
+                      <Button size="small" onClick={() => setEditingRef(false)} icon={<CloseOutlined />} />
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 13, color: '#334155', fontWeight: 500 }}>{lead.referenceNo || <span style={{ color: '#94a3b8' }}>—</span>}</span>
+                      <Button
+                        size="small" type="text" icon={<EditOutlined />}
+                        style={{ color: '#7c3aed', padding: '0 4px', height: 'auto' }}
+                        onClick={() => { setRefValue(lead.referenceNo || ''); setEditingRef(true); }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                lead.referenceNo && <InfoItem label="Reference No." value={lead.referenceNo} />
+              )}
+              {lead.customerSalary > 0 && <InfoItem label="Monthly Salary" value={aed(lead.customerSalary)} />}
+              {lead.nationality && <InfoItem label="Nationality" value={lead.nationality} />}
+              {lead.city && <InfoItem label="City" value={lead.city} />}
+              {lead.visaType && <InfoItem label="Visa Type" value={VISA_LABELS[lead.visaType] || lead.visaType} />}
+              {lead.companyName && <InfoItem label="Company" value={lead.companyName} />}
+              {lead.jobTitle && <InfoItem label="Job Title" value={lead.jobTitle} />}
+              {lead.yearsOfExperience != null && lead.yearsOfExperience >= 0 && (
+                <InfoItem label="Experience" value={`${lead.yearsOfExperience} yr${lead.yearsOfExperience !== 1 ? 's' : ''}`} />
+              )}
+            </div>
+          </Card>
+
+          {/* People (admin / agency / employee) */}
+          {role !== 'agent' && (
+            <Card size="small" style={cardStyle} styles={{ body: cardBodyStyle }}>
+              <div style={{ marginBottom: 10 }}>{sectionLabel('People')}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px 16px' }}>
+                {lead.agent && (
+                  <InfoItem label="Agent" value={lead.agent?.name || '—'} />
+                )}
+                {role === 'admin' && lead.agency && (
+                  <InfoItem label="Agency" value={lead.agency?.name || lead.agency?.email || '—'} sub={lead.agency?.name && lead.agency?.email ? lead.agency.email : undefined} />
+                )}
+                {lead.assignedCpvEmployee && (
+                  <InfoItem label="CPV Employee" value={lead.assignedCpvEmployee.name || lead.assignedCpvEmployee.email} sub={lead.assignedCpvEmployee.name && lead.assignedCpvEmployee.email ? lead.assignedCpvEmployee.email : undefined} />
+                )}
+                {lead.assignedSalesEmployee && (
+                  <InfoItem label="Sales Employee" value={lead.assignedSalesEmployee.name || lead.assignedSalesEmployee.email} sub={lead.assignedSalesEmployee.name && lead.assignedSalesEmployee.email ? lead.assignedSalesEmployee.email : undefined} />
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Disbursement Receipt */}
+          {role !== 'agent' && (lead.status === 'disbursed' || lead.disbursementReceipt || lead.disbursementReceiptFile) && (
+            <Card size="small" title={sectionLabel('Disbursement Receipt')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+              {lead.disbursementReceipt || lead.disbursementReceiptFile ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px 16px' }}>
+                  {lead.disbursementReceipt && (
+                    <InfoItem label="Reference No." value={<span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{lead.disbursementReceipt}</span>} />
+                  )}
+                  {lead.disbursementReceiptFile && (
+                    <InfoItem label="File" value={<a href={`${UPLOADS_BASE}/receipts/${lead.disbursementReceiptFile}`} target="_blank" rel="noreferrer"><FileOutlined /> View / Download</a>} />
+                  )}
+                  {lead.disbursementReceiptAt && (
+                    <InfoItem label="Submitted" value={new Date(lead.disbursementReceiptAt).toLocaleString()} />
+                  )}
+                </div>
+              ) : (
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>No receipt submitted yet.</Typography.Text>
+              )}
+            </Card>
+          )}
+
+          {/* Status History */}
+          {lead.statusHistory?.length > 0 && (
+            <Card size="small" title={sectionLabel('Status History')} style={cardStyle} styles={{ body: { padding: '8px 16px' } }}>
+              <div style={{ maxHeight: 240, overflowY: 'auto', paddingRight: 4 }}>
+                <Timeline
+                  style={{ marginTop: 8 }}
+                  items={[...lead.statusHistory].reverse().map((h) => {
+                    const meta = statusMap[h.status] || { color: 'default', label: h.status };
+                    return {
+                      color: meta.color === 'default' ? 'gray' : meta.color,
+                      children: (
+                        <div style={{ paddingBottom: 2 }}>
+                          <Tag color={meta.color} style={{ margin: 0, marginBottom: 2, fontSize: 11 }}>{meta.label}</Tag>
+                          {h.note && <div style={{ fontSize: 12, color: '#444', marginTop: 2 }}>{h.note}</div>}
+                          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+                            {new Date(h.changedAt).toLocaleString()}
+                            {role !== 'agent' && h.changedBy && ` · ${h.changedBy.name || h.changedBy.email}`}
+                          </div>
+                        </div>
+                      ),
+                    };
+                  })}
+                />
+              </div>
+            </Card>
+          )}
+
+          {/* Notes */}
+          <Card size="small" title={sectionLabel('Notes')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+            {lead.notes && (
+              <div style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>Submission Note</div>
+                <div style={{ fontSize: 12, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{lead.notes}</div>
+              </div>
+            )}
+            {(lead.leadNotes ?? []).length > 0 ? (
+              <div style={{ maxHeight: 280, overflowY: 'auto', marginBottom: 10, paddingRight: 2 }}>
+                {lead.leadNotes.map((n) => {
+                  const hiddenFromViewer = (n.authorRole === 'admin' && role !== 'admin') || (n.authorRole === 'agency' && role === 'agent');
+                  const employeeAnonymised = n.authorRole === 'employee' && role === 'agent';
+                  const authorDisplay = hiddenFromViewer ? 'Staff' : employeeAnonymised ? (n.author?.employeeId || 'Staff') : (n.author?.name || n.author?.email || 'Unknown');
+                  return (
+                    <div key={n._id} style={{ padding: '10px 12px', borderRadius: 8, background: '#f8fafc', border: '1px solid #f1f5f9', marginBottom: 6, position: 'relative' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: 12 }}>{authorDisplay}</span>
+                        {!hiddenFromViewer && <Tag style={{ fontSize: 10, lineHeight: '16px', padding: '0 5px', margin: 0 }}>{n.authorRole}</Tag>}
+                        <span style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(n.createdAt).toLocaleString()}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#333', whiteSpace: 'pre-wrap' }}>{n.text}</div>
+                      {role === 'admin' && (
+                        <Button type="text" danger size="small" icon={<DeleteOutlined />} loading={deletingNoteId === n._id} style={{ position: 'absolute', top: 6, right: 6 }} onClick={() => deleteNote(n._id)} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>No notes yet.</Typography.Text>
+            )}
+            <Input.TextArea rows={2} placeholder="Add a note..." value={noteText} onChange={(e) => setNoteText(e.target.value)} style={{ marginBottom: 6, fontSize: 12 }} />
+            <Button size="small" type="primary" loading={noteSubmitting} disabled={!noteText.trim()} onClick={addNote}>Add Note</Button>
+          </Card>
+
+          {/* Payout History */}
+          {lead.payoutHistory?.length > 0 && (
+            <Card size="small" title={sectionLabel('Payout History')} style={cardStyle} styles={{ body: { padding: '8px 16px' } }}>
+              <Timeline
+                style={{ marginTop: 8 }}
+                items={[...lead.payoutHistory].reverse().map((p) => ({
+                  color: 'green',
+                  children: (
+                    <div>
+                      <strong style={{ fontSize: 13 }}>{aed(p.amount)}</strong>
+                      <div style={{ fontSize: 11, color: '#888' }}>
+                        {new Date(p.sentAt).toLocaleString()}
+                        {p.month && ` · ${p.month}`}
+                        {p.sentBy && ` · by ${p.sentBy.name || p.sentBy.email}`}
+                      </div>
+                    </div>
+                  ),
+                }))}
+              />
+            </Card>
+          )}
+
+          <Card size="small" style={cardStyle} styles={{ body: cardBodyStyle }}>
+            <div style={{ marginBottom: 10 }}>{sectionLabel('Documents')}</div>
+            {lead.documents?.length ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 10 }}>
+                {lead.documents.map((d, i) => {
+                  const isImage = /\.(jpe?g|png)$/i.test(d.filename || '');
+                  const url = `${UPLOADS_BASE}/lead-documents/${d.filename}`;
+                  return (
+                    <a
+                      key={d.filename + i}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 84, fontSize: 11, color: '#2563eb', textAlign: 'center' }}
+                    >
+                      {isImage ? (
+                        <img src={url} alt={d.originalName || d.filename} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                      ) : (
+                        <span style={{ width: 64, height: 64, borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', fontSize: 22, color: '#94a3b8' }}>
+                          <PaperClipOutlined />
+                        </span>
+                      )}
+                      <span style={{ wordBreak: 'break-word' }}>{d.label || d.originalName || d.filename}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            ) : (
+              <Typography.Text type="secondary" style={{ fontSize: 13 }}>No documents attached</Typography.Text>
+            )}
+            {(role === 'admin' ||
+              (role === 'agency' && String(lead.agency?._id || lead.agency) === String(user.id || user._id)) ||
+              (role === 'agent' && String(lead.agent?._id || lead.agent) === String(user.id || user._id))) && (
+              <div style={{ marginTop: 12 }}>
+                <Input
+                  size="small"
+                  placeholder="Document name / label (e.g. Emirates ID, Salary Slip)"
+                  value={docLabel}
+                  onChange={(e) => setDocLabel(e.target.value)}
+                  style={{ borderRadius: 7, fontSize: 13, marginBottom: 8 }}
+                />
+                <Upload
+                  multiple
+                  listType="picture"
+                  fileList={docFileList}
+                  beforeUpload={() => false}
+                  onChange={({ fileList }) => setDocFileList(fileList.slice(-5))}
+                  onPreview={(file) => {
+                    const url = file.url || (file.originFileObj ? URL.createObjectURL(file.originFileObj) : null);
+                    if (url) window.open(url, '_blank');
+                  }}
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  maxCount={5}
+                >
+                  <Button size="small" icon={<UploadOutlined />}>Select Files</Button>
+                </Upload>
+                {docFileList.length > 0 && (
+                  <Button size="small" type="primary" loading={docUploading} onClick={uploadDocuments} style={{ marginTop: 8 }}>
+                    Upload {docFileList.length} file{docFileList.length !== 1 ? 's' : ''}
+                  </Button>
+                )}
+              </div>
+            )}
+          </Card>
+        </Col>
+
+        {/* RIGHT COLUMN */}
+        <Col xs={24} lg={8}>
+
+          {/* Benefits & Fees Modal */}
+          <Modal
+            title={isLoan ? lead.loanProduct?.name : lead.cardProduct?.name}
+            open={benefitsOpen}
+            onCancel={() => setBenefitsOpen(false)}
+            footer={null}
+            width={640}
+            destroyOnHidden
+          >
+            <Tabs
+              defaultActiveKey={product?.benefits ? 'benefits' : 'fees'}
+              items={[
+                ...(product?.benefits ? [{
+                  key: 'benefits',
+                  label: 'Product Benefits',
+                  children: (
+                    <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.8, maxHeight: 480, overflowY: 'auto', paddingRight: 4 }} dangerouslySetInnerHTML={{ __html: product.benefits }} />
+                  ),
+                }] : []),
+                ...(product?.feesEligibility ? [{
+                  key: 'fees',
+                  label: 'Fees & Eligibility',
+                  children: (
+                    <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.8, maxHeight: 480, overflowY: 'auto', paddingRight: 4 }} dangerouslySetInnerHTML={{ __html: product.feesEligibility }} />
+                  ),
+                }] : []),
+              ]}
+            />
+          </Modal>
+
+          {/* Agency Actions */}
+          {role === 'agency' && (
+            <Card size="small" title={sectionLabel('Actions')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+              {(lead.assignedCpvEmployee || lead.assignedSalesEmployee) && (
+                <div style={{ display: 'flex', gap: 16, marginBottom: 10, padding: '8px 10px', background: '#f0f7ff', borderRadius: 8 }}>
+                  {lead.assignedCpvEmployee && (
+                    <div>
+                      <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>CPV</div>
+                      <div style={{ fontWeight: 600, fontSize: 12 }}>{lead.assignedCpvEmployee.name || lead.assignedCpvEmployee.email}</div>
+                    </div>
+                  )}
+                  {lead.assignedSalesEmployee && (
+                    <div>
+                      <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 }}>Sales</div>
+                      <div style={{ fontWeight: 600, fontSize: 12 }}>{lead.assignedSalesEmployee.name || lead.assignedSalesEmployee.email}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+              {(lead.cpvDone || lead.activateDone) && (
+                <Space style={{ marginBottom: 10, flexWrap: 'wrap' }}>
+                  {lead.cpvDone && <Tag color="green" style={{ margin: 0 }}>CPV ✓</Tag>}
+                  {lead.activateDone && <Tag color="green" style={{ margin: 0 }}>Activated ✓</Tag>}
+                </Space>
+              )}
+              <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                {['submitted', 'under_review', 'assigned'].includes(lead.status) && (
+                  <Button block size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>Approve</Button>
+                )}
+                {lead.status === 'approved' && !lead.cpvDone && (
+                  <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'cpv' }); }}>CPV</Button>
+                )}
+                {lead.status === 'approved' && !lead.activateDone && (
+                  <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'activate' }); }}>Activated</Button>
+                )}
+                {lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
+                  <Button block size="small" onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
+                )}
+                {isLoan && LOAN_EDITABLE_FROM.includes(lead.status) && (
+                  <Button block size="small" icon={<EditOutlined />} onClick={() => { loanForm.setFieldsValue({ loanAmount: lead.loanAmount }); setLoanOpen(true); }}>Edit Loan Amount</Button>
+                )}
+                {REJECTABLE_FROM.includes(lead.status) && (
+                  <Button block size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal('rejected', 'Rejected')}>Reject</Button>
+                )}
+                {!['disbursed', 'rejected'].includes(lead.status) && (
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Assign Employees</div>
+                    <Select allowClear placeholder="CPV employee" loading={assigningEmployee === 'cpv'} value={lead.assignedCpvEmployee?._id || undefined} onChange={(val) => assignEmployee(val || null, 'cpv')} size="small" style={{ width: '100%', marginBottom: 4 }} options={employees.filter((e) => e.isActive && e.employeeType === 'cpv').map((e) => ({ value: e._id, label: e.name || e.email }))} />
+                    <Select allowClear placeholder="Sales employee" loading={assigningEmployee === 'sales'} value={lead.assignedSalesEmployee?._id || undefined} onChange={(val) => assignEmployee(val || null, 'sales')} size="small" style={{ width: '100%' }} options={employees.filter((e) => e.isActive && e.employeeType === 'sales').map((e) => ({ value: e._id, label: e.name || e.email }))} />
+                  </div>
+                )}
+              </Space>
+            </Card>
+          )}
+
+          {/* Employee Actions */}
+          {role === 'employee' && (() => {
+            const et = user.employeeType;
+            return (
+              <Card size="small" title={sectionLabel('Actions')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+                <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                  {(lead.cpvDone || lead.activateDone) && (
+                    <Space style={{ flexWrap: 'wrap' }}>
+                      {lead.cpvDone && <Tag color="green" style={{ margin: 0 }}>CPV ✓</Tag>}
+                      {lead.activateDone && <Tag color="green" style={{ margin: 0 }}>Activated ✓</Tag>}
+                    </Space>
+                  )}
+                  {et === 'cpv' && lead.status === 'approved' && !lead.cpvDone && (
+                    <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'cpv' }); }}>Mark CPV Done</Button>
+                  )}
+                  {et === 'sales' && ['submitted', 'under_review', 'assigned'].includes(lead.status) && (
+                    <Button block size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>Approve</Button>
+                  )}
+                  {et === 'sales' && lead.status === 'approved' && !lead.activateDone && (
+                    <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'activate' }); }}>Mark Activated</Button>
+                  )}
+                  {et === 'sales' && lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
+                    <Button block size="small" style={{ background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }} icon={<DollarOutlined />} onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
+                  )}
+                  {et === 'sales' && ['submitted', 'under_review', 'assigned', 'approved'].includes(lead.status) && (
+                    <Button block size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal('rejected', 'Rejected')}>Reject</Button>
+                  )}
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Status Label</div>
+                    <Select placeholder="Set status..." value={lead.employeeStatus?._id || lead.employeeStatus || undefined} loading={empStatusSaving} onChange={(val) => updateEmpStatus(val || null)} size="small" style={{ width: '100%' }} options={labelStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
+                  </div>
+                  <div style={{ marginTop: 4 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Consent</div>
+                    <Select placeholder="Set consent..." value={lead.consentStatus?._id || lead.consentStatus || undefined} loading={consentStatusSaving} onChange={(val) => updateConsentStatus(val || null)} size="small" style={{ width: '100%' }} options={consentStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
+                  </div>
+                  {isLoan && loanStatuses.length > 0 && (
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Loan Status</div>
+                      <Select allowClear placeholder="Set loan stage..." value={lead.loanStatus?._id || lead.loanStatus || undefined} loading={loanStatusSaving} onChange={(val) => updateLoanStatus(val || null)} size="small" style={{ width: '100%' }} options={loanStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
+                    </div>
+                  )}
+                </Space>
+              </Card>
+            );
+          })()}
+
+          {/* Agency status/consent */}
+          {role === 'agency' && (
+            <>
+              {['submitted', 'under_review', 'assigned'].includes(lead.status) && (
+                <Card size="small" title={sectionLabel('Status')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+                  <Select placeholder="Set stage..." value={lead.employeeStatus?._id || lead.employeeStatus || undefined} loading={empStatusSaving} onChange={(val) => updateEmpStatus(val || null)} size="small" style={{ width: '100%' }} options={labelStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
+                </Card>
+              )}
+              <Card size="small" title={sectionLabel('Consent')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+                <Select placeholder="Set consent status..." value={lead.consentStatus?._id || lead.consentStatus || undefined} loading={consentStatusSaving} onChange={(val) => updateConsentStatus(val || null)} size="small" style={{ width: '100%' }} options={consentStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
+              </Card>
+              {isLoan && loanStatuses.length > 0 && (
+                <Card size="small" title={sectionLabel('Loan Status')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+                  <Select allowClear placeholder="Set loan stage..." value={lead.loanStatus?._id || lead.loanStatus || undefined} loading={loanStatusSaving} onChange={(val) => updateLoanStatus(val || null)} size="small" style={{ width: '100%' }} options={loanStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
+                </Card>
+              )}
+            </>
+          )}
+
+          {/* Read-only stage + consent (admin/agent) */}
+          {role !== 'employee' && role !== 'agency' && (
+            <>
+              {lead.employeeStatus && (
+                <Card size="small" title={sectionLabel('Stage Status')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+                  <Tag color={lead.employeeStatus.color} style={{ fontSize: 12 }}>{lead.employeeStatus.label}</Tag>
+                </Card>
+              )}
+              {lead.consentStatus && (
+                <Card size="small" title={sectionLabel('Consent')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+                  {(() => {
+                    const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#f59e0b', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8' };
+                    const c = COLOR_MAP[lead.consentStatus.color] || '#94a3b8';
+                    return (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 10px', borderRadius: 999, border: `1.5px solid ${c}`, fontSize: 11, fontWeight: 700, color: c, textTransform: 'uppercase' }}>
+                        {lead.consentStatus.label}
+                      </span>
+                    );
+                  })()}
+                </Card>
+              )}
+              {role === 'admin' && isLoan && loanStatuses.length > 0 && (
+                <Card size="small" title={sectionLabel('Loan Status')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+                  <Select allowClear placeholder="Set loan stage..." value={lead.loanStatus?._id || lead.loanStatus || undefined} loading={loanStatusSaving} onChange={(val) => updateLoanStatus(val || null)} size="small" style={{ width: '100%' }} options={loanStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
+                </Card>
+              )}
+            </>
+          )}
+
+          {/* Product Card — bottom of right column */}
+          {product && (
+            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 18px', marginBottom: 12, boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', marginBottom: 2 }}>
+                {isLoan ? lead.loanProduct?.name : lead.cardProduct?.name}
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: ['approved', 'disbursed'].includes(lead.status) ? 8 : 12 }}>
+                {lead.bank?.name || ''}
+                {!isLoan && lead.cardProduct?.cardType && (
+                  <> · {({ regular: 'Regular', premium: 'Premium', rewards_lifestyle: 'Rewards & Lifestyle', travel: 'Travel', ecommerce: 'E-Commerce', legacy: 'Legacy' })[lead.cardProduct.cardType] || lead.cardProduct.cardType}</>
+                )}
+                {isLoan && lead.loanProduct?.loanCategory && (
+                  <> · {lead.loanProduct.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal Loan'}</>
+                )}
+              </div>
+              {['approved', 'disbursed'].includes(lead.status) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 12 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
+                  <span style={{ color: '#16a34a', fontWeight: 600, fontSize: 12 }}>Authorized</span>
+                </div>
+              )}
+              <div style={{ background: '#f8fafc', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 3 }}>Min Salary</div>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>
+                      {aed(isLoan ? lead.loanProduct?.minSalary : matchedCardBracket?.minimumSalary)}
+                    </div>
+                  </div>
+                  <span style={{ color: '#cbd5e1', fontSize: 20, fontWeight: 300 }}>→</span>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 3 }}>Payout</div>
+                    <div style={{ fontWeight: 800, fontSize: 17, color: '#16a34a' }}>
+                      {aed(role === 'agency' ? lead.grossCommission : lead.commission)}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                  <div>
+                    {!isLoan && matchedCardBracket?.feeType && (
+                      <span style={{ background: feeTypeColors(matchedCardBracket.feeType).bg, border: `1px solid ${feeTypeColors(matchedCardBracket.feeType).border}`, color: feeTypeColors(matchedCardBracket.feeType).text, fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 5 }}>
+                        {feeTypeLabel(matchedCardBracket.feeType)}
+                      </span>
+                    )}
+                    {isLoan && lead.loanProduct?.interestRateRange && (
+                      <div style={{ fontSize: 11, color: '#64748b' }}>Rate: {lead.loanProduct.interestRateRange}</div>
+                    )}
+                  </div>
+                  {!isLoan && lead.cardProduct?.cardImage && (
+                    <img src={`${UPLOADS_BASE}/card-images/${lead.cardProduct.cardImage}`} alt={lead.cardProduct.name} style={{ height: 46, objectFit: 'contain', borderRadius: 5, boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }} />
+                  )}
+                </div>
+                {!isLoan && lead.cardProduct?.cashbackCategories?.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                    {lead.cardProduct.cashbackCategories.map((c, idx) => {
+                      const label = c.category?.name || (typeof c.category === 'string' ? c.category : null) || `Category ${idx + 1}`;
+                      const key = c.category?._id || c.category || idx;
+                      return (
+                        <span key={key} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe' }}>
+                          {label}{c.rate != null ? ` ${c.rate}%` : ''}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              {isLoan && (lead.loanAmount > 0 || lead.loanType) && (
+                <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {lead.loanAmount > 0 && <InfoItem label="Loan Amount" value={aed(lead.loanAmount)} />}
+                  {lead.loanType && <InfoItem label="Loan Type" value={{ new_stl_loan: 'New STL Loan', buyout: 'Buyout', pdc: 'PDC', business_loan: 'Business Loan' }[lead.loanType] || lead.loanType} />}
+                  {lead.loanProduct?.maxLoanAmount > 0 && <InfoItem label="Max Loan" value={aed(lead.loanProduct.maxLoanAmount)} />}
+                </div>
+              )}
+              {(product?.benefits || product?.feesEligibility) && (
+                <button
+                  onClick={() => setBenefitsOpen(true)}
+                  style={{ marginTop: 12, width: '100%', background: 'linear-gradient(90deg, #7C3AED, #0EA5E9)', border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', letterSpacing: 0.3, boxShadow: '0 4px 14px rgba(124,58,237,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                >
+                  <SendOutlined style={{ fontSize: 13 }} /> Benefits &amp; Fees ↗
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Commission — bottom right */}
+          {role !== 'employee' && (
+            <Card size="small" style={cardStyle} styles={{ body: cardBodyStyle }}>
+              <div style={{ marginBottom: 10 }}>{sectionLabel('Commission')}</div>
+              {role === 'agency' ? (
+                <div>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Payable to Admin</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>{aed(lead.grossCommission)}</div>
+                  {lead.commissionStatus !== 'none' && (
+                    <Tag color={COMM_COLORS[lead.commissionStatus]} style={{ marginTop: 4 }}>{COMM_LABELS[lead.commissionStatus]}</Tag>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {role === 'admin' && lead.grossCommission > 0 && (
+                    <>
+                      <div style={{ marginBottom: 8 }}>
+                        <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Gross (Receivable)</div>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>{aed(lead.grossCommission)}</div>
+                        {isLoan && lead.loanProduct && (
+                          <div style={{ fontSize: 11, color: '#888' }}>{pct(lead.loanProduct.commissionBrackets?.[0]?.receivable)} of {aed(lead.loanAmount)}</div>
+                        )}
+                      </div>
+                      <Divider style={{ margin: '6px 0' }} />
+                    </>
+                  )}
+                  <div>
+                    <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>
+                      {role === 'agent' ? 'Expected Earning' : 'Agent Payout'}
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>{aed(lead.commission)}</div>
+                    {lead.commissionStatus !== 'none' && (
+                      <Tag color={COMM_COLORS[lead.commissionStatus]} style={{ marginTop: 4 }}>{COMM_LABELS[lead.commissionStatus]}</Tag>
+                    )}
+                    {lead.commissionPaidAt && (
+                      <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>Paid {new Date(lead.commissionPaidAt).toLocaleDateString()}</div>
+                    )}
+                  </div>
+                </>
+              )}
+            </Card>
+          )}
+
+        </Col>
+      </Row>
+
+      {/* Status update modal */}
+      <Modal title={`Move to: ${statusModal.label}`} open={statusModal.open} onCancel={() => setStatusModal({ open: false, status: null, label: '' })} onOk={confirmStatusUpdate} okText="Confirm" confirmLoading={statusSaving} destroyOnClose>
+        <Form form={statusNoteForm} layout="vertical">
+          <Form.Item name="note" label="Note (optional)">
+            <Input.TextArea rows={3} placeholder="Add a note for this stage update..." />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Loan amount modal */}
+      <Modal title="Edit Loan Amount" open={loanOpen} onCancel={() => setLoanOpen(false)} onOk={saveLoanAmount} okText="Save" destroyOnClose>
+        <Descriptions size="small" style={{ marginBottom: 16 }}>
+          <Descriptions.Item label="Client">{lead.customerName}</Descriptions.Item>
+          <Descriptions.Item label="Product">{lead.loanProduct?.name}</Descriptions.Item>
+        </Descriptions>
+        <Form form={loanForm} layout="vertical">
+          <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true }]}>
+            <InputNumber min={1} step={1000} style={{ width: '100%' }} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* CPV / Activate modal */}
+      <Modal title={actionModal.type === 'cpv' ? 'Mark CPV Done' : 'Mark Activated Done'} open={actionModal.open} onCancel={() => setActionModal({ open: false, type: null })} onOk={confirmAction} okText="Confirm" confirmLoading={actionSaving} destroyOnClose>
+        <Form form={actionForm} layout="vertical">
+          <Form.Item name="note" label="Note (optional)">
+            <Input.TextArea rows={3} placeholder="Add a note..." />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Complete Referral Lead modal */}
+      <Modal
+        title="Complete Referral Lead"
+        open={completeOpen}
+        onCancel={() => setCompleteOpen(false)}
+        onOk={submitCompleteReferral}
+        okText="Submit Lead"
+        confirmLoading={completing}
+        destroyOnClose
+        width={480}
+      >
+        <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 16 }}>
+          Select the product for <strong>{lead.customerName}</strong>. The lead will be sent to the agency once submitted.
+        </Typography.Text>
+        <Segmented
+          block
+          value={completeProdType}
+          onChange={(v) => {
+            setCompleteProdType(v);
+            setSelectedCard(null);
+            setSelectedBracket(null);
+            completeForm.resetFields(['cardProduct', 'loanProduct', 'salaryBracket', 'loanAmount', 'loanType']);
+          }}
+          options={[
+            { label: 'Credit Card', value: 'credit_card' },
+            { label: 'Loan', value: 'loan' },
+          ]}
+          style={{ marginBottom: 16 }}
+        />
+        <Form form={completeForm} layout="vertical">
+          {completeProdType === 'credit_card' ? (
+            <>
+              <Form.Item name="cardProduct" label="Card Product" rules={[{ required: true, message: 'Select a card' }]}>
+                <Select
+                  showSearch
+                  placeholder="Select card product"
+                  optionFilterProp="label"
+                  onChange={onCompleteCardSelect}
+                  options={cardProducts.map((c) => ({ value: c._id, label: `${c.name} — ${c.bank?.name || ''}` }))}
+                />
+              </Form.Item>
+              {selectedCard?.commissionBrackets?.length > 0 && (
+                <Form.Item name="salaryBracket" label="Salary Bracket" rules={[{ required: true, message: 'Select salary bracket' }]}>
+                  <Select
+                    onChange={onCompleteBracketSelect}
+                    options={[...selectedCard.commissionBrackets]
+                      .sort((a, b) => a.minimumSalary - b.minimumSalary)
+                      .map((b) => ({
+                        value: b.minimumSalary,
+                        label: `Min. AED ${Number(b.minimumSalary).toLocaleString()} · ${feeTypeLabel(b.feeType)} · AED ${Number(b.payable || 0).toLocaleString()}`,
+                      }))}
+                  />
+                </Form.Item>
+              )}
+              {selectedBracket && (
+                <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, color: '#166534', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Expected Earning</div>
+                  <div style={{ fontWeight: 800, fontSize: 18, color: '#15803d' }}>AED {Number(selectedBracket.payable || 0).toLocaleString()}</div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <Form.Item name="loanProduct" label="Loan Product" rules={[{ required: true, message: 'Select a loan product' }]}>
+                <Select
+                  showSearch
+                  placeholder="Select loan product"
+                  optionFilterProp="label"
+                  options={loanProducts.map((l) => ({ value: l._id, label: `${l.name} — ${l.bank?.name || ''}` }))}
+                />
+              </Form.Item>
+              <Form.Item name="loanAmount" label="Loan Amount (AED)">
+                <InputNumber min={1} step={1000} style={{ width: '100%' }} placeholder="e.g. 50000" />
+              </Form.Item>
+              <Form.Item name="loanType" label="Loan Type">
+                <Select placeholder="Select type" allowClear options={[
+                  { value: 'new_stl_loan',  label: 'New STL Loan' },
+                  { value: 'buyout',        label: 'Buyout' },
+                  { value: 'pdc',           label: 'PDC' },
+                  { value: 'business_loan', label: 'Business Loan' },
+                ]} />
+              </Form.Item>
+            </>
+          )}
+        </Form>
+      </Modal>
+
+      {/* Terms & Conditions modal — shown before completing referral lead */}
+      <Modal
+        title="Terms & Conditions"
+        open={termsOpen}
+        onCancel={() => setTermsOpen(false)}
+        onOk={confirmCompleteReferral}
+        okText="I Agree — Submit Lead"
+        confirmLoading={completing}
+        width={520}
+        destroyOnClose
+      >
+        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 6, padding: 16, maxHeight: 320, overflowY: 'auto' }}>
+          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 13, margin: 0, color: '#374151' }}>
+            {TERMS}
+          </pre>
+        </div>
+      </Modal>
+    </>
+  );
+}

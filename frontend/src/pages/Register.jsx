@@ -1,0 +1,179 @@
+import { useEffect, useState } from 'react';
+import { Card, Form, Input, Button, Typography, Alert, Checkbox, Divider, Result } from 'antd';
+import { MailOutlined } from '@ant-design/icons';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { registerAgent, clearError } from '../store/slices/authSlice';
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000';
+
+const UAE_PASS_ERROR_MESSAGES = {
+  invalid_state:   'Session expired. Please try again.',
+  token_failed:    'UAE Pass authentication failed. Please try again.',
+  userinfo_failed: 'Could not retrieve your UAE Pass profile. Please try again.',
+  server_error:    'Something went wrong. Please try again.',
+  access_denied:   'UAE Pass access was denied.',
+};
+
+function Register() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user, status, error, registrationPending } = useSelector((s) => s.auth);
+  const [form] = Form.useForm();
+  const [uaepassError, setUaepassError] = useState(null);
+
+  useEffect(() => {
+    if (user) navigate(`/${user.role}`, { replace: true });
+  }, [user, navigate]);
+
+  useEffect(() => () => dispatch(clearError()), [dispatch]);
+
+  useEffect(() => {
+    const prefill = searchParams.get('uaepass_prefill');
+    if (prefill) {
+      try {
+        const payload = JSON.parse(atob(prefill.split('.')[1]));
+        form.setFieldsValue({
+          name:       payload.name       || '',
+          phone:      payload.phone      || '',
+          emiratesId: payload.emiratesId || '',
+          _uaepassSub:  payload.sub      || '',
+          _uaepassPrefill: prefill,
+        });
+      } catch { /* ignore */ }
+    }
+    const errCode = searchParams.get('uaepass_error');
+    if (errCode) setUaepassError(UAE_PASS_ERROR_MESSAGES[errCode] || 'UAE Pass authentication failed.');
+  }, [searchParams]);
+
+  const onFinish = (values) => {
+    const payload = {
+      name:         values.name,
+      email:        values.email,
+      password:     values.password,
+      phone:        values.phone,
+      emiratesId:   values.emiratesId,
+    };
+    if (values._uaepassSub) payload.uaepassSub = values._uaepassSub;
+    dispatch(registerAgent(payload));
+  };
+
+  const handleUaePass = () => { window.location.href = `${API_BASE}/api/auth/uaepass/init`; };
+  const isPrefilled = !!searchParams.get('uaepass_prefill');
+  const itemStyle = { marginBottom: 10 };
+
+  if (registrationPending) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5' }}>
+        <Card style={{ width: 460, textAlign: 'center' }} styles={{ body: { padding: '40px 32px' } }}>
+          <div style={{ fontSize: 56, marginBottom: 16 }}><MailOutlined style={{ color: '#7C3AED' }} /></div>
+          <Typography.Title level={4} style={{ margin: '0 0 8px' }}>Check your email</Typography.Title>
+          <Typography.Paragraph style={{ color: '#64748b', marginBottom: 24 }}>
+            We sent a verification link to your email address. Click the link to activate your account.
+          </Typography.Paragraph>
+          <Typography.Paragraph style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+            Didn't receive it? Check your spam folder or <Link to="/login">return to login</Link>.
+          </Typography.Paragraph>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5', padding: '16px 0' }}>
+      <Card style={{ width: 460 }} styles={{ body: { padding: '20px 24px' } }}>
+        <div style={{ textAlign: 'center', marginBottom: 16 }}>
+          <img src="/mysilah.svg" alt="Inizio Global" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
+        </div>
+        <Typography.Title level={4} style={{ textAlign: 'center', marginBottom: 2, fontWeight: 600 }}>
+          Agent Registration
+        </Typography.Title>
+        <Typography.Paragraph style={{ textAlign: 'center', color: '#888', marginBottom: 12, fontSize: 13 }}>
+          Sign up to submit leads and earn commissions
+        </Typography.Paragraph>
+
+        {uaepassError && <Alert type="error" message={uaepassError} style={{ marginBottom: 10 }} closable onClose={() => setUaepassError(null)} />}
+        {error && <Alert type="error" message={error} style={{ marginBottom: 10 }} />}
+
+        {isPrefilled && (
+          <Alert type="success" message="UAE Pass verified — complete your registration below" style={{ marginBottom: 10 }} showIcon />
+        )}
+        {!isPrefilled && (
+          <>
+            <button
+              type="button"
+              onClick={handleUaePass}
+              style={{
+                width: '100%',
+                height: 46,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                background: '#fff',
+                border: '1.5px solid #d1d5db',
+                borderRadius: 10,
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#0f172a',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                marginBottom: 2,
+              }}
+            >
+              <img
+                src="https://www.uaepass.ae/content/dam/uae-pass/images/logo/uae-pass-logo.svg"
+                alt="UAE PASS"
+                style={{ height: 22 }}
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+              Sign in with UAE PASS
+            </button>
+            <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center', fontSize: 11, marginBottom: 4 }}>
+              Instant verification using your Emirates ID
+            </Typography.Text>
+            <Divider style={{ margin: '10px 0' }}>or register manually</Divider>
+          </>
+        )}
+
+        <Form form={form} layout="vertical" onFinish={onFinish}>
+          <Form.Item name="_uaepassSub" hidden><Input /></Form.Item>
+          <Form.Item name="_uaepassPrefill" hidden><Input /></Form.Item>
+          <Form.Item name="name" rules={[{ required: true, message: 'Name required' }]} style={itemStyle}>
+            <Input placeholder="Full Name *" />
+          </Form.Item>
+          <Form.Item name="email" rules={[{ required: true, type: 'email', message: 'Valid email required' }]} style={itemStyle}>
+            <Input placeholder="Email *" />
+          </Form.Item>
+          <Form.Item name="phone" style={itemStyle}>
+            <Input placeholder="Phone (+971 50 xxx xxxx)" />
+          </Form.Item>
+          <Form.Item name="password" rules={[{ required: true, min: 6, message: 'Min 6 characters' }]} style={itemStyle}>
+            <Input.Password placeholder="Password *" />
+          </Form.Item>
+          <Form.Item name="emiratesId" style={itemStyle}>
+            <Input placeholder="Emirates ID (optional) — 784-XXXX-XXXXXXX-X" />
+          </Form.Item>
+          <Form.Item
+            name="agreeToTerms" valuePropName="checked" style={itemStyle}
+            rules={[{ validator: (_, v) => v ? Promise.resolve() : Promise.reject('You must accept the Terms and Conditions') }]}
+          >
+            <Checkbox>I agree to the <Link to="/terms" target="_blank">Terms and Conditions</Link></Checkbox>
+          </Form.Item>
+          <Button type="primary" htmlType="submit" loading={status === 'loading'} block>
+            {isPrefilled ? 'Complete Registration' : 'Register'}
+          </Button>
+        </Form>
+
+        <Typography.Paragraph style={{ textAlign: 'center', marginTop: 12, marginBottom: 0, fontSize: 13 }}>
+          Already have an account? <Link to="/login">Login</Link>
+          {' · '}
+          <Link to="/register/agency">Register as Agency</Link>
+        </Typography.Paragraph>
+      </Card>
+    </div>
+  );
+}
+
+export default Register;

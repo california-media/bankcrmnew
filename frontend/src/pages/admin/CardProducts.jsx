@@ -1,0 +1,629 @@
+import { useEffect, useState } from 'react';
+import {
+  Button, Table, Modal, Form, Input, InputNumber, Select, Space,
+  Popconfirm, Typography, Tag, message, Divider, Upload, Tabs, Row, Col, Switch,
+} from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, SearchOutlined, UploadOutlined, SettingOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import QuillEditor from '../../components/QuillEditor';
+import api from '../../api/client';
+import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
+
+const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
+
+const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '/uploads');
+
+const CARD_TYPES = [
+  { value: 'regular', label: 'Regular' },
+  { value: 'premium', label: 'Premium' },
+  { value: 'rewards_lifestyle', label: 'Rewards & Lifestyle' },
+  { value: 'travel', label: 'Travel' },
+  { value: 'ecommerce', label: 'E-Commerce' },
+  { value: 'legacy', label: 'Legacy' },
+];
+
+const CARD_TYPE_LABEL = Object.fromEntries(CARD_TYPES.map((t) => [t.value, t.label]));
+
+
+function CardProducts() {
+  const [cards, setCards] = useState([]);
+  const [banks, setBanks] = useState([]);
+  const [agencies, setAgencies] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [cardSearch, setCardSearch] = useState('');
+  const [bankFilter, setBankFilter] = useState(null);
+  const [agencyFilter, setAgencyFilter] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState(null);
+  const [fileList, setFileList] = useState([]);
+  const [benefitsHtml, setBenefitsHtml] = useState('');
+  const [feesHtml, setFeesHtml] = useState('');
+  const [keyFeaturesHtml, setKeyFeaturesHtml] = useState('');
+  const [form] = Form.useForm();
+
+  const [categories, setCategories] = useState([]);
+  const [catModalOpen, setCatModalOpen] = useState(false);
+  const [catName, setCatName] = useState('');
+  const [editingCat, setEditingCat] = useState(null);
+  const [catSaving, setCatSaving] = useState(false);
+
+  const fetchCategories = async () => {
+    try {
+      const { data } = await api.get('/card-categories');
+      setCategories(data);
+    } catch {
+      message.error('Failed to load categories');
+    }
+  };
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [cardsRes, banksRes, agenciesRes] = await Promise.all([
+        api.get('/card-products'),
+        api.get('/banks'),
+        api.get('/agencies'),
+      ]);
+      setCards(cardsRes.data);
+      setBanks(banksRes.data);
+      setAgencies(agenciesRes.data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); fetchCategories(); }, []);
+
+  const addCategory = async () => {
+    if (!catName.trim()) return;
+    setCatSaving(true);
+    try {
+      await api.post('/card-categories', { name: catName.trim() });
+      message.success('Category added');
+      setCatName('');
+      fetchCategories();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed');
+    } finally {
+      setCatSaving(false);
+    }
+  };
+
+  const startEditCat = (cat) => {
+    setEditingCat(cat);
+    setCatName(cat.name);
+  };
+
+  const cancelEditCat = () => {
+    setEditingCat(null);
+    setCatName('');
+  };
+
+  const updateCategory = async () => {
+    if (!catName.trim()) return;
+    setCatSaving(true);
+    try {
+      await api.put(`/card-categories/${editingCat._id}`, { name: catName.trim() });
+      message.success('Category updated');
+      cancelEditCat();
+      fetchCategories();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed');
+    } finally {
+      setCatSaving(false);
+    }
+  };
+
+  const deleteCategory = async (id) => {
+    try {
+      await api.delete(`/card-categories/${id}`);
+      fetchCategories();
+    } catch {
+      message.error('Delete failed');
+    }
+  };
+
+  const openCreate = () => {
+    setEditing(null);
+    form.resetFields();
+    setFileList([]);
+    setBenefitsHtml('');
+    setFeesHtml('');
+    setKeyFeaturesHtml('');
+    setOpen(true);
+  };
+
+  const openEdit = (c) => {
+    setEditing(c);
+    form.setFieldsValue({
+      name: c.name,
+      cardType: c.cardType,
+      bank: c.bank?._id,
+      agency: c.agency?._id,
+      isActive: c.isActive,
+      clawbackMonths: c.clawbackMonths || 0,
+      clawbackDays: c.clawbackDays ?? 30,
+      commissionBrackets: c.commissionBrackets || [],
+      cashbackCategories: (c.cashbackCategories || []).map((cat) => ({
+        category: cat.category?._id || cat.category,
+        rate: cat.rate ?? null,
+      })),
+      redirectUrl: c.redirectUrl || '',
+      redirectActive: c.redirectActive || false,
+    });
+    setBenefitsHtml(c.benefits || '');
+    setFeesHtml(c.feesEligibility || '');
+    setKeyFeaturesHtml(c.keyFeatures || '');
+    setFileList(
+      c.cardImage
+        ? [{ uid: '-1', name: c.cardImage, status: 'done', url: `${UPLOADS_BASE}/card-images/${c.cardImage}` }]
+        : []
+    );
+    setOpen(true);
+  };
+
+  const onSubmit = async () => {
+    const values = await form.validateFields();
+    try {
+      const fd = new FormData();
+      fd.append('name', values.name);
+      fd.append('cardType', values.cardType);
+      fd.append('bank', values.bank);
+      if (values.agency) fd.append('agency', values.agency);
+      fd.append('clawbackMonths', values.clawbackMonths || 0);
+      fd.append('clawbackDays', values.clawbackDays || 0);
+      fd.append('commissionBrackets', JSON.stringify(values.commissionBrackets || []));
+      fd.append('cashbackCategories', JSON.stringify(values.cashbackCategories || []));
+      fd.append('benefits', benefitsHtml);
+      fd.append('feesEligibility', feesHtml);
+      fd.append('keyFeatures', keyFeaturesHtml);
+      fd.append('isActive', values.isActive !== false ? 'true' : 'false');
+      fd.append('redirectUrl', values.redirectUrl || '');
+      fd.append('redirectActive', values.redirectActive ? 'true' : 'false');
+
+      const newFile = fileList.find((f) => f.originFileObj);
+      if (newFile) fd.append('cardImage', newFile.originFileObj);
+
+      if (editing) {
+        await api.put(`/card-products/${editing._id}`, fd);
+        message.success('Card product updated');
+      } else {
+        await api.post('/card-products', fd);
+        message.success('Card product created');
+      }
+      setOpen(false);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Save failed');
+    }
+  };
+
+  const onDelete = async (id) => {
+    try {
+      await api.delete(`/card-products/${id}`);
+      message.success('Card product deleted');
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Delete failed');
+    }
+  };
+
+  const bankOptions = banks.map((b) => ({ value: b._id, label: b.name }));
+  const agencyOptions = agencies.map((a) => ({ value: a._id, label: a.name || a.email }));
+
+  const columns = [
+    {
+      title: 'Image',
+      width: 70,
+      render: (_, row) => row.cardImage
+        ? <img src={`${UPLOADS_BASE}/card-images/${row.cardImage}`} alt="" style={{ width: 52, height: 34, objectFit: 'cover', borderRadius: 4, border: '1px solid #e2e8f0' }} />
+        : <span style={{ color: '#cbd5e1', fontSize: 12 }}>—</span>,
+    },
+    { title: 'Card Name', dataIndex: 'name', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+    {
+      title: 'Type',
+      dataIndex: 'cardType',
+      render: (v) => {
+        const colors = { regular: 'blue', premium: 'gold', rewards_lifestyle: 'green', travel: 'cyan', ecommerce: 'purple', legacy: 'volcano' };
+        return <Tag color={colors[v] || 'default'}>{CARD_TYPE_LABEL[v] || v}</Tag>;
+      },
+    },
+    { title: 'Bank', render: (_, row) => row.bank?.name || '—' },
+    { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || '—' },
+    {
+      title: 'Brackets',
+      render: (_, row) => {
+        const b = row.commissionBrackets || [];
+        if (!b.length) return <Typography.Text type="secondary">—</Typography.Text>;
+        return (
+          <Space direction="vertical" size={2}>
+            {b.map((br, i) => (
+              <Typography.Text key={i} style={{ fontSize: 12 }}>
+                ≥ AED {Number(br.minimumSalary).toLocaleString()} → R: {aed(br.receivable)} / P: {aed(br.payable)}
+                {br.feeType && <Tag color={feeTypeColors(br.feeType).tag} style={{ marginLeft: 4, fontSize: 10 }}>{feeTypeLabel(br.feeType)}</Tag>}
+              </Typography.Text>
+            ))}
+          </Space>
+        );
+      },
+    },
+    {
+      title: 'Status',
+      dataIndex: 'isActive',
+      render: (v) => v ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>,
+    },
+    {
+      title: 'Actions',
+      width: 200,
+      render: (_, row) => (
+        <Space>
+          <Button icon={<EditOutlined />} onClick={() => openEdit(row)}>Edit</Button>
+          <Popconfirm title="Delete this card product?" onConfirm={() => onDelete(row._id)}>
+            <Button danger icon={<DeleteOutlined />}>Delete</Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Card Products</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Card</Button>
+        </div>
+      </div>
+
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <Input
+          allowClear
+          placeholder="Search card name..."
+          prefix={<SearchOutlined />}
+          value={cardSearch}
+          onChange={(e) => setCardSearch(e.target.value)}
+          style={{ width: 260, flexShrink: 0, borderRadius: 6 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Banks"
+          value={bankFilter}
+          onChange={setBankFilter}
+          options={banks.map((b) => ({ value: b._id, label: b.name }))}
+          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Agencies"
+          value={agencyFilter}
+          onChange={setAgencyFilter}
+          options={agencies.map((a) => ({ value: a._id, label: a.name }))}
+          style={{ width: 180, flexShrink: 0 }}
+        />
+        <Select
+          allowClear
+          placeholder="All Categories"
+          value={categoryFilter}
+          onChange={setCategoryFilter}
+          options={categories.map((c) => ({ value: c._id, label: c.name }))}
+          style={{ width: 180, flexShrink: 0 }}
+        />
+      </div>
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <Table
+          size="small"
+          rowKey="_id"
+          loading={loading}
+          dataSource={cards.filter((c) => {
+            if (cardSearch.trim() && !c.name.toLowerCase().includes(cardSearch.trim().toLowerCase())) return false;
+            if (bankFilter && c.bank?._id !== bankFilter) return false;
+            if (agencyFilter && c.agency?._id !== agencyFilter) return false;
+            if (categoryFilter && !(c.cashbackCategories || []).some((cat) => {
+              const id = cat.category?._id || cat.category;
+              return String(id) === String(categoryFilter);
+            })) return false;
+            return true;
+          })}
+          columns={columns}
+        />
+      </div>
+
+      <Modal
+        title={editing ? 'Edit Card Product' : 'Add Card Product'}
+        open={open}
+        onCancel={() => setOpen(false)}
+        onOk={onSubmit}
+        okText="Save"
+        destroyOnClose
+        width={720}
+      >
+        <Form form={form} layout="vertical">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="name" label="Card Name" rules={[{ required: true, message: 'Card name is required' }]}>
+                <Input placeholder="e.g. Emirates NBD Signature Card" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="cardType" label="Card Type" rules={[{ required: true, message: 'Card type is required' }]}>
+                <Select options={CARD_TYPES} placeholder="Select card type" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="bank" label="Bank" rules={[{ required: true, message: 'Bank is required' }]}>
+                <Select
+                  showSearch
+                  options={bankOptions}
+                  placeholder="Select bank"
+                  filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="agency" label="Agency" rules={[{ required: true, message: 'Agency is required' }]}>
+                <Select
+                  showSearch
+                  options={agencyOptions}
+                  placeholder="Select agency"
+                  filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="Card Image">
+                <Upload
+                  listType="picture-card"
+                  fileList={fileList}
+                  beforeUpload={(file) => {
+                    setFileList([{ uid: file.uid, name: file.name, status: 'done', originFileObj: file }]);
+                    return false;
+                  }}
+                  onRemove={() => { setFileList([]); return false; }}
+                  accept=".jpg,.jpeg,.png,.webp"
+                  maxCount={1}
+                >
+                  {fileList.length === 0 && (
+                    <div>
+                      <UploadOutlined />
+                      <div style={{ marginTop: 8, fontSize: 12 }}>Upload</div>
+                    </div>
+                  )}
+                </Upload>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  JPG, PNG, or WebP — max 10 MB
+                </Typography.Text>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="clawbackDays"
+                label="Clawback Period (days)"
+                tooltip="Number of days the agent's hold % is retained before admin can release it. Set 0 for no clawback."
+                initialValue={30}
+              >
+                <InputNumber min={0} max={1095} style={{ width: '100%' }} placeholder="e.g. 30" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider orientation="left" style={{ fontSize: 13 }}>Commission Brackets</Divider>
+          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 12, fontSize: 12 }}>
+            Receivable = gross commission from bank (AED). Payable = agent commission (AED). Highest eligible bracket applies.
+          </Typography.Text>
+
+          <Form.List name="commissionBrackets">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...restField }) => (
+                  <Space key={key} align="baseline" style={{ display: 'flex', marginBottom: 8 }} wrap>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'minimumSalary']}
+                      label="Min Salary (AED)"
+                      rules={[{ required: true, message: 'Required' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber min={0} step={500} placeholder="5000" style={{ width: 130 }} />
+                    </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'receivable']}
+                      label="Receivable (AED)"
+                      rules={[{ required: true, message: 'Required' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber min={0} step={50} placeholder="800" style={{ width: 130 }} />
+                    </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'payable']}
+                      label="Payable (AED)"
+                      rules={[{ required: true, message: 'Required' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber min={0} step={50} placeholder="500" style={{ width: 130 }} />
+                    </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'feeType']}
+                      label="Card Fee"
+                      initialValue="free"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Select style={{ width: 130 }} options={[
+                        { value: 'free', label: 'Free' },
+                        { value: 'paid', label: 'Paid' },
+                        { value: 'free_tnc', label: 'Free*(T&C)' },
+                      ]} />
+                    </Form.Item>
+                    <MinusCircleOutlined
+                      onClick={() => remove(name)}
+                      style={{ color: '#ff4d4f', marginTop: 28, cursor: 'pointer' }}
+                    />
+                  </Space>
+                ))}
+                <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />} block>
+                  Add Bracket
+                </Button>
+              </>
+            )}
+          </Form.List>
+
+          <Divider orientation="left" style={{ fontSize: 13 }}>Cashback Categories</Divider>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+            <Typography.Text type="secondary" style={{ fontSize: 12, maxWidth: 420 }}>
+              Add spend categories and their cashback % rate for this card.
+            </Typography.Text>
+            <Button size="small" icon={<SettingOutlined />} onClick={() => setCatModalOpen(true)}>
+              Manage Categories
+            </Button>
+          </div>
+
+          <Form.List name="cashbackCategories">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name }) => (
+                  <Space key={key} align="baseline" style={{ display: 'flex', marginBottom: 8 }} wrap>
+                    <Form.Item
+                      name={[name, 'category']}
+                      rules={[{ required: true, message: 'Select category' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Select
+                        style={{ width: 200 }}
+                        placeholder="Category"
+                        options={categories.map((c) => ({ value: c._id, label: c.name }))}
+                      />
+                    </Form.Item>
+                    <Form.Item name={[name, 'rate']} style={{ marginBottom: 0 }}>
+                      <InputNumber
+                        min={0} max={100} step={0.5}
+                        placeholder="Rate"
+                        addonAfter="%"
+                        style={{ width: 130 }}
+                      />
+                    </Form.Item>
+                    <MinusCircleOutlined
+                      onClick={() => remove(name)}
+                      style={{ color: '#ff4d4f', cursor: 'pointer' }}
+                    />
+                  </Space>
+                ))}
+                <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />} block>
+                  Add Category
+                </Button>
+              </>
+            )}
+          </Form.List>
+
+          <Divider orientation="left" style={{ fontSize: 13 }}>Redirect Link</Divider>
+          <Row gutter={16}>
+            <Col span={18}>
+              <Form.Item name="redirectUrl" label="Redirect URL after submission">
+                <Input placeholder="https://app.mysilah.ae/apply/..." />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="redirectActive" label="Active" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider orientation="left" style={{ fontSize: 13 }}>Product Content</Divider>
+          <Tabs
+            items={[
+              {
+                key: 'benefits',
+                label: 'Product Benefits',
+                children: (
+                  <QuillEditor
+                    value={benefitsHtml}
+                    onChange={setBenefitsHtml}
+                    style={{ height: 260, marginBottom: 42 }}
+                  />
+                ),
+              },
+              {
+                key: 'fees',
+                label: 'Fees & Eligibility',
+                children: (
+                  <QuillEditor
+                    value={feesHtml}
+                    onChange={setFeesHtml}
+                    style={{ height: 260, marginBottom: 42 }}
+                  />
+                ),
+              },
+              {
+                key: 'keyFeatures',
+                label: 'Key Features',
+                children: (
+                  <QuillEditor
+                    value={keyFeaturesHtml}
+                    onChange={setKeyFeaturesHtml}
+                    style={{ height: 260, marginBottom: 42 }}
+                  />
+                ),
+              },
+            ]}
+          />
+        </Form>
+      </Modal>
+
+      <Modal
+        title="Manage Categories"
+        open={catModalOpen}
+        onCancel={() => { setCatModalOpen(false); cancelEditCat(); }}
+        footer={null}
+        width={420}
+      >
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+          <Input
+            placeholder="Category name"
+            value={catName}
+            onChange={(e) => setCatName(e.target.value)}
+            onPressEnter={editingCat ? updateCategory : addCategory}
+            style={{ flex: 1 }}
+          />
+          {editingCat ? (
+            <Space size={4}>
+              <Button type="primary" icon={<CheckOutlined />} onClick={updateCategory} loading={catSaving}>Save</Button>
+              <Button icon={<CloseOutlined />} onClick={cancelEditCat}>Cancel</Button>
+            </Space>
+          ) : (
+            <Button type="primary" icon={<PlusOutlined />} onClick={addCategory} loading={catSaving}>Add</Button>
+          )}
+        </div>
+
+        {categories.length === 0 && (
+          <Typography.Text type="secondary" style={{ display: 'block', textAlign: 'center', padding: '20px 0' }}>
+            No categories yet. Add one above.
+          </Typography.Text>
+        )}
+        {categories.map((cat) => (
+          <div
+            key={cat._id}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}
+          >
+            <span style={{ fontWeight: 500 }}>{cat.name}</span>
+            <Space size={4}>
+              <Button size="small" icon={<EditOutlined />} type="text" onClick={() => startEditCat(cat)} />
+              <Popconfirm title="Delete this category?" onConfirm={() => deleteCategory(cat._id)} okText="Delete" okButtonProps={{ danger: true }}>
+                <Button size="small" danger icon={<DeleteOutlined />} type="text" />
+              </Popconfirm>
+            </Space>
+          </div>
+        ))}
+      </Modal>
+    </>
+  );
+}
+
+export default CardProducts;

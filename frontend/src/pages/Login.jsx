@@ -1,75 +1,57 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Form, Input, Button, Alert } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, clearError } from '../store/slices/authSlice';
 
-const DEMO_ACCOUNTS = [
-  { label: 'Administrator', email: 'admin@gmail.com',     password: 'admin123' },
-  { label: 'Agency',        email: 'agency@gmail.com',    password: '123456' },
-  { label: 'Agent',         email: 'agent@gmail.com',     password: '123456' },
-  { label: 'Employee',      email: 'employee@gmail.com',  password: '123456' },
-];
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000';
 
-const PRODUCT_TAGS = ['Credit Cards', 'Personal Loans', 'SME Loans', 'Financial Products'];
+const IC = {
+  card:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+  shield: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+  brief:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>,
+  trend:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+  team:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+  chart:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+  link:   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+  check:  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+};
+
+const CHIPS = [
+  { icon: IC.card,   label: 'Credit Cards' },
+  { icon: IC.shield, label: 'Personal Loans' },
+  { icon: IC.brief,  label: 'SME Loans' },
+  { icon: IC.trend,  label: 'Financial Products' },
+];
 
 const PILLARS = [
   {
-    num: '01', role: 'AGENT', headline: 'Earn transparently',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-      </svg>
-    ),
+    num: '01', role: 'Referral Partner', headline: 'Earn transparently',
+    line1: 'Earn Transparently.',
+    line2: 'Submit a Lead. Get Paid.',
+    desc: 'Create and manage referrals with real-time tracking, transparent incentives, and a secure onboarding experience.',
   },
   {
-    num: '02', role: 'AGENCY', headline: 'Grow faster',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-        <polyline points="17 6 23 6 23 12" />
-      </svg>
-    ),
+    num: '02', role: 'Agency', headline: 'Grow faster',
+    line1: 'We Deliver Customers.',
+    line2: 'You Grow Faster.',
+    desc: 'Manage teams, track performance, leverage partner networks and access comprehensive analytics dashboards.',
   },
   {
-    num: '03', role: 'BANK', headline: 'Real results',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="8" r="6" /><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" />
-      </svg>
-    ),
+    num: '03', role: 'Bank', headline: 'Real results',
+    line1: 'Customer Acquisition',
+    line2: 'for Financial Institutions.',
+    desc: 'Access qualified leads through secure workflows, manage partner relationships, and ensure compliance.',
   },
 ];
-
-const FEATURES = [
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-      </svg>
-    ),
-    title: 'Live pipeline',
-    sub: 'New → Paid in one view',
-  },
-  {
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-        <polyline points="17 6 23 6 23 12" />
-      </svg>
-    ),
-    title: 'Product payouts',
-    sub: 'Live commission ledger',
-  },
-];
-
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000';
 
 function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user, status, error } = useSelector((s) => s.auth);
   const [form] = Form.useForm();
+  const [activeStep, setActiveStep] = useState(0);
+  const [fade, setFade] = useState(true);
 
   const handleUaePass = () => { window.location.href = `${API_BASE}/api/auth/uaepass/init`; };
 
@@ -79,199 +61,252 @@ function Login() {
 
   useEffect(() => () => dispatch(clearError()), [dispatch]);
 
+  // Auto-rotate
+  useEffect(() => {
+    const t = setInterval(() => switchTo((activeStep + 1) % 3), 3800);
+    return () => clearInterval(t);
+  }, [activeStep]);
+
+  const switchTo = (idx) => {
+    setFade(false);
+    setTimeout(() => { setActiveStep(idx); setFade(true); }, 180);
+  };
+
   const onFinish = (values) => dispatch(login(values));
-  const fillDemo = ({ email, password }) => form.setFieldsValue({ email, password });
+  const p = PILLARS[activeStep];
 
   return (
     <div className="login-root">
 
-      {/* LEFT — brand + marketing */}
-      <div className="login-brand">
+      {/* ── LEFT — login form ── */}
+      <div className="login-form-col">
+        <div style={{ width: '100%', maxWidth: 420 }}>
 
-        {/* Decorative circles */}
-        <div style={{
-          position: 'absolute', top: -80, right: -80,
-          width: 320, height: 320, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: 80, left: -60,
-          width: 240, height: 240, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 70%)',
-          pointerEvents: 'none',
-        }} />
-
-        {/* Logo */}
-        <div style={{ zIndex: 1 }}>
-          <img src="/mysilah.svg" alt="Bank CRM" style={{ height: 44, width: 'auto', objectFit: 'contain' }} />
-        </div>
-
-        {/* Hero */}
-        <div style={{ maxWidth: 520, zIndex: 1 }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 7,
-            border: '1px solid rgba(139,92,246,0.35)', borderRadius: 999,
-            padding: '6px 16px', fontSize: 11, color: '#7c3aed',
-            fontWeight: 700, marginBottom: 32,
-            background: 'rgba(255,255,255,0.65)',
-            letterSpacing: 0.8, backdropFilter: 'blur(6px)',
-          }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#7c3aed" stroke="none">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-            UAE Banking Referral Infrastructure
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <img src="/mysilah.svg" alt="MySilah" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
           </div>
 
-          <h1 style={{
-            fontSize: 34, fontWeight: 600, lineHeight: 1.12,
-            color: '#1e1b4b', margin: '0 0 8px', letterSpacing: -0.5,
+          <div style={{
+            background: '#fff', borderRadius: 20,
+            border: '1px solid #E8E8EE', borderTop: '3px solid #7C3AED',
+            padding: '36px 36px 28px',
+            boxShadow: '0 4px 32px rgba(124,58,237,0.07), 0 1px 4px rgba(11,15,30,0.04)',
           }}>
-            Earn Transparently.
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0B0F1E', margin: '0 0 4px', letterSpacing: '-0.025em' }}>
+              Welcome back
+            </h2>
+            <p style={{ fontSize: 14, color: '#6B7186', margin: '0 0 28px' }}>
+              Sign in to your referral workspace.
+            </p>
+
+            {error && <Alert type="error" message={error} style={{ marginBottom: 20, borderRadius: 10 }} />}
+
+            <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
+              <Form.Item
+                name="email"
+                label={<span style={{ fontSize: 12.5, fontWeight: 600, color: '#374151' }}>Work email</span>}
+                rules={[{ required: true, type: 'email', message: 'Valid email required' }]}
+                style={{ marginBottom: 16 }}
+              >
+                <Input size="large" placeholder="you@company.ae" style={{ borderRadius: 10, fontSize: 14, borderColor: '#E8E8EE' }} />
+              </Form.Item>
+
+              <Form.Item style={{ marginBottom: 24 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: '#374151' }}>Password</span>
+                  <Link to="/forgot-password" style={{ fontSize: 12, color: '#7C3AED', fontWeight: 500 }}>Forgot password?</Link>
+                </div>
+                <Form.Item name="password" noStyle rules={[{ required: true, message: 'Password required' }]}>
+                  <Input.Password size="large" style={{ borderRadius: 10, fontSize: 14, borderColor: '#E8E8EE' }} />
+                </Form.Item>
+              </Form.Item>
+
+              <Button
+                type="primary" htmlType="submit" loading={status === 'loading'} block size="large"
+                style={{
+                  borderRadius: 999, height: 48, fontSize: 15, fontWeight: 600,
+                  background: 'linear-gradient(90deg,#7C3AED,#8B5CF6 50%,#0EA5E9)',
+                  border: 'none', boxShadow: '0 4px 18px rgba(124,58,237,0.38)',
+                  marginBottom: 16, letterSpacing: '-0.01em',
+                }}
+              >
+                Continue to dashboard →
+              </Button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 14px' }}>
+                <div style={{ flex: 1, height: 1, background: '#E8E8EE' }} />
+                <span style={{ fontSize: 12, color: '#9AA0B4', whiteSpace: 'nowrap' }}>or sign in with</span>
+                <div style={{ flex: 1, height: 1, background: '#E8E8EE' }} />
+              </div>
+
+              <button
+                type="button" onClick={handleUaePass}
+                style={{
+                  width: '100%', height: 48,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  background: '#fff', border: '1.5px solid #E8E8EE', borderRadius: 999,
+                  cursor: 'pointer', fontSize: 14.5, fontWeight: 600, color: '#0B0F1E',
+                  boxShadow: '0 1px 4px rgba(11,15,30,0.05)',
+                  transition: 'border-color 0.18s, box-shadow 0.18s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#7C3AED'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.10)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E8E8EE'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(11,15,30,0.05)'; }}
+              >
+                <img
+                  src="https://www.uaepass.ae/content/dam/uae-pass/images/logo/uae-pass-logo.svg"
+                  alt="UAE PASS" style={{ height: 22 }}
+                  onError={(e) => { e.target.style.display = 'none'; }}
+                />
+                Sign in with UAE PASS
+              </button>
+            </Form>
+          </div>
+
+          <p style={{ fontSize: 12, color: '#9AA0B4', textAlign: 'center', margin: '16px 0 0', lineHeight: 1.6 }}>
+            New agent?{' '}
+            <Link to="/register" style={{ color: '#7C3AED', fontWeight: 500 }}>Create an account</Link>
+            {' '}· By signing in you agree to MySilah's Terms.
+          </p>
+        </div>
+      </div>
+
+      {/* ── RIGHT — brand panel ── */}
+      <div className="login-brand">
+
+        {/* Ambient orb */}
+        <div style={{
+          position: 'absolute', bottom: -60, right: -80,
+          width: 340, height: 340, borderRadius: '50%', pointerEvents: 'none',
+          background: 'radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 65%)',
+        }} />
+
+        {/* Hero content — fades on tab switch */}
+        <div style={{
+          position: 'relative', zIndex: 1, flex: 1,
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          opacity: fade ? 1 : 0,
+          transition: 'opacity 0.18s ease',
+        }}>
+
+          {/* Eyebrow */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10, width: 'fit-content',
+            border: '1px solid #e2e8f0', borderRadius: 999,
+            padding: '8px 16px', marginBottom: 28,
+            background: 'rgba(255,255,255,0.60)', backdropFilter: 'blur(6px)',
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              background: 'linear-gradient(135deg,#7C3AED,#0EA5E9)',
+            }} />
+            <span style={{
+              fontFamily: "'Geist Mono','Courier New',monospace",
+              fontSize: 10.5, fontWeight: 500, color: '#6b7280',
+              letterSpacing: '0.12em', textTransform: 'uppercase',
+            }}>
+              UAE Banking Referral Infrastructure
+            </span>
+          </div>
+
+          {/* Dynamic headline */}
+          <h1 style={{
+            fontWeight: 800, lineHeight: 1.07, letterSpacing: '-0.035em',
+            fontSize: 'clamp(30px, 3.4vw, 42px)',
+            color: '#0B0F1E', margin: '0 0 6px',
+          }}>
+            {p.line1}
           </h1>
           <h1 style={{
-            fontSize: 34, fontWeight: 600, lineHeight: 1.12,
-            background: 'linear-gradient(90deg, #7C3AED, #0EA5E9)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            margin: '0 0 24px', letterSpacing: -0.5,
+            fontWeight: 800, lineHeight: 1.07, letterSpacing: '-0.035em',
+            fontSize: 'clamp(30px, 3.4vw, 42px)',
+            background: 'linear-gradient(90deg,#7C3AED 0%,#8B5CF6 45%,#0EA5E9 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            margin: '0 0 22px',
           }}>
-            Submit a Lead. Get Paid.
+            {p.line2}
           </h1>
 
-          <p style={{ fontSize: 15, color: '#4c4980', lineHeight: 1.7, margin: '0 0 28px' }}>
-            Create and manage referrals with real-time tracking, transparent
-            commissions, and a secure onboarding experience.
+          {/* Dynamic description */}
+          <p style={{
+            fontSize: 15, color: '#6B7186', lineHeight: 1.65,
+            margin: '0 0 28px', maxWidth: 460,
+          }}>
+            {p.desc}
           </p>
 
-          {/* Pillars */}
-          <div style={{ display: 'flex', gap: 12 }}>
-            {PILLARS.map((p) => (
-              <div key={p.num} style={{
-                flex: 1,
-                background: 'rgba(255,255,255,0.82)',
-                borderRadius: 18,
-                padding: '20px 18px 18px',
-                boxShadow: '0 2px 16px rgba(124,58,237,0.07), 0 1px 3px rgba(0,0,0,0.04)',
-                backdropFilter: 'blur(8px)',
+          {/* Product chips — constant across tabs */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 36 }}>
+            {CHIPS.map((c) => (
+              <div key={c.label} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontSize: 12.5, fontWeight: 500, color: '#374151',
+                background: 'rgba(255,255,255,0.80)', border: '1px solid #E8E8EE',
+                padding: '7px 14px', borderRadius: 999, backdropFilter: 'blur(6px)',
               }}>
-                <div style={{ marginBottom: 14 }}>{p.icon}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#1e1b4b', marginBottom: 3 }}>{p.headline}</div>
-                <div style={{ fontSize: 11.5, color: '#94a3b8', fontWeight: 500 }}>{p.num} / {p.role}</div>
+                <span style={{ color: '#7C3AED' }}>{c.icon}</span>
+                {c.label}
               </div>
             ))}
+          </div>
+
+          {/* Switcher */}
+          <div style={{
+            display: 'flex',
+            background: 'rgba(255,255,255,0.60)',
+            border: '1px solid #E8E8EE',
+            borderRadius: 16, overflow: 'hidden',
+            backdropFilter: 'blur(10px)',
+          }}>
+            {PILLARS.map((pillar, i) => {
+              const isActive = activeStep === i;
+              return (
+                <button
+                  key={pillar.num}
+                  onClick={() => switchTo(i)}
+                  style={{
+                    flex: 1, padding: '18px 16px', textAlign: 'left',
+                    background: isActive ? '#fff' : 'transparent',
+                    border: 'none', cursor: 'pointer',
+                    borderRight: i < 2 ? '1px solid #E8E8EE' : 'none',
+                    transition: 'background 0.25s',
+                    position: 'relative',
+                  }}
+                >
+                  <div style={{
+                    fontFamily: "'Geist Mono','Courier New',monospace",
+                    fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.10em',
+                    color: isActive ? '#7C3AED' : '#9AA0B4',
+                    fontWeight: 500, marginBottom: 5, lineHeight: 1.4,
+                    transition: 'color 0.25s',
+                  }}>
+                    {pillar.num} / {pillar.role}
+                  </div>
+                  <div style={{
+                    fontSize: 14, fontWeight: 600,
+                    ...(isActive
+                      ? { background: 'linear-gradient(90deg,#7C3AED,#0EA5E9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }
+                      : { color: '#0B0F1E' }
+                    ),
+                    transition: 'color 0.25s',
+                  }}>
+                    {pillar.headline}
+                  </div>
+                  {isActive && (
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0, height: 3,
+                      background: 'linear-gradient(90deg,#7C3AED,#0EA5E9)',
+                      borderRadius: '2px 2px 0 0',
+                    }} />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Footer */}
-        <div style={{ fontSize: 12, color: '#7c7abf', zIndex: 1 }}>
-          © 2026 Inizio Global · Built for Growth. Driven by Trust.
-        </div>
-      </div>
-
-      {/* RIGHT — login form */}
-      <div className="login-form-col">
-        <div style={{ width: '100%', maxWidth: 420 }}>
-          <div className="login-mobile-logo" style={{ textAlign: 'center', marginBottom: 28 }}>
-            <img src="/mysilah.svg" alt="MySilah" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
-          </div>
-          <h2 style={{ fontSize: 22, fontWeight: 600, color: '#0f172a', margin: '0 0 6px' }}>
-            Welcome back
-          </h2>
-          <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 32px' }}>
-            Sign in to your referral workspace.
-          </p>
-
-          {error && (
-            <Alert type="error" message={error} style={{ marginBottom: 20, borderRadius: 8 }} />
-          )}
-
-          <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
-            <Form.Item
-              name="email"
-              label={<span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Work email</span>}
-              rules={[{ required: true, type: 'email', message: 'Valid email required' }]}
-              style={{ marginBottom: 16 }}
-            >
-              <Input
-                size="large"
-                placeholder="you@company.ae"
-                style={{ borderRadius: 10, fontSize: 14 }}
-              />
-            </Form.Item>
-
-            <Form.Item style={{ marginBottom: 24 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Password</span>
-                <Link to="/forgot-password" style={{ fontSize: 12, color: '#7C3AED', fontWeight: 500 }}>Forgot password?</Link>
-              </div>
-              <Form.Item name="password" noStyle rules={[{ required: true, message: 'Password required' }]}>
-                <Input.Password size="large" style={{ borderRadius: 10, fontSize: 14 }} />
-              </Form.Item>
-            </Form.Item>
-
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={status === 'loading'}
-              block
-              size="large"
-              style={{
-                borderRadius: 10,
-                height: 48,
-                fontSize: 15,
-                fontWeight: 700,
-                background: 'linear-gradient(90deg, #7C3AED, #0EA5E9)',
-                border: 'none',
-                boxShadow: '0 4px 14px rgba(124,58,237,0.35)',
-                marginBottom: 16,
-              }}
-            >
-              Continue to dashboard
-            </Button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 14px' }}>
-              <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
-              <span style={{ fontSize: 12, color: '#94a3b8', whiteSpace: 'nowrap' }}>or sign in with</span>
-              <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleUaePass}
-              style={{
-                width: '100%',
-                height: 48,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 10,
-                background: '#fff',
-                border: '1.5px solid #d1d5db',
-                borderRadius: 10,
-                cursor: 'pointer',
-                fontSize: 15,
-                fontWeight: 600,
-                color: '#0f172a',
-                letterSpacing: 0.1,
-                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-              }}
-            >
-              <img
-                src="https://www.uaepass.ae/content/dam/uae-pass/images/logo/uae-pass-logo.svg"
-                alt="UAE PASS"
-                style={{ height: 22 }}
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-              Sign in with UAE PASS
-            </button>
-          </Form>
-
-          <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', margin: '16px 0 0', lineHeight: 1.6 }}>
-            New agent?{' '}
-            <Link to="/register" style={{ color: '#7C3AED', textDecoration: 'underline' }}>Create an account</Link>
-            {' '}· By signing in you agree to Bank CRM's Terms.
-          </p>
+        <div style={{ position: 'relative', zIndex: 1, fontSize: 12, color: '#9AA0B4', textAlign: 'right' }}>
+          © 2026 Silah L.L.C-FZ · Built for Growth. Driven by Trust.
         </div>
       </div>
     </div>

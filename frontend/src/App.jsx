@@ -22,6 +22,7 @@ import SubmitLead from './pages/agent/SubmitLead';
 import MyLeads from './pages/agent/MyLeads';
 import Commissions from './pages/agent/Commissions';
 import AgentProducts from './pages/agent/Products';
+import AgentSettings from './pages/agent/Settings';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyLeads from './pages/agency/Leads';
 import AgencyEmployees from './pages/agency/Employees';

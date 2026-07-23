@@ -164,7 +164,7 @@ function AppLayoutInner() {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider breakpoint="lg" collapsedWidth="0" theme="light" width={240}
-        style={{ background: '#ffffff', borderRight: '1px solid #e2e8f0' }}
+        style={{ background: '#ffffff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}
       >
         <div style={{ padding: '16px 16px 12px' }}>
           <div>
@@ -193,7 +193,7 @@ function AppLayoutInner() {
           </div>
         </div>
 
-        <div style={{ padding: '0 8px' }}>
+        <div style={{ padding: '0 8px', flex: 1 }}>
           <div style={{ fontSize: 9, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 1.4, color: '#94a3b8', padding: '0 8px', marginBottom: 4 }}>
             Navigation
           </div>
@@ -218,6 +218,23 @@ function AppLayoutInner() {
               style={{ borderInlineEnd: 0, background: 'transparent', fontWeight: 400 }}
             />
           </ConfigProvider>
+        </div>
+
+        <div style={{ padding: '12px 12px 16px', borderTop: '1px solid #e2e8f0' }}>
+          <button
+            onClick={() => { dispatch(logout()); navigate('/login'); }}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+              padding: '9px 10px', borderRadius: 8, border: 'none', background: 'transparent',
+              cursor: 'pointer', fontSize: 13.5, fontWeight: 500, color: '#dc2626',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = '#fef2f2'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <LogoutOutlined />
+            Logout
+          </button>
         </div>
       </Sider>
 

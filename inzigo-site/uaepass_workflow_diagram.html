@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MySilah — UAE PASS User Journey Workflow</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  .dl-bar { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+  .dl-btn { padding: 8px 20px; border: none; border-radius: 5px; font-size: 12px; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: 'Segoe UI', Arial, sans-serif; }
+  .dl-btn.pdf { background: #1a1a2e; color: #fff; }
+  .dl-btn.png { background: #2563eb; color: #fff; }
+  .dl-btn:hover { opacity: 0.88; }
+  .dl-btn svg { flex-shrink: 0; }
+  #dl-progress { display: none; text-align: center; font-size: 11px; color: #2563eb; margin-bottom: 8px; }
+  @media print { .dl-bar, #dl-progress { display: none !important; } body { padding: 10px; } }
+</style>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; padding: 30px; }
+  h1 { text-align: center; font-size: 16px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+  h2 { text-align: center; font-size: 12px; color: #555; margin-bottom: 24px; }
+  .diagram { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .row { display: flex; align-items: center; justify-content: center; gap: 0; }
+
+  /* Shapes */
+  .node { display: flex; align-items: center; justify-content: center; text-align: center;
+          font-size: 10px; line-height: 1.35; font-weight: 500; padding: 6px 10px; position: relative; }
+  .start-end { background: #1a1a2e; color: #fff; border-radius: 24px; width: 130px; height: 36px; font-size: 10px; }
+  .process  { background: #e8f4ff; border: 2px solid #2563eb; color: #1e3a6e; border-radius: 8px; width: 150px; min-height: 52px; }
+  .process.uae { background: #f0fdf4; border-color: #16a34a; color: #14532d; }
+  .process.sys { background: #fef9ee; border-color: #d97706; color: #78350f; }
+  .process.err { background: #fff1f2; border-color: #e11d48; color: #881337; }
+  .diamond { width: 0; height: 0; border-left: 48px solid transparent; border-right: 48px solid transparent;
+             border-bottom: 36px solid #2563eb; position: relative; }
+  .diamond::after { content: attr(data-label); position: absolute; top: 8px; left: -42px;
+                    width: 84px; text-align: center; font-size: 9px; font-weight: 600; color: #1e3a6e; line-height: 1.2; }
+  .diamond-wrap { display: flex; flex-direction: column; align-items: center; }
+  .diamond-shape { width: 100px; height: 60px; transform: rotate(0deg);
+                   background: #dbeafe; border: 2px solid #2563eb;
+                   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+                   display: flex; align-items: center; justify-content: center; }
+  .diamond-shape span { font-size: 9px; font-weight: 600; color: #1e3a6e; text-align: center; line-height: 1.2; }
+  .diamond-shape.sys { background: #fef3c7; border-color: #d97706; }
+  .diamond-shape.sys span { color: #78350f; }
+
+  /* Arrows */
+  .arr-down { width: 2px; height: 24px; background: #555; margin: 0 auto; position: relative; }
+  .arr-down::after { content: ''; position: absolute; bottom: -5px; left: -4px;
+                     border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid #555; }
+  .arr-right { width: 28px; height: 2px; background: #555; position: relative; margin: 0; align-self: center; }
+  .arr-right::after { content: ''; position: absolute; right: -5px; top: -4px;
+                      border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid #555; }
+  .arr-left { width: 28px; height: 2px; background: #e11d48; position: relative; margin: 0; align-self: center; }
+  .arr-left::before { content: ''; position: absolute; left: -5px; top: -4px;
+                      border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-right: 7px solid #e11d48; }
+  .label { font-size: 9px; font-weight: 700; color: #555; }
+  .label.yes { color: #16a34a; }
+  .label.no  { color: #e11d48; }
+
+  /* Branch containers */
+  .branch-row { display: flex; align-items: flex-start; justify-content: center; gap: 12px; }
+  .branch-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+  /* Legend */
+  .legend { display: flex; gap: 16px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+  .leg-box { width: 14px; height: 14px; border-radius: 3px; border: 2px solid; }
+
+  @media print { body { padding: 10px; } }
+</style>
+</head>
+<body>
+
+<div class="dl-bar">
+  <button class="dl-btn pdf" onclick="downloadPDF()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
+    Save as PDF
+  </button>
+  <button class="dl-btn png" onclick="downloadPNG()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+    Download PNG (High-Res)
+  </button>
+</div>
+<div id="dl-progress">Rendering at 3× resolution, please wait…</div>
+
+<h1>MySilah — UAE PASS Authentication Workflow</h1>
+<h2>Service Provider: MySilah (Silah L.L.C-FZ) | Platform: Web | Use Case: Authentication (Sign-in &amp; Sign-up)</h2>
+
+<div class="diagram">
+
+  <!-- START -->
+  <div class="node start-end">User visits MySilah</div>
+  <div class="arr-down"></div>
+
+  <!-- Step 1 -->
+  <div class="node process" style="width:200px">
+    Clicks <strong>"Sign in with UAE PASS"</strong><br>on Login or Register page
+  </div>
+  <div class="arr-down"></div>
+
+  <!-- Step 2 -->
+  <div class="node process sys" style="width:220px">
+    MySilah generates PKCE code verifier &amp; challenge<br>+ State JWT (with frontend origin)
+  </div>
+  <div class="arr-down"></div>
+
+  <!-- Step 3 -->
+  <div class="node process uae" style="width:210px">
+    Redirect to UAE PASS portal<br><em>ids.uaepass.ae</em>
+  </div>
+  <div class="arr-down"></div>
+
+  <!-- Step 4 -->
+  <div class="node process uae" style="width:210px">
+    User enters credentials<br>(Mobile No. / Emirates ID / Email)
+  </div>
+  <div class="arr-down"></div>
+
+  <!-- Step 5 -->
+  <div class="node process uae" style="width:220px">
+    UAE PASS sends push notification<br>to user's registered mobile app<br>with a number code to confirm
+  </div>
+  <div class="arr-down"></div>
+
+  <!-- Step 6 -->
+  <div class="node process uae" style="width:220px">
+    User selects matching number in UAE PASS app<br>&amp; authenticates with PIN / Face ID
+  </div>
+  <div class="arr-down"></div>
+
+  <!-- Decision: Auth OK? -->
+  <div style="display:flex; flex-direction:column; align-items:center; width:100%">
+    <div class="diamond-shape"><span>UAE PASS<br>Auth OK?</span></div>
+    <div style="display:flex; align-items:center; gap:0; margin-top:0">
+      <!-- NO branch left -->
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div style="display:flex;align-items:center">
+          <div class="arr-left" style="width:80px"></div>
+          <span class="label no" style="margin-right:4px">No</span>
+        </div>
+        <div style="margin-left:-80px">
+          <div class="node process err" style="width:140px;margin-top:4px">
+            Error: Authentication failed<br><em>"Please try again"</em>
+          </div>
+          <div style="display:flex;align-items:center;margin-top:4px">
+            <div style="width:2px;height:20px;background:#e11d48;margin:0 auto"></div>
+          </div>
+          <div class="node process err" style="width:140px">Redirect back to<br>MySilah login page</div>
+        </div>
+      </div>
+      <!-- YES branch right -->
+      <div style="display:flex;flex-direction:column;align-items:center;margin-left:8px">
+        <div style="display:flex;align-items:center">
+          <span class="label yes" style="margin-left:4px">Yes</span>
+          <div class="arr-right" style="width:60px;background:#16a34a"></div>
+        </div>
+      </div>
+      <!-- Continue down (YES) -->
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="arr-down"></div>
+        <div class="node process uae" style="width:210px;margin-top:0">
+          UAE PASS returns Authorization Code<br>to MySilah callback URL
+        </div>
+        <div class="arr-down"></div>
+        <div class="node process sys" style="width:210px">
+          MySilah exchanges auth code<br>for access token &amp; user profile
+        </div>
+        <div class="arr-down"></div>
+
+        <!-- Decision: Verified? -->
+        <div class="diamond-shape sys"><span>Account<br>Verified?<br>(not Basic)</span></div>
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-top:0">
+          <!-- NO path -->
+          <div style="display:flex;flex-direction:column;align-items:center;margin-top:8px">
+            <div style="display:flex;align-items:center">
+              <span class="label no">No</span>
+              <div class="arr-right" style="width:40px;background:#e11d48"></div>
+            </div>
+            <div class="node process err" style="width:140px;margin-left:40px">
+              Error: Unverified account<br><em>"Please upgrade UAE PASS"</em>
+            </div>
+          </div>
+          <!-- YES path -->
+          <div style="display:flex;flex-direction:column;align-items:center">
+            <span class="label yes">Yes</span>
+            <div class="arr-down"></div>
+
+            <!-- Decision: User exists? -->
+            <div class="diamond-shape sys" style="width:110px"><span>User exists<br>in MySilah?</span></div>
+            <div style="display:flex;align-items:flex-start;gap:20px;margin-top:0">
+              <!-- NO - new user -->
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <span class="label no">No</span>
+                <div class="arr-down"></div>
+                <div class="node process sys" style="width:140px">
+                  Create new Agent account<br>using UAE PASS profile data
+                </div>
+              </div>
+              <!-- YES - existing user -->
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <span class="label yes">Yes</span>
+                <div class="arr-down"></div>
+                <div class="node process sys" style="width:140px">
+                  Retrieve existing<br>MySilah account
+                </div>
+              </div>
+            </div>
+            <div class="arr-down" style="height:16px"></div>
+            <div class="node process sys" style="width:200px">Issue MySilah session token (JWT)</div>
+            <div class="arr-down"></div>
+            <div class="node process" style="width:200px">Redirect to Agent Dashboard</div>
+            <div class="arr-down"></div>
+            <div class="node start-end" style="background:#16a34a">✓ User Authenticated</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="leg"><div class="leg-box" style="background:#e8f4ff;border-color:#2563eb"></div> MySilah Action</div>
+  <div class="leg"><div class="leg-box" style="background:#f0fdf4;border-color:#16a34a"></div> UAE PASS Action</div>
+  <div class="leg"><div class="leg-box" style="background:#fef9ee;border-color:#d97706"></div> System / Backend</div>
+  <div class="leg"><div class="leg-box" style="background:#fff1f2;border-color:#e11d48"></div> Error State</div>
+  <div class="leg"><div class="leg-box" style="background:#fef3c7;border-color:#d97706"></div> Decision Point</div>
+</div>
+<p style="text-align:center;font-size:9px;color:#999;margin-top:12px">MySilah — Silah L.L.C-FZ | UAE PASS Integration | Web Platform | July 2026</p>
+
+<script>
+function downloadPDF() {
+  window.print();
+}
+
+async function downloadPNG() {
+  const bar = document.querySelector('.dl-bar');
+  const prog = document.getElementById('dl-progress');
+  bar.style.display = 'none';
+  prog.style.display = 'block';
+  try {
+    const canvas = await html2canvas(document.body, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    });
+    const link = document.createElement('a');
+    link.download = 'MySilah_UAE_PASS_Workflow_Diagram.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } finally {
+    prog.style.display = 'none';
+    bar.style.display = 'flex';
+  }
+}
+</script>
+</body>
+</html>

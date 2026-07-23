@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MySilah — UAE PASS UI Wireframes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  .dl-bar { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+  .dl-btn { padding: 8px 20px; border: none; border-radius: 5px; font-size: 12px; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: 'Segoe UI', Arial, sans-serif; }
+  .dl-btn.pdf { background: #1a1a2e; color: #fff; }
+  .dl-btn.png { background: #2563eb; color: #fff; }
+  .dl-btn:hover { opacity: 0.88; }
+  #dl-progress { display: none; text-align: center; font-size: 11px; color: #2563eb; margin-bottom: 8px; }
+  @media print { .dl-bar, #dl-progress { display: none !important; } body { padding: 10px; background: #fff !important; } }
+</style>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f0f0; padding: 30px 20px; color: #222; }
+
+h1 { text-align: center; font-size: 18px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+h2 { text-align: center; font-size: 12px; color: #666; margin-bottom: 6px; }
+.doc-meta { text-align: center; font-size: 10px; color: #999; margin-bottom: 30px; }
+
+/* Grid layout */
+.wireframes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; max-width: 1100px; margin: 0 auto; }
+
+/* Each wireframe card */
+.wf-card { background: #fff; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; }
+.wf-title { background: #1a1a2e; color: #fff; font-size: 10px; font-weight: 700; padding: 7px 10px;
+            letter-spacing: 0.5px; text-transform: uppercase; }
+.wf-subtitle { background: #2d3d6e; color: #c0cdf0; font-size: 9px; padding: 4px 10px; }
+
+/* Browser chrome */
+.browser { background: #e8e8e8; border-bottom: 1px solid #ccc; padding: 6px 8px; display: flex; align-items: center; gap: 6px; }
+.browser-dots { display: flex; gap: 4px; }
+.browser-dots span { width: 8px; height: 8px; border-radius: 50%; background: #bbb; display: block; }
+.browser-url { flex: 1; background: #fff; border: 1px solid #ccc; border-radius: 3px; font-size: 9px;
+               color: #555; padding: 2px 6px; height: 16px; line-height: 12px; overflow: hidden; white-space: nowrap; }
+
+/* Screen body */
+.screen { padding: 0; background: #fafafa; }
+
+/* Wireframe elements */
+.nav-bar { background: #dde; border-bottom: 1px solid #bbb; padding: 8px 12px;
+           display: flex; align-items: center; justify-content: space-between; }
+.logo-box { width: 70px; height: 14px; background: #aab; border-radius: 2px; }
+.nav-links { display: flex; gap: 8px; }
+.nav-link { width: 36px; height: 8px; background: #bbc; border-radius: 2px; }
+
+.wf-body { padding: 14px 14px 10px; }
+
+.page-title { height: 14px; background: #bbb; border-radius: 2px; margin-bottom: 4px; }
+.page-desc { height: 8px; background: #ddd; border-radius: 2px; margin-bottom: 12px; width: 70%; }
+
+.input-group { margin-bottom: 8px; }
+.input-label { height: 7px; background: #ccc; border-radius: 2px; width: 40%; margin-bottom: 3px; }
+.input-field { height: 22px; background: #fff; border: 1px solid #bbb; border-radius: 3px; width: 100%; display: flex; align-items: center; padding: 0 6px; }
+.input-placeholder { height: 7px; background: #e0e0e0; border-radius: 2px; width: 55%; }
+.input-icon { width: 10px; height: 10px; background: #ccc; border-radius: 50%; margin-left: auto; }
+
+.btn { height: 26px; border-radius: 3px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+.btn-primary { background: #2563eb; }
+.btn-secondary { background: #fff; border: 1px solid #bbb; }
+.btn-uae { background: #16a34a; }
+.btn-err { background: #e11d48; }
+.btn-label { height: 8px; border-radius: 2px; width: 55%; }
+.btn-primary .btn-label { background: rgba(255,255,255,0.7); }
+.btn-secondary .btn-label { background: #bbb; }
+.btn-uae .btn-label { background: rgba(255,255,255,0.7); }
+.btn-err .btn-label { background: rgba(255,255,255,0.7); }
+
+.divider { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+.div-line { flex: 1; height: 1px; background: #ddd; }
+.div-label { height: 7px; width: 20px; background: #ccc; border-radius: 2px; }
+
+.card-box { background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 10px 10px 8px; margin-bottom: 8px; }
+.card-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.avatar { width: 24px; height: 24px; background: #aac; border-radius: 50%; flex-shrink: 0; }
+.avatar.uae { background: #16a34a; }
+.avatar.err { background: #e11d48; }
+.avatar.warn { background: #d97706; }
+.card-title-block { flex: 1; }
+.ct1 { height: 8px; background: #bbb; border-radius: 2px; margin-bottom: 3px; width: 70%; }
+.ct2 { height: 7px; background: #ddd; border-radius: 2px; width: 50%; }
+
+.rows { display: flex; flex-direction: column; gap: 4px; }
+.wf-row { height: 8px; background: #e8e8e8; border-radius: 2px; }
+.wf-row.w80 { width: 80%; }
+.wf-row.w60 { width: 60%; }
+.wf-row.w90 { width: 90%; }
+
+.badge { display: inline-block; height: 14px; border-radius: 10px; padding: 0 6px; line-height: 14px; }
+.badge-green { background: #dcfce7; border: 1px solid #16a34a; }
+.badge-red { background: #fff1f2; border: 1px solid #e11d48; }
+.badge-amber { background: #fef3c7; border: 1px solid #d97706; }
+.badge-label { height: 6px; border-radius: 2px; width: 32px; background: #888; }
+
+/* UAE PASS portal specific */
+.uae-header { background: #006c35; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+.uae-logo-box { width: 50px; height: 16px; background: rgba(255,255,255,0.3); border-radius: 2px; }
+.uae-header-text { height: 8px; background: rgba(255,255,255,0.3); border-radius: 2px; width: 60px; }
+.uae-emblem { width: 16px; height: 16px; background: rgba(255,255,255,0.2); border-radius: 50%; margin-left: auto; }
+
+.number-code-box { background: #f0fdf4; border: 2px solid #16a34a; border-radius: 6px;
+                   padding: 10px; text-align: center; margin: 8px 0; }
+.nc-label { height: 7px; background: #c0e0c0; border-radius: 2px; width: 60%; margin: 0 auto 6px; }
+.nc-numbers { display: flex; justify-content: center; gap: 6px; }
+.nc-num { width: 28px; height: 28px; background: #fff; border: 2px solid #16a34a; border-radius: 4px;
+          display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #16a34a; }
+.nc-num.selected { background: #16a34a; color: #fff; }
+
+.phone-wrap { display: flex; justify-content: center; margin: 8px 0; }
+.phone-frame { width: 80px; height: 130px; background: #1a1a2e; border-radius: 10px; border: 2px solid #333;
+               padding: 8px 6px; display: flex; flex-direction: column; align-items: center; }
+.phone-notch { width: 24px; height: 5px; background: #333; border-radius: 3px; margin-bottom: 6px; }
+.phone-screen { width: 100%; flex: 1; background: #fff; border-radius: 4px; padding: 5px; overflow: hidden; }
+.ph-header { height: 7px; background: #006c35; border-radius: 2px; margin-bottom: 4px; }
+.ph-icon { width: 18px; height: 18px; background: #16a34a; border-radius: 50%; margin: 4px auto; }
+.ph-text1 { height: 5px; background: #ddd; border-radius: 2px; margin-bottom: 3px; }
+.ph-text2 { height: 5px; background: #eee; border-radius: 2px; width: 70%; margin-bottom: 6px; }
+.ph-num { width: 22px; height: 22px; background: #006c35; border-radius: 4px; margin: 0 auto 4px; }
+.ph-btn-row { display: flex; gap: 3px; justify-content: center; }
+.ph-btn { width: 24px; height: 10px; background: #f5f5f5; border: 1px solid #ddd; border-radius: 2px; }
+.ph-btn.confirm { background: #16a34a; border-color: #16a34a; }
+.phone-home { width: 20px; height: 3px; background: #333; border-radius: 2px; margin-top: 4px; }
+
+/* Dashboard */
+.dash-sidebar { float: left; width: 55px; background: #1a1a2e; min-height: 150px; padding: 8px 0; }
+.sidebar-item { height: 8px; background: rgba(255,255,255,0.15); border-radius: 2px; margin: 6px 8px; }
+.sidebar-item.active { background: #2563eb; }
+.dash-main { margin-left: 55px; padding: 10px; }
+.stat-grid { display: flex; gap: 6px; margin-bottom: 8px; }
+.stat-card { flex: 1; background: #f5f7ff; border: 1px solid #dde; border-radius: 3px; padding: 6px; }
+.stat-num { height: 12px; background: #2563eb; border-radius: 2px; width: 60%; margin-bottom: 3px; }
+.stat-lbl { height: 6px; background: #c0c8e0; border-radius: 2px; width: 80%; }
+.table-header { display: flex; gap: 4px; background: #f0f0f0; padding: 4px 6px; border-radius: 2px; margin-bottom: 4px; }
+.th-cell { height: 7px; background: #ccc; border-radius: 2px; flex: 1; }
+.table-row { display: flex; gap: 4px; padding: 3px 6px; border-bottom: 1px solid #eee; }
+.td-cell { height: 6px; background: #e8e8e8; border-radius: 2px; flex: 1; }
+
+/* Error screen */
+.error-center { display: flex; flex-direction: column; align-items: center; padding: 14px; }
+.err-icon-ring { width: 36px; height: 36px; border-radius: 50%; border: 3px solid #e11d48;
+                 display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+.err-x { font-size: 16px; font-weight: 700; color: #e11d48; line-height: 1; }
+.err-title { height: 10px; background: #e11d48; border-radius: 2px; width: 80%; margin-bottom: 5px; }
+.err-desc { height: 7px; background: #ddd; border-radius: 2px; width: 90%; margin-bottom: 3px; }
+
+/* Annotation labels */
+.ann { font-size: 8.5px; color: #555; font-style: italic; text-align: center; margin: 4px 0 2px; }
+.ann-tag { display: inline-block; background: #fffbe6; border: 1px solid #d97706; border-radius: 3px;
+           font-size: 8px; font-weight: 600; color: #78350f; padding: 1px 4px; margin: 2px 2px 0; }
+
+/* Step indicator */
+.step-ind { display: flex; align-items: center; justify-content: center; gap: 3px; padding: 5px 0 3px; background: #f5f5f5; border-bottom: 1px solid #eee; }
+.step-dot { width: 14px; height: 14px; border-radius: 50%; background: #ddd; border: 1px solid #bbb;
+            font-size: 7px; display: flex; align-items: center; justify-content: center; color: #999; font-weight: 700; }
+.step-dot.done { background: #16a34a; border-color: #16a34a; color: #fff; }
+.step-dot.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+.step-line { width: 12px; height: 1px; background: #ccc; }
+.step-line.done { background: #16a34a; }
+
+/* Legend */
+.legend { max-width: 1100px; margin: 24px auto 0; display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; padding: 12px; background: #fff; border: 1px solid #ccc; border-radius: 4px; }
+.leg { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #444; }
+.leg-swatch { width: 14px; height: 14px; border-radius: 2px; flex-shrink: 0; }
+
+.screen-num { font-size: 9px; font-weight: 700; color: #888; padding: 5px 10px 0; }
+
+@media print { body { background: #fff; padding: 10px; } .wf-card { break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<div class="dl-bar">
+  <button class="dl-btn pdf" onclick="downloadPDF()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="9" y1="15" x2="15" y2="15"/><line x1="9" y1="11" x2="15" y2="11"/></svg>
+    Save as PDF
+  </button>
+  <button class="dl-btn png" onclick="downloadPNG()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+    Download PNG (High-Res)
+  </button>
+</div>
+<div id="dl-progress">Rendering at 3× resolution, please wait…</div>
+
+<h1>MySilah — UAE PASS UI Wireframes</h1>
+<h2>Service Provider: MySilah (Silah L.L.C-FZ) | Use Case: Authentication via UAE PASS</h2>
+<p class="doc-meta">Document Type: Low-Fidelity UI Wireframes &nbsp;|&nbsp; Platform: Web &nbsp;|&nbsp; July 2026 &nbsp;|&nbsp; Prepared for UAE PASS SP Integration Submission</p>
+
+<div class="wireframes-grid">
+
+  <!-- ── Screen 1: MySilah Login Page ── -->
+  <div class="wf-card">
+    <div class="wf-title">Screen 1 — MySilah Login Page</div>
+    <div class="wf-subtitle">User Journey: Sign In with UAE PASS</div>
+    <div class="browser">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">mysilah.ae/login</div>
+    </div>
+    <!-- Step indicator -->
+    <div class="step-ind">
+      <div class="step-dot active">1</div><div class="step-line"></div>
+      <div class="step-dot">2</div><div class="step-line"></div>
+      <div class="step-dot">3</div><div class="step-line"></div>
+      <div class="step-dot">4</div><div class="step-line"></div>
+      <div class="step-dot">5</div>
+    </div>
+    <div class="screen">
+      <div class="nav-bar">
+        <div class="logo-box"></div>
+        <div class="nav-links"><div class="nav-link"></div><div class="nav-link"></div><div class="nav-link" style="width:44px"></div></div>
+      </div>
+      <div class="wf-body">
+        <div class="page-title" style="width:50%"></div>
+        <div class="page-desc"></div>
+
+        <div class="input-group">
+          <div class="input-label"></div>
+          <div class="input-field"><div class="input-placeholder"></div><div class="input-icon"></div></div>
+        </div>
+        <div class="input-group">
+          <div class="input-label"></div>
+          <div class="input-field"><div class="input-placeholder"></div><div class="input-icon"></div></div>
+        </div>
+        <div class="btn btn-primary" style="margin-top:6px"><div class="btn-label"></div></div>
+        <div class="divider"><div class="div-line"></div><div class="div-label"></div><div class="div-line"></div></div>
+        <div class="btn btn-uae">
+          <div class="btn-label" style="width:65%"></div>
+        </div>
+        <div class="ann">↑ "Sign in with UAE PASS" button</div>
+        <div>
+          <span class="ann-tag">TRIGGER: UAE PASS Flow</span>
+          <span class="ann-tag">PKCE Generated on Click</span>
+        </div>
+        <div style="display:flex;gap:4px;justify-content:center;margin-top:6px">
+          <div style="height:7px;background:#ddd;border-radius:2px;width:40%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 2: MySilah Register Page ── -->
+  <div class="wf-card">
+    <div class="wf-title">Screen 2 — MySilah Register Page</div>
+    <div class="wf-subtitle">User Journey: Sign Up with UAE PASS (New User)</div>
+    <div class="browser">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">mysilah.ae/register</div>
+    </div>
+    <div class="step-ind">
+      <div class="step-dot active">1</div><div class="step-line"></div>
+      <div class="step-dot">2</div><div class="step-line"></div>
+      <div class="step-dot">3</div><div class="step-line"></div>
+      <div class="step-dot">4</div><div class="step-line"></div>
+      <div class="step-dot">5</div>
+    </div>
+    <div class="screen">
+      <div class="nav-bar">
+        <div class="logo-box"></div>
+        <div class="nav-links"><div class="nav-link"></div><div class="nav-link"></div></div>
+      </div>
+      <div class="wf-body">
+        <div class="page-title" style="width:55%"></div>
+        <div class="page-desc" style="width:80%"></div>
+
+        <div class="btn btn-uae" style="margin-bottom:8px">
+          <div class="btn-label" style="width:70%"></div>
+        </div>
+        <div class="ann">↑ "Register with UAE PASS" — primary CTA</div>
+        <div><span class="ann-tag">Auto-fills name/email/EID from profile</span></div>
+        <div class="divider" style="margin-top:8px"><div class="div-line"></div><div class="div-label"></div><div class="div-line"></div></div>
+        <div class="input-group">
+          <div class="input-label"></div>
+          <div class="input-field"><div class="input-placeholder"></div></div>
+        </div>
+        <div class="input-group">
+          <div class="input-label"></div>
+          <div class="input-field"><div class="input-placeholder"></div></div>
+        </div>
+        <div class="input-group">
+          <div class="input-label"></div>
+          <div class="input-field"><div class="input-placeholder"></div></div>
+        </div>
+        <div class="btn btn-primary"><div class="btn-label"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 3: Redirect to UAE PASS Portal ── -->
+  <div class="wf-card">
+    <div class="wf-title">Screen 3 — UAE PASS Login Portal</div>
+    <div class="wf-subtitle">External: ids.uaepass.ae — Credential Entry</div>
+    <div class="browser">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">ids.uaepass.ae/idshub/login?...</div>
+    </div>
+    <div class="step-ind">
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot active">2</div><div class="step-line"></div>
+      <div class="step-dot">3</div><div class="step-line"></div>
+      <div class="step-dot">4</div><div class="step-line"></div>
+      <div class="step-dot">5</div>
+    </div>
+    <div class="screen">
+      <div class="uae-header">
+        <div class="uae-logo-box"></div>
+        <div class="uae-header-text"></div>
+        <div class="uae-emblem"></div>
+      </div>
+      <div class="wf-body">
+        <div style="text-align:center;margin-bottom:10px">
+          <div style="width:28px;height:28px;background:#e8f4f0;border:2px solid #16a34a;border-radius:50%;margin:0 auto 5px;display:flex;align-items:center;justify-content:center">
+            <div style="width:12px;height:12px;background:#16a34a;border-radius:50%"></div>
+          </div>
+          <div style="height:8px;background:#bbb;border-radius:2px;width:50%;margin:0 auto 3px"></div>
+          <div style="height:6px;background:#ddd;border-radius:2px;width:70%;margin:0 auto"></div>
+        </div>
+        <div class="input-group">
+          <div class="input-label" style="width:55%"></div>
+          <div class="input-field"><div class="input-placeholder" style="width:65%"></div></div>
+        </div>
+        <div class="ann" style="font-size:8px">Mobile No. / Emirates ID / Email</div>
+        <div class="btn btn-uae" style="margin-top:6px"><div class="btn-label"></div></div>
+        <div class="ann">↑ "Continue" — UAE PASS validates identity</div>
+        <div><span class="ann-tag">Hosted by UAE PASS</span><span class="ann-tag">NOT MySilah</span></div>
+        <div style="margin-top:8px;display:flex;gap:6px">
+          <div style="flex:1;height:20px;background:#f5f5f5;border:1px solid #ddd;border-radius:3px;display:flex;align-items:center;justify-content:center">
+            <div style="height:6px;background:#ccc;border-radius:2px;width:50%"></div>
+          </div>
+          <div style="flex:1;height:20px;background:#f5f5f5;border:1px solid #ddd;border-radius:3px;display:flex;align-items:center;justify-content:center">
+            <div style="height:6px;background:#ccc;border-radius:2px;width:50%"></div>
+          </div>
+        </div>
+        <div class="ann" style="margin-top:2px">Language options (EN / AR)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 4: UAE PASS Push Notification ── -->
+  <div class="wf-card">
+    <div class="wf-title">Screen 4 — UAE PASS Number Match</div>
+    <div class="wf-subtitle">Web: Polling page + Mobile: Push notification</div>
+    <div class="browser">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">ids.uaepass.ae/idshub/...</div>
+    </div>
+    <div class="step-ind">
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot active">3</div><div class="step-line"></div>
+      <div class="step-dot">4</div><div class="step-line"></div>
+      <div class="step-dot">5</div>
+    </div>
+    <div class="screen">
+      <div class="uae-header">
+        <div class="uae-logo-box"></div>
+        <div class="uae-header-text"></div>
+        <div class="uae-emblem"></div>
+      </div>
+      <div class="wf-body" style="padding-top:8px">
+        <div style="height:8px;background:#bbb;border-radius:2px;width:70%;margin:0 auto 3px"></div>
+        <div style="height:6px;background:#ddd;border-radius:2px;width:85%;margin:0 auto 10px"></div>
+        <div class="number-code-box">
+          <div class="nc-label"></div>
+          <div class="nc-numbers">
+            <div class="nc-num">7</div>
+            <div class="nc-num selected">3</div>
+            <div class="nc-num">9</div>
+            <div class="nc-num">1</div>
+          </div>
+        </div>
+        <div class="ann">User selects matching number on mobile app</div>
+        <div><span class="ann-tag">Sent via UAE PASS push notification</span></div>
+
+        <div class="phone-wrap">
+          <div class="phone-frame">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <div class="ph-header"></div>
+              <div class="ph-icon"></div>
+              <div class="ph-text1"></div>
+              <div class="ph-text2"></div>
+              <div class="ph-num"></div>
+              <div class="ph-btn-row">
+                <div class="ph-btn"></div>
+                <div class="ph-btn confirm"></div>
+              </div>
+            </div>
+            <div class="phone-home"></div>
+          </div>
+        </div>
+        <div class="ann">UAE PASS mobile app — number confirmation</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 5: Mobile App Biometric Auth ── -->
+  <div class="wf-card">
+    <div class="wf-title">Screen 5 — UAE PASS Mobile App Auth</div>
+    <div class="wf-subtitle">Mobile: PIN / Face ID to approve login</div>
+    <div class="browser">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">UAE PASS Mobile App</div>
+    </div>
+    <div class="step-ind">
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot active">4</div><div class="step-line"></div>
+      <div class="step-dot">5</div>
+    </div>
+    <div class="screen">
+      <div class="wf-body" style="background:#1a1a2e;min-height:200px;display:flex;flex-direction:column;align-items:center;padding-top:12px">
+        <div style="width:100px;height:180px;background:#222;border-radius:14px;border:2px solid #444;padding:10px 8px;display:flex;flex-direction:column;align-items:center">
+          <div style="width:28px;height:4px;background:#444;border-radius:2px;margin-bottom:8px"></div>
+          <div style="width:100%;flex:1;background:#fff;border-radius:6px;padding:6px;display:flex;flex-direction:column;align-items:center">
+            <div style="height:8px;background:#006c35;border-radius:2px;width:90%;margin-bottom:6px"></div>
+            <div style="width:22px;height:22px;background:#006c35;border-radius:50%;margin:4px auto"></div>
+            <div style="height:6px;background:#ddd;border-radius:2px;width:80%;margin-bottom:3px"></div>
+            <div style="height:5px;background:#eee;border-radius:2px;width:65%;margin-bottom:8px"></div>
+            <!-- PIN dots -->
+            <div style="display:flex;gap:5px;justify-content:center;margin-bottom:8px">
+              <div style="width:8px;height:8px;background:#006c35;border-radius:50%"></div>
+              <div style="width:8px;height:8px;background:#006c35;border-radius:50%"></div>
+              <div style="width:8px;height:8px;background:#006c35;border-radius:50%"></div>
+              <div style="width:8px;height:8px;background:#ddd;border:1px solid #bbb;border-radius:50%"></div>
+            </div>
+            <!-- Keypad grid -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;width:80%">
+              <div style="height:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:2px"></div>
+              <div style="height:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:2px"></div>
+              <div style="height:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:2px"></div>
+              <div style="height:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:2px"></div>
+              <div style="height:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:2px"></div>
+              <div style="height:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:2px"></div>
+              <div style="height:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:2px"></div>
+              <div style="height:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:2px"></div>
+              <div style="height:12px;background:#f5f5f5;border:1px solid #ddd;border-radius:2px"></div>
+            </div>
+          </div>
+          <div style="width:24px;height:3px;background:#444;border-radius:2px;margin-top:6px"></div>
+        </div>
+        <div style="margin-top:8px;text-align:center">
+          <span class="ann-tag" style="background:rgba(255,255,255,0.1);border-color:#aaa;color:#ccc">PIN Entry</span>
+          <span class="ann-tag" style="background:rgba(255,255,255,0.1);border-color:#aaa;color:#ccc">Face ID</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 6: Auth Code Callback (redirect) ── -->
+  <div class="wf-card">
+    <div class="wf-title">Screen 6 — Callback &amp; Token Exchange</div>
+    <div class="wf-subtitle">System: Auth code → Access token → User profile</div>
+    <div class="browser">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">mysilah.ae/auth/callback?code=...&state=...</div>
+    </div>
+    <div class="step-ind">
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot active">5</div>
+    </div>
+    <div class="screen">
+      <div class="nav-bar">
+        <div class="logo-box"></div>
+      </div>
+      <div class="wf-body" style="display:flex;flex-direction:column;align-items:center;padding-top:14px">
+        <div style="width:36px;height:36px;border-radius:50%;border:3px solid #2563eb;border-top-color:transparent;margin-bottom:10px"></div>
+        <div style="height:9px;background:#bbb;border-radius:2px;width:60%;margin-bottom:4px"></div>
+        <div style="height:7px;background:#ddd;border-radius:2px;width:75%;margin-bottom:12px"></div>
+        <div class="card-box" style="width:100%">
+          <div class="card-header">
+            <div class="avatar uae"></div>
+            <div class="card-title-block">
+              <div class="ct1"></div>
+              <div class="ct2"></div>
+            </div>
+          </div>
+          <div class="rows">
+            <div class="wf-row w90"></div>
+            <div class="wf-row w80"></div>
+            <div class="wf-row w60"></div>
+          </div>
+        </div>
+        <div class="ann">Backend verifies state JWT + PKCE verifier</div>
+        <div><span class="ann-tag">No user action required</span><span class="ann-tag">Auto redirect</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 7: Agent Dashboard (Success) ── -->
+  <div class="wf-card">
+    <div class="wf-title">Screen 7 — Agent Dashboard (Success)</div>
+    <div class="wf-subtitle">After successful UAE PASS authentication</div>
+    <div class="browser">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">mysilah.ae/agent/dashboard</div>
+    </div>
+    <div class="step-ind">
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div><div class="step-line done"></div>
+      <div class="step-dot done">✓</div>
+    </div>
+    <div class="screen">
+      <div class="nav-bar">
+        <div class="logo-box"></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="height:7px;background:#ddd;border-radius:2px;width:50px"></div>
+          <div style="width:16px;height:16px;background:#16a34a;border-radius:50%"></div>
+        </div>
+      </div>
+      <div style="overflow:hidden">
+        <div class="dash-sidebar">
+          <div class="sidebar-item active"></div>
+          <div class="sidebar-item"></div>
+          <div class="sidebar-item"></div>
+          <div class="sidebar-item"></div>
+          <div class="sidebar-item"></div>
+        </div>
+        <div class="dash-main">
+          <div style="height:8px;background:#bbb;border-radius:2px;width:55%;margin-bottom:6px"></div>
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-num"></div><div class="stat-lbl"></div></div>
+            <div class="stat-card"><div class="stat-num"></div><div class="stat-lbl"></div></div>
+            <div class="stat-card"><div class="stat-num"></div><div class="stat-lbl"></div></div>
+          </div>
+          <div class="table-header">
+            <div class="th-cell"></div><div class="th-cell"></div><div class="th-cell"></div>
+          </div>
+          <div class="table-row"><div class="td-cell"></div><div class="td-cell"></div><div class="td-cell"></div></div>
+          <div class="table-row"><div class="td-cell"></div><div class="td-cell"></div><div class="td-cell"></div></div>
+          <div class="table-row"><div class="td-cell"></div><div class="td-cell"></div><div class="td-cell"></div></div>
+        </div>
+        <div style="clear:both"></div>
+      </div>
+      <div class="ann"><span class="ann-tag" style="background:#dcfce7;border-color:#16a34a;color:#14532d">✓ Authenticated via UAE PASS</span></div>
+    </div>
+  </div>
+
+  <!-- ── Screen 8: Error — Auth Failed ── -->
+  <div class="wf-card">
+    <div class="wf-title">Screen 8 — Error: Authentication Failed</div>
+    <div class="wf-subtitle">User rejected / timed out / cancelled on UAE PASS app</div>
+    <div class="browser">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">mysilah.ae/login?error=auth_failed</div>
+    </div>
+    <div class="screen">
+      <div class="nav-bar">
+        <div class="logo-box"></div>
+      </div>
+      <div class="wf-body">
+        <div class="error-center">
+          <div class="err-icon-ring"><div class="err-x">✕</div></div>
+          <div class="err-title"></div>
+          <div class="err-desc"></div>
+          <div class="err-desc" style="width:70%"></div>
+        </div>
+        <div class="card-box" style="background:#fff1f2;border-color:#e11d48">
+          <div class="card-header">
+            <div class="avatar err"></div>
+            <div class="card-title-block">
+              <div class="ct1" style="background:#e11d48;opacity:0.4"></div>
+              <div class="ct2" style="background:#ddd"></div>
+            </div>
+          </div>
+          <div class="rows">
+            <div class="wf-row w90" style="background:#fdd"></div>
+            <div class="wf-row w80" style="background:#fdd"></div>
+          </div>
+        </div>
+        <div class="ann">"Authentication failed. Please try again."</div>
+        <div class="btn btn-uae" style="margin-top:8px"><div class="btn-label"></div></div>
+        <div class="btn btn-secondary" style="margin-top:4px"><div class="btn-label" style="background:#bbb"></div></div>
+        <div class="ann">Retry UAE PASS / Use password login</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 9: Error — Unverified Account ── -->
+  <div class="wf-card">
+    <div class="wf-title">Screen 9 — Error: Unverified Account</div>
+    <div class="wf-subtitle">User has Basic (not verified) UAE PASS account</div>
+    <div class="browser">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">mysilah.ae/login?error=unverified</div>
+    </div>
+    <div class="screen">
+      <div class="nav-bar">
+        <div class="logo-box"></div>
+      </div>
+      <div class="wf-body">
+        <div class="error-center">
+          <div class="err-icon-ring" style="border-color:#d97706">
+            <div style="font-size:16px;font-weight:700;color:#d97706;line-height:1">!</div>
+          </div>
+          <div class="err-title" style="background:#d97706"></div>
+          <div class="err-desc"></div>
+          <div class="err-desc" style="width:80%"></div>
+          <div class="err-desc" style="width:65%"></div>
+        </div>
+        <div class="card-box" style="background:#fef3c7;border-color:#d97706">
+          <div class="card-header">
+            <div class="avatar warn"></div>
+            <div class="card-title-block">
+              <div class="ct1" style="background:#d97706;opacity:0.5"></div>
+              <div class="ct2" style="background:#ddd"></div>
+            </div>
+          </div>
+          <div class="rows">
+            <div class="wf-row w90" style="background:#fde68a"></div>
+            <div class="wf-row w80" style="background:#fde68a"></div>
+            <div class="wf-row w60" style="background:#fde68a"></div>
+          </div>
+        </div>
+        <div class="ann">"Please upgrade your UAE PASS account to Verified level"</div>
+        <div>
+          <span class="ann-tag" style="background:#fef3c7;border-color:#d97706;color:#78350f">Verified / Premium only</span>
+          <span class="ann-tag" style="background:#fef3c7;border-color:#d97706;color:#78350f">Basic rejected</span>
+        </div>
+        <div class="btn btn-secondary" style="margin-top:8px;border-color:#d97706">
+          <div class="btn-label" style="background:#d97706;opacity:0.6"></div>
+        </div>
+        <div class="ann">Link: How to upgrade UAE PASS account</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Flow summary -->
+<div style="max-width:1100px;margin:24px auto 0;background:#fff;border:1px solid #ccc;border-radius:4px;padding:14px 18px">
+  <div style="font-size:11px;font-weight:700;color:#1a1a2e;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">User Journey Summary — Screen Flow</div>
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:10px">
+    <div style="background:#e8f4ff;border:1px solid #2563eb;border-radius:3px;padding:4px 8px;color:#1e3a6e;font-weight:600">S1 MySilah Login</div>
+    <div style="color:#888">→</div>
+    <div style="background:#e8f4ff;border:1px solid #2563eb;border-radius:3px;padding:4px 8px;color:#1e3a6e;font-weight:600">S2 Register (new user)</div>
+    <div style="color:#888">→</div>
+    <div style="background:#f0fdf4;border:1px solid #16a34a;border-radius:3px;padding:4px 8px;color:#14532d;font-weight:600">S3 UAE PASS Portal</div>
+    <div style="color:#888">→</div>
+    <div style="background:#f0fdf4;border:1px solid #16a34a;border-radius:3px;padding:4px 8px;color:#14532d;font-weight:600">S4 Number Match</div>
+    <div style="color:#888">→</div>
+    <div style="background:#f0fdf4;border:1px solid #16a34a;border-radius:3px;padding:4px 8px;color:#14532d;font-weight:600">S5 PIN / Face ID</div>
+    <div style="color:#888">→</div>
+    <div style="background:#fef9ee;border:1px solid #d97706;border-radius:3px;padding:4px 8px;color:#78350f;font-weight:600">S6 Callback</div>
+    <div style="color:#888">→</div>
+    <div style="background:#dcfce7;border:1px solid #16a34a;border-radius:3px;padding:4px 8px;color:#14532d;font-weight:600">S7 Dashboard ✓</div>
+    <div style="color:#888">or</div>
+    <div style="background:#fff1f2;border:1px solid #e11d48;border-radius:3px;padding:4px 8px;color:#881337;font-weight:600">S8 Auth Error</div>
+    <div style="color:#888">/</div>
+    <div style="background:#fef3c7;border:1px solid #d97706;border-radius:3px;padding:4px 8px;color:#78350f;font-weight:600">S9 Unverified</div>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="leg"><div class="leg-swatch" style="background:#e8f4ff;border:1px solid #2563eb"></div> MySilah screens</div>
+  <div class="leg"><div class="leg-swatch" style="background:#f0fdf4;border:1px solid #16a34a"></div> UAE PASS screens</div>
+  <div class="leg"><div class="leg-swatch" style="background:#fef9ee;border:1px solid #d97706"></div> System / backend</div>
+  <div class="leg"><div class="leg-swatch" style="background:#fff1f2;border:1px solid #e11d48"></div> Error states</div>
+  <div class="leg"><div class="leg-swatch" style="background:#fef3c7;border:1px solid #d97706"></div> Warning states</div>
+</div>
+
+<p style="text-align:center;font-size:9px;color:#999;margin-top:14px">MySilah — Silah L.L.C-FZ | UAE PASS Integration | Web Platform | UI Wireframes (Low Fidelity) | July 2026</p>
+
+<script>
+function downloadPDF() {
+  window.print();
+}
+
+async function downloadPNG() {
+  const bar = document.querySelector('.dl-bar');
+  const prog = document.getElementById('dl-progress');
+  bar.style.display = 'none';
+  prog.style.display = 'block';
+  try {
+    const canvas = await html2canvas(document.body, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: '#f0f0f0',
+      logging: false,
+      windowWidth: document.body.scrollWidth,
+      windowHeight: document.body.scrollHeight
+    });
+    const link = document.createElement('a');
+    link.download = 'MySilah_UAE_PASS_Wireframes.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } finally {
+    prog.style.display = 'none';
+    bar.style.display = 'flex';
+  }
+}
+</script>
+</body>
+</html>

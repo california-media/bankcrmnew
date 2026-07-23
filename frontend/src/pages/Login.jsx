@@ -83,22 +83,10 @@ function Login() {
   const fillDemo = ({ email, password }) => form.setFieldsValue({ email, password });
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-    }}>
+    <div className="login-root">
 
       {/* LEFT — brand + marketing */}
-      <div style={{
-        background: 'linear-gradient(160deg, oklch(97% .02 275) 0%, oklch(96% .03 278) 40%, oklch(97% .02 283) 100%)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '44px 52px',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
+      <div className="login-brand">
 
         {/* Decorative circles */}
         <div style={{
@@ -182,14 +170,11 @@ function Login() {
       </div>
 
       {/* RIGHT — login form */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px 56px',
-        background: 'linear-gradient(180deg, oklch(100% 0 255) 0%, oklch(98% .02 255) 55%, oklch(96% .04 258) 100%)',
-      }}>
+      <div className="login-form-col">
         <div style={{ width: '100%', maxWidth: 420 }}>
+          <div className="login-mobile-logo" style={{ textAlign: 'center', marginBottom: 28 }}>
+            <img src="/mysilah.svg" alt="MySilah" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
+          </div>
           <h2 style={{ fontSize: 22, fontWeight: 600, color: '#0f172a', margin: '0 0 6px' }}>
             Welcome back
           </h2>

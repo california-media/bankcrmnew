@@ -324,7 +324,7 @@ exports.submitWebLoanApply = async (req, res) => {
 exports.getPublicLoanProducts = async (req, res) => {
   try {
     const loans = await LoanProduct.find({ isActive: true })
-      .populate({ path: 'bank', select: 'name isActive' })
+      .populate({ path: 'bank', select: 'name code logo isActive' })
       .select('name loanCategory commissionBrackets bank benefits feesEligibility interestRateRange minSalary maxLoanAmount maxTenure keyNotes rateMin rateMax rateType rateBasis salaryTransferRequired tags processingFee earlySettlement lateFee maxAmountNote maxAmountNum disclosedNote source sourceLabel tenureMaxMonths loanType redirectUrl redirectActive')
       .lean();
     res.json(loans.filter(l => l.bank?.isActive !== false));

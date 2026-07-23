@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Row, Col, Avatar, Tag, Form, Input, Button,
-  Space, Divider, message, Tooltip,
+  Space, Divider, message, Tooltip, Modal, Alert,
 } from 'antd';
 import {
   UserOutlined, MailOutlined, PhoneOutlined, CalendarOutlined,
   CopyOutlined, CheckOutlined, LockOutlined, EditOutlined, SaveOutlined,
   CloseOutlined, BankOutlined, IdcardOutlined, LinkOutlined,
+  DeleteOutlined, WarningOutlined,
 } from '@ant-design/icons';
-import { updateProfile } from '../store/slices/authSlice';
+import { useNavigate } from 'react-router-dom';
+import { updateProfile, logout } from '../store/slices/authSlice';
 import api from '../api/client';
 
 const ROLE_BG    = { admin: '#7c3aed', agency: '#1e40af', agent: '#7C3AED', employee: '#b45309' };
@@ -49,6 +51,7 @@ const InfoRow = ({ icon, label, value }) => (
 
 export default function Profile() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user: authUser } = useSelector((s) => s.auth);
 
   const [profile, setProfile]         = useState(null);
@@ -60,10 +63,13 @@ export default function Profile() {
   const [savingBank, setSavingBank]   = useState(false);
   const [copied, setCopied]           = useState(false);
   const [copiedLink, setCopiedLink]   = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [deleting, setDeleting]       = useState(false);
 
-  const [infoForm] = Form.useForm();
-  const [pwdForm]  = Form.useForm();
-  const [bankForm] = Form.useForm();
+  const [infoForm]    = Form.useForm();
+  const [pwdForm]     = Form.useForm();
+  const [bankForm]    = Form.useForm();
+  const [deleteForm]  = Form.useForm();
 
   const load = async () => {
     setLoading(true);
@@ -139,6 +145,21 @@ export default function Profile() {
       message.error(err?.response?.data?.message || 'Update failed');
     } finally {
       setSavingBank(false);
+    }
+  };
+
+  const confirmDelete = async (values) => {
+    setDeleting(true);
+    try {
+      await api.delete('/auth/account', { data: { password: values.password } });
+      message.success('Account deleted. Goodbye!');
+      setDeleteModal(false);
+      dispatch(logout());
+      navigate('/login', { replace: true });
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to delete account');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -371,8 +392,62 @@ export default function Profile() {
             </div>
           </Section>
 
+          {/* Delete Account — agents only */}
+          {role === 'agent' && (
+            <Section style={{ border: '1px solid #fecaca', borderTop: '3px solid #dc2626', boxShadow: '0 2px 12px rgba(220,38,38,0.07)' }}>
+              <SectionHeader title={<span style={{ color: '#dc2626' }}><WarningOutlined style={{ marginRight: 6 }} />Danger Zone</span>} />
+              <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a', marginBottom: 2 }}>Delete Account</div>
+                  <div style={{ fontSize: 12, color: '#64748b' }}>Permanently deactivates your account. Your leads remain in the system.</div>
+                </div>
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => { deleteForm.resetFields(); setDeleteModal(true); }}
+                  style={{ fontWeight: 600, borderRadius: 8, flexShrink: 0 }}
+                >
+                  Delete My Account
+                </Button>
+              </div>
+            </Section>
+          )}
+
         </Col>
       </Row>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        open={deleteModal}
+        onCancel={() => setDeleteModal(false)}
+        footer={null}
+        centered
+        width={420}
+        title={<span style={{ color: '#dc2626' }}><DeleteOutlined style={{ marginRight: 8 }} />Delete Account</span>}
+      >
+        <Alert
+          type="error"
+          showIcon
+          message="This action cannot be undone"
+          description="Your account will be permanently deactivated and you will be logged out immediately."
+          style={{ marginBottom: 20, borderRadius: 8 }}
+        />
+        <Form form={deleteForm} layout="vertical" onFinish={confirmDelete}>
+          <Form.Item
+            name="password"
+            label={<span style={{ fontWeight: 600 }}>Confirm your password</span>}
+            rules={[{ required: true, message: 'Password is required' }]}
+          >
+            <Input.Password placeholder="Enter your password to confirm" size="large" style={{ borderRadius: 8 }} />
+          </Form.Item>
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <Button onClick={() => setDeleteModal(false)} style={{ borderRadius: 8 }}>Cancel</Button>
+            <Button danger type="primary" htmlType="submit" loading={deleting} icon={<DeleteOutlined />} style={{ borderRadius: 8, fontWeight: 600 }}>
+              Yes, Delete My Account
+            </Button>
+          </div>
+        </Form>
+      </Modal>
     </div>
   );
 }

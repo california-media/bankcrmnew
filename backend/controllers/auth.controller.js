@@ -321,6 +321,34 @@ exports.forgotPassword = async (req, res) => {
 };
 
 /**
+ * DELETE /api/auth/account  (authenticated agent only)
+ * Soft-deletes: deactivates account, preserves lead history.
+ * Requires password confirmation.
+ */
+exports.deleteAccount = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password) return res.status(400).json({ message: 'Password is required to delete your account' });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.role !== 'agent') return res.status(403).json({ message: 'Only agent accounts can be self-deleted' });
+
+    const ok = await user.comparePassword(password);
+    if (!ok) return res.status(401).json({ message: 'Incorrect password' });
+
+    user.isActive = false;
+    user.deletedAt = new Date();
+    user.email = `deleted_${Date.now()}_${user.email}`;
+    await user.save();
+
+    res.json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * POST /api/auth/reset-password  (public)
  */
 exports.resetPassword = async (req, res) => {

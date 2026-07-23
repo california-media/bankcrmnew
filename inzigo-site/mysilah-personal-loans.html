@@ -1032,7 +1032,8 @@ async function initData() {
           bankMap[bankId] = {
             id: bankId,
             name: bankName,
-            short: meta.short || bankName.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 4),
+            short: l.bank.code || meta.short || bankName.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 4),
+            logo: l.bank.logo ? (API_BASE + '/uploads/bank-logos/' + l.bank.logo) : null,
             grad: meta.grad || ['#1B2A4A','#3D6FD9'],
             url: meta.url || '#',
             sourceLabel: l.sourceLabel || bankName,
@@ -1172,10 +1173,22 @@ function bankMarkHTML(loan){
   return `<div class="bank-mark" style="background:linear-gradient(135deg,${b.grad[0]},${b.grad[1]})">${esc(b.short)}</div>`;
 }
 
+function handleLogoError(img) {
+  const plate = img.closest('.note-logo-plate');
+  if (!plate) return;
+  const id = img.getAttribute('data-bank-id');
+  const b = BANKS.find(x => x.id === id) || {};
+  const grad = b.grad || ['#1B2A4A','#3D6FD9'];
+  const short = b.short || id || '?';
+  plate.className = 'note-logo-plate fallback';
+  plate.style.background = `linear-gradient(135deg,${grad[0]},${grad[1]})`;
+  plate.innerHTML = `<span class="plate-initials">${short}</span>`;
+}
+
 function medallionMarkHTML(loan){
   const b = bankOf(loan);
-  const img = BANK_LOGO_IMG[b.id];
-  if(img) return `<div class="note-logo-plate"><img src="${img}" alt="${esc(b.name)} logo"/></div>`;
+  const img = b.logo || BANK_LOGO_IMG[b.id];
+  if(img) return `<div class="note-logo-plate"><img src="${img}" alt="${esc(b.name)} logo" data-bank-id="${esc(b.id)}" onerror="handleLogoError(this)" /></div>`;
   return `<div class="note-logo-plate fallback" style="background:linear-gradient(135deg,${b.grad[0]},${b.grad[1]})"><span class="plate-initials">${esc(b.short)}</span></div>`;
 }
 

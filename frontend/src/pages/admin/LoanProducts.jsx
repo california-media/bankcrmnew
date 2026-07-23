@@ -77,9 +77,23 @@ function LoanProducts() {
       isActive: l.isActive,
       commissionBrackets: l.commissionBrackets || [],
       interestRateRange: l.interestRateRange,
-      minSalary: l.minSalary,
-      maxLoanAmount: l.maxLoanAmount,
-      maxTenure: l.maxTenure,
+      rateMin: l.rateMin ?? null,
+      rateMax: l.rateMax ?? null,
+      rateType: l.rateType || '',
+      rateBasis: l.rateBasis || 'reducing',
+      loanType: l.loanType || 'Conventional',
+      tenureMaxMonths: l.tenureMaxMonths ?? null,
+      minSalary: l.minSalary ?? null,
+      maxAmountNum: l.maxAmountNum ?? null,
+      maxAmountNote: l.maxAmountNote || '',
+      salaryTransferRequired: l.salaryTransferRequired === true ? 'yes' : l.salaryTransferRequired === false ? 'no' : 'varies',
+      tags: l.tags || [],
+      processingFee: l.processingFee || '',
+      earlySettlement: l.earlySettlement || '',
+      lateFee: l.lateFee || '',
+      disclosedNote: l.disclosedNote || '',
+      source: l.source || '',
+      sourceLabel: l.sourceLabel || '',
       keyNotes: l.keyNotes,
       redirectUrl: l.redirectUrl || '',
       redirectActive: l.redirectActive || false,
@@ -92,6 +106,8 @@ function LoanProducts() {
   const onSubmit = async () => {
     const values = await form.validateFields();
     try {
+      const strVal = values.salaryTransferRequired;
+      values.salaryTransferRequired = strVal === 'yes' ? true : strVal === 'no' ? false : null;
       const payload = { ...values, benefits: benefitsHtml, feesEligibility: feesHtml };
       if (editing) {
         await api.put(`/loan-products/${editing._id}`, payload);
@@ -204,7 +220,10 @@ function LoanProducts() {
       </div>
       <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
         <Table size="small" rowKey="_id" loading={loading} dataSource={loans.filter((l) => {
-          if (loanSearch.trim() && !l.name.toLowerCase().includes(loanSearch.trim().toLowerCase())) return false;
+          if (loanSearch.trim()) {
+            const q = loanSearch.trim().toLowerCase();
+            if (!l.name.toLowerCase().includes(q) && !(l.bank?.name || '').toLowerCase().includes(q)) return false;
+          }
           if (bankFilter && l.bank?._id !== bankFilter) return false;
           if (agencyFilter && l.agency?._id !== agencyFilter) return false;
           return true;
@@ -218,7 +237,7 @@ function LoanProducts() {
         onOk={onSubmit}
         okText="Save"
         destroyOnClose
-        width={640}
+        width={780}
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label="Loan Name" rules={[{ required: true, message: 'Loan name is required' }]}>
@@ -245,17 +264,110 @@ function LoanProducts() {
           </Form.Item>
 
           <Divider orientation="left" style={{ fontSize: 13 }}>Bank Product Info</Divider>
-          <Form.Item name="interestRateRange" label="Interest Rate Range">
-            <Input placeholder="e.g. 5.99% – 18.99% reducing" />
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="loanType" label="Loan Type">
+                <Select options={[{ value: 'Conventional', label: 'Conventional' }, { value: 'Islamic', label: 'Islamic' }]} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="rateBasis" label="Rate Basis">
+                <Select options={[{ value: 'reducing', label: 'Reducing Balance' }, { value: 'flat', label: 'Flat Rate' }, { value: 'fixed', label: 'Fixed' }]} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={8}>
+              <Form.Item name="rateMin" label="Rate Min (%)">
+                <InputNumber min={0} max={100} step={0.01} precision={2} style={{ width: '100%' }} placeholder="2.00" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="rateMax" label="Rate Max (%)">
+                <InputNumber min={0} max={100} step={0.01} precision={2} style={{ width: '100%' }} placeholder="10.00" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="rateType" label="Rate Label">
+                <Input placeholder="e.g. Flat Profit Rate" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="interestRateRange" label="Interest Rate Range (display text)">
+            <Input placeholder="e.g. 2.00%–10.00% flat p.a." />
           </Form.Item>
-          <Space style={{ width: '100%' }} size={16}>
-            <Form.Item name="maxTenure" label="Max Tenure" style={{ flex: 1 }}>
-              <Input placeholder="e.g. Up to 48 months" />
-            </Form.Item>
-            <Form.Item name="maxLoanAmount" label="Max Loan Amount" style={{ flex: 1 }}>
-              <Input placeholder="e.g. Up to AED 2M" />
-            </Form.Item>
-          </Space>
+          <Row gutter={12}>
+            <Col span={8}>
+              <Form.Item name="tenureMaxMonths" label="Max Tenure (months)">
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="48" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="minSalary" label="Min Salary (AED)">
+                <InputNumber min={0} step={500} style={{ width: '100%' }} placeholder="8000" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="maxAmountNum" label="Max Amount (AED)">
+                <InputNumber min={0} step={100000} style={{ width: '100%' }} placeholder="4000000" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="maxAmountNote" label="Amount Detail (shown on card back)">
+            <Input placeholder="e.g. AED 4M for Nationals · AED 3M for Expats" />
+          </Form.Item>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="salaryTransferRequired" label="Salary Transfer">
+                <Select options={[{ value: 'yes', label: 'Required' }, { value: 'no', label: 'Not Required' }, { value: 'varies', label: 'Varies' }]} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="tags" label="Tags">
+                <Select mode="multiple" options={[{ value: 'fast', label: 'Fast Approval' }, { value: 'national', label: 'UAE Nationals' }]} placeholder="Select tags" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider orientation="left" style={{ fontSize: 13 }}>Fees &amp; Charges</Divider>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="processingFee" label="Processing Fee">
+                <Input placeholder="e.g. 0.7875%–1.05% of finance amount" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="earlySettlement" label="Early Settlement">
+                <Input placeholder="e.g. 1.05% of outstanding balance" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="lateFee" label="Late Payment Fee">
+                <Input placeholder="e.g. AED 210" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="disclosedNote" label="Disclosed Note (warning)">
+                <Input placeholder="e.g. Rate valid until 30 Jun 2026" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider orientation="left" style={{ fontSize: 13 }}>Source</Divider>
+          <Row gutter={12}>
+            <Col span={12}>
+              <Form.Item name="sourceLabel" label="Source Label">
+                <Input placeholder="e.g. emiratesislamic.ae" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="source" label="Source URL">
+                <Input placeholder="https://..." />
+              </Form.Item>
+            </Col>
+          </Row>
           <Form.Item name="keyNotes" label="Key Notes">
             <Input.TextArea rows={2} placeholder="Key product notes..." />
           </Form.Item>

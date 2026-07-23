@@ -17,5 +17,6 @@ router.get('/profile', protect, ctrl.getProfile);
 router.patch('/profile', protect, ctrl.updateProfile);
 router.post('/forgot-password', ctrl.forgotPassword);
 router.post('/reset-password', ctrl.resetPassword);
+router.delete('/account', protect, ctrl.deleteAccount);
 
 module.exports = router;

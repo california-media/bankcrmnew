@@ -88,11 +88,15 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #f0f2f5;
-  padding: 16px 0;
+  background: linear-gradient(160deg, #f5f3ff 0%, #ede9fe 30%, #ffffff 65%, #e0f2fe 100%);
+  padding: 32px 16px;
+  position: relative;
+  overflow: hidden;
 }
 .register-card {
-  width: 460px;
+  width: 480px;
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 768px) {
@@ -112,13 +116,12 @@ body {
     display: block;
   }
 
-  /* Register mobile: full white, no card, no scroll */
+  /* Register mobile */
   .register-root {
-    background: #ffffff;
     padding: 0;
     align-items: flex-start;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    overflow-y: auto;
   }
   .register-card {
     width: 100%;

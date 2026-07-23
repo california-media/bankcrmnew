@@ -41,6 +41,24 @@
   .btn-grad{background:linear-gradient(135deg,#7C3AED 0%,#8B5CF6 45%,#0EA5E9 100%)!important;color:#fff!important;box-shadow:0 12px 48px -12px rgba(124,58,237,0.45)!important;padding:10px 18px!important;font-size:14px!important;font-weight:500!important;border-radius:999px!important;border:none!important;text-decoration:none;cursor:pointer;}
   .btn-grad:hover{transform:translateY(-1px);box-shadow:0 16px 56px -12px rgba(124,58,237,0.55)!important}
   @media(max-width:980px){.nav-menu{display:none}}
+  /* Mobile nav — desktop hide */
+  .mob-nav-btn{display:none;}
+  .mob-nav-drawer{display:none; position:absolute; top:72px; left:0; right:0; background:rgba(255,255,255,0.97); backdrop-filter:blur(20px); border-bottom:1px solid rgba(232,232,238,0.8); box-shadow:0 8px 32px rgba(10,14,35,0.10); padding:12px 20px 20px; z-index:199; flex-direction:column; gap:2px; transform:translateY(-6px); opacity:0; pointer-events:none; transition:transform .22s ease, opacity .22s ease;}
+  .mob-nav-drawer.open{transform:translateY(0); opacity:1; pointer-events:auto;}
+  .mob-nav-drawer a{font-size:15px; font-weight:500; color:#1A2036; text-decoration:none; padding:11px 14px; border-radius:10px; display:block;}
+  .mob-nav-drawer a:hover,.mob-nav-drawer a.active{background:rgba(124,58,237,0.07); color:#7C3AED;}
+  .mob-nav-sep{height:1px; background:rgba(139,146,184,0.18); margin:10px 0;}
+  .mob-nav-ctas{display:flex; flex-direction:column; gap:8px;}
+  .mob-nav-ctas a{text-align:center; padding:12px; border-radius:12px;}
+  @media(max-width:960px){
+    .mob-nav-btn{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; width:40px; height:40px; border-radius:10px; background:rgba(139,146,184,0.12); border:none; cursor:pointer; flex-shrink:0;}
+    .mob-nav-btn span{width:18px; height:2px; background:#1A2036; border-radius:2px; transition:transform .22s, opacity .22s;}
+    .mob-nav-btn.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+    .mob-nav-btn.open span:nth-child(2){opacity:0; transform:scaleX(0);}
+    .mob-nav-btn.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+    .mob-nav-drawer{display:flex;}
+    .nav-cta{display:none;}
+  }
   .brand{display:flex; align-items:center; gap:10px;}
   .brand-mark{width:32px;height:32px;}
   .brand-word{font-family:var(--font-d); font-weight:800; font-size:19px; letter-spacing:-.3px;}
@@ -303,13 +321,32 @@
     .note-back-bottom{padding:14px 18px 16px; justify-content:flex-start;}
     .note-source{text-align:left;}
   }
+  /* Desktop: hide mobile-only elements */
+  .mob-filter-btn{display:none;}
+  .mob-filter-overlay{display:none;}
+  .sb-mob-header{display:none;}
+
   @media(max-width:960px){
-    .filter-rail,.results-bar,.main{padding-left:24px;}
-    .main{grid-template-columns:1fr; padding-right:24px;}
-    .sidebar{position:static; display:flex; flex-wrap:wrap; gap:14px; border-bottom:1px solid rgba(139,146,184,.15); padding-bottom:10px; margin-bottom:6px;}
-    .sb-sticky{position:static; max-height:none;}
-    .sb-group{margin-bottom:0;}
+    .filter-rail,.results-bar,.main{padding-left:20px; padding-right:20px;}
+    .main{grid-template-columns:1fr;}
     .nav-inner{padding:0 20px;} .nav-menu{display:none;}
+    /* Mobile filter button */
+    .mob-filter-btn{display:inline-flex; align-items:center; gap:8px; background:var(--ink); color:#fff; border:none; cursor:pointer; font-family:var(--font-b); font-size:14px; font-weight:600; padding:11px 22px; border-radius:100px; margin:14px 0 0; transition:opacity .2s;}
+    .mob-filter-btn:active{opacity:.8;}
+    .mob-filter-badge{background:#7B3FE4; color:#fff; font-size:10px; font-weight:700; padding:2px 7px; border-radius:100px; min-width:18px; text-align:center; display:none;}
+    .mob-filter-badge.vis{display:inline;}
+    /* Overlay backdrop */
+    .mob-filter-overlay{display:none; position:fixed; inset:0; background:rgba(10,14,35,.52); backdrop-filter:blur(4px); z-index:400;}
+    .mob-filter-overlay.open{display:block;}
+    /* Bottom sheet */
+    .sidebar{position:fixed; bottom:0; left:0; right:0; max-height:88vh; background:#fff; border-radius:20px 20px 0 0; box-shadow:0 -8px 40px rgba(10,14,35,.18); z-index:500; transform:translateY(100%); transition:transform .32s cubic-bezier(.23,1,.32,1); display:flex; flex-direction:column; overflow:hidden;}
+    .sidebar.mob-open{transform:translateY(0);}
+    .sb-mob-header{display:flex; align-items:center; justify-content:space-between; padding:18px 20px 14px; border-bottom:1px solid rgba(139,146,184,.18); flex-shrink:0;}
+    .sb-mob-title{font-family:var(--font-d); font-size:17px; font-weight:700; color:var(--ink);}
+    .sb-mob-close{width:32px; height:32px; border-radius:50%; background:rgba(139,146,184,.12); border:none; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; color:var(--ink);}
+    .sb-sticky{position:static; max-height:none; overflow-y:auto; padding:16px 20px 24px; flex:1;}
+    .sb-group{margin-bottom:22px;}
+    .sb-apply,.sb-clear{border-radius:14px;}
   }
 
   .insight-card{position:relative; overflow:hidden; border-radius:22px; background:var(--ink); padding:44px 36px; margin:44px 0; text-align:center;}
@@ -527,7 +564,7 @@
 </style>
 </head>
 <body>
-<header class="nav">
+<header class="nav" style="position:relative;">
   <div class="wrap nav-inner">
     <a href="https://mysilah.ae/" class="logo">
       <img src="mysilah.svg">
@@ -544,6 +581,24 @@
     </nav>
     <div class="nav-cta">
       <a target="_blank" href="https://app.mysilah.ae/login/" class="btn btn-ghost">Sign in</a>
+      <a target="_blank" href="https://app.mysilah.ae/register/" class="btn btn-grad">Get started</a>
+    </div>
+    <button class="mob-nav-btn" id="mobNavBtn" onclick="toggleMobNav()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="mob-nav-drawer" id="mobNavDrawer">
+    <a href="index.html#home">Home</a>
+    <a href="index.html#agents">Agents</a>
+    <a href="index.html#agencies">Partner Agencies</a>
+    <a href="index.html#banks">Banks &amp; FIs</a>
+    <a href="index.html#features">Services</a>
+    <a href="/credit-cards">Credit Cards</a>
+    <a href="/loans" class="active">Personal Loans</a>
+    <a href="index.html#contact">Contact</a>
+    <div class="mob-nav-sep"></div>
+    <div class="mob-nav-ctas">
+      <a target="_blank" href="https://app.mysilah.ae/login/" class="btn btn-ghost" style="border:1.5px solid #E8E8EE;">Sign in</a>
       <a target="_blank" href="https://app.mysilah.ae/register/" class="btn btn-grad">Get started</a>
     </div>
   </div>
@@ -625,10 +680,17 @@
     <option value="amount">Highest Loan Amount</option>
     <option value="tenure">Longest Tenure</option>
   </select>
+  <button class="mob-filter-btn" id="mobFilterBtn" onclick="toggleMobFilter()">⚙️ Filters <span class="mob-filter-badge" id="mobFilterBadge"></span></button>
 </div>
 
+<div class="mob-filter-overlay" id="mobFilterOverlay" onclick="closeMobFilter()"></div>
+
 <div class="main">
-  <aside class="sidebar">
+  <aside class="sidebar" id="mobSidebar">
+    <div class="sb-mob-header">
+      <span class="sb-mob-title">Filters</span>
+      <button class="sb-mob-close" onclick="closeMobFilter()">✕</button>
+    </div>
     <div class="sb-sticky">
       <div class="sb-group">
         <div class="sb-title">Search</div>
@@ -646,27 +708,27 @@
       <div class="sb-div"></div>
       <div class="sb-group">
         <div class="sb-title">Financing Type</div>
-        <label class="sb-opt"><input type="checkbox" class="type-chk" value="Islamic" onchange="applyAllFilters();"/> ☪️ Islamic (Profit Rate) <span class="cnt" id="cnt-type-islamic">0</span></label>
-        <label class="sb-opt"><input type="checkbox" class="type-chk" value="Conventional" onchange="applyAllFilters();"/> 🏦 Conventional (Interest) <span class="cnt" id="cnt-type-conventional">0</span></label>
+        <label class="sb-opt"><input type="checkbox" class="type-chk" value="Islamic" onchange="handleFilterChange();"/> ☪️ Islamic (Profit Rate) <span class="cnt" id="cnt-type-islamic">0</span></label>
+        <label class="sb-opt"><input type="checkbox" class="type-chk" value="Conventional" onchange="handleFilterChange();"/> 🏦 Conventional (Interest) <span class="cnt" id="cnt-type-conventional">0</span></label>
       </div>
       <div class="sb-div"></div>
       <div class="sb-group">
         <div class="sb-title">Salary Transfer</div>
-        <label class="sb-opt"><input type="checkbox" class="salary-chk" value="not-required" onchange="applyAllFilters();"/> 🆓 Not Required <span class="cnt" id="cnt-salary-not-required">0</span></label>
-        <label class="sb-opt"><input type="checkbox" class="salary-chk" value="required" onchange="applyAllFilters();"/> 🔒 Required <span class="cnt" id="cnt-salary-required">0</span></label>
+        <label class="sb-opt"><input type="checkbox" class="salary-chk" value="not-required" onchange="handleFilterChange();"/> 🆓 Not Required <span class="cnt" id="cnt-salary-not-required">0</span></label>
+        <label class="sb-opt"><input type="checkbox" class="salary-chk" value="required" onchange="handleFilterChange();"/> 🔒 Required <span class="cnt" id="cnt-salary-required">0</span></label>
       </div>
       <div class="sb-div"></div>
       <div class="sb-group">
         <div class="sb-title">Min. Salary (AED/mo)</div>
-        <input type="range" class="sb-range" id="salaryRange" min="2000" max="60000" value="20000" step="500" oninput="document.getElementById('salaryRangeVal').value=this.value; applyAllFilters();"/>
+        <input type="range" class="sb-range" id="salaryRange" min="2000" max="60000" value="20000" step="500" oninput="document.getElementById('salaryRangeVal').value=this.value; handleFilterChange();"/>
         <div class="sb-range-lbl"><span>2,000</span><span style="display:flex; align-items:center; gap:5px;">AED <input type="number" class="sb-num-input" id="salaryRangeVal" value="20000" inputmode="numeric" oninput="sbNumberLive('salaryRange','salaryRangeVal');" onblur="sbNumberCommit('salaryRange','salaryRangeVal',2000,60000);" onkeydown="if(event.key==='Enter') this.blur();"/></span></div>
       </div>
       <div class="sb-div"></div>
       <div class="sb-group">
         <div class="sb-title">Max. Tenure</div>
-        <label class="sb-opt"><input type="checkbox" class="tenure-chk" value="36" onchange="applyAllFilters();"/> Up to 36 months <span class="cnt" id="cnt-tenure-36">0</span></label>
-        <label class="sb-opt"><input type="checkbox" class="tenure-chk" value="48" onchange="applyAllFilters();"/> Up to 48 months <span class="cnt" id="cnt-tenure-48">0</span></label>
-        <label class="sb-opt"><input type="checkbox" class="tenure-chk" value="60" onchange="applyAllFilters();"/> Up to 60 months <span class="cnt" id="cnt-tenure-60">0</span></label>
+        <label class="sb-opt"><input type="checkbox" class="tenure-chk" value="36" onchange="handleFilterChange();"/> Up to 36 months <span class="cnt" id="cnt-tenure-36">0</span></label>
+        <label class="sb-opt"><input type="checkbox" class="tenure-chk" value="48" onchange="handleFilterChange();"/> Up to 48 months <span class="cnt" id="cnt-tenure-48">0</span></label>
+        <label class="sb-opt"><input type="checkbox" class="tenure-chk" value="60" onchange="handleFilterChange();"/> Up to 60 months <span class="cnt" id="cnt-tenure-60">0</span></label>
       </div>
       <div class="sb-div"></div>
       <button class="sb-apply" onclick="applyAllFilters();">Apply Filters</button>
@@ -2039,7 +2101,7 @@ function mwComputeAndShowResults(){
 function renderBankFilterList(){
   document.getElementById("bankFilterList").innerHTML = BANKS.map(b=>{
     const count = LOANS.filter(l=>l.bankId===b.id).length;
-    return `<label class="sb-opt"><input type="checkbox" class="bank-chk" value="${b.id}" onchange="applyAllFilters();"/> ${esc(b.name)} <span class="cnt">${count}</span></label>`;
+    return `<label class="sb-opt"><input type="checkbox" class="bank-chk" value="${b.id}" onchange="handleFilterChange();"/> ${esc(b.name)} <span class="cnt">${count}</span></label>`;
   }).join("");
 }
 
@@ -2165,6 +2227,11 @@ function loanMatchesSearch(loan, term){
     loan.maxAmountNote, ...(loan.features||[])
   ].join(" ").toLowerCase();
   return haystack.includes(term);
+}
+
+function handleFilterChange(){
+  if(window.innerWidth <= 960) return;
+  applyAllFilters();
 }
 
 function applyAllFilters(){
@@ -2336,6 +2403,58 @@ function calcUpdate(){
 
 /* ═══════ init ═══════ */
 // init handled by initData() after API fetch
+
+/* ═══════ Mobile nav hamburger ═══════ */
+function toggleMobNav(){
+  const btn = document.getElementById('mobNavBtn');
+  const drawer = document.getElementById('mobNavDrawer');
+  btn.classList.toggle('open');
+  drawer.classList.toggle('open');
+}
+document.addEventListener('click', function(e){
+  const btn = document.getElementById('mobNavBtn');
+  const drawer = document.getElementById('mobNavDrawer');
+  if(btn && drawer && !btn.contains(e.target) && !drawer.contains(e.target)){
+    btn.classList.remove('open');
+    drawer.classList.remove('open');
+  }
+});
+
+/* ═══════ Mobile filter bottom sheet ═══════ */
+function toggleMobFilter(){
+  const sb = document.getElementById('mobSidebar');
+  const ov = document.getElementById('mobFilterOverlay');
+  const isOpen = sb.classList.toggle('mob-open');
+  ov.classList.toggle('open', isOpen);
+  document.body.style.overflow = isOpen ? 'hidden' : '';
+}
+function closeMobFilter(){
+  document.getElementById('mobSidebar').classList.remove('mob-open');
+  document.getElementById('mobFilterOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function updateMobFilterBadge(){
+  const badge = document.getElementById('mobFilterBadge');
+  if(!badge) return;
+  const checked = document.querySelectorAll('.bank-chk:checked, .type-chk:checked, .salary-chk:checked, .tenure-chk:checked').length;
+  if(checked > 0){ badge.textContent = checked; badge.classList.add('vis'); }
+  else { badge.textContent = ''; badge.classList.remove('vis'); }
+}
+// Patch applyAllFilters to close sheet + scroll to results on mobile
+const _origApply = typeof applyAllFilters === 'function' ? applyAllFilters : null;
+if(_origApply){
+  applyAllFilters = function(){
+    _origApply.apply(this, arguments);
+    updateMobFilterBadge();
+    if(window.innerWidth <= 960){
+      closeMobFilter();
+      setTimeout(function(){
+        const anchor = document.getElementById('resultsAnchor') || document.querySelector('.results-bar') || document.querySelector('.main');
+        if(anchor) anchor.scrollIntoView({ behavior:'smooth', block:'start' });
+      }, 350);
+    }
+  };
+}
 </script>
 </body>
 </html>

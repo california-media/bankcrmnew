@@ -28,10 +28,12 @@ exports.init = (req, res) => {
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: CLIENT_ID,
-    scope: 'urn:uae:digitalid:profile:general',
+    scope: 'urn:uae:digitalid:profile:general urn:uae:digitalid:profile',
     redirect_uri: REDIRECT_URI,
     state,
-    acr_values: 'urn:safelayer:tws:policies:authentication:level:low',
+    acr_values: IS_STAGING
+      ? 'urn:safelayer:tws:policies:authentication:level:low'
+      : 'urn:safelayer:tws:policies:authentication:level:2',
   });
   res.redirect(`${BASE_URL}/authorize?${params.toString()}`);
 };
@@ -93,11 +95,12 @@ exports.callback = async (req, res) => {
     }
 
     const info = await infoRes.json();
+    console.log('[UAE Pass] FULL userinfo:', JSON.stringify(info, null, 2));
     const sub        = info.sub;
     const name       = info.fullnameEN || `${info.firstnameEN || ''} ${info.lastnameEN || ''}`.trim() || '';
     const email      = info.email      || null;
     const phone      = info.mobile     || null;
-    const emiratesId = info.idn        || null;
+    const emiratesId = info.idn || info.nationalId || info.national_id || null;
     const nationality= info.nationalityEN || null;
 
     // Returning user — find by uaepassSub or email
@@ -105,7 +108,11 @@ exports.callback = async (req, res) => {
     if (!agent && email) agent = await User.findOne({ email: email.toLowerCase() });
 
     if (agent) {
-      if (!agent.uaepassSub) { agent.uaepassSub = sub; await agent.save(); }
+      let changed = false;
+      if (!agent.uaepassSub)              { agent.uaepassSub  = sub;       changed = true; }
+      if (!agent.emiratesId && emiratesId){ agent.emiratesId  = emiratesId; changed = true; }
+      if (!agent.phone      && phone)     { agent.phone       = phone;      changed = true; }
+      if (changed) await agent.save();
       const token = signAuthToken(agent);
       return res.redirect(`${frontendUrl}/auth/uaepass/callback?token=${token}`);
     }

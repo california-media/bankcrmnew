@@ -1,7 +1,7 @@
 const http = require('http');
 const https = require('https');
 
-const WABA_API_URL  = process.env.WABA_API_URL  || 'https://nf6fp9tcn6.execute-api.eu-north-1.amazonaws.com/api/external/consent/send';
+const WABA_API_URL  = process.env.WABA_API_URL  || 'https://nf6fp9tcn6.execute-api.eu-north-1.amazonaws.com/api/external/consent/send1';
 const WABA_API_KEY  = process.env.WABA_API_KEY  || '';
 const TEMPLATE_NAME = process.env.WABA_TEMPLATE || 'consent_message';
 const YES_BUTTON    = process.env.WABA_YES_BUTTON || 'YES';

@@ -18,9 +18,9 @@ const getTransporter = () => {
 
 const sendInviteEmail = async ({ to, inviteUrl }) => {
   const t = getTransporter();
-  const subject = 'You have been invited to Bank CRM';
+  const subject = 'You have been invited to MySilah';
   const html = `
-    <p>You have been invited to join Bank CRM.</p>
+    <p>You have been invited to join MySilah.</p>
     <p>Click the link below to set your password and activate your account:</p>
     <p><a href="${inviteUrl}">${inviteUrl}</a></p>
     <p>This link expires in 24 hours.</p>
@@ -35,7 +35,7 @@ const sendInviteEmail = async ({ to, inviteUrl }) => {
   }
 
   await t.sendMail({
-    from: process.env.SMTP_FROM || 'no-reply@bankcrm.local',
+    from: process.env.SMTP_FROM || 'no-reply@mysilah.ae',
     to,
     subject,
     html,
@@ -68,7 +68,7 @@ const sendInquiryNotification = async ({ name, email, phone, companyName, messag
   }
 
   await t.sendMail({
-    from: process.env.SMTP_FROM || 'no-reply@bankcrm.local',
+    from: process.env.SMTP_FROM || 'no-reply@mysilah.ae',
     to,
     subject,
     html,
@@ -77,10 +77,10 @@ const sendInquiryNotification = async ({ name, email, phone, companyName, messag
 
 const sendPasswordResetEmail = async ({ to, resetUrl, name }) => {
   const t = getTransporter();
-  const subject = 'Reset your Bank CRM password';
+  const subject = 'Reset your MySilah password';
   const html = `
     <p>Hi ${name || 'there'},</p>
-    <p>We received a request to reset your Bank CRM password.</p>
+    <p>We received a request to reset your MySilah password.</p>
     <p>Click the link below to set a new password. This link expires in <strong>1 hour</strong>.</p>
     <p><a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Reset Password</a></p>
     <p>Or copy this URL: ${resetUrl}</p>
@@ -95,7 +95,7 @@ const sendPasswordResetEmail = async ({ to, resetUrl, name }) => {
   }
 
   await t.sendMail({
-    from: process.env.SMTP_FROM || 'no-reply@bankcrm.local',
+    from: process.env.SMTP_FROM || 'no-reply@mysilah.ae',
     to,
     subject,
     html,

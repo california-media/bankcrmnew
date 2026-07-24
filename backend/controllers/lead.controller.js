@@ -1493,13 +1493,39 @@ exports.importLeads = async (req, res) => {
             if (leadData.loanType) updateFields.loanType = leadData.loanType;
           }
           if (row['Reference No']) updateFields.referenceNo = String(row['Reference No']).trim();
-          const statusRaw = String(row['Lead Status'] ?? '').trim();
+          // Accept both 'Lead Status' and 'Status' (export uses 'Status')
+          const statusRaw = String(row['Lead Status'] ?? row['Status'] ?? '').trim();
           if (statusRaw) {
             const normalized = statusRaw.toLowerCase().replace(/\s+/g, '_');
-            if (!VALID_LEAD_STATUSES.includes(normalized)) {
-              fail(`Invalid Lead Status "${statusRaw}". Valid: ${VALID_LEAD_STATUSES.join(', ')}`); continue;
+            if (VALID_LEAD_STATUSES.includes(normalized)) {
+              updateFields.status = normalized;
+            } else {
+              // Try as employee status label fallback
+              const empStatusFallback = await EmployeeStatus.findOne({ label: new RegExp(`^${statusRaw}$`, 'i'), statusType: 'lead_label', isActive: true });
+              if (!empStatusFallback) { fail(`Invalid status "${statusRaw}". Valid pipeline: ${VALID_LEAD_STATUSES.join(', ')}. Or use a label from Employee Statuses.`); continue; }
+              updateFields.employeeStatus = empStatusFallback._id;
             }
-            updateFields.status = normalized;
+          }
+          const empStatusRaw = String(row['Employee Status'] ?? '').trim();
+          if (empStatusRaw) {
+            const empStatus = await EmployeeStatus.findOne({ label: new RegExp(`^${empStatusRaw}$`, 'i'), statusType: 'lead_label', isActive: true });
+            if (!empStatus) { fail(`No active Employee Status found with label "${empStatusRaw}"`); continue; }
+            updateFields.employeeStatus = empStatus._id;
+          }
+          const cpvRaw = String(row['CPV Done'] ?? '').trim().toLowerCase();
+          if (cpvRaw) {
+            if (!['yes', 'no', 'true', 'false', '1', '0'].includes(cpvRaw)) { fail(`CPV Done must be Yes or No, got "${row['CPV Done']}"`); continue; }
+            updateFields.cpvDone = ['yes', 'true', '1'].includes(cpvRaw);
+          }
+          const activateRaw = String(row['Activated'] ?? '').trim().toLowerCase();
+          if (activateRaw) {
+            if (!['yes', 'no', 'true', 'false', '1', '0'].includes(activateRaw)) { fail(`Activated must be Yes or No, got "${row['Activated']}"`); continue; }
+            updateFields.activateDone = ['yes', 'true', '1'].includes(activateRaw);
+          }
+          const rejectedRaw = String(row['Rejected'] ?? '').trim().toLowerCase();
+          if (rejectedRaw) {
+            if (!['yes', 'no', 'true', 'false', '1', '0'].includes(rejectedRaw)) { fail(`Rejected must be Yes or No, got "${row['Rejected']}"`); continue; }
+            if (['yes', 'true', '1'].includes(rejectedRaw)) updateFields.status = 'rejected';
           }
           if (productType && (cardProduct || loanProduct)) {
             const { receivable, payable } = await commissionService.resolveCommissions({
@@ -1524,6 +1550,28 @@ exports.importLeads = async (req, res) => {
             : { receivable: 0, payable: 0 };
           leadData.grossCommission = receivable;
           leadData.commission = payable;
+
+          const empStatusRawCreate = String(row['Employee Status'] ?? '').trim();
+          if (empStatusRawCreate) {
+            const empStatus = await EmployeeStatus.findOne({ label: new RegExp(`^${empStatusRawCreate}$`, 'i'), statusType: 'lead_label', isActive: true });
+            if (!empStatus) { fail(`No active Employee Status found with label "${empStatusRawCreate}"`); continue; }
+            leadData.employeeStatus = empStatus._id;
+          }
+          const cpvRawCreate = String(row['CPV Done'] ?? '').trim().toLowerCase();
+          if (cpvRawCreate) {
+            if (!['yes', 'no', 'true', 'false', '1', '0'].includes(cpvRawCreate)) { fail(`CPV Done must be Yes or No, got "${row['CPV Done']}"`); continue; }
+            leadData.cpvDone = ['yes', 'true', '1'].includes(cpvRawCreate);
+          }
+          const activateRawCreate = String(row['Activated'] ?? '').trim().toLowerCase();
+          if (activateRawCreate) {
+            if (!['yes', 'no', 'true', 'false', '1', '0'].includes(activateRawCreate)) { fail(`Activated must be Yes or No, got "${row['Activated']}"`); continue; }
+            leadData.activateDone = ['yes', 'true', '1'].includes(activateRawCreate);
+          }
+          const rejectedRawCreate = String(row['Rejected'] ?? '').trim().toLowerCase();
+          if (rejectedRawCreate) {
+            if (!['yes', 'no', 'true', 'false', '1', '0'].includes(rejectedRawCreate)) { fail(`Rejected must be Yes or No, got "${row['Rejected']}"`); continue; }
+            if (['yes', 'true', '1'].includes(rejectedRawCreate)) leadData.status = 'rejected';
+          }
 
           const agentDoc = await User.findByIdAndUpdate(agentId, { $inc: { leadCount: 1 } }, { new: true, select: 'leadCount' });
           const agentShortId = String(agentId).slice(-6).toUpperCase();

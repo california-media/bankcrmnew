@@ -18,7 +18,11 @@ export default function exportLeadsToExcel(leads, { includeAgency = false } = {}
       Phone: lead.phone || '',
       Bank: lead.bank?.name || '',
       Product: productName(lead),
-      Status: lead.status || '',
+      'Lead Status': lead.status || '',
+      'Employee Status': lead.employeeStatus?.label || '',
+      'CPV Done': lead.cpvDone ? 'Yes' : 'No',
+      'Activated': lead.activateDone ? 'Yes' : 'No',
+      'Rejected': lead.status === 'rejected' ? 'Yes' : 'No',
       'Commission Status': lead.commissionStatus || '',
       Agent: lead.agent?.name || lead.agent?.email || '',
     };

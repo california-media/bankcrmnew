@@ -108,11 +108,13 @@ exports.callback = async (req, res) => {
     if (!agent && email) agent = await User.findOne({ email: email.toLowerCase() });
 
     if (agent) {
-      let changed = false;
-      if (!agent.uaepassSub)              { agent.uaepassSub  = sub;       changed = true; }
-      if (!agent.emiratesId && emiratesId){ agent.emiratesId  = emiratesId; changed = true; }
-      if (!agent.phone      && phone)     { agent.phone       = phone;      changed = true; }
-      if (changed) await agent.save();
+      const updates = {};
+      if (!agent.uaepassSub)                          updates.uaepassSub  = sub;
+      if (name        && name !== agent.name)         updates.name        = name;
+      if (phone       && phone !== agent.phone)       updates.phone       = phone;
+      if (emiratesId  && emiratesId !== agent.emiratesId) updates.emiratesId = emiratesId;
+      if (nationality && nationality !== agent.nationality) updates.nationality = nationality;
+      if (Object.keys(updates).length) await User.findByIdAndUpdate(agent._id, { $set: updates });
       const token = signAuthToken(agent);
       return res.redirect(`${frontendUrl}/auth/uaepass/callback?token=${token}`);
     }

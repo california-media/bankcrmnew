@@ -216,7 +216,7 @@ exports.listMine = async (req, res) => {
       .populate('consentStatus', 'label color')
       .populate('consentStatusHistory.consentStatus', 'label color')
       .populate('consentStatusHistory.changedBy', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ updatedAt: -1 });
     res.json(leads);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -293,7 +293,7 @@ exports.listForAgency = async (req, res) => {
       .populate('loanProduct', 'name loanCategory commissionBrackets')
       .populate('consentStatusHistory.consentStatus', 'label color')
       .populate('consentStatusHistory.changedBy', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ updatedAt: -1 });
     res.json(leads);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -318,7 +318,7 @@ exports.listAll = async (req, res) => {
       .populate('loanProduct', 'name loanCategory commissionBrackets')
       .populate('consentStatusHistory.consentStatus', 'label color')
       .populate('consentStatusHistory.changedBy', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ updatedAt: -1 });
     res.json(leads);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -1235,7 +1235,7 @@ exports.listAssigned = async (req, res) => {
       .populate('consentStatus', 'label color')
       .populate('consentStatusHistory.consentStatus', 'label color')
       .populate('consentStatusHistory.changedBy', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({ updatedAt: -1 });
     res.json(leads);
   } catch (err) {
     res.status(500).json({ message: err.message });

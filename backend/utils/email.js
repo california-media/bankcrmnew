@@ -105,11 +105,11 @@ const sendPasswordResetEmail = async ({ to, resetUrl, name }) => {
 
 const sendInquiryConfirmation = async ({ name, email }) => {
   const t = getTransporter();
-  const subject = 'Thanks for reaching out — Inizio Global';
+  const subject = 'Thanks for reaching out — MySilah';
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1e293b;">
       <div style="background:linear-gradient(135deg,#4c1d95,#6d28d9);padding:32px 36px;border-radius:12px 12px 0 0;">
-        <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Inizio Global</h1>
+        <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">MySilah</h1>
         <p style="margin:6px 0 0;color:rgba(255,255,255,0.72);font-size:13px;">UAE Banking Referral Infrastructure</p>
       </div>
       <div style="background:#fff;padding:32px 36px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;">
@@ -123,7 +123,7 @@ const sendInquiryConfirmation = async ({ name, email }) => {
         <div style="background:#f8fafc;border-left:4px solid #6d28d9;border-radius:4px;padding:14px 18px;margin-bottom:28px;">
           <p style="margin:0;font-size:13px;color:#64748b;">Our team will contact you at this email address.</p>
         </div>
-        <p style="font-size:13px;color:#94a3b8;margin:0;">— The Inizio Global Team</p>
+        <p style="font-size:13px;color:#94a3b8;margin:0;">— The MySilah Team</p>
       </div>
     </div>
   `;
@@ -135,7 +135,7 @@ const sendInquiryConfirmation = async ({ name, email }) => {
   }
 
   await t.sendMail({
-    from: `Inizio Global <${process.env.SMTP_FROM || 'no-reply@inizioglobal.com'}>`,
+    from: `MySilah <${process.env.SMTP_FROM || 'no-reply@mysilah.ae'}>`,
     to: email,
     subject,
     html,
@@ -144,11 +144,11 @@ const sendInquiryConfirmation = async ({ name, email }) => {
 
 const sendEmailVerification = async ({ to, verifyUrl, name }) => {
   const t = getTransporter();
-  const subject = 'Verify your email — Inizio Global';
+  const subject = 'Verify your email — MySilah';
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1e293b;">
       <div style="background:linear-gradient(135deg,#4c1d95,#6d28d9);padding:32px 36px;border-radius:12px 12px 0 0;">
-        <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Inizio Global</h1>
+        <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">MySilah</h1>
         <p style="margin:6px 0 0;color:rgba(255,255,255,0.72);font-size:13px;">UAE Banking Referral Infrastructure</p>
       </div>
       <div style="background:#fff;padding:32px 36px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;">
@@ -173,7 +173,7 @@ const sendEmailVerification = async ({ to, verifyUrl, name }) => {
   }
 
   await t.sendMail({
-    from: `Inizio Global <${process.env.SMTP_FROM || 'no-reply@inizioglobal.com'}>`,
+    from: `MySilah <${process.env.SMTP_FROM || 'no-reply@mysilah.ae'}>`,
     to,
     subject,
     html,

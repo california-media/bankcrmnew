@@ -1506,12 +1506,6 @@ exports.importLeads = async (req, res) => {
               updateFields.employeeStatus = empStatusFallback._id;
             }
           }
-          const empStatusRaw = String(row['Employee Status'] ?? '').trim();
-          if (empStatusRaw) {
-            const empStatus = await EmployeeStatus.findOne({ label: new RegExp(`^${empStatusRaw}$`, 'i'), statusType: 'lead_label', isActive: true });
-            if (!empStatus) { fail(`No active Employee Status found with label "${empStatusRaw}"`); continue; }
-            updateFields.employeeStatus = empStatus._id;
-          }
           const cpvRaw = String(row['CPV Done'] ?? '').trim().toLowerCase();
           if (cpvRaw) {
             if (!['yes', 'no', 'true', 'false', '1', '0'].includes(cpvRaw)) { fail(`CPV Done must be Yes or No, got "${row['CPV Done']}"`); continue; }
@@ -1551,12 +1545,6 @@ exports.importLeads = async (req, res) => {
           leadData.grossCommission = receivable;
           leadData.commission = payable;
 
-          const empStatusRawCreate = String(row['Employee Status'] ?? '').trim();
-          if (empStatusRawCreate) {
-            const empStatus = await EmployeeStatus.findOne({ label: new RegExp(`^${empStatusRawCreate}$`, 'i'), statusType: 'lead_label', isActive: true });
-            if (!empStatus) { fail(`No active Employee Status found with label "${empStatusRawCreate}"`); continue; }
-            leadData.employeeStatus = empStatus._id;
-          }
           const cpvRawCreate = String(row['CPV Done'] ?? '').trim().toLowerCase();
           if (cpvRawCreate) {
             if (!['yes', 'no', 'true', 'false', '1', '0'].includes(cpvRawCreate)) { fail(`CPV Done must be Yes or No, got "${row['CPV Done']}"`); continue; }

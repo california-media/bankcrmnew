@@ -19,7 +19,6 @@ export default function exportLeadsToExcel(leads, { includeAgency = false } = {}
       Bank: lead.bank?.name || '',
       Product: productName(lead),
       'Lead Status': lead.status || '',
-      'Employee Status': lead.employeeStatus?.label || '',
       'CPV Done': lead.cpvDone ? 'Yes' : 'No',
       'Activated': lead.activateDone ? 'Yes' : 'No',
       'Rejected': lead.status === 'rejected' ? 'Yes' : 'No',

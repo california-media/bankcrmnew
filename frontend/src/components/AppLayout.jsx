@@ -1,10 +1,11 @@
-import { Layout, Menu, Avatar, Dropdown, Typography, Badge, Popover, Button, Space, theme, ConfigProvider } from 'antd';
+import { useState } from 'react';
+import { Layout, Menu, Avatar, Dropdown, Typography, Badge, Popover, Button, Space, theme, ConfigProvider, Grid } from 'antd';
 import {
   DashboardOutlined, BankOutlined, TeamOutlined, FileAddOutlined,
   UnorderedListOutlined, LogoutOutlined, UserOutlined, DollarOutlined,
   AuditOutlined, IdcardOutlined, CreditCardOutlined, FundOutlined,
   DownOutlined, InboxOutlined, AppstoreOutlined,
-  BellOutlined, PlusCircleOutlined, CheckCircleOutlined,
+  BellOutlined, PlusCircleOutlined, CheckCircleOutlined, MenuOutlined,
   UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined, WalletOutlined,
   SettingOutlined, MailOutlined, NotificationOutlined, ReadOutlined, FileProtectOutlined,
 } from '@ant-design/icons';
@@ -18,6 +19,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 dayjs.extend(relativeTime);
 
 const { Header, Sider, Content } = Layout;
+const { useBreakpoint } = Grid;
 
 const TYPE_ICONS = {
   lead_created:            <PlusCircleOutlined />,
@@ -64,7 +66,6 @@ const menusByRole = {
     { key: '/agent/leads/new',        icon: <FileAddOutlined />,      label: <Link to="/agent/leads/new">New Lead</Link> },
     { key: '/agent/commissions',      icon: <DollarOutlined />,       label: <Link to="/agent/commissions">Payouts</Link> },
     { key: '/agent/products',         icon: <AppstoreOutlined />,     label: <Link to="/agent/products">Products</Link> },
-
     { key: '/agent/notifications',    icon: <BellOutlined />,         label: <Link to="/agent/notifications">Notifications</Link> },
     { key: '/agent/settings',         icon: <SettingOutlined />,      label: <Link to="/agent/settings">Settings</Link> },
   ],
@@ -74,7 +75,7 @@ const menusByRole = {
     { key: '/agency/pipeline',        icon: <ProjectOutlined />,      label: <Link to="/agency/pipeline">Pipeline</Link> },
     { key: '/agency/employees',       icon: <TeamOutlined />,         label: <Link to="/agency/employees">Employees</Link> },
     { key: '/agency/payouts',         icon: <DollarOutlined />,       label: <Link to="/agency/payouts">Payouts</Link> },
-    { key: '/agency/consent-logs',     icon: <MessageOutlined />,      label: <Link to="/agency/consent-logs">Consent Logs</Link> },
+    { key: '/agency/consent-logs',    icon: <MessageOutlined />,      label: <Link to="/agency/consent-logs">Consent Logs</Link> },
     { key: '/agency/notifications',   icon: <BellOutlined />,         label: <Link to="/agency/notifications">Notifications</Link> },
   ],
   employee: [
@@ -85,14 +86,13 @@ const menusByRole = {
     { key: '/employee/notifications', icon: <BellOutlined />,         label: <Link to="/employee/notifications">Notifications</Link> },
   ],
   blog_editor: [
-    { key: '/blog_editor',       icon: <ReadOutlined />,    label: <Link to="/blog_editor">Blog Posts</Link> },
-    { key: '/blog_editor/blog',  icon: <ReadOutlined />,    label: <Link to="/blog_editor/blog">Blog Posts</Link> },
-    { key: '/blog_editor/profile', icon: <UserOutlined />,  label: <Link to="/blog_editor/profile">Profile</Link> },
+    { key: '/blog_editor',            icon: <ReadOutlined />,   label: <Link to="/blog_editor">Blog Posts</Link> },
+    { key: '/blog_editor/blog',       icon: <ReadOutlined />,   label: <Link to="/blog_editor/blog">Blog Posts</Link> },
+    { key: '/blog_editor/profile',    icon: <UserOutlined />,   label: <Link to="/blog_editor/profile">Profile</Link> },
   ],
 };
 
 const titleByRole = { admin: 'Admin', agency: 'Agency', agent: 'Agent', employee: 'Employee', blog_editor: 'Blog Editor' };
-
 const ROLE_COLORS = { admin: '#7c3aed', agency: '#1e40af', agent: '#0f766e', employee: '#b45309', blog_editor: '#0ea5e9' };
 
 function NotifDropdown({ notifications, role, markRead, markAllRead, navigate }) {
@@ -149,6 +149,10 @@ function AppLayoutInner() {
   const dispatch  = useDispatch();
   const { token } = theme.useToken();
   const { notifications, unreadCount, markRead, markAllRead } = useNotificationsContext();
+  const screens   = useBreakpoint();
+  const isMobile  = !screens.lg;
+
+  const [collapsed, setCollapsed] = useState(false);
 
   const baseItems = menusByRole[user.role] || [];
   const items = user.role === 'agency' && user.canViewPayouts
@@ -161,10 +165,54 @@ function AppLayoutInner() {
     if (key === 'profile') navigate(`/${user.role}/profile`);
   };
 
+  const closeSiderOnMobile = () => {
+    if (isMobile) setCollapsed(true);
+  };
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0" theme="light" width={240}
-        style={{ background: '#ffffff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}
+      {/* Overlay backdrop — tapping outside closes sidebar on mobile */}
+      {isMobile && !collapsed && (
+        <div
+          onClick={() => setCollapsed(true)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 199,
+            background: 'rgba(0,0,0,0.35)',
+          }}
+        />
+      )}
+
+      <Sider
+        breakpoint="lg"
+        collapsedWidth="0"
+        collapsed={collapsed}
+        onCollapse={(c) => setCollapsed(c)}
+        onBreakpoint={(broken) => { if (broken) setCollapsed(true); }}
+        theme="light"
+        width={240}
+        style={{
+          background: '#ffffff',
+          borderRight: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          position: isMobile ? 'fixed' : 'relative',
+          top: 0,
+          left: 0,
+          height: isMobile ? '100vh' : undefined,
+          zIndex: 200,
+          overflow: 'auto',
+        }}
+        zeroWidthTriggerStyle={{
+          top: 10,
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          borderRadius: '0 8px 8px 0',
+          color: '#374151',
+          width: 32,
+          height: 40,
+          lineHeight: '40px',
+        }}
       >
         <div style={{ padding: '16px 16px 12px' }}>
           <div>
@@ -212,10 +260,12 @@ function AppLayoutInner() {
             }},
           }}>
             <Menu
-              theme="light" mode="inline"
+              theme="light"
+              mode="inline"
               selectedKeys={[location.pathname]}
               items={items}
               style={{ borderInlineEnd: 0, background: 'transparent', fontWeight: 400 }}
+              onSelect={closeSiderOnMobile}
             />
           </ConfigProvider>
         </div>
@@ -238,24 +288,48 @@ function AppLayoutInner() {
         </div>
       </Sider>
 
-      <Layout>
+      <Layout style={{ marginLeft: isMobile ? 0 : undefined }}>
         <Header style={{
-          padding: '0 28px', height: 'auto', lineHeight: 'normal',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 8px rgba(15,23,42,0.05)',
-          position: 'sticky', top: 0, zIndex: 100, background: '#ffffff',
+          padding: isMobile ? '0 12px' : '0 28px',
+          height: 'auto',
+          lineHeight: 'normal',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid #e2e8f0',
+          boxShadow: '0 1px 8px rgba(15,23,42,0.05)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          background: '#ffffff',
           minHeight: 56,
+          gap: 8,
         }}>
-          <div>
-            <Typography.Text style={{ fontSize: 14, fontWeight: 500, color: '#374151', whiteSpace: 'nowrap', display: 'block' }}>
+          {isMobile && (
+            <button
+              onClick={() => setCollapsed(false)}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                padding: '6px 8px', borderRadius: 8, marginRight: 4, flexShrink: 0,
+                display: 'flex', alignItems: 'center', color: '#374151',
+              }}
+            >
+              <MenuOutlined style={{ fontSize: 20 }} />
+            </button>
+          )}
+
+          <div style={{ minWidth: 0, flex: '0 1 auto' }}>
+            <Typography.Text style={{ fontSize: isMobile ? 13 : 14, fontWeight: 500, color: '#374151', whiteSpace: 'nowrap', display: 'block' }}>
               {titleByRole[user.role]} Panel
             </Typography.Text>
-            <div style={{ fontSize: 11, color: '#b0b8c8', marginTop: 1, fontWeight: 400 }}>
-              {dayjs().format('dddd, MMMM D, YYYY')}
-            </div>
+            {!isMobile && (
+              <div style={{ fontSize: 11, color: '#b0b8c8', marginTop: 1, fontWeight: 400 }}>
+                {dayjs().format('dddd, MMMM D, YYYY')}
+              </div>
+            )}
           </div>
 
-          <Space size={16} align="center">
+          <Space size={isMobile ? 8 : 16} align="center" style={{ flexShrink: 0 }}>
             <Popover
               placement="bottomRight"
               trigger="click"
@@ -291,24 +365,31 @@ function AppLayoutInner() {
               { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true },
             ], onClick: onMenuAction }}>
               <div
-                style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '6px 10px', borderRadius: 8 }}
+                style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8, cursor: 'pointer', padding: isMobile ? '6px 4px' : '6px 10px', borderRadius: 8 }}
                 onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <Avatar style={{ backgroundColor: roleColor, fontWeight: 700 }}>
+                <Avatar style={{ backgroundColor: roleColor, fontWeight: 700, flexShrink: 0 }}>
                   {(user.name || user.email)[0].toUpperCase()}
                 </Avatar>
-                <div style={{ lineHeight: 1.2 }}>
-                  <div style={{ fontWeight: 500, fontSize: 13, color: '#0f172a' }}>{user.name || user.email}</div>
-                  <div style={{ fontSize: 11, fontWeight: 400, color: token.colorTextSecondary }}>{titleByRole[user.role]}</div>
-                </div>
+                {!isMobile && (
+                  <div style={{ lineHeight: 1.2 }}>
+                    <div style={{ fontWeight: 500, fontSize: 13, color: '#0f172a' }}>{user.name || user.email}</div>
+                    <div style={{ fontSize: 11, fontWeight: 400, color: token.colorTextSecondary }}>{titleByRole[user.role]}</div>
+                  </div>
+                )}
                 <DownOutlined style={{ fontSize: 10, color: '#94a3b8', marginLeft: 2 }} />
               </div>
             </Dropdown>
           </Space>
         </Header>
 
-        <Content style={{ margin: '0', padding: '20px 24px 28px', background: 'transparent', minHeight: 280 }}>
+        <Content style={{
+          margin: 0,
+          padding: isMobile ? '14px 12px 24px' : '20px 24px 28px',
+          background: 'transparent',
+          minHeight: 280,
+        }}>
           <div style={{ maxWidth: 1160, margin: '0 auto' }}>
             <Outlet />
           </div>

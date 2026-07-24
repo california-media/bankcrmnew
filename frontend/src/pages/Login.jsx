@@ -153,9 +153,8 @@ function Login() {
                 onMouseLeave={e => { e.currentTarget.style.borderColor = '#E8E8EE'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(11,15,30,0.05)'; }}
               >
                 <img
-                  src="https://www.uaepass.ae/content/dam/uae-pass/images/logo/uae-pass-logo.svg"
-                  alt="UAE PASS" style={{ height: 22 }}
-                  onError={(e) => { e.target.style.display = 'none'; }}
+                  src="/uae-logo.png"
+                  alt="UAE PASS" style={{ height: 28, width: 'auto', objectFit: 'contain' }}
                 />
                 Sign in with UAE PASS
               </button>

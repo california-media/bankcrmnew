@@ -44,7 +44,8 @@ h2 { text-align: center; font-size: 12px; color: #666; margin-bottom: 6px; }
 /* Wireframe elements */
 .nav-bar { background: #dde; border-bottom: 1px solid #bbb; padding: 8px 12px;
            display: flex; align-items: center; justify-content: space-between; }
-.logo-box { width: 70px; height: 14px; background: #aab; border-radius: 2px; }
+.logo-box { width: 70px; height: 20px; display: flex; align-items: center; }
+.logo-box::after { content: ''; display: block; width: 60px; height: 14px; background: url('mysilah.svg') no-repeat center/contain; }
 .nav-links { display: flex; gap: 8px; }
 .nav-link { width: 36px; height: 8px; background: #bbc; border-radius: 2px; }
 
@@ -62,12 +63,13 @@ h2 { text-align: center; font-size: 12px; color: #666; margin-bottom: 6px; }
 .btn { height: 26px; border-radius: 3px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
 .btn-primary { background: #2563eb; }
 .btn-secondary { background: #fff; border: 1px solid #bbb; }
-.btn-uae { background: #16a34a; }
+.btn-uae { background: #fff; border: 1.5px solid #bbb; gap: 6px; }
 .btn-err { background: #e11d48; }
 .btn-label { height: 8px; border-radius: 2px; width: 55%; }
 .btn-primary .btn-label { background: rgba(255,255,255,0.7); }
 .btn-secondary .btn-label { background: #bbb; }
-.btn-uae .btn-label { background: rgba(255,255,255,0.7); }
+.btn-uae .btn-label { background: #ccc; }
+.btn-uae .uae-logo-pill { width: 22px; height: 9px; background: #16a34a; border-radius: 2px; flex-shrink: 0; }
 .btn-err .btn-label { background: rgba(255,255,255,0.7); }
 
 .divider { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
@@ -185,6 +187,9 @@ h2 { text-align: center; font-size: 12px; color: #666; margin-bottom: 6px; }
 </div>
 <div id="dl-progress">Rendering at 3× resolution, please wait…</div>
 
+<div style="text-align:center;margin-bottom:14px;">
+  <img src="mysilah.svg" alt="MySilah" style="height:36px;width:auto;" onerror="this.style.display='none'" />
+</div>
 <h1>MySilah — UAE PASS UI Wireframes</h1>
 <h2>Service Provider: MySilah (Silah L.L.C-FZ) | Use Case: Authentication via UAE PASS</h2>
 <p class="doc-meta">Document Type: Low-Fidelity UI Wireframes &nbsp;|&nbsp; Platform: Web &nbsp;|&nbsp; July 2026 &nbsp;|&nbsp; Prepared for UAE PASS SP Integration Submission</p>
@@ -227,7 +232,8 @@ h2 { text-align: center; font-size: 12px; color: #666; margin-bottom: 6px; }
         <div class="btn btn-primary" style="margin-top:6px"><div class="btn-label"></div></div>
         <div class="divider"><div class="div-line"></div><div class="div-label"></div><div class="div-line"></div></div>
         <div class="btn btn-uae">
-          <div class="btn-label" style="width:65%"></div>
+          <div class="uae-logo-pill"></div>
+          <div class="btn-label" style="width:55%"></div>
         </div>
         <div class="ann">↑ "Sign in with UAE PASS" button</div>
         <div>
@@ -266,9 +272,10 @@ h2 { text-align: center; font-size: 12px; color: #666; margin-bottom: 6px; }
         <div class="page-desc" style="width:80%"></div>
 
         <div class="btn btn-uae" style="margin-bottom:8px">
-          <div class="btn-label" style="width:70%"></div>
+          <div class="uae-logo-pill"></div>
+          <div class="btn-label" style="width:60%"></div>
         </div>
-        <div class="ann">↑ "Register with UAE PASS" — primary CTA</div>
+        <div class="ann">↑ "Sign in with UAE PASS" — primary CTA</div>
         <div><span class="ann-tag">Auto-fills name/email/EID from profile</span></div>
         <div class="divider" style="margin-top:8px"><div class="div-line"></div><div class="div-label"></div><div class="div-line"></div></div>
         <div class="input-group">
@@ -322,7 +329,7 @@ h2 { text-align: center; font-size: 12px; color: #666; margin-bottom: 6px; }
           <div class="input-field"><div class="input-placeholder" style="width:65%"></div></div>
         </div>
         <div class="ann" style="font-size:8px">Mobile No. / Emirates ID / Email</div>
-        <div class="btn btn-uae" style="margin-top:6px"><div class="btn-label"></div></div>
+        <div class="btn btn-uae" style="margin-top:6px"><div class="uae-logo-pill"></div><div class="btn-label" style="width:45%"></div></div>
         <div class="ann">↑ "Continue" — UAE PASS validates identity</div>
         <div><span class="ann-tag">Hosted by UAE PASS</span><span class="ann-tag">NOT MySilah</span></div>
         <div style="margin-top:8px;display:flex;gap:6px">
@@ -544,13 +551,13 @@ h2 { text-align: center; font-size: 12px; color: #666; margin-bottom: 6px; }
     </div>
   </div>
 
-  <!-- ── Screen 8: Error — Auth Failed ── -->
+  <!-- ── Screen 8a: Error — Auth Failed ── -->
   <div class="wf-card">
-    <div class="wf-title">Screen 8 — Error: Authentication Failed</div>
+    <div class="wf-title">Screen 8a — Error: Authentication Failed</div>
     <div class="wf-subtitle">User rejected / timed out / cancelled on UAE PASS app</div>
     <div class="browser">
       <div class="browser-dots"><span></span><span></span><span></span></div>
-      <div class="browser-url">mysilah.ae/login?error=auth_failed</div>
+      <div class="browser-url">mysilah.ae/login?uaepass_error=token_failed</div>
     </div>
     <div class="screen">
       <div class="nav-bar">
@@ -576,8 +583,49 @@ h2 { text-align: center; font-size: 12px; color: #666; margin-bottom: 6px; }
             <div class="wf-row w80" style="background:#fdd"></div>
           </div>
         </div>
-        <div class="ann">"Authentication failed. Please try again."</div>
-        <div class="btn btn-uae" style="margin-top:8px"><div class="btn-label"></div></div>
+        <div class="ann">"UAE Pass authentication failed. Please try again."</div>
+        <div class="btn btn-uae" style="margin-top:8px"><div class="uae-logo-pill"></div><div class="btn-label" style="width:50%"></div></div>
+        <div class="btn btn-secondary" style="margin-top:4px"><div class="btn-label" style="background:#bbb"></div></div>
+        <div class="ann">Retry UAE PASS / Use password login</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 8b: Error — Access Denied ── -->
+  <div class="wf-card">
+    <div class="wf-title">Screen 8b — Error: Access Denied</div>
+    <div class="wf-subtitle">User explicitly denied / cancelled UAE PASS consent</div>
+    <div class="browser">
+      <div class="browser-dots"><span></span><span></span><span></span></div>
+      <div class="browser-url">mysilah.ae/login?uaepass_error=access_denied</div>
+    </div>
+    <div class="screen">
+      <div class="nav-bar">
+        <div class="logo-box"></div>
+      </div>
+      <div class="wf-body">
+        <div class="error-center">
+          <div class="err-icon-ring"><div class="err-x">✕</div></div>
+          <div class="err-title"></div>
+          <div class="err-desc"></div>
+          <div class="err-desc" style="width:75%"></div>
+        </div>
+        <div class="card-box" style="background:#fff1f2;border-color:#e11d48">
+          <div class="card-header">
+            <div class="avatar err"></div>
+            <div class="card-title-block">
+              <div class="ct1" style="background:#e11d48;opacity:0.4"></div>
+              <div class="ct2" style="background:#ddd"></div>
+            </div>
+          </div>
+          <div class="rows">
+            <div class="wf-row w90" style="background:#fdd"></div>
+            <div class="wf-row w60" style="background:#fdd"></div>
+          </div>
+        </div>
+        <div class="ann">"UAE Pass access was denied."</div>
+        <div><span class="ann-tag" style="background:#fff1f2;border-color:#e11d48;color:#881337">access_denied error code</span></div>
+        <div class="btn btn-uae" style="margin-top:8px"><div class="uae-logo-pill"></div><div class="btn-label" style="width:50%"></div></div>
         <div class="btn btn-secondary" style="margin-top:4px"><div class="btn-label" style="background:#bbb"></div></div>
         <div class="ann">Retry UAE PASS / Use password login</div>
       </div>
@@ -620,7 +668,7 @@ h2 { text-align: center; font-size: 12px; color: #666; margin-bottom: 6px; }
             <div class="wf-row w60" style="background:#fde68a"></div>
           </div>
         </div>
-        <div class="ann">"Please upgrade your UAE PASS account to Verified level"</div>
+        <div class="ann">"Please upgrade UAE PASS to a Verified or Premium account."</div>
         <div>
           <span class="ann-tag" style="background:#fef3c7;border-color:#d97706;color:#78350f">Verified / Premium only</span>
           <span class="ann-tag" style="background:#fef3c7;border-color:#d97706;color:#78350f">Basic rejected</span>

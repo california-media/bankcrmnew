@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Card, Col, Row, Typography, Tag, Space, Table, Button, Skeleton } from 'antd';
+import { Card, Col, Row, Typography, Tag, Space, Table, Button, Skeleton, Grid } from 'antd';
+
+const { useBreakpoint } = Grid;
 import {
   DollarOutlined,
   ClockCircleOutlined,
@@ -116,6 +118,8 @@ function AgentDashboard() {
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
   const [loadingRecent, setLoadingRecent] = useState(true);
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   useEffect(() => {
     api.get('/leads/stats').then((res) => setStats(res.data));
@@ -177,11 +181,13 @@ function AgentDashboard() {
       <div style={{
         background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #1d4ed8 100%)',
         borderRadius: 16,
-        padding: '28px 32px',
+        padding: isMobile ? '20px 18px' : '28px 32px',
         marginBottom: 24,
         display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        gap: isMobile ? 16 : 0,
         boxShadow: '0 8px 32px rgba(29,78,216,0.22)',
         position: 'relative',
         overflow: 'hidden',
@@ -189,34 +195,36 @@ function AgentDashboard() {
         <div style={{ position: 'absolute', right: -50, top: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
         <div style={{ position: 'absolute', right: 100, bottom: -70, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
+          <div style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: '#fff', marginBottom: 4 }}>
             Welcome back, {(user.name || user.email).split(' ')[0]} 👋
           </div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.68)' }}>
             Here's what's happening with your portfolio today.
           </div>
         </div>
-        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'rgba(255,255,255,0.55)', marginBottom: 6 }}>
-            Your Referral Code
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, position: 'relative', zIndex: 1, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'space-between' : 'flex-end' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'rgba(255,255,255,0.55)', marginBottom: 6 }}>
+              Your Referral Code
+            </div>
+            <Typography.Text
+              copyable={{ icon: <CopyOutlined style={{ color: 'rgba(255,255,255,0.7)' }} />, text: user.referralCode }}
+              style={{ fontFamily: 'monospace', fontSize: isMobile ? 20 : 26, fontWeight: 900, color: '#fff', letterSpacing: 3 }}
+            >
+              {user.referralCode}
+            </Typography.Text>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>Share to earn referral bonuses</div>
           </div>
-          <Typography.Text
-            copyable={{ icon: <CopyOutlined style={{ color: 'rgba(255,255,255,0.7)' }} />, text: user.referralCode }}
-            style={{ fontFamily: 'monospace', fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: 3 }}
-          >
-            {user.referralCode}
-          </Typography.Text>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>Share to earn referral bonuses</div>
+          <Link to="/agent/leads/new">
+            <Button
+              icon={<PlusOutlined />}
+              size="middle"
+              style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', color: '#fff', borderRadius: 8, fontWeight: 600 }}
+            >
+              Submit New Lead
+            </Button>
+          </Link>
         </div>
-        <Link to="/agent/leads/new">
-          <Button
-            icon={<PlusOutlined />}
-            size="middle"
-            style={{ background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.28)', color: '#fff', borderRadius: 8, fontWeight: 600 }}
-          >
-            Submit New Lead
-          </Button>
-        </Link>
       </div>
 
       {/* Stat Cards */}

@@ -15,8 +15,8 @@ const UAE_PASS_ERROR_MESSAGES = {
   access_denied:   'UAE Pass access was denied.',
 };
 
-const inputStyle = { borderRadius: 10, fontSize: 14, borderColor: '#E8E8EE', height: 42 };
-const itemStyle  = { marginBottom: 10 };
+const inputStyle = { borderRadius: 10, fontSize: 13, borderColor: '#E8E8EE', height: 38 };
+const itemStyle  = { marginBottom: 7 };
 
 function Register() {
   const dispatch = useDispatch();
@@ -31,6 +31,11 @@ function Register() {
   }, [user, navigate]);
 
   useEffect(() => () => dispatch(clearError()), [dispatch]);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
 
   useEffect(() => {
     const prefill = searchParams.get('uaepass_prefill');
@@ -68,14 +73,15 @@ function Register() {
   if (registrationPending) {
     return (
       <div className="register-root">
-        {/* Orbs */}
         <div style={{ position:'absolute', top:-160, left:-160, width:480, height:480, borderRadius:'50%', pointerEvents:'none', background:'radial-gradient(circle, rgba(124,58,237,0.10) 0%, transparent 60%)' }} />
         <div style={{ position:'absolute', bottom:-160, right:-100, width:400, height:400, borderRadius:'50%', pointerEvents:'none', background:'radial-gradient(circle, rgba(14,165,233,0.09) 0%, transparent 60%)' }} />
 
         <div className="register-card" style={{
-          background:'#fff', borderRadius:16, border:'1px solid #E8E8EE', borderTop:'3px solid #7C3AED',
+          background: '#fff',
+          border: '1.5px solid #7C3AED',
+          borderRadius: 16,
           padding:'48px 40px', textAlign:'center',
-          boxShadow:'0 24px 64px -16px rgba(11,15,30,0.14), 0 8px 24px -8px rgba(11,15,30,0.07)',
+          boxShadow:'0 24px 64px -16px rgba(11,15,30,0.10), 0 8px 24px -8px rgba(11,15,30,0.06)',
         }}>
           <div style={{ width:64, height:64, borderRadius:'50%', background:'linear-gradient(135deg,rgba(124,58,237,0.10),rgba(14,165,233,0.08))', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 20px' }}>
             <MailOutlined style={{ fontSize:28, color:'#7C3AED' }} />
@@ -102,63 +108,32 @@ function Register() {
       <div style={{ position:'absolute', bottom:-160, right:-100, width:400, height:400, borderRadius:'50%', pointerEvents:'none', background:'radial-gradient(circle, rgba(14,165,233,0.09) 0%, transparent 60%)' }} />
 
       <div className="register-card" style={{
-        background:'#fff', borderRadius:16, border:'1px solid #E8E8EE', borderTop:'3px solid #7C3AED',
-        padding:'32px 36px 28px',
-        boxShadow:'0 24px 64px -16px rgba(11,15,30,0.14), 0 8px 24px -8px rgba(11,15,30,0.07)',
+        background: '#fff',
+        border: '1px solid #E8E8EE',
+        borderTop: '3px solid #7C3AED',
+        borderRadius: 16,
+        padding:'20px 32px 16px',
+        boxShadow:'0 24px 64px -16px rgba(11,15,30,0.10), 0 8px 24px -8px rgba(11,15,30,0.06)',
+        position: 'relative',
+        zIndex: 1,
       }}>
 
-        {/* Logo */}
-        <div style={{ textAlign:'center', marginBottom:20 }}>
-          <img src="/mysilah.svg" alt="MySilah" style={{ height:38, width:'auto', objectFit:'contain' }} />
+        {/* Logo inside card */}
+        <div style={{ textAlign:'center', marginBottom:10 }}>
+          <img src="/mysilah.svg" alt="MySilah" style={{ height:32, width:'auto', objectFit:'contain' }} />
         </div>
 
         {/* Heading */}
-        <h2 style={{ fontSize:22, fontWeight:700, color:'#0B0F1E', textAlign:'center', margin:'0 0 4px', letterSpacing:'-0.025em' }}>
+        <h2 style={{ fontSize:20, fontWeight:700, color:'#0B0F1E', textAlign:'center', margin:'0 0 2px', letterSpacing:'-0.025em' }}>
           Agent Registration
         </h2>
-        <p style={{ fontSize:13.5, color:'#6B7186', textAlign:'center', margin:'0 0 20px' }}>
+        <p style={{ fontSize:13, color:'#6B7186', textAlign:'center', margin:'0 0 12px' }}>
           Sign up to submit leads and earn commissions
         </p>
 
         {uaepassError && <Alert type="error" message={uaepassError} style={{ marginBottom:12, borderRadius:10 }} closable onClose={() => setUaepassError(null)} />}
         {error        && <Alert type="error" message={error}        style={{ marginBottom:12, borderRadius:10 }} />}
         {isPrefilled  && <Alert type="success" message="UAE Pass verified — complete your registration below" style={{ marginBottom:12, borderRadius:10 }} showIcon />}
-
-        {!isPrefilled && (
-          <>
-            {/* UAE PASS button */}
-            <button
-              type="button" onClick={handleUaePass}
-              style={{
-                width:'100%', height:48,
-                display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-                background:'#fff', border:'1.5px solid #E8E8EE', borderRadius:999,
-                cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#0B0F1E',
-                boxShadow:'0 1px 4px rgba(11,15,30,0.05)',
-                transition:'border-color 0.18s, box-shadow 0.18s', marginBottom:6,
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor='#7C3AED'; e.currentTarget.style.boxShadow='0 0 0 3px rgba(124,58,237,0.10)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor='#E8E8EE'; e.currentTarget.style.boxShadow='0 1px 4px rgba(11,15,30,0.05)'; }}
-            >
-              <img
-                src="https://www.uaepass.ae/content/dam/uae-pass/images/logo/uae-pass-logo.svg"
-                alt="UAE PASS" style={{ height:22 }}
-                onError={e => { e.target.style.display='none'; }}
-              />
-              Sign in with UAE PASS
-            </button>
-            <p style={{ textAlign:'center', fontSize:11.5, color:'#9AA0B4', margin:'0 0 4px' }}>
-              Instant verification using your Emirates ID
-            </p>
-
-            {/* Divider */}
-            <div style={{ display:'flex', alignItems:'center', gap:10, margin:'14px 0' }}>
-              <div style={{ flex:1, height:1, background:'#E8E8EE' }} />
-              <span style={{ fontSize:12, color:'#9AA0B4', whiteSpace:'nowrap' }}>or register manually</span>
-              <div style={{ flex:1, height:1, background:'#E8E8EE' }} />
-            </div>
-          </>
-        )}
 
         <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>
           <Form.Item name="_uaepassSub"     hidden><Input /></Form.Item>
@@ -181,7 +156,7 @@ function Register() {
           </Form.Item>
 
           <Form.Item
-            name="agreeToTerms" valuePropName="checked" style={{ marginBottom:16, marginTop:4 }}
+            name="agreeToTerms" valuePropName="checked" style={{ marginBottom:10, marginTop:2 }}
             rules={[{ validator:(_, v) => v ? Promise.resolve() : Promise.reject('You must accept the Terms and Conditions') }]}
           >
             <Checkbox style={{ fontSize:13, color:'#374151' }}>
@@ -201,9 +176,44 @@ function Register() {
           >
             {isPrefilled ? 'Complete Registration' : 'Create account →'}
           </Button>
+
+          {!isPrefilled && (
+            <>
+              {/* Divider */}
+              <div style={{ display:'flex', alignItems:'center', gap:10, margin:'10px 0 8px' }}>
+                <div style={{ flex:1, height:1, background:'#E8E8EE' }} />
+                <span style={{ fontSize:12, color:'#9AA0B4', whiteSpace:'nowrap' }}>or sign up with UAE PASS</span>
+                <div style={{ flex:1, height:1, background:'#E8E8EE' }} />
+              </div>
+
+              {/* UAE PASS button */}
+              <button
+                type="button" onClick={handleUaePass}
+                style={{
+                  width:'100%', height:48,
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+                  background:'#fff', border:'1.5px solid #E8E8EE', borderRadius:999,
+                  cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#0B0F1E',
+                  boxShadow:'0 1px 4px rgba(11,15,30,0.05)',
+                  transition:'border-color 0.18s, box-shadow 0.18s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor='#7C3AED'; e.currentTarget.style.boxShadow='0 0 0 3px rgba(124,58,237,0.10)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor='#E8E8EE'; e.currentTarget.style.boxShadow='0 1px 4px rgba(11,15,30,0.05)'; }}
+              >
+                <img
+                  src="/uae-logo.png"
+                  alt="UAE PASS" style={{ height:28, width:'auto', objectFit:'contain' }}
+                />
+                Sign in with UAE PASS
+              </button>
+              <p style={{ textAlign:'center', fontSize:11.5, color:'#9AA0B4', margin:'4px 0 0' }}>
+                Instant verification using your Emirates ID
+              </p>
+            </>
+          )}
         </Form>
 
-        <p style={{ textAlign:'center', marginTop:16, marginBottom:0, fontSize:12.5, color:'#9AA0B4', lineHeight:1.6 }}>
+        <p style={{ textAlign:'center', marginTop:10, marginBottom:0, fontSize:12, color:'#9AA0B4', lineHeight:1.5 }}>
           Already have an account?{' '}
           <Link to="/login" style={{ color:'#7C3AED', fontWeight:500 }}>Login</Link>
           {' · '}

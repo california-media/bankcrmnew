@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, message, Divider, Row, Col, Alert, Tooltip, Typography, Modal } from 'antd';
-import { BankOutlined, LockOutlined, UserOutlined, CopyOutlined, CheckOutlined, LinkOutlined, DeleteOutlined, WarningOutlined } from '@ant-design/icons';
+import { useLocation } from 'react-router-dom';
+import { BankOutlined, LockOutlined, UserOutlined, CopyOutlined, CheckOutlined, LinkOutlined, DeleteOutlined, WarningOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
@@ -19,6 +20,8 @@ function AgentSettings() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     api.get('/auth/profile').then((res) => {
@@ -35,6 +38,20 @@ function AgentSettings() {
         });
       }
     });
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const uaepass = params.get('uaepass');
+    if (uaepass === 'linked') {
+      message.success('UAE Pass linked successfully');
+      // Refresh profile to show linked state
+      api.get('/auth/profile').then((res) => setProfile(res.data.user));
+    } else if (uaepass === 'conflict') {
+      message.error('This UAE Pass account is already linked to another account');
+    } else if (uaepass === 'error') {
+      message.error('UAE Pass connection failed. Please try again.');
+    }
   }, []);
 
   const bankLocked = !!(profile?.bankDetails?.iban || profile?.bankDetails?.accountNumber);
@@ -84,6 +101,21 @@ function AgentSettings() {
       setSavingBank(false);
     }
   };
+
+  const unlinkUaePass = async () => {
+    setUnlinking(true);
+    try {
+      await api.post('/auth/uaepass/unlink');
+      message.success('UAE Pass unlinked');
+      setProfile((p) => ({ ...p, uaepassSub: null }));
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to unlink UAE Pass');
+    } finally {
+      setUnlinking(false);
+    }
+  };
+
+  const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
 
   return (
     <div style={{ maxWidth: 760, margin: '0 auto' }}>
@@ -235,6 +267,71 @@ function AgentSettings() {
             Save Profile
           </Button>
         </Form>
+      </Card>
+
+      {/* UAE Pass */}
+      <Card
+        style={{ borderRadius: 16, border: '1px solid #e2e8f0', marginTop: 20 }}
+        styles={{ header: { borderBottom: '1px solid #f1f5f9' } }}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <SafetyCertificateOutlined style={{ color: '#16a34a' }} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>UAE Pass</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>Login with your Emirates ID</div>
+            </div>
+          </div>
+        }
+      >
+        {profile?.uaepassSub ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
+                <img src="/uae-logo.png" alt="UAE Pass" style={{ height: 24, width: 'auto', objectFit: 'contain' }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>Connected</div>
+                <div style={{ fontSize: 12, color: '#16a34a' }}>Your account is linked to UAE Pass</div>
+              </div>
+            </div>
+            <Button
+              danger
+              loading={unlinking}
+              onClick={unlinkUaePass}
+              disabled={!profile?.hasPassword}
+              style={{ borderRadius: 8, fontWeight: 600 }}
+            >
+              Disconnect
+            </Button>
+            {!profile?.hasPassword && (
+              <div style={{ width: '100%' }}>
+                <Alert
+                  type="warning"
+                  showIcon
+                  message="Set a password first before disconnecting UAE Pass — otherwise you will be locked out."
+                  style={{ borderRadius: 8 }}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', marginBottom: 2 }}>Not connected</div>
+              <div style={{ fontSize: 12, color: '#64748b' }}>Link UAE Pass to sign in with your Emirates ID</div>
+            </div>
+            <Button
+              type="primary"
+              href={`${apiBase}/api/auth/uaepass/link-init`}
+              style={{ borderRadius: 8, fontWeight: 600, background: '#0d6d3f', borderColor: '#0d6d3f', display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              <img src="/uae-logo.png" alt="UAE Pass" style={{ height: 18, width: 'auto', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+              Connect UAE Pass
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* Referral Link */}

@@ -36,6 +36,8 @@ const sanitizeFull = (user) => ({
   referredBy: user.referredBy,
   bankDetails: user.bankDetails,
   emiratesId: user.emiratesId,
+  uaepassSub: user.uaepassSub,
+  hasPassword: !!user.password,
   canViewPayouts: user.canViewPayouts,
 });
 

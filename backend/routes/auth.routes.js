@@ -5,6 +5,8 @@ const { protect } = require('../middleware/auth.middleware');
 
 router.get('/uaepass/init', uaepass.init);
 router.get('/uaepass/callback', uaepass.callback);
+router.get('/uaepass/link-init', protect, uaepass.linkInit);
+router.post('/uaepass/unlink', protect, uaepass.unlink);
 
 router.post('/register-agent', ctrl.registerAgent);
 router.get('/verify-email/:token', ctrl.verifyEmail);

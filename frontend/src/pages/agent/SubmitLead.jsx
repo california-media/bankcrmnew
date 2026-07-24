@@ -125,6 +125,7 @@ function SubmitLead() {
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [selectedBracket, setSelectedBracket] = useState(null);
+  const [selectedBankId, setSelectedBankId] = useState(null);
   const [loading, setLoading]           = useState(false);
   const [termsOpen, setTermsOpen]       = useState(false);
   const [pendingValues, setPendingValues] = useState(null);
@@ -145,10 +146,35 @@ function SubmitLead() {
     setSelectedCard(null);
     setSelectedLoan(null);
     setSelectedBracket(null);
-    form.resetFields(['cardProduct', 'loanProduct', 'loanAmount', 'loanType', 'salaryBracket']);
+    setSelectedBankId(null);
+    form.resetFields(['bank', 'cardProduct', 'loanProduct', 'loanAmount', 'loanType', 'salaryBracket']);
   };
 
   const onProductTypeChange = (val) => { setProductType(val); resetProduct(); };
+
+  // Unique banks from loaded products for the current product type
+  const bankOptions = (() => {
+    const source = productType === 'credit_card' ? cardProducts : loanProducts;
+    const seen = new Set();
+    return source
+      .filter((p) => p.bank?._id)
+      .reduce((acc, p) => {
+        if (!seen.has(p.bank._id)) {
+          seen.add(p.bank._id);
+          acc.push({ value: p.bank._id, label: p.bank.name });
+        }
+        return acc;
+      }, [])
+      .sort((a, b) => a.label.localeCompare(b.label));
+  })();
+
+  const onBankChange = (bankId) => {
+    setSelectedBankId(bankId);
+    setSelectedCard(null);
+    setSelectedLoan(null);
+    setSelectedBracket(null);
+    form.resetFields(['cardProduct', 'loanProduct', 'loanAmount', 'loanType', 'salaryBracket']);
+  };
 
   const autoSelectMinBracket = (brackets) => {
     if (!brackets || brackets.length === 0) { setSelectedBracket(null); form.resetFields(['salaryBracket']); return; }
@@ -226,17 +252,21 @@ function SubmitLead() {
     }
   };
 
-  const cardOptions = cardProducts.map((c) => ({
-    value: c._id,
-    label: `${c.name} — ${c.bank?.name || ''}`,
-    searchText: `${c.name} ${c.bank?.name || ''} ${c.cardType}`.toLowerCase(),
-  }));
+  const cardOptions = cardProducts
+    .filter((c) => !selectedBankId || c.bank?._id === selectedBankId)
+    .map((c) => ({
+      value: c._id,
+      label: c.name,
+      searchText: `${c.name} ${c.bank?.name || ''} ${c.cardType}`.toLowerCase(),
+    }));
 
-  const loanOptions = loanProducts.map((l) => ({
-    value: l._id,
-    label: `${l.name} — ${l.bank?.name || ''}`,
-    searchText: `${l.name} ${l.bank?.name || ''} ${l.loanCategory}`.toLowerCase(),
-  }));
+  const loanOptions = loanProducts
+    .filter((l) => !selectedBankId || l.bank?._id === selectedBankId)
+    .map((l) => ({
+      value: l._id,
+      label: l.name,
+      searchText: `${l.name} ${l.bank?.name || ''} ${l.loanCategory}`.toLowerCase(),
+    }));
 
   return (
     <>
@@ -356,8 +386,11 @@ function SubmitLead() {
 
               {productType === 'credit_card' && (
                 <>
+                  <Form.Item name="bank" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Bank <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select a bank' }]} style={{ marginBottom: 10 }}>
+                    <Select size="middle" showSearch allowClear filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())} placeholder="Select bank" options={bankOptions} onChange={onBankChange} loading={loading} />
+                  </Form.Item>
                   <Form.Item name="cardProduct" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Card Product <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select a card' }]} style={{ marginBottom: 10 }}>
-                    <Select size="middle" loading={loading} showSearch filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())} placeholder="Select card product" options={cardOptions} onChange={onCardSelect} />
+                    <Select size="middle" loading={loading} showSearch disabled={!selectedBankId} filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())} placeholder={selectedBankId ? 'Select card product' : 'Select a bank first'} options={cardOptions} onChange={onCardSelect} />
                   </Form.Item>
                   {selectedCard && (
                     <div style={{ background: '#f8faff', borderRadius: 8, border: '1px solid #ede9fe', padding: '8px 10px', marginBottom: 10 }}>
@@ -405,8 +438,11 @@ function SubmitLead() {
 
               {productType === 'loan' && (
                 <>
+                  <Form.Item name="bank" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Bank <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select a bank' }]} style={{ marginBottom: 10 }}>
+                    <Select size="middle" showSearch allowClear filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())} placeholder="Select bank" options={bankOptions} onChange={onBankChange} loading={loading} />
+                  </Form.Item>
                   <Form.Item name="loanProduct" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Product <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select a loan' }]} style={{ marginBottom: 10 }}>
-                    <Select size="middle" loading={loading} showSearch filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())} placeholder="Select loan product" options={loanOptions} onChange={onLoanSelect} />
+                    <Select size="middle" loading={loading} showSearch disabled={!selectedBankId} filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())} placeholder={selectedBankId ? 'Select loan product' : 'Select a bank first'} options={loanOptions} onChange={onLoanSelect} />
                   </Form.Item>
                   {selectedLoan && (
                     <div style={{ background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', padding: '8px 12px', marginBottom: 10, display: 'flex', gap: 16 }}>

@@ -396,7 +396,7 @@ function SubmitLead() {
                     <div style={{ background: '#f8faff', borderRadius: 8, border: '1px solid #ede9fe', padding: '8px 10px', marginBottom: 10 }}>
                       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                         {selectedCard.cardImage && (
-                          <img src={`${UPLOADS_BASE}/card-images/${selectedCard.cardImage}`} alt={selectedCard.name} style={{ width: 72, height: 46, objectFit: 'cover', borderRadius: 5, border: '1px solid #dde3f5', flexShrink: 0 }} />
+                          <img src={`${UPLOADS_BASE}/card-images/${selectedCard.cardImage}`} alt={selectedCard.name} style={{ width: 72, height: 46, objectFit: 'contain', borderRadius: 5, border: '1px solid #dde3f5', flexShrink: 0 }} />
                         )}
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedCard.bank?.name}</div>

@@ -102,7 +102,7 @@ function ProductCard({ product, onClick }) {
                 <img
                   src={`${UPLOADS_BASE}/card-images/${product.cardImage}`}
                   alt=""
-                  style={{ width: 80, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }}
+                  style={{ width: 80, height: 52, objectFit: 'contain', borderRadius: 6, border: '1px solid #e2e8f0' }}
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               )}
@@ -113,7 +113,7 @@ function ProductCard({ product, onClick }) {
               <img
                 src={`${UPLOADS_BASE}/card-images/${product.cardImage}`}
                 alt=""
-                style={{ width: 80, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid #e2e8f0' }}
+                style={{ width: 80, height: 52, objectFit: 'contain', borderRadius: 6, border: '1px solid #e2e8f0' }}
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
             </div>
@@ -287,7 +287,7 @@ function Products() {
                 <img
                   src={`${UPLOADS_BASE}/card-images/${selectedProduct.cardImage}`}
                   alt=""
-                  style={{ width: 100, height: 65, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0', flexShrink: 0 }}
+                  style={{ width: 100, height: 65, objectFit: 'contain', borderRadius: 8, border: '1px solid #e2e8f0', flexShrink: 0 }}
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               )}

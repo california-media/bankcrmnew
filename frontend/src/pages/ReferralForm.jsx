@@ -394,7 +394,7 @@ export default function ReferralForm() {
                         <div style={{ background: '#f8faff', border: '1px solid #ede9fe', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             {selectedCard.cardImage && (
-                              <img src={`${UPLOADS_BASE}/card-images/${selectedCard.cardImage}`} alt={selectedCard.name} style={{ width: 68, height: 44, objectFit: 'cover', borderRadius: 5, border: '1px solid #dde3f5', flexShrink: 0 }} />
+                              <img src={`${UPLOADS_BASE}/card-images/${selectedCard.cardImage}`} alt={selectedCard.name} style={{ width: 68, height: 44, objectFit: 'contain', borderRadius: 5, border: '1px solid #dde3f5', flexShrink: 0 }} />
                             )}
                             <div style={{ flex: 1 }}>
                               <div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedCard.bank?.name}</div>

@@ -216,7 +216,7 @@ function CardProducts() {
       title: 'Image',
       width: 70,
       render: (_, row) => row.cardImage
-        ? <img src={`${UPLOADS_BASE}/card-images/${row.cardImage}`} alt="" style={{ width: 52, height: 34, objectFit: 'cover', borderRadius: 4, border: '1px solid #e2e8f0' }} />
+        ? <img src={`${UPLOADS_BASE}/card-images/${row.cardImage}`} alt="" style={{ width: 52, height: 34, objectFit: 'contain', borderRadius: 4, border: '1px solid #e2e8f0' }} />
         : <span style={{ color: '#cbd5e1', fontSize: 12 }}>—</span>,
     },
     { title: 'Card Name', dataIndex: 'name', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },

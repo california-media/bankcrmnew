@@ -14,6 +14,7 @@ export default function exportLeadsToExcel(leads, { includeAgency = false } = {}
   const rows = (leads || []).map((lead) => {
     const row = {
       'Lead No': lead.leadNumber || '',
+      'Reference No': lead.referenceNo || '',
       'Customer Name': lead.customerName || '',
       Phone: lead.phone || '',
       Bank: lead.bank?.name || '',

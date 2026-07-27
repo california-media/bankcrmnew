@@ -70,7 +70,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   :root{
     --ink:#0A0E23; --blue:#2F6EFF; --violet:#7B3FE4; --cyan:#43D2F0;
     --mist:#8B92B8; --surface:#F4F5FC; --white:#fff;
-    --green:#16A87A; --green-bg:#E8F9F2;
+    --green:#16A87A; --green-bg:#E8F9F2; --amber:#E8A33D; --amber-bg:#FDF3E4;
     --line: linear-gradient(120deg, var(--blue) 0%, var(--violet) 65%, var(--cyan) 130%);
     --line-soft: linear-gradient(120deg, rgba(47,110,255,.09), rgba(123,63,228,.09));
     --font-d:'Sora',sans-serif; --font-b:'Inter',sans-serif; --font-m:'JetBrains Mono',monospace;
@@ -112,7 +112,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
 
   .hero-visual{position:relative; display:flex; align-items:center; justify-content:center; min-height:440px;}
   .dot-bg{position:absolute; inset:-30px; background-image:radial-gradient(rgba(139,146,184,.5) 1.4px, transparent 1.4px); background-size:16px 16px; -webkit-mask-image:radial-gradient(circle, black 35%, transparent 72%); mask-image:radial-gradient(circle, black 35%, transparent 72%);}
-  .laptop{position:relative; width:100%; max-width:400px; z-index:2;}
+  .laptop{position:relative; width:100%; max-width:560px; z-index:2;}
   .laptop-screen{background:#1B1F38; border-radius:16px 16px 3px 3px; padding:12px 12px 8px; box-shadow:0 44px 90px rgba(10,14,35,.4);}
   .laptop-bar{display:flex; align-items:center; gap:5px; margin-bottom:9px;}
   .laptop-dot{width:7px;height:7px;border-radius:50%;}
@@ -204,7 +204,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   .card-stage{flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:22px 22px 0; background:radial-gradient(circle at 30% 10%, rgba(123,63,228,.07), transparent 60%); position:relative; perspective:900px;}
   .rcard-full{position:relative; width:100%; max-width:280px; margin:0 auto; aspect-ratio:1.586/1; border-radius:16px; overflow:hidden; box-shadow:0 20px 40px rgba(20,24,51,.4); display:flex; flex-direction:column; justify-content:space-between; padding:15px 17px; transition:transform .6s cubic-bezier(.23,1,.32,1);}
   .rcard-photo-wrap{position:relative; width:100%; max-width:280px; margin:0 auto; aspect-ratio:1.586/1; border-radius:16px; overflow:visible; transition:transform .5s cubic-bezier(.23,1,.32,1);}
-  .rcard-photo{position:relative; z-index:2; width:100%; height:100%; object-fit:cover; display:block; border-radius:15px; box-shadow:0 20px 38px -10px rgba(15,18,40,.45), 0 6px 14px -4px rgba(15,18,40,.3), 0 0 0 1px rgba(255,255,255,.1); transition:transform .4s cubic-bezier(.23,1,.32,1), box-shadow .4s ease;}
+  .rcard-photo{position:relative; z-index:2; width:100%; height:100%; object-fit:contain; display:block; border-radius:15px; box-shadow:0 20px 38px -10px rgba(15,18,40,.45), 0 6px 14px -4px rgba(15,18,40,.3), 0 0 0 1px rgba(255,255,255,.1); transition:transform .4s cubic-bezier(.23,1,.32,1), box-shadow .4s ease;}
   .rcard-photo-sheen{position:absolute; inset:0; z-index:3; border-radius:15px; pointer-events:none; background:linear-gradient(115deg, rgba(255,255,255,.4) 0%, rgba(255,255,255,0) 26%, rgba(255,255,255,0) 76%, rgba(255,255,255,.18) 100%); mix-blend-mode:overlay;}
   .rcard-photo-wrap:hover .rcard-photo{transform:translateY(-9px) scale(1.025); box-shadow:0 32px 54px -10px rgba(15,18,40,.52), 0 12px 24px -6px rgba(123,63,228,.32), 0 0 0 1px rgba(255,255,255,.16);}
   .rcard-photo-wrap:hover .rcard-photo-sheen{background:linear-gradient(115deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 74%, rgba(255,255,255,.22) 100%);}
@@ -370,7 +370,8 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   .apply-overlay{position:fixed; inset:0; z-index:1000; background:rgba(10,14,35,.55); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; pointer-events:none; transition:opacity .25s ease;}
   .apply-overlay.open{opacity:1; pointer-events:auto;}
   .apply-modal{width:100%; max-width:460px; max-height:88vh; overflow-y:auto; background:#fff; border-radius:20px; box-shadow:var(--shadow-lg); padding:30px 28px 28px; position:relative; transform:translateY(18px) scale(.98); opacity:0; transition:transform .3s cubic-bezier(.23,1,.32,1), opacity .3s ease;}
-  #matchOverlay .apply-modal{max-height:none; overflow-y:visible;}
+  #matchOverlay .apply-modal{max-height:92vh; overflow-y:auto;}
+  @media(min-width:961px){#matchOverlay .apply-modal{max-height:none; overflow:visible;}}
   .apply-overlay.open .apply-modal{transform:translateY(0) scale(1); opacity:1;}
   .apply-modal-close{position:absolute; top:16px; right:16px; width:32px;height:32px; border-radius:50%; border:none; background:var(--surface); color:var(--mist); font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s;}
   .apply-modal-close:hover{background:var(--line-soft); color:var(--violet);}
@@ -398,6 +399,11 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   .apply-success-sub{font-size:13.5px; color:var(--mist); line-height:1.6; margin-bottom:22px;}
   .apply-form.hide{display:none;}
   @media(max-width:520px){ .af-row{grid-template-columns:1fr;} }
+  .match-spend-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:4px;}
+  .match-spend-grid .af-label{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  @media(max-width:600px){.match-spend-grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:600px){.match-spend-grid .af-label{white-space:normal;}}
+  @media(max-width:380px){.match-spend-grid{grid-template-columns:1fr;}}
 
   .mf-chip-grid{display:flex; flex-wrap:wrap; gap:8px;}
   .mf-chip{display:flex; align-items:center; gap:6px; font-family:var(--font-b); font-size:12.5px; font-weight:600; color:var(--ink); background:var(--surface); border:1.5px solid rgba(139,146,184,.25); padding:8px 14px; border-radius:100px; cursor:pointer; transition:all .18s; user-select:none;}
@@ -430,6 +436,47 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   .mbc-apply:hover{transform:translateY(-2px);}
   .ru-apply{flex-shrink:0; font-family:var(--font-b); font-weight:600; font-size:11px; color:var(--violet); border:1.5px solid rgba(123,63,228,.3); cursor:pointer; padding:6px 12px; border-radius:100px; background:#fff; transition:all .18s; white-space:nowrap;}
   .ru-apply:hover{background:var(--line); color:#fff; border-color:transparent;}
+
+  /* ── Education & Disclosure sections ── */
+  .section-head{display:flex; align-items:center; justify-content:space-between; margin:44px 0 20px;}
+  .section-head.first{margin-top:0;}
+  .section-title{font-family:var(--font-d); font-weight:700; font-size:18px; display:flex; align-items:center; gap:9px;}
+  .disclosure-section{padding:0 48px 40px 96px; max-width:1500px; margin:0 auto;}
+  .disclosure-wrap{max-width:900px;}
+  .disclosure-grid{display:flex; flex-direction:column; gap:26px; margin-top:8px;}
+  .disclosure-card{background:#fff; border:1px solid rgba(139,146,184,.18); border-radius:16px; padding:22px 26px;}
+  .disclosure-card.warn{background:var(--amber-bg); border-color:rgba(232,163,61,.35);}
+  .disclosure-h4{font-family:var(--font-d); font-weight:700; font-size:14.5px; margin-bottom:9px; display:flex; align-items:center; gap:8px;}
+  .disclosure-card p{font-size:13px; line-height:1.72; color:#3A3F5C; margin-bottom:8px;}
+  .disclosure-card p:last-child{margin-bottom:0;}
+  .disclosure-card.warn p{color:#7A5417;}
+  @media(max-width:1200px){ .disclosure-section{padding-left:24px;} }
+  @media(max-width:960px){ .disclosure-section{padding:0 24px 40px;} }
+  .edu-section{padding:0 48px 0 96px; max-width:1500px; margin:0 auto 44px;}
+  .edu-wrap{max-width:980px;}
+  .edu-block{margin-bottom:40px;}
+  .edu-block:last-child{margin-bottom:0;}
+  .edu-h3{font-family:var(--font-d); font-weight:700; font-size:17px; margin-bottom:12px; color:var(--ink);}
+  .edu-p{font-size:13.5px; line-height:1.75; color:#3A3F5C; margin-bottom:12px;}
+  .edu-p:last-child{margin-bottom:0;}
+  .edu-list{margin:0 0 12px 20px; font-size:13.5px; line-height:1.75; color:#3A3F5C;}
+  .edu-list li{margin-bottom:6px;}
+  .edu-table{width:100%; border-collapse:collapse; margin:12px 0 16px; font-size:13px;}
+  .edu-table th{text-align:left; font-family:var(--font-d); font-weight:700; padding:10px 14px; background:var(--surface); color:var(--ink); font-size:11.5px; text-transform:uppercase; letter-spacing:.4px;}
+  .edu-table td{padding:10px 14px; border-top:1px solid rgba(139,146,184,.15); color:#3A3F5C; line-height:1.6;}
+  .edu-two-col{display:grid; grid-template-columns:1fr 1fr; gap:24px;}
+  @media(max-width:760px){ .edu-two-col{grid-template-columns:1fr;} }
+  .edu-callout{background:var(--line-soft); border-radius:14px; padding:18px 22px; font-size:13px; line-height:1.7; color:var(--ink); margin:16px 0;}
+  .faq-list{display:flex; flex-direction:column; gap:10px;}
+  .faq-item{background:#fff; border:1px solid rgba(139,146,184,.18); border-radius:14px; overflow:hidden;}
+  .faq-q{width:100%; text-align:left; background:none; border:none; cursor:pointer; padding:16px 20px; font-family:var(--font-d); font-weight:600; font-size:14px; color:var(--ink); display:flex; justify-content:space-between; align-items:center; gap:12px;}
+  .faq-q-ic{font-size:16px; color:var(--violet); flex-shrink:0; transition:transform .2s;}
+  .faq-item.open .faq-q-ic{transform:rotate(45deg);}
+  .faq-a{max-height:0; overflow:hidden; transition:max-height .3s ease;}
+  .faq-item.open .faq-a{max-height:600px;}
+  .faq-a-inner{padding:0 20px 18px; font-size:13.5px; line-height:1.7; color:#3A3F5C;}
+  @media(max-width:1200px){ .edu-section{padding-left:24px;} }
+  @media(max-width:960px){ .edu-section{padding:0 24px;} }
 </style>
 </style>
 </head>
@@ -501,9 +548,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     </div>
     <div class="hero-visual">
       <div class="dot-bg"></div>
-      <div class="float-badge fb1"><div class="fb-ic" style="background:var(--green-bg);">🎯</div><div><div class="fb-h">98% Match Found</div><div class="fb-s">FAB Cashback+</div></div></div>
-      <div class="float-badge fb2"><div class="fb-ic" style="background:var(--line-soft);">💰</div><div><div class="fb-h">AED 750</div><div class="fb-s">Cashback / yr</div></div></div>
-      <div class="float-badge fb3"><div class="fb-ic" style="background:#EEF0FF;">🤝</div><div><div class="fb-h">26 Banks</div><div class="fb-s">One profile</div></div></div>
+
       <div class="laptop">
         <div class="laptop-screen">
           <div class="laptop-bar"><div class="laptop-dot" style="background:#FF5F57;"></div><div class="laptop-dot" style="background:#FEBC2E;"></div><div class="laptop-dot" style="background:#28C840;"></div><div class="laptop-url">mysilah.ae/match</div></div>
@@ -643,6 +688,224 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   <div class="trust-item"><div class="trust-ic">🤝</div><div><div class="trust-h">26 Bank Partners</div><div class="trust-s">Every major UAE issuer</div></div></div>
 </div>
 
+<section class="edu-section" id="credit-card-guide">
+  <div class="edu-wrap">
+    <div class="section-head">
+      <h2 class="section-title">📚 Everything You Need to Know About Credit Cards in the UAE</h2>
+    </div>
+
+    <div class="edu-block">
+      <h3 class="edu-h3">Features and Benefits of a Credit Card in the UAE</h3>
+      <p class="edu-p">A credit card gives you a spending limit set by your bank, and you pay it back later instead of handing over cash on the spot. Used properly, that simple idea comes with a handful of real advantages.</p>
+      <table class="edu-table">
+        <tr><th>Feature</th><th>What it actually means for you</th></tr>
+        <tr><td>Everyday convenience</td><td>One card covers groceries, fuel, bills and online shopping, so you're not carrying cash everywhere you go</td></tr>
+        <tr><td>Travel value</td><td>Many UAE cards bundle in airport lounge access, air miles or hotel discounts, often worth more than the annual fee if you travel a few times a year</td></tr>
+        <tr><td>Builds your credit history</td><td>Paying on time, month after month, is one of the simplest ways to strengthen your Al Etihad Credit Bureau score</td></tr>
+        <tr><td>Cashback and rewards</td><td>A portion of what you spend often comes back as cashback, points or miles, effectively a discount on money you were spending anyway</td></tr>
+        <tr><td>Purchase protection</td><td>Many cards extend the manufacturer's warranty or cover you if a recent purchase is lost, stolen or damaged</td></tr>
+      </table>
+    </div>
+
+    <div class="edu-block">
+      <h3 class="edu-h3">Types of Credit Cards Available in the UAE</h3>
+      <p class="edu-p">Not every card is built the same way. Here's a quick rundown of the main types you'll come across while comparing cards on this page.</p>
+      <ul class="edu-list">
+        <li><strong>Cashback cards</strong> return a percentage of what you spend straight back onto your statement. The simplest type to understand and use.</li>
+        <li><strong>Rewards or points cards</strong> earn points on your spend that you redeem for flights, vouchers or merchandise.</li>
+        <li><strong>Travel and air miles cards</strong> are built for frequent flyers, earning miles and often bundling in lounge access.</li>
+        <li><strong>Islamic (Shari'ah compliant) cards</strong> run on a profit based structure such as Murabaha instead of interest, so there's no Riba involved.</li>
+        <li><strong>Dining cards</strong> concentrate their best rates on restaurants and food delivery apps.</li>
+        <li><strong>Fuel cards</strong> pay you back more at the pump, useful if you drive often.</li>
+        <li><strong>Zero annual fee cards</strong> cost nothing to hold each year, a sensible starting point for a first card.</li>
+      </ul>
+      <table class="edu-table">
+        <tr><th>Category</th><th>Best for</th><th>Typical benefit</th></tr>
+        <tr><td>Travel</td><td>Frequent flyers</td><td>Air miles and lounge access</td></tr>
+        <tr><td>Cashback</td><td>Everyday spenders</td><td>Money back on groceries, fuel and bills</td></tr>
+        <tr><td>Rewards</td><td>Shoppers and lifestyle spenders</td><td>Points redeemable for flights, hotels or vouchers</td></tr>
+        <tr><td>Dining</td><td>People who eat out often</td><td>Cashback and discounts at restaurants</td></tr>
+        <tr><td>Islamic</td><td>Those who want Shari'ah compliant finance</td><td>Profit based structure with no interest</td></tr>
+        <tr><td>Zero fee</td><td>First time cardholders</td><td>No annual cost while you build your credit history</td></tr>
+      </table>
+    </div>
+
+    <div class="edu-block">
+      <h3 class="edu-h3">How Does a Credit Card Actually Work?</h3>
+      <p class="edu-p">When a bank approves your application, they set a credit limit, the maximum you can spend before you need to pay some of it back. Every time you tap, swipe or enter your card details online, the bank pays the merchant on your behalf. At the end of each billing cycle, usually around 30 days, you receive a statement showing everything you spent.</p>
+      <p class="edu-p">From there you have a choice. Pay the full balance by the due date and you generally pay no interest at all. Most UAE banks give an interest free period of roughly 45 to 55 days on new purchases. Pay only part of it, or just the minimum due, and the bank starts charging interest, often called the retail rate, on whatever balance is left outstanding.</p>
+      <div class="edu-callout">💡 Two numbers matter most when you're comparing cards: the interest rate you'd pay if you carried a balance, and the annual fee, if there is one. If you always clear your statement in full, the interest rate barely matters. If you sometimes carry a balance, it matters a great deal.</div>
+    </div>
+
+    <div class="edu-block">
+      <h3 class="edu-h3">Typical Fees and Charges to Know Before You Apply</h3>
+      <table class="edu-table">
+        <tr><th>Charge</th><th>When it applies</th></tr>
+        <tr><td>Annual fee</td><td>The yearly cost of holding the primary card. Some are free for life, some waive it in year one</td></tr>
+        <tr><td>Supplementary card fee</td><td>A smaller yearly cost if you add a card for a family member</td></tr>
+        <tr><td>Retail interest</td><td>Charged on any balance you don't pay off in full by the due date</td></tr>
+        <tr><td>Cash advance fee</td><td>Charged when you withdraw cash on your credit card, along with a separate, higher interest rate</td></tr>
+        <tr><td>Late payment fee</td><td>Charged if you miss your due date</td></tr>
+        <tr><td>Over limit fee</td><td>Charged if your spending pushes you past your approved credit limit</td></tr>
+        <tr><td>Card replacement fee</td><td>Charged if you need a new physical card issued</td></tr>
+        <tr><td>Foreign transaction fee</td><td>A percentage added to purchases made in a currency other than AED</td></tr>
+      </table>
+    </div>
+
+    <div class="edu-block">
+      <h3 class="edu-h3">The Real Pros and Cons of Carrying a Credit Card</h3>
+      <div class="edu-two-col">
+        <div>
+          <p class="edu-p" style="font-weight:700; color:var(--ink);">Pros</p>
+          <ul class="edu-list">
+            <li>More purchasing power when you need it</li>
+            <li>Cashback and rewards on spend you were doing anyway</li>
+            <li>Easier to track expenses than cash</li>
+            <li>Builds your credit history over time</li>
+            <li>Extra purchase protection on eligible items</li>
+          </ul>
+        </div>
+        <div>
+          <p class="edu-p" style="font-weight:700; color:var(--ink);">Cons</p>
+          <ul class="edu-list">
+            <li>Easy to overspend without real discipline</li>
+            <li>Interest and late fees add up quickly once you miss a payment</li>
+            <li>Carrying a balance for too long can turn into genuine debt</li>
+            <li>Too many cards can make your own spending harder to track</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="edu-block">
+      <h3 class="edu-h3">Who Can Apply, and What You'll Typically Need</h3>
+      <p class="edu-p">Every bank sets its own criteria, but most UAE credit cards share a similar baseline: you'll usually need to be at least 21 years old, a UAE resident or national, in salaried or self employed work, and earning a minimum monthly income that varies by card, often starting around AED 5,000.</p>
+      <div class="edu-two-col">
+        <div>
+          <p class="edu-p" style="font-weight:700; color:var(--ink);">If you're salaried</p>
+          <ul class="edu-list">
+            <li>Emirates ID</li>
+            <li>UAE residence visa (for expats)</li>
+            <li>Passport copy</li>
+            <li>Salary certificate or salary transfer letter</li>
+            <li>Last 3 to 6 months' bank statements</li>
+          </ul>
+        </div>
+        <div>
+          <p class="edu-p" style="font-weight:700; color:var(--ink);">If you're self employed</p>
+          <ul class="edu-list">
+            <li>Emirates ID</li>
+            <li>UAE residence visa (for expats)</li>
+            <li>Passport copy</li>
+            <li>Trade licence and company documents</li>
+            <li>6 to 12 months' bank statements</li>
+          </ul>
+        </div>
+      </div>
+      <p class="edu-p" style="margin-top:16px;"><strong>A few things that genuinely improve your approval odds:</strong> keep every bill paid on or before the due date, since missed payments are the single biggest drag on your credit score. Pay in full whenever you can, since partial payments quietly add interest and grow what you owe. Try to keep your credit utilisation, how much of your limit you're actually using, under roughly 30%. Avoid applying for several cards in a short window, since each application triggers a credit check that can briefly lower your score. And don't close old cards just to tidy up your wallet, since older accounts support your credit history and closing them can raise your utilisation ratio.</p>
+    </div>
+
+    <div class="edu-block">
+      <h3 class="edu-h3">How to Actually Choose the Right Card for You</h3>
+      <ul class="edu-list">
+        <li><strong>Start with your own spending, not the card's marketing.</strong> Look at where your money genuinely goes each month, groceries, dining, fuel, travel, and match a card's strongest category to that.</li>
+        <li><strong>Weigh the annual fee against what you'd realistically earn back.</strong> A card with a fee isn't automatically worse than a free one if the rewards comfortably outweigh the cost for how you actually spend.</li>
+        <li><strong>Read past the welcome bonus.</strong> A big sign up offer looks great on day one, but it's the everyday earn rate that determines whether a card is still worth using in year two.</li>
+        <li><strong>Check the minimum salary and salary transfer requirement</strong> before you apply, so you're not applying for something you won't qualify for.</li>
+        <li><strong>Confirm the basics:</strong> that the card is accepted where you actually shop, and that you understand your credit limit, how to freeze the card, and how to set spend alerts.</li>
+      </ul>
+    </div>
+
+    <div class="edu-block">
+      <h3 class="edu-h3">When to Apply for a Credit Card in the UAE</h3>
+      <p class="edu-p"><strong>Good timing looks like this:</strong> you've had a stable salary landing in your UAE bank account for at least three months, your employer is on the bank's approved list, you comfortably meet the minimum income for the card you want, or you're just starting out and want an entry level card to begin building credit.</p>
+      <p class="edu-p"><strong>It's usually worth waiting</strong> if you're still in your probation period at a new job, since banks want to see a consistent salary history first, or if a previous credit card application was rejected recently. Most banks prefer you wait around 90 days before applying again.</p>
+    </div>
+
+    <div class="edu-block">
+      <h3 class="edu-h3">Common Mistakes That Quietly Cost Cardholders Money</h3>
+      <div class="edu-two-col">
+        <div>
+          <p class="edu-p" style="font-weight:700; color:var(--ink);">Money mistakes</p>
+          <ul class="edu-list">
+            <li>Carrying a balance instead of paying in full</li>
+            <li>Only ever paying the minimum due</li>
+            <li>Missing payment due dates</li>
+            <li>Maxing out your credit limit</li>
+            <li>Taking frequent cash advances, which carry their own fee and higher rate</li>
+          </ul>
+        </div>
+        <div>
+          <p class="edu-p" style="font-weight:700; color:var(--ink);">Security and usage mistakes</p>
+          <ul class="edu-list">
+            <li>Ignoring your monthly statement</li>
+            <li>Entering card details over public WiFi</li>
+            <li>Throwing away receipts or statements without shredding them</li>
+            <li>Sharing your PIN or one time password with anyone</li>
+            <li>Letting reward points sit unused until they expire</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="edu-block" style="margin-bottom:8px;">
+      <h3 class="edu-h3">Frequently Asked Questions</h3>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">What is the minimum salary needed for a credit card in the UAE?<span class="faq-q-ic">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Most banks start at around AED 5,000 a month, though many cards, especially premium ones, ask for considerably more depending on the tier and issuer.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Does applying for several credit cards at once hurt my chances?<span class="faq-q-ic">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Yes. Each application triggers a credit check, and applying for multiple cards in a short space of time can lower your score and make banks more cautious about approving you.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Can I actually get a credit card in the UAE?<span class="faq-q-ic">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">If you're at least 21 years old and earning roughly AED 5,000 or more a month, you're generally eligible to apply, though the exact requirement depends on the specific card and bank.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Do UAE credit cards come with cashback or rewards?<span class="faq-q-ic">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Yes, most do. Depending on the card, you could earn cashback, reward points, air miles, or lifestyle perks like lounge access and dining discounts.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Can a self employed person get a credit card here?<span class="faq-q-ic">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Yes, though you'll usually need to show your trade licence and several months of business bank statements instead of a salary certificate, and approval leans more heavily on your income stability.</div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Is it safe to use a credit card for online payments in the UAE?<span class="faq-q-ic">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Generally yes. UAE issued cards come with fraud monitoring, one time passwords for online purchases, and instant transaction alerts, which together catch most suspicious activity quickly.</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="disclosure-section" id="about-mysilah">
+  <div class="disclosure-wrap">
+    <div class="section-head">
+      <h2 class="section-title">🤝 About MySilah &amp; How This Page Works</h2>
+    </div>
+    <div class="disclosure-grid">
+      <div class="disclosure-card">
+        <div class="disclosure-h4">📍 Who We Are</div>
+        <p>MySilah is an independent financial comparison service based in Dubai. This page brings together credit card fees, rates, and benefits from banks across the UAE so you can compare them side by side in one place, instead of visiting a dozen separate bank websites.</p>
+      </div>
+      <div class="disclosure-card">
+        <div class="disclosure-h4">💳 How We Make Money</div>
+        <p>Comparing credit cards on MySilah is free. Some of the banks on this page may pay us a referral fee if you apply through a link here and your application is approved; others are listed at no cost to us. That relationship never changes where a card appears or how it's ranked, since every position on this page is driven purely by the numbers — real value back for your spend, first, not by who pays us.</p>
+      </div>
+
+      <div class="disclosure-card warn">
+        <div class="disclosure-h4">⚠️ Disclaimer</div>
+        <p>MySilah is not a bank, lender, or licensed financial advisor, and nothing on this page is financial advice. Fee, rate, and benefit information is sourced from banks' own published materials and other publicly available resources; MySilah does not own this content and doesn't guarantee it is complete, current, or error-free, since banks can change their terms at any time without notice.</p>
+        <p>Bank names, logos, and trademarks shown on this page remain the property of their respective owners and are used here solely to identify each issuer's products. Their presence doesn't imply endorsement of, partnership with, or approval of MySilah by that bank.</p>
+        <p>Always confirm current rates, fees, and eligibility directly with the bank or an authorised representative before applying, and treat the figures here as a starting point for comparison, not a guaranteed offer.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="wrap">
     <div class="foot-grid">
@@ -737,7 +1000,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
 </div>
 
 <div class="apply-overlay" id="matchOverlay" onclick="if(event.target===this) closeMatchModal();">
-  <div class="apply-modal" style="max-width:540px;">
+  <div class="apply-modal" style="max-width:720px;">
     <button class="apply-modal-close" onclick="closeMatchModal();">✕</button>
 
     <div class="apply-form" id="matchFormWrap">
@@ -761,7 +1024,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
             <input class="af-input" type="email" id="matchEmail" placeholder="you@email.com" required/>
           </div>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:4px;">
+        <div class="match-spend-grid">
           <div class="af-group" style="margin-bottom:0;">
             <label class="af-label">Monthly Salary (AED)</label>
             <select class="af-select" id="matchSalary" required>
@@ -777,6 +1040,17 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
             <div class="af-group" style="grid-column:2/-1; text-align:center; padding:12px 0; color:var(--mist); font-size:13px;">⏳ Loading…</div>
           </div>
         </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13.5px;color:#7C3AED;font-weight:500;user-select:none;">
+            <input type="checkbox" id="matchPaySchool" onchange="document.getElementById('matchEduWrap').style.display=this.checked?'block':'none';"
+              style="width:18px;height:18px;accent-color:#7C3AED;cursor:pointer;flex-shrink:0;"/>
+            I pay school / education fees
+          </label>
+          <div id="matchEduWrap" style="display:none;margin-top:10px;">
+            <label class="af-label">🎓 Education Fee / mo (AED)</label>
+            <input class="af-input" type="number" id="matchEduFee" min="0" step="100" placeholder="e.g. 2,000"/>
+          </div>
+        </div>
         <div class="af-group">
           <label class="af-label">What matters most for the annual fee?</label>
           <select class="af-select" id="cardPreference">
@@ -785,7 +1059,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
             <option value="lowrate">📉 Lowest Interest Rate — I sometimes carry a balance</option>
           </select>
         </div>
-        <div class="af-hint" style="display:block; margin:-6px 0 14px; line-height:1.5;">💡 Industry note: groceries, dining &amp; international spend usually earn the highest cashback in the UAE; fuel, utilities, telecom, Salik &amp; school fees are often "restricted categories" that earn reduced rates on most cards.</div>
+        <!-- <div class="af-hint" style="dislay:block; margin:-6px 0 14px; line-height:1.5;">💡 Industry note: groceries, dining &amp; international spend usually earn the highest cashback in the UAE; fuel, utilities, telecom, Salik &amp; school fees are often "restricted categories" that earn reduced rates on most cards.</div> -->
         <button type="submit" class="af-submit">Find My Match →</button>
         <div class="af-secure">🔒 Free forever · Estimates are indicative, not guaranteed</div>
       </form>
@@ -962,6 +1236,13 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     '15,000 – 25,000': 25000,
     '25,000+': 50000
   };
+  const SALARY_BRACKET_MIN = {
+    'Below 5,000': 0,
+    '5,000 – 10,000': 5000,
+    '10,000 – 15,000': 10000,
+    '15,000 – 25,000': 15000,
+    '25,000+': 25000
+  };
 
   /* Estimate what a given card would pay back monthly, from real spend amounts.
      Uses each card's own reward %s where they exist; falls back to a modest
@@ -1102,6 +1383,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
 
     const salaryBracket = document.getElementById('matchSalary').value;
     const maxSalary = SALARY_BRACKET_MAX[salaryBracket] || 50000;
+    const minSalary = SALARY_BRACKET_MIN[salaryBracket] || 0;
     const preference = document.getElementById('cardPreference').value;
     window._matchUserData = {
       fullName: document.getElementById('matchFullName').value,
@@ -1123,14 +1405,15 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     spend.utilities    = spend['Utilities & Telecom'] || spend['Utilities'] || 0;
     spend.onlineShopping = spend['Online Shopping'] || spend['Online'] || 0;
     spend.international = spend['International Spend'] || spend['International'] || 0;
-    spend.education    = spend['Education'] || spend['School Fees / Education'] || 0;
+    const eduExtra = (document.getElementById('matchPaySchool')?.checked) ? (parseFloat(document.getElementById('matchEduFee')?.value) || 0) : 0;
+    spend.education    = spend['Education'] || spend['School Fees / Education'] || eduExtra;
     // Travel — flights maps to tripsPerYear (approx: AED 1,000 spend ≈ 1 trip)
     if(spend['Travel — flights'] || spend['Travel'] || spend['Travel & Miles']) {
       const travelSpend = spend['Travel — flights'] || spend['Travel'] || spend['Travel & Miles'] || 0;
       spend.tripsPerYear = Math.round(travelSpend / 1000);
     }
 
-    const eligible = getFilteredCards({maxSalary});
+    const eligible = getFilteredCards({maxSalary, minSalary});
     const ranked = rankCandidates(eligible, spend, preference);
 
     const savingsMap = {};
@@ -1349,6 +1632,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   const ALL_CATS = CATS;
 
   const CATEGORY_KEYWORDS = {
+    'Cashback': ['cashback','cash back','cash-back'],
     'Groceries': ['grocery','groceries','supermarket','hypermarket'],
     'Fuel': ['fuel','petrol','gas station','automobile','car servicing'],
     'Salik & Parking': ['salik','toll','nol','parking'],
@@ -1366,8 +1650,9 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     const features = c.features || [];
     const extras = c.extras || [];
     const perks = c.perks || [];
+    const keyFeatures = c.keyFeatures || [];
     const rewardsTxt = (c.cardRewards||[]).map(r => (r.label||'') + ' ' + (r.text||'')).join(' ');
-    return [rewardsTxt, features.join(' '), extras.join(' '), perks.join(' '), c.offer||''].join(' ').toLowerCase();
+    return [c.name||'', rewardsTxt, features.join(' '), extras.join(' '), perks.join(' '), keyFeatures.join(' '), c.offer||''].join(' ').toLowerCase();
   }
   function cardMatchesCategory(c, categoryLabel){
     const keywords = CATEGORY_KEYWORDS[categoryLabel] || [categoryLabel.toLowerCase()];
@@ -1390,7 +1675,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     if(range === '1500') return n > 500 && n <= 1500;
     return true;
   }
-  function getFilteredCards({banks=[], categories=[], feeRanges=[], maxSalary=null} = {}){
+  function getFilteredCards({banks=[], categories=[], feeRanges=[], maxSalary=null, minSalary=null} = {}){
     return ALL_CARDS.filter(c=>{
       if(banks.length && !banks.includes(c.bank)) return false;
       if(categories.length && !categories.some(cat=>{
@@ -1400,10 +1685,9 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
         return cardMatchesCategory(c, cat);
       })) return false;
       if(feeRanges.length && !feeRanges.some(r=>cardMatchesFeeRange(c, r))) return false;
-      if(maxSalary != null){
-        const salN = parseInt(String(c.salary).replace(/,/g,''),10);
-        if(!isNaN(salN) && salN > maxSalary) return false;
-      }
+      const salN = parseInt(String(c.salary).replace(/,/g,''),10);
+      if(maxSalary != null && !isNaN(salN) && salN > maxSalary) return false;
+      if(minSalary != null && minSalary > 0 && !isNaN(salN) && salN < minSalary) return false;
       return true;
     });
   }
@@ -1411,16 +1695,35 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     const fset = featureSetFor(c);
     if(cat === 'freefee') return fset === 'freefee';
     if(cat === 'travel')  return fset === 'travel';
-    if(cat === 'cashback') return fset === 'cashback';
+    if(cat === 'cashback') return fset === 'cashback' || cardMatchesCategory(c, 'Cashback');
     if(cat === 'top') return c.ribbon === 'Premium';
     return c.cat === cat;
   }
+  const CARDS_PER_CAT = 10;
+  window._catStore = {};
+
+  function expandCat(cat){
+    const store = window._catStore[cat];
+    if(!store) return;
+    const container = document.querySelector('.flip-grid[data-cat="'+cat+'"]');
+    if(!container) return;
+    container.innerHTML = store.items.map((c,i)=>{
+      try{ return cardHTML(c,i, store.savingsMap ? store.savingsMap[c.id] : null); }
+      catch(e){ return ''; }
+    }).join('');
+    const btn = document.getElementById('viewall-'+cat);
+    if(btn) btn.remove();
+    initHoloTilt();
+  }
+
   function renderFilteredGrid(items, savingsMap){
     ALL_CATS.forEach(cat=>{
       const container = document.querySelector('.flip-grid[data-cat="'+cat+'"]');
       if(!container) return;
       const catItems = items.filter(c=>matchesGenericCat(c, cat));
-      container.innerHTML = catItems.map((c,i)=>{
+      window._catStore[cat] = { items: catItems, savingsMap };
+      const visible = catItems.slice(0, CARDS_PER_CAT);
+      container.innerHTML = visible.map((c,i)=>{
         try{ return cardHTML(c,i, savingsMap ? savingsMap[c.id] : null); }
         catch(e){ console.warn('cardHTML error:', c?.name, e); return ''; }
       }).join('');
@@ -1428,6 +1731,16 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       if(countEl) countEl.textContent = catItems.length;
       const section = document.getElementById('sec-'+cat);
       if(section) section.style.display = catItems.length ? '' : 'none';
+      // View All button
+      let existingBtn = document.getElementById('viewall-'+cat);
+      if(existingBtn) existingBtn.remove();
+      if(catItems.length > CARDS_PER_CAT){
+        const btnWrap = document.createElement('div');
+        btnWrap.id = 'viewall-'+cat;
+        btnWrap.style.cssText = 'display:flex;justify-content:center;padding:18px 0 8px;';
+        btnWrap.innerHTML = '<button onclick="expandCat(\''+cat+'\')" style="font-family:\'Inter\',sans-serif;font-weight:600;font-size:13.5px;padding:13px 30px;background:#fff;border:1.5px solid rgba(123,63,228,.3);border-radius:100px;cursor:pointer;color:#7C3AED;transition:all .2s;" onmouseover="this.style.background=\'#f5f3ff\'" onmouseout="this.style.background=\'#fff\'">View All '+catItems.length+' Cards ↓</button>';
+        container.insertAdjacentElement('afterend', btnWrap);
+      }
     });
     initHoloTilt();
 
@@ -1494,6 +1807,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   function renderSpendCategoryFilter(cats){
     // cats = [{_id, name}] from API; counts from ALL_CARDS
     const emojiMap = {
+      cashback:'💰', 'cash back':'💰',
       groceries:'🛒', grocery:'🛒', supermarket:'🛒',
       dining:'🍽️', food:'🍽️', restaurant:'🍽️',
       fuel:'⛽', petrol:'⛽', automobile:'⛽',
@@ -1522,7 +1836,9 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     container.innerHTML = cats.map(cat => {
       const n = cat.name;
       const lower = n.toLowerCase();
-      const cnt = counts[lower] || 0;
+      // Use DB count first; fall back to keyword text-match count
+      const dbCnt = counts[lower] || 0;
+      const cnt = dbCnt > 0 ? dbCnt : ALL_CARDS.filter(c => cardMatchesCategory(c, n)).length;
       const icon = getEmoji(n);
       const val = n.replace(/"/g,'&quot;');
       return `<label class="sb-opt"><input type="checkbox" class="cat-chk" value="${val}" onchange="handleFilterChange();"/> ${icon} ${n} <span class="cnt">${cnt}</span></label>`;
@@ -1763,7 +2079,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       // Render flat af-group divs — parent 3-col grid places salary col1, cats fill remaining cols
       container.innerHTML = cats.map(cat => `
         <div class="af-group" style="margin-bottom:0;">
-          <label class="af-label">${getEmoji(cat.name)} ${cat.name} / mo (AED)</label>
+          <label class="af-label" title="${cat.name} / mo (AED)">${getEmoji(cat.name)} ${cat.name} / mo (AED)</label>
           <input class="af-input" type="number" min="0" step="50"
             data-cat-id="${cat._id}"
             data-cat-name="${cat.name.replace(/"/g,'&quot;')}"
@@ -1777,26 +2093,36 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     }
   }
 
-  async function fetchAndInit(){
-    // Show loading state
-    const countText = document.getElementById('resultsCountText');
-    if(countText) countText.innerHTML = 'Loading cards…';
+  function clearLoadingState(msg){
     ALL_CATS.forEach(cat=>{
       const container = document.querySelector('.flip-grid[data-cat="'+cat+'"]');
-      if(container) container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--mist);font-size:14px;">⏳ Loading…</div>';
+      if(container) container.innerHTML = msg ? '<div style="padding:40px;text-align:center;color:var(--mist);font-size:14px;">'+msg+'</div>' : '';
     });
+  }
+
+  async function fetchAndInit(){
+    const countText = document.getElementById('resultsCountText');
+    if(countText) countText.innerHTML = 'Loading cards…';
+    clearLoadingState('⏳ Loading…');
+
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), 10000);
 
     try {
       const [cardsRes, _catsRes] = await Promise.all([
-        fetch(`${API_BASE}/public/card-products`),
+        fetch(`${API_BASE}/public/card-products`, { signal: controller.signal }),
         fetchCategories(),
       ]);
-      if(!cardsRes.ok) throw new Error('Failed to load cards');
+      clearTimeout(timer);
+      if(!cardsRes.ok) throw new Error('Failed to load cards (' + cardsRes.status + ')');
       const data = await cardsRes.json();
       ALL_CARDS = data.map(mapApiCard);
       console.log('[mysilah] loaded', ALL_CARDS.length, 'cards');
     } catch(err) {
-      if(countText) countText.innerHTML = 'Could not load cards. Please refresh.';
+      clearTimeout(timer);
+      const msg = err.name === 'AbortError' ? 'Request timed out' : 'Could not load cards';
+      if(countText) countText.innerHTML = msg + '. <a href="" style="color:var(--violet)">Refresh</a>';
+      clearLoadingState('⚠️ ' + msg + '. <a href="" style="color:#7c3aed">Refresh page</a>');
       console.error('[mysilah] fetchAndInit error:', err);
       return;
     }
@@ -1804,7 +2130,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     try { renderBankFilterList(); } catch(e){ console.warn('renderBankFilterList error:', e); }
     try { renderFeeFilter(); } catch(e){ console.warn('renderFeeFilter error:', e); }
     try { renderSpendCategoryFilter(window._cachedCats || []); } catch(e){ console.warn('renderSpendCategoryFilter error:', e); }
-    try { renderFilteredGrid(ALL_CARDS); } catch(e){ console.error('renderFilteredGrid error:', e); }
+    try { renderFilteredGrid(ALL_CARDS); } catch(e){ console.error('renderFilteredGrid error:', e); clearLoadingState('⚠️ Failed to render cards. <a href="" style="color:#7c3aed">Refresh page</a>'); }
   }
 
   fetchAndInit();
@@ -1858,6 +2184,11 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       }, 350);
     }
   };
+
+  function toggleFaq(btn){
+    const item = btn.closest('.faq-item');
+    if(item) item.classList.toggle('open');
+  }
 </script>
 </body>
 </html>

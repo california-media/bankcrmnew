@@ -9,6 +9,7 @@ router.use(protect);
 router.get('/', requireRole('admin', 'agent', 'agency'), ctrl.list);
 
 // Admin only for write
+router.post('/auto-tag-cashback', requireRole('admin'), ctrl.autoTagCashback);
 router.post('/', requireRole('admin'), upload.cardImages.single('cardImage'), ctrl.create);
 router.put('/:id', requireRole('admin'), upload.cardImages.single('cardImage'), ctrl.update);
 router.delete('/:id', requireRole('admin'), ctrl.remove);

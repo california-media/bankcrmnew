@@ -243,16 +243,42 @@ function AgentDashboard() {
             title={<span style={{ fontWeight: 700, fontSize: 15 }}>Recent Leads</span>}
             extra={<Link to="/agent/leads" style={{ fontSize: 13, color: '#3b82f6' }}>View all →</Link>}
             style={{ borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
-            styles={{ header: { borderBottom: '2px solid #f1f5f9' } }}
+            styles={{ header: { borderBottom: '2px solid #f1f5f9' }, body: isMobile ? { padding: '8px 0' } : {} }}
           >
-            <Table
-              size="small"
-              rowKey="_id"
-              loading={loadingRecent}
-              dataSource={recent}
-              columns={columns}
-              pagination={false}
-            />
+            {isMobile ? (
+              loadingRecent ? <Skeleton active paragraph={{ rows: 4 }} style={{ padding: '12px 16px' }} /> : (
+                recent.map((row) => (
+                  <div key={row._id} style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', marginBottom: 2 }}>{row.customerName}</div>
+                      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>{row.bank?.name} · {productLabels[row.productType] || row.productType}</div>
+                      <Typography.Text type="secondary" style={{ fontFamily: 'monospace', fontSize: 11 }}>{row.leadNumber}</Typography.Text>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                      <Tag color={statusTag[row.status]?.color} style={{ marginInlineEnd: 0 }}>{statusTag[row.status]?.label || row.status}</Tag>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{aed(row.commission)}</span>
+                      {row.commissionStatus !== 'none' && (
+                        <Tag
+                          color={row.commissionStatus === 'paid' ? 'green' : row.commissionStatus === 'payable' ? 'cyan' : 'gold'}
+                          style={{ marginInlineEnd: 0, fontSize: 11 }}
+                        >
+                          {row.commissionStatus === 'paid' ? 'Received' : row.commissionStatus === 'payable' ? 'Payout Ready' : 'Pending'}
+                        </Tag>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )
+            ) : (
+              <Table
+                size="small"
+                rowKey="_id"
+                loading={loadingRecent}
+                dataSource={recent}
+                columns={columns}
+                pagination={false}
+              />
+            )}
           </Card>
         </Col>
         <Col xs={24} lg={8}>

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Button, Input, Select, Tabs, Row, Col, Tag } from 'antd';
+import { Table, Button, Input, Select, Tabs, Row, Col, Tag, Grid } from 'antd';
 import { PlusOutlined, SearchOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
+
+const { useBreakpoint } = Grid;
 
 const STATUSES = [
   { value: 'draft', label: 'Draft', color: 'default' },
@@ -62,6 +64,8 @@ const StatusPill = ({ status }) => {
 
 function MyLeads() {
   const navigate = useNavigate();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -191,13 +195,15 @@ function MyLeads() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 10 : 0, marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>My Leads</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
-          <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {!isMobile && <>
+            <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+            <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+          </>}
           <Link to="/agent/leads/new">
-            <Button type="primary" icon={<PlusOutlined />}>New Lead</Button>
+            <Button type="primary" icon={<PlusOutlined />} size={isMobile ? 'middle' : 'middle'}>New Lead</Button>
           </Link>
         </div>
       </div>
@@ -209,7 +215,7 @@ function MyLeads() {
           prefix={<SearchOutlined />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 280, flexShrink: 0, borderRadius: 6 }}
+          style={{ width: isMobile ? '100%' : 280, flexShrink: 0, borderRadius: 6 }}
         />
         <Select
           allowClear
@@ -217,7 +223,7 @@ function MyLeads() {
           value={statusFilter}
           onChange={setStatusFilter}
           options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
-          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+          style={{ width: isMobile ? 'calc(50% - 4px)' : 180, flexShrink: 0, borderRadius: 6 }}
         />
         <Select
           allowClear
@@ -225,7 +231,7 @@ function MyLeads() {
           value={productFilter}
           onChange={setProductFilter}
           options={PRODUCTS}
-          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+          style={{ width: isMobile ? 'calc(50% - 4px)' : 180, flexShrink: 0, borderRadius: 6 }}
         />
       </div>
 
@@ -241,7 +247,7 @@ function MyLeads() {
         ]}
       />
 
-      {viewMode === 'table' ? (
+      {viewMode === 'table' && !isMobile ? (
         <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
           <Table
             size="small"

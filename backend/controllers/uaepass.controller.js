@@ -31,13 +31,23 @@ const getFrontendUrl = (req) => {
   return FRONTEND_URL;
 };
 
+const getReturnPage = (req) => {
+  try {
+    const referer = req.headers.referer || req.headers.referrer || '';
+    const path = new URL(referer).pathname;
+    if (path.includes('login')) return 'login';
+  } catch {}
+  return 'register';
+};
+
 /**
  * GET /api/auth/uaepass/init
  * Redirects to UAE Pass authorization page (login / new-user flow).
  */
 exports.init = (req, res) => {
   const frontendUrl = getFrontendUrl(req);
-  const state = jwt.sign({ ctx: 'uaepass', frontendUrl }, process.env.JWT_SECRET, { expiresIn: '10m' });
+  const returnPage  = getReturnPage(req);
+  const state = jwt.sign({ ctx: 'uaepass', frontendUrl, returnPage }, process.env.JWT_SECRET, { expiresIn: '10m' });
   res.redirect(buildAuthUrl(state));
 };
 
@@ -87,10 +97,27 @@ exports.unlink = async (req, res) => {
  * Auto-link priority (login flow): uaepassSub → email → emiratesId
  */
 exports.callback = async (req, res) => {
-  const { code, state, error } = req.query;
+  const { code, state, error, error_description } = req.query;
+
+  // Resolve origin + returnPage from state even on error
+  const resolveState = (s) => {
+    try {
+      const payload = jwt.verify(s, process.env.JWT_SECRET);
+      return { origin: payload.frontendUrl || FRONTEND_URL, returnPage: payload.returnPage || 'register' };
+    } catch { return { origin: FRONTEND_URL, returnPage: 'register' }; }
+  };
+  const { origin: errorOrigin, returnPage: errorReturnPage } = state ? resolveState(state) : { origin: FRONTEND_URL, returnPage: 'register' };
 
   if (error) {
-    return res.redirect(`${FRONTEND_URL}/register?uaepass_error=${encodeURIComponent(error)}`);
+    console.log('[UAE Pass callback] error:', error, '| error_description:', error_description, '| all params:', JSON.stringify(req.query));
+    let frontendError = error;
+    if (error === 'cancelledOnApp') {
+      const desc = (error_description || '').toLowerCase();
+      if (desc.includes('web') || (desc.includes('cancel') && desc.includes('web'))) {
+        frontendError = 'cancelledOnWeb';
+      }
+    }
+    return res.redirect(`${errorOrigin}/${errorReturnPage}?uaepass_error=${encodeURIComponent(frontendError)}`);
   }
   if (!code || !state) {
     return res.redirect(`${FRONTEND_URL}/register?uaepass_error=missing_params`);

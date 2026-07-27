@@ -14,6 +14,7 @@ router.delete('/:id', requireRole('agent'), ctrl.removeDraft);
 router.patch('/:id/engagement-status', requireRole('agent'), ctrl.updateEngagementStatus);
 router.patch('/:id/complete-referral', requireRole('agent'), ctrl.completeReferral);
 router.patch('/:id/reference-no', requireRole('agent'), ctrl.updateReferenceNo);
+router.patch('/:id/remarks', requireRole('admin', 'agency', 'employee'), ctrl.updateRemarks);
 router.post('/:id/documents', requireRole('agent', 'admin', 'agency'), upload.leadDocuments.array('documents', 5), ctrl.addDocuments);
 
 // All roles — add note
@@ -38,6 +39,7 @@ router.post('/bulk-receipt', requireRole('agency'), upload.single('receiptFile')
 router.patch('/:id/loan-amount', requireRole('agency'), ctrl.updateLoanAmount);
 router.patch('/:id/cpv', requireRole('agency', 'employee'), ctrl.updateCpv);
 router.patch('/:id/activate', requireRole('agency', 'employee'), ctrl.updateActivate);
+router.patch('/:id/spend', requireRole('agency', 'employee'), ctrl.updateSpend);
 router.patch('/:id/receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.addDisbursementReceipt);
 router.patch('/:id/assign-employee', requireRole('agency'), ctrl.assignEmployee);
 

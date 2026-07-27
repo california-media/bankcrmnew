@@ -4,7 +4,7 @@ const HEADERS = [
   'Lead No', 'Reference No', 'Lead Status', 'CPV Done', 'Activated', 'Rejected',
   'Customer Name', 'Phone', 'Agent Email', 'Product Type', 'Bank', 'Product Name',
   'Monthly Salary', 'Email', 'Nationality', 'City', 'Visa Type', 'Company Name',
-  'Job Title', 'Experience (Yrs)', 'Loan Amount', 'Loan Type',
+  'Job Title', 'Experience (Yrs)', 'Loan Amount', 'Loan Type', 'Remarks',
 ];
 
 const EXAMPLE_ROW = {
@@ -30,6 +30,7 @@ const EXAMPLE_ROW = {
   'Experience (Yrs)': '',
   'Loan Amount': '',
   'Loan Type': '',
+  Remarks: '',
 };
 
 export default function downloadLeadImportTemplate() {

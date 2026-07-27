@@ -15,7 +15,7 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name, code, description } = req.body;
+    const { name, code, description, hasSpend } = req.body;
     if (!name) return res.status(400).json({ message: 'Bank name is required' });
 
     const dupe = await Bank.findOne({ name });
@@ -23,6 +23,7 @@ exports.create = async (req, res) => {
 
     const bank = await Bank.create({
       name, code, description,
+      hasSpend: hasSpend === 'true' || hasSpend === true,
       logo: req.file ? getFilename(req.file) : undefined,
     });
     res.status(201).json(bank);
@@ -33,12 +34,13 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, code, description, isActive } = req.body;
+    const { name, code, description, isActive, hasSpend } = req.body;
     const update = {};
     if (name !== undefined) update.name = name;
     if (code !== undefined) update.code = code;
     if (description !== undefined) update.description = description;
     if (isActive !== undefined) update.isActive = isActive;
+    if (hasSpend !== undefined) update.hasSpend = hasSpend === 'true' || hasSpend === true;
 
     if (req.file) {
       const existing = await Bank.findById(req.params.id, 'logo');

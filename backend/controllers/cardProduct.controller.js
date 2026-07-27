@@ -133,3 +133,31 @@ exports.remove = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+/**
+ * POST /api/card-products/auto-tag-cashback  (admin)
+ * Finds all cards where any text field contains "cashback" and adds the Cashback category if missing.
+ */
+exports.autoTagCashback = async (req, res) => {
+  try {
+    const CardCategory = require('../models/CardCategory');
+    const cashbackCat = await CardCategory.findOne({ name: /^cashback$/i });
+    if (!cashbackCat) return res.status(404).json({ message: 'Cashback category not found. Create it first.' });
+
+    const cards = await CardProduct.find();
+    let updated = 0;
+    for (const card of cards) {
+      const already = card.cashbackCategories.some(c => String(c.category) === String(cashbackCat._id));
+      if (already) continue;
+      const blob = [card.name, card.benefits, card.feesEligibility, card.keyFeatures].join(' ').toLowerCase();
+      if (blob.includes('cashback')) {
+        card.cashbackCategories.push({ category: cashbackCat._id, rate: null });
+        await card.save();
+        updated++;
+      }
+    }
+    res.json({ updated, total: cards.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

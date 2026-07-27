@@ -1,8 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Form, Input, Button, Alert } from 'antd';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { login, clearError } from '../store/slices/authSlice';
+
+const UAE_PASS_ERROR_MESSAGES = {
+  invalid_state:    'Session expired. Please try again.',
+  token_failed:     'UAE Pass authentication failed. Please try again.',
+  userinfo_failed:  'Could not retrieve your UAE Pass profile. Please try again.',
+  server_error:     'Something went wrong. Please try again.',
+  invalid_request:  'invalid_request - Cancelled by user on UAE PASS web. User cancelled the login. Code: invalid_request',
+  access_denied:    'access_denied - Cancelled by user on UAE PASS web. User cancelled the login. Code: access_denied',
+  cancelledOnApp:   'invalid_request - Cancelled by user on UAE PASS app. User cancelled the login. Code: invalid_request',
+  cancelledOnWeb:   'access_denied - Cancelled by user on UAE PASS web. User cancelled the login. Code: access_denied',
+  cancelledOnMobile:'access_denied - Cancelled by user on UAE PASS app. User cancelled the login. Code: access_denied',
+};
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000';
 
@@ -48,10 +60,12 @@ const PILLARS = [
 function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, status, error } = useSelector((s) => s.auth);
   const [form] = Form.useForm();
   const [activeStep, setActiveStep] = useState(0);
   const [fade, setFade] = useState(true);
+  const [uaepassError, setUaepassError] = useState(null);
 
   const handleUaePass = () => { window.location.href = `${API_BASE}/api/auth/uaepass/init`; };
 
@@ -60,6 +74,11 @@ function Login() {
   }, [user, navigate]);
 
   useEffect(() => () => dispatch(clearError()), [dispatch]);
+
+  useEffect(() => {
+    const errCode = searchParams.get('uaepass_error');
+    if (errCode) setUaepassError(UAE_PASS_ERROR_MESSAGES[errCode] || 'UAE Pass authentication failed.');
+  }, [searchParams]);
 
   // Auto-rotate
   useEffect(() => {
@@ -99,6 +118,7 @@ function Login() {
               Sign in to your referral workspace.
             </p>
 
+            {uaepassError && <Alert type="error" message={uaepassError} style={{ marginBottom: 20, borderRadius: 10 }} closable onClose={() => setUaepassError(null)} />}
             {error && <Alert type="error" message={error} style={{ marginBottom: 20, borderRadius: 10 }} />}
 
             <Form form={form} layout="vertical" onFinish={onFinish} requiredMark={false}>

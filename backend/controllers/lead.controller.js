@@ -11,7 +11,7 @@ const { getFilename } = require('../middleware/upload.middleware');
 const XLSX = require('xlsx');
 
 const POPULATE_FIELDS = [
-  { path: 'bank', select: 'name code' },
+  { path: 'bank', select: 'name code hasSpend' },
   { path: 'agency', select: 'name email' },
   { path: 'agent', select: 'name email' },
   { path: 'cardProduct', select: 'name cardType commissionBrackets cashbackCategories cardImage benefits feesEligibility', populate: { path: 'cashbackCategories.category', select: 'name' } },
@@ -208,7 +208,7 @@ exports.removeDraft = async (req, res) => {
 exports.listMine = async (req, res) => {
   try {
     const leads = await Lead.find({ agent: req.user._id })
-      .populate('bank', 'name code')
+      .populate('bank', 'name code hasSpend')
       .populate('agency', 'name email')
       .populate('cardProduct', 'name cardType commissionBrackets')
       .populate('loanProduct', 'name loanCategory commissionBrackets')
@@ -282,7 +282,7 @@ exports.stats = async (req, res) => {
 exports.listForAgency = async (req, res) => {
   try {
     const leads = await Lead.find({ agency: req.user._id, status: { $ne: 'draft' } })
-      .populate('bank', 'name code')
+      .populate('bank', 'name code hasSpend')
       .populate('agent', 'name email')
       .populate('assignedEmployee', 'name email')
       .populate('assignedCpvEmployee', 'name email employeeType')
@@ -306,7 +306,7 @@ exports.listForAgency = async (req, res) => {
 exports.listAll = async (req, res) => {
   try {
     const leads = await Lead.find()
-      .populate('bank', 'name code')
+      .populate('bank', 'name code hasSpend')
       .populate('agent', 'name email')
       .populate('agency', 'name email')
       .populate('assignedEmployee', 'name email')
@@ -528,6 +528,41 @@ exports.updateActivate = async (req, res) => {
       await createAndEmit(
         activateRecipients,
         { type: 'activate_done', title: 'Activation Completed', body: `${lead.customerName} — Activation completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/leads/:id/spend  (agency + employee)
+ * Mark Spend done with optional note.
+ */
+exports.updateSpend = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.spendDone = true;
+    const spendNote = req.body.note ? String(req.body.note).trim() : undefined;
+    if (spendNote) lead.spendNote = spendNote;
+    lead.statusHistory.push({ status: 'spend_done', note: spendNote, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'spend_done', title: 'Spend Completed', body: `${lead.customerName} — Spend completed`, lead: lead._id },
         req.user._id,
       );
     } catch (_) {}
@@ -1017,6 +1052,27 @@ exports.updateReferenceNo = async (req, res) => {
 };
 
 /**
+ * PATCH /api/leads/:id/remarks  (admin, agency, sales employee)
+ */
+exports.updateRemarks = async (req, res) => {
+  try {
+    const filter = { _id: req.params.id };
+    if (req.user.role === 'agency') filter.agency = req.user._id;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      filter.$or = [{ assignedEmployee: empId }, { assignedSalesEmployee: empId }];
+    }
+    const lead = await Lead.findOne(filter);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.remarks = (req.body.remarks || '').trim();
+    await lead.save();
+    res.json({ remarks: lead.remarks });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * POST /api/leads/:id/documents  (agent own lead, agency own lead, admin any)
  * Appends uploaded files to the lead's documents array.
  */
@@ -1067,7 +1123,7 @@ exports.getOne = async (req, res) => {
       ];
     }
     const lead = await Lead.findOne(filter)
-      .populate('bank', 'name code')
+      .populate('bank', 'name code hasSpend')
       .populate('agency', 'name email')
       .populate('agent', 'name email phone')
       .populate({ path: 'cardProduct', select: 'name cardType commissionBrackets cashbackCategories cardImage benefits feesEligibility', populate: { path: 'cashbackCategories.category', select: 'name' } })
@@ -1224,7 +1280,7 @@ exports.listAssigned = async (req, res) => {
         { assignedSalesEmployee: empId },
       ],
     })
-      .populate('bank', 'name code')
+      .populate('bank', 'name code hasSpend')
       .populate('agency', 'name email')
       .populate('agent', 'name email')
       .populate('assignedCpvEmployee', 'name email employeeType')
@@ -1462,6 +1518,7 @@ exports.importLeads = async (req, res) => {
       if (row['Company Name']) leadData.companyName = String(row['Company Name']).trim();
       if (row['Job Title']) leadData.jobTitle = String(row['Job Title']).trim();
       if (row['Experience (Yrs)'] !== '') leadData.yearsOfExperience = Number(row['Experience (Yrs)']) || undefined;
+      if (row['Remarks']) leadData.remarks = String(row['Remarks']).trim();
       if (cardProduct) leadData.cardProduct = cardProduct._id;
       if (loanProduct) { leadData.loanProduct = loanProduct._id; if (loanAmount != null) leadData.loanAmount = loanAmount; if (loanType) leadData.loanType = loanType; }
 
@@ -1493,6 +1550,7 @@ exports.importLeads = async (req, res) => {
             if (leadData.loanType) updateFields.loanType = leadData.loanType;
           }
           if (row['Reference No']) updateFields.referenceNo = String(row['Reference No']).trim();
+          if (row['Remarks']) updateFields.remarks = String(row['Remarks']).trim();
           // Accept both 'Lead Status' and 'Status' (export uses 'Status')
           const statusRaw = String(row['Lead Status'] ?? row['Status'] ?? '').trim();
           if (statusRaw) {
@@ -1520,6 +1578,11 @@ exports.importLeads = async (req, res) => {
           if (rejectedRaw) {
             if (!['yes', 'no', 'true', 'false', '1', '0'].includes(rejectedRaw)) { fail(`Rejected must be Yes or No, got "${row['Rejected']}"`); continue; }
             if (['yes', 'true', '1'].includes(rejectedRaw)) updateFields.status = 'rejected';
+          }
+          const disbursedRaw = String(row['Disbursed'] ?? '').trim().toLowerCase();
+          if (disbursedRaw) {
+            if (!['yes', 'no', 'true', 'false', '1', '0'].includes(disbursedRaw)) { fail(`Disbursed must be Yes or No, got "${row['Disbursed']}"`); continue; }
+            if (['yes', 'true', '1'].includes(disbursedRaw)) updateFields.status = 'disbursed';
           }
           if (productType && (cardProduct || loanProduct)) {
             const { receivable, payable } = await commissionService.resolveCommissions({
@@ -1559,6 +1622,11 @@ exports.importLeads = async (req, res) => {
           if (rejectedRawCreate) {
             if (!['yes', 'no', 'true', 'false', '1', '0'].includes(rejectedRawCreate)) { fail(`Rejected must be Yes or No, got "${row['Rejected']}"`); continue; }
             if (['yes', 'true', '1'].includes(rejectedRawCreate)) leadData.status = 'rejected';
+          }
+          const disbursedRawCreate = String(row['Disbursed'] ?? '').trim().toLowerCase();
+          if (disbursedRawCreate) {
+            if (!['yes', 'no', 'true', 'false', '1', '0'].includes(disbursedRawCreate)) { fail(`Disbursed must be Yes or No, got "${row['Disbursed']}"`); continue; }
+            if (['yes', 'true', '1'].includes(disbursedRawCreate)) leadData.status = 'disbursed';
           }
 
           const agentDoc = await User.findByIdAndUpdate(agentId, { $inc: { leadCount: 1 } }, { new: true, select: 'leadCount' });

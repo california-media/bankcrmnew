@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Space, Card, Row, Col, Modal, Form } from 'antd';
+import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Space, Card, Row, Col, Modal, Form, Grid } from 'antd';
 import { SearchOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
@@ -75,6 +75,8 @@ const buildWhatsAppUrl = (row) => {
   return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
 };
 
+const { useBreakpoint } = Grid;
+
 const ENGAGEMENT_LABELS = {
   new_lead: 'New Lead',
   no_answer: 'No Answer',
@@ -99,6 +101,9 @@ function AssignedLeads() {
   const [labelStatuses, setLabelStatuses] = useState([]);
   const [updatingStatus, setUpdatingStatus] = useState(null);
   const [viewMode, setViewMode] = useState('table');
+
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   const empType   = user?.employeeType; // 'cpv' | 'sales' | undefined
   const showCpv   = empType === 'cpv';
@@ -325,15 +330,17 @@ function AssignedLeads() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: 16, gap: isMobile ? 12 : 0 }}>
         <div>
           <Typography.Title level={4} style={{ margin: '0 0 4px', fontWeight: 500 }}>My Leads</Typography.Title>
           <Typography.Text type="secondary">Leads assigned to you.</Typography.Text>
         </div>
-        <Space>
-          <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
-          <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
-        </Space>
+        {!isMobile && (
+          <Space>
+            <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+            <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+          </Space>
+        )}
       </div>
 
       <Input
@@ -342,7 +349,7 @@ function AssignedLeads() {
         prefix={<SearchOutlined />}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        style={{ width: 280, marginBottom: 16 }}
+        style={{ width: isMobile ? '100%' : 280, marginBottom: 16 }}
       />
 
       <Tabs
@@ -356,7 +363,7 @@ function AssignedLeads() {
         ]}
       />
 
-      {viewMode === 'table' ? (
+      {viewMode === 'table' && !isMobile ? (
         <Table
           size="small"
           rowKey="_id"

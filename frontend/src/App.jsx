@@ -45,6 +45,8 @@ import UaePassCallback from './pages/UaePassCallback';
 import AdminNotices from './pages/admin/Notices';
 import AdminBlog from './pages/admin/Blog';
 import LegalPages from './pages/admin/LegalPages';
+import AdminReports from './pages/admin/Reports';
+import AgencyReports from './pages/agency/Reports';
 import VerifyEmail from './pages/VerifyEmail';
 
 const theme = {
@@ -119,6 +121,7 @@ function App() {
           <Route path="notices" element={<AdminNotices />} />
           <Route path="blog" element={<AdminBlog />} />
           <Route path="legal-pages" element={<LegalPages />} />
+          <Route path="reports" element={<AdminReports />} />
         </Route>
 
         <Route
@@ -158,6 +161,7 @@ function App() {
           <Route path="agent-payouts" element={<AgencyAgentPayouts />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="reports" element={<AgencyReports />} />
         </Route>
 
         <Route

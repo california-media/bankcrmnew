@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Select, DatePicker, Space, Button, Tabs, Tooltip, Card, Row, Col, ConfigProvider, Upload, Modal, message } from 'antd';
+import { Table, Tag, Typography, Input, Select, DatePicker, Space, Button, Tabs, Tooltip, Card, Row, Col, ConfigProvider, Upload, Modal, message, Grid } from 'antd';
 import { SearchOutlined, TableOutlined, AppstoreOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons';
+
+const { useBreakpoint } = Grid;
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
@@ -50,6 +52,8 @@ const StatusPill = ({ status }) => {
 
 function AdminLeads() {
   const navigate = useNavigate();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -58,6 +62,7 @@ function AdminLeads() {
   const [productFilter, setProductFilter] = useState();
   const [dateRange, setDateRange] = useState(null);
 
+  const [bankFilter, setBankFilter] = useState();
   const [leadsTab, setLeadsTab] = useState('active');
   const [viewMode, setViewMode] = useState('table');
   const [importing, setImporting] = useState(false);
@@ -101,6 +106,14 @@ function AdminLeads() {
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
   const referralCount = leads.filter(l => l.isReferral).length;
 
+  const bankOptions = useMemo(() => {
+    const seen = new Set();
+    return leads
+      .filter((l) => l.bank?._id && !seen.has(String(l.bank._id)) && seen.add(String(l.bank._id)))
+      .map((l) => ({ value: String(l.bank._id), label: l.bank.name }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [leads]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const [from, to] = dateRange || [];
@@ -112,11 +125,12 @@ function AdminLeads() {
       if (q && !l.customerName.toLowerCase().includes(q) && !String(l._id).toLowerCase().includes(q)) return false;
       if (statusFilter && String(l.employeeStatus?._id) !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
+      if (bankFilter && String(l.bank?._id) !== bankFilter) return false;
       if (from && dayjs(l.createdAt).isBefore(from.startOf('day'))) return false;
       if (to && dayjs(l.createdAt).isAfter(to.endOf('day'))) return false;
       return true;
     });
-  }, [leads, search, statusFilter, productFilter, dateRange, leadsTab]);
+  }, [leads, search, statusFilter, productFilter, bankFilter, dateRange, leadsTab]);
 
   const renderProduct = (row) => {
     const name = row.productType === 'credit_card' ? row.cardProduct?.name : row.loanProduct?.name;
@@ -278,14 +292,14 @@ function AdminLeads() {
       <ConfigProvider theme={{ token: { borderRadius: 6 } }}>
       <div style={{ marginBottom: 16 }}>
         {/* Row 1: filters + view toggle */}
-        <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+        <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: isMobile ? 'wrap' : 'nowrap', overflowX: isMobile ? 'visible' : 'auto' }}>
           <Input
             allowClear
             placeholder="Search client or lead ID..."
             prefix={<SearchOutlined />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 240, flexShrink: 0 }}
+            style={{ width: isMobile ? '100%' : 200, minWidth: 140 }}
           />
           <Select
             allowClear
@@ -293,7 +307,7 @@ function AdminLeads() {
             value={statusFilter}
             onChange={setStatusFilter}
             options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
-            style={{ width: 150, flexShrink: 0 }}
+            style={{ width: isMobile ? 'calc(50% - 3px)' : 130, minWidth: 110 }}
           />
           <Select
             allowClear
@@ -301,24 +315,36 @@ function AdminLeads() {
             value={productFilter}
             onChange={setProductFilter}
             options={PRODUCTS}
-            style={{ width: 150, flexShrink: 0 }}
+            style={{ width: isMobile ? 'calc(50% - 3px)' : 130, minWidth: 110 }}
           />
-          <DatePicker.RangePicker
+          <Select
+            allowClear
+            showSearch
+            placeholder="All Banks"
+            value={bankFilter}
+            onChange={setBankFilter}
+            options={bankOptions}
+            filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+            style={{ width: isMobile ? '100%' : 160, minWidth: 120 }}
+          />
+          {!isMobile && <DatePicker.RangePicker
             value={dateRange}
             onChange={setDateRange}
             allowClear
-            style={{ width: 220, flexShrink: 0 }}
-          />
-          {(search || statusFilter || productFilter || dateRange) && (
-            <Button onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setDateRange(null); }}>
+            style={{ width: 210, minWidth: 190 }}
+          />}
+          {(search || statusFilter || productFilter || bankFilter || dateRange) && (
+            <Button size="small" type="text" style={{ color: '#7C3AED', flexShrink: 0 }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setBankFilter(undefined); setDateRange(null); }}>
               Clear
             </Button>
           )}
-          <div style={{ flex: 1 }} />
-          <Space size={6}>
-            <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
-            <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
-          </Space>
+          {!isMobile && <>
+            <div style={{ flex: 1 }} />
+            <Space size={6} style={{ flexShrink: 0 }}>
+              <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+              <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+            </Space>
+          </>}
         </div>
         {/* Row 2: count + actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -375,7 +401,7 @@ function AdminLeads() {
             { key: 'archive', label: `Approved (${archiveCount})` },
           ]}
         />
-      {viewMode === 'table' ? (
+      {viewMode === 'table' && !isMobile ? (
         <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
           <Table size="small" rowKey="_id" loading={loading} dataSource={filtered} columns={columns} tableLayout="fixed" onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })} />
         </div>

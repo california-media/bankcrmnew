@@ -98,6 +98,10 @@ export default function LeadDetail() {
   const [refValue, setRefValue] = useState('');
   const [refSaving, setRefSaving] = useState(false);
 
+  const [editingRemarks, setEditingRemarks] = useState(false);
+  const [remarksValue, setRemarksValue] = useState('');
+  const [remarksSaving, setRemarksSaving] = useState(false);
+
   const uploadDocuments = async () => {
     if (!docFileList.length) return;
     setDocUploading(true);
@@ -130,6 +134,20 @@ export default function LeadDetail() {
       message.error(err.response?.data?.message || 'Update failed');
     } finally {
       setRefSaving(false);
+    }
+  };
+
+  const saveRemarks = async () => {
+    setRemarksSaving(true);
+    try {
+      const { data } = await api.patch(`/leads/${lead._id}/remarks`, { remarks: remarksValue });
+      setLead((prev) => ({ ...prev, remarks: data.remarks }));
+      setEditingRemarks(false);
+      message.success('Remarks updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    } finally {
+      setRemarksSaving(false);
     }
   };
 
@@ -592,6 +610,38 @@ export default function LeadDetail() {
                   })}
                 />
               </div>
+            </Card>
+          )}
+
+          {/* Remarks — admin, agency, sales employee only */}
+          {(role === 'admin' || role === 'agency' || (role === 'employee' && user.employeeType === 'sales')) && (
+            <Card size="small" title={sectionLabel('Remarks')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+              {editingRemarks ? (
+                <div>
+                  <Input.TextArea
+                    rows={3}
+                    value={remarksValue}
+                    onChange={(e) => setRemarksValue(e.target.value)}
+                    style={{ marginBottom: 6, fontSize: 12 }}
+                    autoFocus
+                  />
+                  <Space size={6}>
+                    <Button size="small" type="primary" loading={remarksSaving} onClick={saveRemarks} icon={<CheckOutlined />}>Save</Button>
+                    <Button size="small" onClick={() => setEditingRemarks(false)} icon={<CloseOutlined />}>Cancel</Button>
+                  </Space>
+                </div>
+              ) : (
+                <div>
+                  {lead.remarks ? (
+                    <div style={{ fontSize: 12, color: '#333', whiteSpace: 'pre-wrap', lineHeight: 1.6, marginBottom: 6 }}>{lead.remarks}</div>
+                  ) : (
+                    <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 6 }}>No remarks yet.</Typography.Text>
+                  )}
+                  <Button size="small" type="text" icon={<EditOutlined />} style={{ color: '#7c3aed', padding: '0 4px' }} onClick={() => { setRemarksValue(lead.remarks || ''); setEditingRemarks(true); }}>
+                    {lead.remarks ? 'Edit' : 'Add Remarks'}
+                  </Button>
+                </div>
+              )}
             </Card>
           )}
 

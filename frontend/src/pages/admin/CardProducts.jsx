@@ -46,6 +46,7 @@ function CardProducts() {
   const [catName, setCatName] = useState('');
   const [editingCat, setEditingCat] = useState(null);
   const [catSaving, setCatSaving] = useState(false);
+  const [autoTagging, setAutoTagging] = useState(false);
 
   const fetchCategories = async () => {
     try {
@@ -53,6 +54,19 @@ function CardProducts() {
       setCategories(data);
     } catch {
       message.error('Failed to load categories');
+    }
+  };
+
+  const autoTagCashback = async () => {
+    setAutoTagging(true);
+    try {
+      const { data } = await api.post('/card-products/auto-tag-cashback');
+      message.success(`Cashback category added to ${data.updated} card${data.updated !== 1 ? 's' : ''} (${data.total} total checked)`);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Auto-tag failed');
+    } finally {
+      setAutoTagging(false);
     }
   };
 
@@ -271,6 +285,7 @@ function CardProducts() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Card Products</h2>
         <div style={{ display: 'flex', gap: 8 }}>
+          <Button loading={autoTagging} onClick={autoTagCashback}>Auto-Tag Cashback</Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Card</Button>
         </div>
       </div>

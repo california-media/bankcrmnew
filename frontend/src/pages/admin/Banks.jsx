@@ -55,6 +55,7 @@ function AdminBanks() {
         formData.append('code', values.code || '');
         formData.append('description', values.description || '');
         formData.append('isActive', values.isActive !== false ? 'true' : 'false');
+        formData.append('hasSpend', values.hasSpend ? 'true' : 'false');
         formData.append('logo', newFile.originFileObj);
         if (editing) {
           await api.put(`/banks/${editing._id}`, formData);
@@ -67,6 +68,7 @@ function AdminBanks() {
           code: values.code || '',
           description: values.description || '',
           isActive: values.isActive !== false,
+          hasSpend: !!values.hasSpend,
         };
         if (editing) {
           await api.put(`/banks/${editing._id}`, payload);
@@ -223,6 +225,9 @@ function AdminBanks() {
           </Form.Item>
           <Form.Item name="isActive" label="Status" valuePropName="checked">
             <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+          </Form.Item>
+          <Form.Item name="hasSpend" label="Spend" valuePropName="checked">
+            <Switch checkedChildren="Enabled" unCheckedChildren="Disabled" />
           </Form.Item>
         </Form>
       </Modal>

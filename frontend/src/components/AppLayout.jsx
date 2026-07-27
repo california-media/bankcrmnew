@@ -8,6 +8,7 @@ import {
   BellOutlined, PlusCircleOutlined, CheckCircleOutlined, MenuOutlined,
   UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined, WalletOutlined,
   SettingOutlined, MailOutlined, NotificationOutlined, ReadOutlined, FileProtectOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -59,6 +60,7 @@ const menusByRole = {
     { key: '/admin/notices',           icon: <NotificationOutlined />, label: <Link to="/admin/notices">Notices</Link> },
     { key: '/admin/blog',              icon: <ReadOutlined />,         label: <Link to="/admin/blog">Blog Posts</Link> },
     { key: '/admin/legal-pages',       icon: <FileProtectOutlined />,  label: <Link to="/admin/legal-pages">Legal Pages</Link> },
+    { key: '/admin/reports',            icon: <BarChartOutlined />,     label: <Link to="/admin/reports">Reports</Link> },
   ],
   agent: [
     { key: '/agent',                  icon: <DashboardOutlined />,    label: <Link to="/agent">Dashboard</Link> },
@@ -77,6 +79,7 @@ const menusByRole = {
     { key: '/agency/payouts',         icon: <DollarOutlined />,       label: <Link to="/agency/payouts">Payouts</Link> },
     { key: '/agency/consent-logs',    icon: <MessageOutlined />,      label: <Link to="/agency/consent-logs">Consent Logs</Link> },
     { key: '/agency/notifications',   icon: <BellOutlined />,         label: <Link to="/agency/notifications">Notifications</Link> },
+    { key: '/agency/reports',         icon: <BarChartOutlined />,     label: <Link to="/agency/reports">Reports</Link> },
   ],
   employee: [
     { key: '/employee',               icon: <DashboardOutlined />,    label: <Link to="/employee">Dashboard</Link> },

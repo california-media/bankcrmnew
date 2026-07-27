@@ -8,11 +8,15 @@ import { registerAgent, clearError } from '../store/slices/authSlice';
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000';
 
 const UAE_PASS_ERROR_MESSAGES = {
-  invalid_state:   'Session expired. Please try again.',
-  token_failed:    'UAE Pass authentication failed. Please try again.',
-  userinfo_failed: 'Could not retrieve your UAE Pass profile. Please try again.',
-  server_error:    'Something went wrong. Please try again.',
-  access_denied:   'UAE Pass access was denied.',
+  invalid_state:    'Session expired. Please try again.',
+  token_failed:     'UAE Pass authentication failed. Please try again.',
+  userinfo_failed:  'Could not retrieve your UAE Pass profile. Please try again.',
+  server_error:     'Something went wrong. Please try again.',
+  invalid_request:  'invalid_request - Cancelled by user on UAE PASS web. User cancelled the login. Code: invalid_request',
+  access_denied:    'access_denied - Cancelled by user on UAE PASS web. User cancelled the login. Code: access_denied',
+  cancelledOnApp:   'invalid_request - Cancelled by user on UAE PASS app. User cancelled the login. Code: invalid_request',
+  cancelledOnWeb:   'access_denied - Cancelled by user on UAE PASS web. User cancelled the login. Code: access_denied',
+  cancelledOnMobile:'access_denied - Cancelled by user on UAE PASS app. User cancelled the login. Code: access_denied',
 };
 
 const inputStyle = { borderRadius: 10, fontSize: 13, borderColor: '#E8E8EE', height: 38 };
@@ -161,7 +165,7 @@ function Register() {
           >
             <Checkbox style={{ fontSize:13, color:'#374151' }}>
               I agree to the{' '}
-              <Link to="/terms" target="_blank" style={{ color:'#7C3AED', fontWeight:500 }}>Terms and Conditions</Link>
+              <a href="http://127.0.0.1:5500/inzigo-site/terms.html" target="_blank" rel="noreferrer" style={{ color:'#7C3AED', fontWeight:500 }}>Terms and Conditions</a>
             </Checkbox>
           </Form.Item>
 

@@ -646,11 +646,25 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
         <button class="insight-btn" onclick="openMatchModal();">Update My Profile</button>
       </div>
 
-      <div id="sec-all">
+      <div id="sec-cashback">
         <div class="section-head">
-          <div class="section-title">💳 All Credit Cards <span class="section-count" id="cnt-all">0</span></div>
+          <div class="section-title">💰 Best Cashback Cards <span class="section-count" id="cnt-cashback">5</span></div>
         </div>
-        <div class="flip-grid" id="allCardsGrid"></div>
+        <div class="flip-grid" data-cat="cashback"></div>
+      </div>
+
+      <div id="sec-travel">
+        <div class="section-head">
+          <div class="section-title">✈️ Best for Travel & Miles <span class="section-count" id="cnt-travel">5</span></div>
+        </div>
+        <div class="flip-grid" data-cat="travel"></div>
+      </div>
+
+      <div id="sec-freefee">
+        <div class="section-head">
+          <div class="section-title">🆓 Zero Annual Fee <span class="section-count" id="cnt-freefee">5</span></div>
+        </div>
+        <div class="flip-grid" data-cat="freefee"></div>
       </div>
 
       <div class="no-results" id="noResultsBlock">
@@ -1291,9 +1305,8 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   function annualFeeOf(c){
     const feeStr = String(c.fee).toLowerCase();
     if(feeStr.includes('free')) return 0;
-    if(feeStr === 'paid') return 999; // explicitly paid, no amount parsed — non-zero
     const n = cardFeeValue(c);
-    return n == null ? 0 : n;
+    return n == null ? 0 : n; // fee not published — treated as 0 for comparison purposes
   }
   function parseRateValue(c){
     const n = parseFloat(String(c.rate).replace(/[^0-9.]/g,''));
@@ -1694,47 +1707,51 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     if(cat === 'top') return c.ribbon === 'Premium';
     return c.cat === cat;
   }
-  const CARDS_PER_PAGE = 12;
-  let _gridItems = [];
-  let _gridSavingsMap = {};
-  let _gridVisible = CARDS_PER_PAGE;
+  const CARDS_PER_CAT = 10;
+  window._catStore = {};
 
-  function _renderAllCardsGrid(){
-    const grid = document.getElementById('allCardsGrid');
-    const cntEl = document.getElementById('cnt-all');
-    const sec = document.getElementById('sec-all');
-    if(!grid) return;
-    const total = _gridItems.length;
-    if(sec) sec.style.display = total ? '' : 'none';
-    if(cntEl) cntEl.textContent = total;
-    const visible = _gridItems.slice(0, _gridVisible);
-    grid.innerHTML = visible.map((c,i)=>{
-      try{ return cardHTML(c,i,_gridSavingsMap[c.id]); } catch(e){ return ''; }
+  function expandCat(cat){
+    const store = window._catStore[cat];
+    if(!store) return;
+    const container = document.querySelector('.flip-grid[data-cat="'+cat+'"]');
+    if(!container) return;
+    container.innerHTML = store.items.map((c,i)=>{
+      try{ return cardHTML(c,i, store.savingsMap ? store.savingsMap[c.id] : null); }
+      catch(e){ return ''; }
     }).join('');
-    // Remove old show-more button
-    const oldBtn = document.getElementById('showMoreBtn');
-    if(oldBtn) oldBtn.remove();
-    if(total > _gridVisible){
-      const next = Math.min(CARDS_PER_PAGE, total - _gridVisible);
-      const btnWrap = document.createElement('div');
-      btnWrap.id = 'showMoreBtn';
-      btnWrap.style.cssText = 'display:flex;justify-content:center;padding:18px 0 8px;';
-      btnWrap.innerHTML = '<button onclick="showMoreCards()" style="font-family:\'Inter\',sans-serif;font-weight:600;font-size:13.5px;padding:13px 30px;background:#fff;border:1.5px solid rgba(123,63,228,.3);border-radius:100px;cursor:pointer;color:#7C3AED;transition:all .2s;" onmouseover="this.style.background=\'#f5f3ff\'" onmouseout="this.style.background=\'#fff\'">Show ' + next + ' More Cards ↓</button>';
-      grid.insertAdjacentElement('afterend', btnWrap);
-    }
+    const btn = document.getElementById('viewall-'+cat);
+    if(btn) btn.remove();
     initHoloTilt();
   }
 
-  function showMoreCards(){
-    _gridVisible += CARDS_PER_PAGE;
-    _renderAllCardsGrid();
-  }
-
   function renderFilteredGrid(items, savingsMap){
-    _gridItems = items;
-    _gridSavingsMap = savingsMap || {};
-    _gridVisible = CARDS_PER_PAGE;
-    _renderAllCardsGrid();
+    ALL_CATS.forEach(cat=>{
+      const container = document.querySelector('.flip-grid[data-cat="'+cat+'"]');
+      if(!container) return;
+      const catItems = items.filter(c=>matchesGenericCat(c, cat));
+      window._catStore[cat] = { items: catItems, savingsMap };
+      const visible = catItems.slice(0, CARDS_PER_CAT);
+      container.innerHTML = visible.map((c,i)=>{
+        try{ return cardHTML(c,i, savingsMap ? savingsMap[c.id] : null); }
+        catch(e){ console.warn('cardHTML error:', c?.name, e); return ''; }
+      }).join('');
+      const countEl = document.getElementById('cnt-'+cat);
+      if(countEl) countEl.textContent = catItems.length;
+      const section = document.getElementById('sec-'+cat);
+      if(section) section.style.display = catItems.length ? '' : 'none';
+      // View All button
+      let existingBtn = document.getElementById('viewall-'+cat);
+      if(existingBtn) existingBtn.remove();
+      if(catItems.length > CARDS_PER_CAT){
+        const btnWrap = document.createElement('div');
+        btnWrap.id = 'viewall-'+cat;
+        btnWrap.style.cssText = 'display:flex;justify-content:center;padding:18px 0 8px;';
+        btnWrap.innerHTML = '<button onclick="expandCat(\''+cat+'\')" style="font-family:\'Inter\',sans-serif;font-weight:600;font-size:13.5px;padding:13px 30px;background:#fff;border:1.5px solid rgba(123,63,228,.3);border-radius:100px;cursor:pointer;color:#7C3AED;transition:all .2s;" onmouseover="this.style.background=\'#f5f3ff\'" onmouseout="this.style.background=\'#fff\'">View All '+catItems.length+' Cards ↓</button>';
+        container.insertAdjacentElement('afterend', btnWrap);
+      }
+    });
+    initHoloTilt();
+
     const total = items.length;
     const countText = document.getElementById('resultsCountText');
     if(countText){
@@ -1742,9 +1759,6 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
         ? 'Threading you to <strong>' + total + ' card' + (total===1?'':'s') + '</strong>, ranked by fit'
         : 'No cards match your filters';
     }
-    // Update "All Matches · N" chip count
-    const allChip = document.querySelector('.chip[data-chip="all"]');
-    if(allChip) allChip.textContent = 'All Matches · ' + ALL_CARDS.length;
     const noResults = document.getElementById('noResultsBlock');
     if(noResults) noResults.classList.toggle('show', total===0);
   }
@@ -2100,8 +2114,10 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   }
 
   function clearLoadingState(msg){
-    const grid = document.getElementById('allCardsGrid');
-    if(grid) grid.innerHTML = msg ? '<div style="padding:40px;text-align:center;color:var(--mist);font-size:14px;">'+msg+'</div>' : '';
+    ALL_CATS.forEach(cat=>{
+      const container = document.querySelector('.flip-grid[data-cat="'+cat+'"]');
+      if(container) container.innerHTML = msg ? '<div style="padding:40px;text-align:center;color:var(--mist);font-size:14px;">'+msg+'</div>' : '';
+    });
   }
 
   async function fetchAndInit(){

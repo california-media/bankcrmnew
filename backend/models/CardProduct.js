@@ -25,6 +25,7 @@ const cardProductSchema = new mongoose.Schema(
       }],
       default: [],
     },
+    rate: { type: String, trim: true, default: '' },
     benefits: { type: String, default: '' },
     feesEligibility: { type: String, default: '' },
     keyFeatures: { type: String, default: '' },

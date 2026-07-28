@@ -162,6 +162,7 @@ function CardProducts() {
         category: cat.category?._id || cat.category,
         rate: cat.rate ?? null,
       })),
+      rate: c.rate || '',
       redirectUrl: c.redirectUrl || '',
       redirectActive: c.redirectActive || false,
     });
@@ -192,6 +193,7 @@ function CardProducts() {
       fd.append('feesEligibility', feesHtml);
       fd.append('keyFeatures', keyFeaturesHtml);
       fd.append('isActive', values.isActive !== false ? 'true' : 'false');
+      fd.append('rate', values.rate || '');
       fd.append('redirectUrl', values.redirectUrl || '');
       fd.append('redirectActive', values.redirectActive ? 'true' : 'false');
 
@@ -243,6 +245,7 @@ function CardProducts() {
       },
     },
     { title: 'Bank', render: (_, row) => row.bank?.name || '—' },
+    { title: 'Rate', dataIndex: 'rate', render: (v) => v ? <Tag color="blue">{v}</Tag> : <span style={{ color: '#cbd5e1' }}>—</span> },
     { title: 'Agency', render: (_, row) => row.agency?.name || row.agency?.email || '—' },
     {
       title: 'Brackets',
@@ -537,9 +540,14 @@ function CardProducts() {
             )}
           </Form.List>
 
-          <Divider orientation="left" style={{ fontSize: 13 }}>Redirect Link</Divider>
+          <Divider orientation="left" style={{ fontSize: 13 }}>Rate & Redirect</Divider>
           <Row gutter={16}>
-            <Col span={18}>
+            <Col span={5}>
+              <Form.Item name="rate" label="Interest Rate">
+                <Input placeholder="e.g. 3.99%/mo" />
+              </Form.Item>
+            </Col>
+            <Col span={13}>
               <Form.Item name="redirectUrl" label="Redirect URL after submission">
                 <Input placeholder="https://app.mysilah.ae/apply/..." />
               </Form.Item>

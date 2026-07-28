@@ -49,6 +49,7 @@ exports.create = async (req, res) => {
     const clawbackDays = req.body.clawbackDays ? Number(req.body.clawbackDays) : 0;
     const redirectUrl    = req.body.redirectUrl || '';
     const redirectActive = req.body.redirectActive === 'true' || req.body.redirectActive === true;
+    const rate           = req.body.rate || '';
     const card = await CardProduct.create({
       name,
       cardType,
@@ -59,6 +60,7 @@ exports.create = async (req, res) => {
       benefits,
       feesEligibility,
       keyFeatures,
+      rate,
       clawbackMonths,
       clawbackDays,
       isActive: isActive === undefined ? true : isActive !== 'false' && isActive !== false,
@@ -103,6 +105,7 @@ exports.update = async (req, res) => {
     if (isActive !== undefined) update.isActive = isActive !== 'false' && isActive !== false;
     if (req.body.redirectUrl !== undefined) update.redirectUrl = req.body.redirectUrl || '';
     if (req.body.redirectActive !== undefined) update.redirectActive = req.body.redirectActive === 'true' || req.body.redirectActive === true;
+    if (req.body.rate !== undefined) update.rate = req.body.rate || '';
 
     if (req.file) {
       const existing = await CardProduct.findById(req.params.id, 'cardImage');

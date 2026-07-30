@@ -3,6 +3,7 @@ import { Card, Form, Input, Button, Typography, Alert, Checkbox, Result, Select 
 import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerAgency, clearError } from '../store/slices/authSlice';
+import { validateUAELocalPhone, toFullUAEPhone } from '../utils/validatePhone';
 
 function RegisterAgency() {
   const dispatch = useDispatch();
@@ -16,7 +17,7 @@ function RegisterAgency() {
       companyName:  values.companyName,
       tradeLicense: values.tradeLicense,
       email:        values.email,
-      phone:        values.phone,
+      phone:        values.phone ? toFullUAEPhone(values.phone) : undefined,
       password:     values.password,
       emiratesId:   values.emiratesId,
       city:         values.city,
@@ -60,8 +61,11 @@ function RegisterAgency() {
           <Form.Item name="name" rules={[{ required: true, message: 'Full name required' }]} style={itemStyle}>
             <Input placeholder="Full Name *" />
           </Form.Item>
-          <Form.Item name="phone" rules={[{ required: true, message: 'Phone required' }]} style={itemStyle}>
-            <Input placeholder="Phone Number * (+971 50 xxx xxxx)" />
+          <Form.Item name="phone" rules={[{ required: true, message: 'Phone required' }, { validator: validateUAELocalPhone }]} style={itemStyle}>
+            <Input
+              addonBefore={<span style={{ userSelect: 'none', pointerEvents: 'none', cursor: 'default' }}>🇦🇪 +971</span>}
+              placeholder="501234567"
+            />
           </Form.Item>
           <Form.Item name="email" rules={[{ required: true, type: 'email', message: 'Valid email required' }]} style={itemStyle}>
             <Input placeholder="Email *" />

@@ -7,6 +7,7 @@ import { ArrowLeftOutlined, CreditCardOutlined, BankOutlined, SendOutlined } fro
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
+import { validateUAELocalPhone, toFullUAEPhone } from '../../utils/validatePhone';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
@@ -220,7 +221,7 @@ function SubmitLead() {
       const values  = pendingValues;
       const payload = {
         customerName: values.customerName,
-        phone:        values.phone,
+        phone:        toFullUAEPhone(values.phone),
         productType,
         notes:        values.notes,
       };
@@ -290,8 +291,13 @@ function SubmitLead() {
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item name="phone" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Mobile Number <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Phone required' }]} style={{ marginBottom: 10 }}>
-                    <Input size="middle" placeholder="+971 50 xxx xxxx" style={{ borderRadius: 8 }} />
+                  <Form.Item name="phone" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Mobile Number <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Phone required' }, { validator: validateUAELocalPhone }]} style={{ marginBottom: 10 }}>
+                    <Input
+                      size="middle"
+                      addonBefore={<span style={{ userSelect: 'none', pointerEvents: 'none', cursor: 'default' }}>🇦🇪 +971</span>}
+                      placeholder="501234567"
+                      style={{ borderRadius: 8 }}
+                    />
                   </Form.Item>
                 </Col>
 

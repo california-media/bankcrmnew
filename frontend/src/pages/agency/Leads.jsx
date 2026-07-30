@@ -25,7 +25,7 @@ const PRODUCTS = [
 
 const TERMINAL_STATUSES  = ['disbursed', 'rejected'];
 const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
-const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned', 'approved'];
+const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned'];
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
@@ -107,6 +107,7 @@ function AgencyLeads() {
   const [bankFilter, setBankFilter] = useState();
   const [employeeFilter, setEmployeeFilter] = useState();
   const [dateRange, setDateRange] = useState(null);
+  const [milestoneFilter, setMilestoneFilter] = useState();
   const [leadsTab, setLeadsTab] = useState('active');
 
   // Status update modal
@@ -305,9 +306,13 @@ function AgencyLeads() {
       }
       if (from && dayjs(l.createdAt).isBefore(from.startOf('day'))) return false;
       if (to && dayjs(l.createdAt).isAfter(to.endOf('day'))) return false;
+      if (milestoneFilter === 'approved' && l.status !== 'approved') return false;
+      if (milestoneFilter === 'cpv' && !l.cpvDone) return false;
+      if (milestoneFilter === 'activated' && !l.activateDone) return false;
+      if (milestoneFilter === 'spent' && !l.spendDone) return false;
       return true;
     });
-  }, [leads, search, statusFilter, productFilter, bankFilter, employeeFilter, dateRange, leadsTab]);
+  }, [leads, search, statusFilter, productFilter, bankFilter, employeeFilter, dateRange, milestoneFilter, leadsTab]);
 
   const renderProduct = (row) => {
     if (row.productType === 'credit_card' && row.cardProduct) {
@@ -389,8 +394,8 @@ function AgencyLeads() {
             </div>
           ) : null
         );
-        // Post-approval: always show system status pill
-        if (['approved', 'disbursed'].includes(row.status)) {
+        // Terminal states always show system status pill
+        if (['approved', 'disbursed', 'rejected'].includes(row.status)) {
           const p = STATUS_PILL[row.status] || { bg: '#f1f5f9', border: '#e2e8f0', dot: '#94a3b8', text: '#475569', label: (row.status || '').toUpperCase() };
           return (
             <div>
@@ -603,8 +608,21 @@ function AgencyLeads() {
           allowClear
           style={{ width: 210, minWidth: 190, borderRadius: 6 }}
         />
-        {(search || statusFilter || productFilter || bankFilter || employeeFilter || dateRange) && (
-          <Button size="small" type="text" style={{ color: '#7C3AED', flexShrink: 0 }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setBankFilter(undefined); setEmployeeFilter(undefined); setDateRange(null); }}>
+        <Select
+          allowClear
+          placeholder="All Milestones"
+          value={milestoneFilter}
+          onChange={setMilestoneFilter}
+          options={[
+            { value: 'approved', label: 'Approved' },
+            { value: 'cpv', label: 'CPV Done' },
+            { value: 'activated', label: 'Activated' },
+            { value: 'spent', label: 'Spent' },
+          ]}
+          style={{ width: 150, minWidth: 130, borderRadius: 6 }}
+        />
+        {(search || statusFilter || productFilter || bankFilter || employeeFilter || dateRange || milestoneFilter) && (
+          <Button size="small" type="text" style={{ color: '#7C3AED', flexShrink: 0 }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setBankFilter(undefined); setEmployeeFilter(undefined); setDateRange(null); setMilestoneFilter(undefined); }}>
             Clear
           </Button>
         )}

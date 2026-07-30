@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 
 const HEADERS = [
-  'Lead No', 'Reference No', 'Lead Status', 'CPV Done', 'Activated', 'Rejected',
+  'Lead No', 'Reference No', 'Lead Status', 'CPV Done', 'Activated', 'Spent Activation', 'Rejected',
   'Customer Name', 'Phone', 'Agent Email', 'Product Type', 'Bank', 'Product Name',
   'Monthly Salary', 'Email', 'Nationality', 'City', 'Visa Type', 'Company Name',
   'Job Title', 'Experience (Yrs)', 'Loan Amount', 'Loan Type', 'Remarks',
@@ -13,6 +13,7 @@ const EXAMPLE_ROW = {
   'Lead Status': '',
   'CPV Done': '',
   'Activated': '',
+  'Spent Activation': '',
   'Rejected': '',
   'Customer Name': 'Mohammed Ahmed',
   Phone: '0501234567',

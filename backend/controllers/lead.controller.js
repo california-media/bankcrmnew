@@ -10,6 +10,12 @@ const waba = require('../services/waba.service');
 const { getFilename } = require('../middleware/upload.middleware');
 const XLSX = require('xlsx');
 
+const normalizePhone = (p) => {
+  const c = String(p).replace(/[\s\-\+\(\)\.]/g, '');
+  return /^0/.test(c) ? '971' + c.slice(1) : c;
+};
+const isValidUAEPhone = (p) => /^9715\d{8}$/.test(normalizePhone(p));
+
 const POPULATE_FIELDS = [
   { path: 'bank', select: 'name code hasSpend' },
   { path: 'agency', select: 'name email' },
@@ -33,6 +39,9 @@ exports.create = async (req, res) => {
     const { customerName, phone, productType, cardProduct, loanProduct, loanAmount, loanType, customerSalary, notes, email, visaType, nationality, city, companyName, jobTitle, yearsOfExperience, referenceNo } = req.body;
     if (!customerName || !phone || !productType) {
       return res.status(400).json({ message: 'customerName, phone, and productType are required' });
+    }
+    if (!isValidUAEPhone(phone)) {
+      return res.status(400).json({ message: 'Invalid UAE mobile number. Must be 12 digits starting with 9715 (e.g. 971501234567 or 0501234567)' });
     }
 
     let bankId, agencyId;
@@ -1371,6 +1380,17 @@ exports.addNote = async (req, res) => {
 /**
  * DELETE /api/leads/:id/notes/:noteId  (admin only)
  */
+exports.adminDeleteLead = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    await lead.deleteOne();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.deleteNote = async (req, res) => {
   try {
     const lead = await Lead.findById(req.params.id);
@@ -1501,9 +1521,12 @@ exports.importLeads = async (req, res) => {
 
       const agencyId = req.user.role === 'agency' ? req.user._id : productAgency;
 
+      const phoneRaw = String(row['Phone'] ?? '').trim();
+      if (!isValidUAEPhone(phoneRaw)) { fail(`Invalid UAE mobile number "${phoneRaw}" — must start with 9715 (e.g. 971501234567)`); continue; }
+
       const leadData = {
         customerName: String(row['Customer Name']).trim(),
-        phone: String(row['Phone']).trim(),
+        phone: phoneRaw,
         agent: agentId,
         status: 'submitted',
       };
@@ -1574,6 +1597,11 @@ exports.importLeads = async (req, res) => {
             if (!['yes', 'no', 'true', 'false', '1', '0'].includes(activateRaw)) { fail(`Activated must be Yes or No, got "${row['Activated']}"`); continue; }
             updateFields.activateDone = ['yes', 'true', '1'].includes(activateRaw);
           }
+          const spendRaw = String(row['Spent Activation'] ?? '').trim().toLowerCase();
+          if (spendRaw) {
+            if (!['yes', 'no', 'true', 'false', '1', '0'].includes(spendRaw)) { fail(`Spent Activation must be Yes or No, got "${row['Spent Activation']}"`); continue; }
+            updateFields.spendDone = ['yes', 'true', '1'].includes(spendRaw);
+          }
           const rejectedRaw = String(row['Rejected'] ?? '').trim().toLowerCase();
           if (rejectedRaw) {
             if (!['yes', 'no', 'true', 'false', '1', '0'].includes(rejectedRaw)) { fail(`Rejected must be Yes or No, got "${row['Rejected']}"`); continue; }
@@ -1617,6 +1645,11 @@ exports.importLeads = async (req, res) => {
           if (activateRawCreate) {
             if (!['yes', 'no', 'true', 'false', '1', '0'].includes(activateRawCreate)) { fail(`Activated must be Yes or No, got "${row['Activated']}"`); continue; }
             leadData.activateDone = ['yes', 'true', '1'].includes(activateRawCreate);
+          }
+          const spendRawCreate = String(row['Spent Activation'] ?? '').trim().toLowerCase();
+          if (spendRawCreate) {
+            if (!['yes', 'no', 'true', 'false', '1', '0'].includes(spendRawCreate)) { fail(`Spent Activation must be Yes or No, got "${row['Spent Activation']}"`); continue; }
+            leadData.spendDone = ['yes', 'true', '1'].includes(spendRawCreate);
           }
           const rejectedRawCreate = String(row['Rejected'] ?? '').trim().toLowerCase();
           if (rejectedRawCreate) {

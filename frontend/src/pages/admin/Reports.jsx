@@ -39,6 +39,7 @@ function AdminReports() {
   const [filterProduct, setFilterProduct] = useState(null);
   const [filterBank, setFilterBank] = useState(null);
   const [filterAgency, setFilterAgency] = useState(null);
+  const [filterAgent,  setFilterAgent]  = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -69,8 +70,9 @@ function AdminReports() {
     if (filterProduct) r = r.filter(l => l.productType === filterProduct);
     if (filterBank) r = r.filter(l => String(l.bank?._id) === filterBank);
     if (filterAgency) r = r.filter(l => String(l.agency?._id) === filterAgency);
+    if (filterAgent)  r = r.filter(l => String(l.agent?._id)  === filterAgent);
     return r;
-  }, [leads, dateRange, filterStage, filterProduct, filterBank, filterAgency]);
+  }, [leads, dateRange, filterStage, filterProduct, filterBank, filterAgency, filterAgent]);
 
   const kpi = useMemo(() => {
     const total = filtered.length;
@@ -78,6 +80,7 @@ function AdminReports() {
     return {
       total,
       submitted: filtered.filter(l => l.status === 'submitted').length,
+      wip: filtered.filter(l => ['submitted', 'under_review', 'assigned'].includes(l.status)).length,
       approved: filtered.filter(l => l.status === 'approved').length,
       disbursed,
       rejected: filtered.filter(l => l.status === 'rejected').length,
@@ -124,6 +127,12 @@ function AdminReports() {
       .map(a => ({ value: String(a._id), label: a.name || a.email })),
     [leads]
   );
+  const agentOptions = useMemo(() =>
+    [...new Map(leads.filter(l => l.agent?._id).map(l => [String(l.agent._id), l.agent])).values()]
+      .map(a => ({ value: String(a._id), label: a.name || a.email }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [leads]
+  );
 
   const perfData = useMemo(() => {
     const map = new Map();
@@ -152,12 +161,14 @@ function AdminReports() {
   const exportPerfExcel = () => {
     const from = dateRange[0] ? dateRange[0].format('DD-MM-YYYY') : 'all time';
     const to   = dateRange[1] ? dateRange[1].format('DD-MM-YYYY') : 'all time';
-    const cols = ['Agency', 'Bank', 'Product', 'New Lead', 'Approved', 'Rejected', 'Disbursed', 'Agent'];
+    const cols = ['Agency', 'Bank', 'Product', 'WIP', 'Approved', 'Rejected', 'Disbursed', 'Agent'];
+    const tot = perfData.reduce((a, r) => ({ wip: a.wip + r.newLead, approved: a.approved + r.approved, rejected: a.rejected + r.rejected, disbursed: a.disbursed + r.disbursed }), { wip: 0, approved: 0, rejected: 0, disbursed: 0 });
     const aoa = [
       [`Performance Report from ${from} to ${to}`],
       [],
       cols,
       ...perfData.map(r => [r.agency, r.bank, r.product, r.newLead, r.approved, r.rejected, r.disbursed, r.agent]),
+      ['TOTAL', '', '', tot.wip, tot.approved, tot.rejected, tot.disbursed, ''],
     ];
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: cols.length - 1 } }];
@@ -177,9 +188,15 @@ function AdminReports() {
       'Status': STATUS_LABELS[l.status] || l.status || '',
       'Agency': l.agency?.name || l.agency?.email || '',
       'Agent': l.agent?.name || l.agent?.email || '',
+      'Spent Activation': l.spendDone ? 'Yes' : 'No',
       'Created': l.createdAt ? dayjs(l.createdAt).format('DD MMM YYYY') : '',
       'Updated': l.updatedAt ? dayjs(l.updatedAt).format('DD MMM YYYY') : '',
     }));
+    rows.push({
+      'Ref #': 'TOTAL', 'Customer': String(filtered.length), 'Phone': '', 'Product': '',
+      'Bank': '', 'Stage': '', 'Status': '', 'Agency': '', 'Agent': '',
+      'Spent Activation': '', 'Created': '', 'Updated': '',
+    });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Leads Report');
@@ -192,6 +209,7 @@ function AdminReports() {
     setFilterProduct(null);
     setFilterBank(null);
     setFilterAgency(null);
+    setFilterAgent(null);
   };
 
   const columns = [
@@ -229,12 +247,12 @@ function AdminReports() {
   ];
 
   const kpiConfig = [
-    { title: 'Total Leads',   value: kpi.total,       color: '#7C3AED' },
-    { title: 'Submitted',     value: kpi.submitted,   color: '#3b82f6' },
-    { title: 'Approved',      value: kpi.approved,    color: '#22c55e' },
-    { title: 'Disbursed',     value: kpi.disbursed,   color: '#a855f7' },
-    { title: 'Rejected',      value: kpi.rejected,    color: '#ef4444' },
-    { title: 'Conversion %',  value: `${kpi.conversion}%`, color: '#0ea5e9' },
+    { title: 'Total Leads',              value: kpi.total,       color: '#7C3AED' },
+    { title: 'WIP (Work in Process)',    value: kpi.wip,         color: '#f97316' },
+    { title: 'Approved',                 value: kpi.approved,    color: '#22c55e' },
+    { title: 'Disbursed',                value: kpi.disbursed,   color: '#a855f7' },
+    { title: 'Rejected',                 value: kpi.rejected,    color: '#ef4444' },
+    { title: 'Conversion %',             value: `${kpi.conversion}%`, color: '#0ea5e9' },
   ];
 
   return (
@@ -296,6 +314,16 @@ function AdminReports() {
             style={{ width: 160 }}
             filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
           />
+          <Select
+            showSearch
+            placeholder="All Agents"
+            options={agentOptions}
+            value={filterAgent}
+            onChange={setFilterAgent}
+            allowClear
+            style={{ width: 160 }}
+            filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+          />
           <Button icon={<ReloadOutlined />} onClick={resetFilters}>Reset</Button>
         </div>
       </Card>
@@ -311,19 +339,19 @@ function AdminReports() {
       />
 
       {activeTab === 'overview' && <>
-      <Row gutter={[12, 12]} style={{ marginBottom: 20, marginTop: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20, marginTop: 16 }}>
         {kpiConfig.map(({ title, value, color }) => (
-          <Col key={title} xs={12} sm={8} md={4}>
-            <Card size="small" style={{ borderRadius: 12, borderTop: `3px solid ${color}` }}>
+          <div key={title} style={{ flex: '1 1 130px', minWidth: 120 }}>
+            <Card size="small" style={{ borderRadius: 12, borderTop: `3px solid ${color}`, height: '100%' }}>
               <Statistic
                 title={<span style={{ fontSize: 11, color: '#64748b' }}>{title}</span>}
                 value={value}
                 valueStyle={{ fontSize: 20, fontWeight: 700, color }}
               />
             </Card>
-          </Col>
+          </div>
         ))}
-      </Row>
+      </div>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} lg={12}>
@@ -433,8 +461,8 @@ function AdminReports() {
               { title: 'Agency', dataIndex: 'agency', sorter: (a, b) => a.agency.localeCompare(b.agency) },
               { title: 'Bank',   dataIndex: 'bank',   sorter: (a, b) => a.bank.localeCompare(b.bank) },
               { title: 'Product', dataIndex: 'product' },
-              { title: 'New Lead',  dataIndex: 'newLead',  align: 'center', sorter: (a, b) => a.newLead - b.newLead,
-                render: v => <span style={{ fontWeight: 600, color: '#3b82f6' }}>{v}</span> },
+              { title: 'WIP',  dataIndex: 'newLead',  align: 'center', sorter: (a, b) => a.newLead - b.newLead,
+                render: v => <span style={{ fontWeight: 600, color: '#f97316' }}>{v}</span> },
               { title: 'Approved',  dataIndex: 'approved',  align: 'center', sorter: (a, b) => a.approved - b.approved,
                 render: v => <span style={{ fontWeight: 600, color: '#22c55e' }}>{v}</span> },
               { title: 'Rejected',  dataIndex: 'rejected',  align: 'center', sorter: (a, b) => a.rejected - b.rejected,

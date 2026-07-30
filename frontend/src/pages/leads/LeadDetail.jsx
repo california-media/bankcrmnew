@@ -62,7 +62,7 @@ const COMM_LABELS = { paid: 'Paid', payable: 'Payout Ready', pending: 'Pending',
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 const pct = (n) => `${Number(n || 0)}%`;
 
-const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned', 'approved'];
+const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned'];
 const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
@@ -852,6 +852,23 @@ export default function LeadDetail() {
                     <Select allowClear placeholder="CPV employee" loading={assigningEmployee === 'cpv'} value={lead.assignedCpvEmployee?._id || undefined} onChange={(val) => assignEmployee(val || null, 'cpv')} size="small" style={{ width: '100%', marginBottom: 4 }} options={employees.filter((e) => e.isActive && e.employeeType === 'cpv').map((e) => ({ value: e._id, label: e.name || e.email }))} />
                     <Select allowClear placeholder="Sales employee" loading={assigningEmployee === 'sales'} value={lead.assignedSalesEmployee?._id || undefined} onChange={(val) => assignEmployee(val || null, 'sales')} size="small" style={{ width: '100%' }} options={employees.filter((e) => e.isActive && e.employeeType === 'sales').map((e) => ({ value: e._id, label: e.name || e.email }))} />
                   </div>
+                )}
+              </Space>
+            </Card>
+          )}
+
+          {/* Admin Actions */}
+          {role === 'admin' && (
+            <Card size="small" title={sectionLabel('Actions')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+              <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                {['submitted', 'under_review', 'assigned'].includes(lead.status) && (
+                  <Button block size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>Approve</Button>
+                )}
+                {lead.status === 'approved' && (
+                  <Button block size="small" onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
+                )}
+                {REJECTABLE_FROM.includes(lead.status) && (
+                  <Button block size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal('rejected', 'Rejected')}>Reject</Button>
                 )}
               </Space>
             </Card>

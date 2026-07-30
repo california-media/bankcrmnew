@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Select, DatePicker, Space, Button, Tabs, Tooltip, Card, Row, Col, ConfigProvider, Upload, Modal, message, Grid } from 'antd';
-import { SearchOutlined, TableOutlined, AppstoreOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Table, Tag, Typography, Input, Select, DatePicker, Space, Button, Tabs, Tooltip, Card, Row, Col, ConfigProvider, Upload, Modal, Popconfirm, message, Grid } from 'antd';
+import { SearchOutlined, TableOutlined, AppstoreOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
 
 const { useBreakpoint } = Grid;
 import dayjs from 'dayjs';
@@ -63,6 +63,7 @@ function AdminLeads() {
   const [dateRange, setDateRange] = useState(null);
 
   const [bankFilter, setBankFilter] = useState();
+  const [milestoneFilter, setMilestoneFilter] = useState();
   const [leadsTab, setLeadsTab] = useState('active');
   const [viewMode, setViewMode] = useState('table');
   const [importing, setImporting] = useState(false);
@@ -75,6 +76,16 @@ function AdminLeads() {
       setLeads(data);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteLead = async (id) => {
+    try {
+      await api.delete(`/leads/${id}/admin-delete`);
+      message.success('Lead deleted');
+      setLeads((prev) => prev.filter((l) => l._id !== id));
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Delete failed');
     }
   };
 
@@ -128,9 +139,13 @@ function AdminLeads() {
       if (bankFilter && String(l.bank?._id) !== bankFilter) return false;
       if (from && dayjs(l.createdAt).isBefore(from.startOf('day'))) return false;
       if (to && dayjs(l.createdAt).isAfter(to.endOf('day'))) return false;
+      if (milestoneFilter === 'approved' && l.status !== 'approved') return false;
+      if (milestoneFilter === 'cpv' && !l.cpvDone) return false;
+      if (milestoneFilter === 'activated' && !l.activateDone) return false;
+      if (milestoneFilter === 'spent' && !l.spendDone) return false;
       return true;
     });
-  }, [leads, search, statusFilter, productFilter, bankFilter, dateRange, leadsTab]);
+  }, [leads, search, statusFilter, productFilter, bankFilter, dateRange, milestoneFilter, leadsTab]);
 
   const renderProduct = (row) => {
     const name = row.productType === 'credit_card' ? row.cardProduct?.name : row.loanProduct?.name;
@@ -225,7 +240,7 @@ function AdminLeads() {
             {row.activateDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Activated ✓</span>}
           </div>
         ) : null;
-        if (['approved', 'disbursed'].includes(row.status)) return <div><StatusPill status={row.status} />{badges}</div>;
+        if (['approved', 'disbursed', 'rejected'].includes(row.status)) return <div><StatusPill status={row.status} />{badges}</div>;
         if (!row.employeeStatus) return <div><StatusPill status={row.status} />{badges}</div>;
         const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
         const c = COLOR_MAP[row.employeeStatus.color] || '#94a3b8';
@@ -285,6 +300,25 @@ function AdminLeads() {
         );
       },
     },
+    {
+      title: <ColHead>Actions</ColHead>,
+      width: 70,
+      align: 'center',
+      render: (_, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Popconfirm
+            title="Delete this lead?"
+            description="This cannot be undone."
+            onConfirm={() => deleteLead(row._id)}
+            okText="Delete"
+            okButtonProps={{ danger: true }}
+            cancelText="Cancel"
+          >
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -327,14 +361,27 @@ function AdminLeads() {
             filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
             style={{ width: isMobile ? '100%' : 160, minWidth: 120 }}
           />
+          <Select
+            allowClear
+            placeholder="All Milestones"
+            value={milestoneFilter}
+            onChange={setMilestoneFilter}
+            options={[
+              { value: 'approved', label: 'Approved' },
+              { value: 'cpv', label: 'CPV Done' },
+              { value: 'activated', label: 'Activated' },
+              { value: 'spent', label: 'Spent' },
+            ]}
+            style={{ width: isMobile ? 'calc(50% - 3px)' : 150, minWidth: 120 }}
+          />
           {!isMobile && <DatePicker.RangePicker
             value={dateRange}
             onChange={setDateRange}
             allowClear
             style={{ width: 210, minWidth: 190 }}
           />}
-          {(search || statusFilter || productFilter || bankFilter || dateRange) && (
-            <Button size="small" type="text" style={{ color: '#7C3AED', flexShrink: 0 }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setBankFilter(undefined); setDateRange(null); }}>
+          {(search || statusFilter || productFilter || bankFilter || milestoneFilter || dateRange) && (
+            <Button size="small" type="text" style={{ color: '#7C3AED', flexShrink: 0 }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setBankFilter(undefined); setMilestoneFilter(undefined); setDateRange(null); }}>
               Clear
             </Button>
           )}

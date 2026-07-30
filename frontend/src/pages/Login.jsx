@@ -5,15 +5,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import { login, clearError } from '../store/slices/authSlice';
 
 const UAE_PASS_ERROR_MESSAGES = {
-  invalid_state:    'Session expired. Please try again.',
-  token_failed:     'UAE Pass authentication failed. Please try again.',
-  userinfo_failed:  'Could not retrieve your UAE Pass profile. Please try again.',
-  server_error:     'Something went wrong. Please try again.',
-  invalid_request:  'invalid_request - Cancelled by user on UAE PASS web. User cancelled the login. Code: invalid_request',
-  access_denied:    'access_denied - Cancelled by user on UAE PASS web. User cancelled the login. Code: access_denied',
-  cancelledOnApp:   'invalid_request - Cancelled by user on UAE PASS app. User cancelled the login. Code: invalid_request',
-  cancelledOnWeb:   'access_denied - Cancelled by user on UAE PASS web. User cancelled the login. Code: access_denied',
-  cancelledOnMobile:'access_denied - Cancelled by user on UAE PASS app. User cancelled the login. Code: access_denied',
+  invalid_state:    'Something went wrong during the login, please try again later!',
+  token_failed:     'Something went wrong during the login, please try again later!',
+  userinfo_failed:  'Something went wrong during the login, please try again later!',
+  server_error:     'Something went wrong during the login, please try again later!',
+  invalid_request:  'User cancelled the login.',
+  login_required:   'User cancelled the login.',
+  access_denied:    'User cancelled the login.',
+  cancelledOnApp:   'User cancelled the login.',
+  cancelledOnWeb:   'User cancelled the login.',
+  cancelledOnMobile:'User cancelled the login.',
+  unverified_user:  'You are not eligible to access this service. Your account is either not upgraded or you have a visitor account. Please contact MySilah to access the services.',
 };
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000';

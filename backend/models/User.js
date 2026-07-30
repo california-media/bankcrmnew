@@ -20,7 +20,9 @@ const userSchema = new mongoose.Schema(
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     leadCount: { type: Number, default: 0 },
     emiratesId: { type: String, default: null },
+    nationality: { type: String, trim: true, default: null },
     uaepassSub: { type: String, sparse: true, default: null },
+    uaepassTitle: { type: String, trim: true, default: null },
 
     // Agent bank details for payouts
     bankDetails: {

@@ -53,6 +53,7 @@ router.post('/:id/mark-paid', requireRole('admin'), ctrl.markCommissionPaid);
 router.post('/:id/release-hold', requireRole('admin'), ctrl.releaseHold);
 router.patch('/:id/agent-commission', requireRole('admin'), ctrl.setAgentCommission);
 router.delete('/:id/notes/:noteId', requireRole('admin'), ctrl.deleteNote);
+router.delete('/:id/admin-delete', requireRole('admin'), ctrl.adminDeleteLead);
 
 // Agency, admin, employee
 router.patch('/:id/status', requireRole('agency', 'admin', 'employee'), ctrl.updateStatus);

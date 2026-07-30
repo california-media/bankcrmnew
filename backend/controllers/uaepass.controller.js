@@ -16,9 +16,7 @@ const buildAuthUrl = (state) => {
     scope: 'urn:uae:digitalid:profile:general urn:uae:digitalid:profile',
     redirect_uri: REDIRECT_URI,
     state,
-    acr_values: IS_STAGING
-      ? 'urn:safelayer:tws:policies:authentication:level:low'
-      : 'urn:safelayer:tws:policies:authentication:level:2',
+    acr_values: 'urn:safelayer:tws:policies:authentication:level:low',
   });
   return `${BASE_URL}/authorize?${params.toString()}`;
 };
@@ -174,12 +172,18 @@ exports.callback = async (req, res) => {
     const info = await infoRes.json();
     console.log('[UAE Pass] userinfo:', JSON.stringify(info, null, 2));
 
+    const userType   = info.userType || '';
+    if (userType === 'SOP1') {
+      return res.redirect(`${errorOrigin}/${errorReturnPage}?uaepass_error=unverified_user`);
+    }
+
     const sub        = info.sub;
     const name       = info.fullnameEN || `${info.firstnameEN || ''} ${info.lastnameEN || ''}`.trim() || '';
     const email      = info.email      || null;
     const phone      = info.mobile     || null;
     const emiratesId = info.idn || info.nationalId || info.national_id || null;
     const nationality= info.nationalityEN || null;
+    const title      = info.titleEN    || null;
 
     // ── MANUAL LINK FLOW (scenarios 1.1.2, 1.1.3, 1.2.2, 1.2.3) ─────────────
     if (isLinkAction) {
@@ -193,10 +197,11 @@ exports.callback = async (req, res) => {
       }
 
       const updates = { uaepassSub: sub };
-      if (name        && name !== targetUser.name)              updates.name        = name;
-      if (phone       && phone !== targetUser.phone)            updates.phone       = phone;
-      if (emiratesId  && emiratesId !== targetUser.emiratesId)  updates.emiratesId  = emiratesId;
-      if (nationality && nationality !== targetUser.nationality) updates.nationality = nationality;
+      if (name        && name !== targetUser.name)                    updates.name         = name;
+      if (phone       && phone !== targetUser.phone)                  updates.phone        = phone;
+      if (emiratesId  && emiratesId !== targetUser.emiratesId)        updates.emiratesId   = emiratesId;
+      if (nationality && nationality !== targetUser.nationality)      updates.nationality  = nationality;
+      if (title       && title !== targetUser.uaepassTitle)           updates.uaepassTitle = title;
       await User.findByIdAndUpdate(targetUser._id, { $set: updates });
       return res.redirect(`${frontendUrl}/settings?uaepass=linked`);
     }
@@ -209,11 +214,12 @@ exports.callback = async (req, res) => {
 
     if (agent) {
       const updates = {};
-      if (!agent.uaepassSub)                                    updates.uaepassSub  = sub;
-      if (name        && name !== agent.name)                   updates.name        = name;
-      if (phone       && phone !== agent.phone)                 updates.phone       = phone;
-      if (emiratesId  && emiratesId !== agent.emiratesId)       updates.emiratesId  = emiratesId;
-      if (nationality && nationality !== agent.nationality)     updates.nationality = nationality;
+      if (!agent.uaepassSub)                                          updates.uaepassSub   = sub;
+      if (name        && name !== agent.name)                         updates.name         = name;
+      if (phone       && phone !== agent.phone)                       updates.phone        = phone;
+      if (emiratesId  && emiratesId !== agent.emiratesId)             updates.emiratesId   = emiratesId;
+      if (nationality && nationality !== agent.nationality)           updates.nationality  = nationality;
+      if (title       && title !== agent.uaepassTitle)                updates.uaepassTitle = title;
       if (Object.keys(updates).length) await User.findByIdAndUpdate(agent._id, { $set: updates });
       const token = signAuthToken(agent);
       return res.redirect(`${frontendUrl}/auth/uaepass/callback?token=${token}`);
@@ -244,8 +250,9 @@ exports.callback = async (req, res) => {
       referralCode: refCode,
       isActive: true,
       uaepassSub: sub,
-      ...(emiratesId  ? { emiratesId }  : {}),
-      ...(nationality ? { nationality } : {}),
+      ...(emiratesId   ? { emiratesId }        : {}),
+      ...(nationality  ? { nationality }        : {}),
+      ...(title        ? { uaepassTitle: title } : {}),
     });
 
     const token = signAuthToken(agent);

@@ -22,6 +22,7 @@ export default function exportLeadsToExcel(leads, { includeAgency = false } = {}
       'Lead Status': lead.status || '',
       'CPV Done': lead.cpvDone ? 'Yes' : 'No',
       'Activated': lead.activateDone ? 'Yes' : 'No',
+      'Spent Activation': lead.spendDone ? 'Yes' : 'No',
       'Disbursed': lead.status === 'disbursed' ? 'Yes' : 'No',
       'Rejected': lead.status === 'rejected' ? 'Yes' : 'No',
       'Commission Status': lead.commissionStatus || '',

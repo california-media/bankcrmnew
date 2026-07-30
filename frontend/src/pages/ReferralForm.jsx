@@ -4,6 +4,7 @@ import { Form, Input, InputNumber, Select, Button, Alert, Result, Row, Col, Spin
 import { SendOutlined, ReloadOutlined, CreditCardOutlined, BankOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { feeTypeLabel, feeTypeColors } from '../utils/cardFee';
+import { validateUAELocalPhone, toFullUAEPhone } from '../utils/validatePhone';
 
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || 'https://mysilah.s3.us-east-1.amazonaws.com';
 const API_BASE     = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -180,7 +181,7 @@ export default function ReferralForm() {
     draftTimerRef.current = setTimeout(async () => {
       try {
         const payload = {
-          customerName: customerName.trim(), phone: phone.trim(),
+          customerName: customerName.trim(), phone: toFullUAEPhone(phone),
           email: email.trim(), salary,
           nationality: all.nationality, city: all.city,
           companyName: all.companyName, jobTitle: all.jobTitle,
@@ -201,7 +202,7 @@ export default function ReferralForm() {
     setSubmitting(true);
     setError(null);
     try {
-      const payload = { ...values, productType };
+      const payload = { ...values, productType, phone: toFullUAEPhone(values.phone) };
       if (draftLeadIdRef.current) payload.leadId = draftLeadIdRef.current;
       const res = await axios.post(`${API_BASE}/public/ref/${code}/submit`, payload);
       if (res.data.redirectUrl) {
@@ -282,8 +283,11 @@ export default function ReferralForm() {
                     </Form.Item>
                   </Col>
                   <Col span={12}>
-                    <Form.Item name="phone" label="Mobile Number" rules={[{ required: true, message: 'Required' }]} style={MB}>
-                      <Input placeholder="+971 50 xxx xxxx" />
+                    <Form.Item name="phone" label="Mobile Number" rules={[{ required: true, message: 'Required' }, { validator: validateUAELocalPhone }]} style={MB}>
+                      <Input
+                        addonBefore={<span style={{ userSelect: 'none', pointerEvents: 'none', cursor: 'default' }}>🇦🇪 +971</span>}
+                        placeholder="501234567"
+                      />
                     </Form.Item>
                   </Col>
                   <Col span={12}>

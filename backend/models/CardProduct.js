@@ -25,6 +25,17 @@ const cardProductSchema = new mongoose.Schema(
       }],
       default: [],
     },
+    rewardBadges: {
+      type: [{
+        badgeOrder: { type: Number, default: 1 },
+        icon: { type: String, default: '' },
+        valueType: { type: String, enum: ['percent', 'text'], default: 'text' },
+        percentValue: { type: Number, default: null },
+        labelOrText: { type: String, default: '' },
+        _id: false,
+      }],
+      default: [],
+    },
     rate: { type: String, trim: true, default: '' },
     benefits: { type: String, default: '' },
     feesEligibility: { type: String, default: '' },

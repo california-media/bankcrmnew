@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>MySilah CRM — User Journey Flow</title>
+<style>
+:root{
+  --admin:#7C3AED; --agency:#0EA5E9; --agent:#10B981; --emp:#F59E0B;
+  --blog:#EC4899; --sys:#64748B; --danger:#EF4444; --success:#22C55E;
+  --bg:#F8F7FF; --card:#fff; --ink:#0B0F1E; --muted:#6B7186; --border:#E8E8EE;
+  --r:12px; --font:'Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:13px;line-height:1.55}
+.wrap{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+nav{width:236px;background:#fff;border-right:1px solid var(--border);position:sticky;top:0;height:100vh;overflow-y:auto;padding:20px 0;flex-shrink:0}
+.nav-logo{padding:0 18px 18px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.nav-brand{font-size:16px;font-weight:800;letter-spacing:-.02em}
+.nav-brand span{background:linear-gradient(135deg,#7C3AED,#0EA5E9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.nav-logo p{font-size:11px;color:var(--muted);margin-top:3px}
+nav a{display:flex;align-items:center;gap:7px;padding:7px 18px;font-size:12px;color:var(--muted);text-decoration:none;border-left:3px solid transparent;transition:.15s}
+nav a:hover{color:var(--ink);background:#f5f3ff}
+nav a.active{color:#7C3AED;border-left-color:#7C3AED;background:#f5f3ff;font-weight:600}
+.nav-section{padding:10px 18px 4px;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#b0b5c8;font-weight:600}
+.nav-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── MAIN ── */
+main{flex:1;padding:40px 52px;overflow-x:hidden;max-width:1200px}
+
+/* ── COVER ── */
+.cover{background:linear-gradient(135deg,#4C1D95 0%,#7C3AED 45%,#0EA5E9 100%);color:#fff;padding:44px 52px;border-radius:18px;margin-bottom:44px;position:relative;overflow:hidden}
+.cover::before,.cover::after{content:'';position:absolute;border-radius:50%;pointer-events:none}
+.cover::before{width:320px;height:320px;background:rgba(255,255,255,.06);top:-80px;right:-60px}
+.cover::after{width:200px;height:200px;background:rgba(255,255,255,.04);bottom:-60px;left:80px}
+.cover-tag{display:inline-block;background:rgba(255,255,255,.18);padding:3px 12px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.05em;margin-bottom:14px}
+.cover h1{font-size:30px;font-weight:800;letter-spacing:-.04em;margin-bottom:10px;line-height:1.1}
+.cover p{opacity:.82;font-size:14px;max-width:540px;line-height:1.65}
+.cover-meta{margin-top:28px;display:flex;flex-wrap:wrap;gap:22px;font-size:12px;opacity:.75}
+.cover-meta span{display:flex;align-items:center;gap:6px}
+
+/* ── SECTION HEADING ── */
+h2.sec{font-size:19px;font-weight:800;margin:44px 0 20px;letter-spacing:-.03em;display:flex;align-items:center;gap:10px}
+h2.sec .badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px}
+h3.sub{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:22px 26px;margin-bottom:16px}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:20px}
+.role-card{background:#fff;border:1.5px solid var(--border);border-radius:var(--r);padding:18px 20px;border-top-width:4px}
+.role-card h3{font-size:14px;margin-bottom:6px}
+.role-card p{color:var(--muted);font-size:12px;line-height:1.6}
+.role-card ul{margin:10px 0 0 16px;color:var(--muted);font-size:12px}
+.role-card ul li{margin-bottom:3px}
+
+/* ── SWIMLANE ── */
+.swimlane{width:100%;overflow-x:auto;margin:16px 0 28px}
+.sl-wrap{min-width:780px;display:grid;grid-template-columns:90px 1fr;border:1.5px solid var(--border);border-radius:14px;overflow:hidden}
+.sl-labels{display:flex;flex-direction:column}
+.sl-label{display:flex;align-items:center;justify-content:center;padding:0 10px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;writing-mode:horizontal-lr;border-bottom:1px solid var(--border);min-height:64px;text-align:center}
+.sl-label:last-child{border-bottom:none}
+.sl-lanes{display:flex;flex-direction:column}
+.sl-row{display:flex;align-items:center;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border);min-height:64px}
+.sl-row:last-child{border-bottom:none}
+.sl-node{background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:9px;padding:7px 12px;font-size:11.5px;font-weight:600;white-space:nowrap;text-align:center;line-height:1.35}
+.sl-arrow{color:#a78bfa;font-size:15px;flex-shrink:0}
+.sl-spacer{flex:1}
+.sl-node.n-agent {background:#f0fdf4;border-color:#a7f3d0;color:#166534}
+.sl-node.n-agency{background:#f0f9ff;border-color:#bae6fd;color:#0369a1}
+.sl-node.n-admin {background:#faf5ff;border-color:#c4b5fd;color:#5b21b6}
+.sl-node.n-emp   {background:#fffbeb;border-color:#fde68a;color:#92400e}
+.sl-node.n-sys   {background:#f1f5f9;border-color:#cbd5e1;color:#475569}
+.sl-node.n-ok    {background:#f0fdf4;border-color:#bbf7d0;color:#15803d}
+.sl-node.n-bad   {background:#fff1f2;border-color:#fecdd3;color:#be123c}
+.sl-node.n-cust  {background:#fdf4ff;border-color:#f0abfc;color:#7e22ce}
+
+/* ── FLOW (horizontal) ── */
+.flow{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:14px 0}
+.f-node{background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:9px;padding:8px 14px;font-size:11.5px;font-weight:600;text-align:center;line-height:1.4}
+.f-node.agent {background:#f0fdf4;border-color:#a7f3d0;color:#166534}
+.f-node.agency{background:#f0f9ff;border-color:#bae6fd;color:#0369a1}
+.f-node.admin {background:#faf5ff;border-color:#c4b5fd;color:#5b21b6}
+.f-node.emp   {background:#fffbeb;border-color:#fde68a;color:#92400e}
+.f-node.sys   {background:#f1f5f9;border-color:#cbd5e1;color:#475569}
+.f-node.ok    {background:#f0fdf4;border-color:#bbf7d0;color:#15803d}
+.f-node.bad   {background:#fff1f2;border-color:#fecdd3;color:#be123c}
+.f-arrow{color:#a78bfa;font-size:16px;flex-shrink:0}
+
+/* ── VERTICAL FLOW ── */
+.vflow{display:flex;flex-direction:column;gap:6px}
+.vflow-item{display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.vf-node{background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:9px;padding:7px 14px;font-size:11.5px;font-weight:600;width:100%;max-width:340px}
+.vf-node.agent {background:#f0fdf4;border-color:#a7f3d0;color:#166634}
+.vf-node.agency{background:#f0f9ff;border-color:#bae6fd;color:#0369a1}
+.vf-node.admin {background:#faf5ff;border-color:#c4b5fd;color:#5b21b6}
+.vf-node.sys   {background:#f1f5f9;border-color:#cbd5e1;color:#475569}
+.vf-node.ok    {background:#f0fdf4;border-color:#bbf7d0;color:#15803d}
+.vf-down{color:#a78bfa;font-size:16px;padding-left:14px}
+
+/* ── PIPELINE ── */
+.pipeline{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:14px 0}
+.s{padding:6px 14px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.s-draft   {background:#f1f5f9;color:#475569;border:1.5px solid #cbd5e1}
+.s-sub     {background:#eff6ff;color:#1d4ed8;border:1.5px solid #bfdbfe}
+.s-review  {background:#fefce8;color:#a16207;border:1.5px solid #fef08a}
+.s-assigned{background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa}
+.s-approved{background:#f0fdf4;color:#15803d;border:1.5px solid #bbf7d0}
+.s-disbursed{background:#faf5ff;color:#7e22ce;border:1.5px solid #e9d5ff}
+.s-rejected{background:#fff1f2;color:#be123c;border:1.5px solid #fecdd3}
+.s-arrow{color:#a78bfa;font-size:16px}
+
+/* ── TABLES ── */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 12px;background:#f8f7ff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:2px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid #f1f0f8;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#faf9ff}
+
+/* ── CHIPS ── */
+.chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;margin:1px;white-space:nowrap}
+.c-admin  {background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe}
+.c-agency {background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd}
+.c-agent  {background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+.c-emp    {background:#fffbeb;color:#b45309;border:1px solid #fde68a}
+.c-sys    {background:#f8fafc;color:#475569;border:1px solid #e2e8f0}
+
+/* ── JOURNEY LIST ── */
+.jlist{list-style:none;display:flex;flex-direction:column;gap:14px;margin-top:12px}
+.jlist li{display:flex;gap:14px;align-items:flex-start}
+.jnum{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex-shrink:0;margin-top:1px}
+.jbody strong{font-size:12.5px;font-weight:700;display:block;margin-bottom:3px}
+.jbody p{font-size:12px;color:var(--muted);line-height:1.6}
+code{font-size:11px;background:#f1f0f8;padding:1px 5px;border-radius:4px;font-family:monospace;color:#5b21b6}
+
+/* ── INFO BOX ── */
+.info{background:#faf5ff;border:1px solid #ede9fe;border-left:4px solid #7c3aed;border-radius:8px;padding:12px 16px;font-size:12px;color:#4c1d95;margin:12px 0;line-height:1.7}
+.info.blue{background:#eff6ff;border-color:#dbeafe;border-left-color:#3b82f6;color:#1e3a8a}
+.info.green{background:#f0fdf4;border-color:#dcfce7;border-left-color:#22c55e;color:#14532d}
+.info.amber{background:#fffbeb;border-color:#fde68a;border-left-color:#f59e0b;color:#78350f}
+
+/* ── TWO COL ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.two-col{grid-template-columns:1fr}}
+
+/* ── MISC ── */
+hr{border:none;border-top:1px solid var(--border);margin:36px 0}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.ldot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* Big number KPI */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;text-align:center}
+.kpi-n{font-size:26px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.kpi-l{font-size:11.5px;color:var(--muted);margin-top:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ════ SIDEBAR ════ -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-brand">My<span>Silah</span></div>
+    <p>CRM User Journey Flow</p>
+  </div>
+
+  <div class="nav-section">Overview</div>
+  <a href="#overview" class="active">System Overview</a>
+  <a href="#master-flow">Master Flow Diagram</a>
+  <a href="#roles">Role Summary</a>
+
+  <div class="nav-section">User Journeys</div>
+  <a href="#agent"><span class="nav-dot" style="background:#10B981"></span>Agent</a>
+  <a href="#agency"><span class="nav-dot" style="background:#0EA5E9"></span>Agency</a>
+  <a href="#employee"><span class="nav-dot" style="background:#F59E0B"></span>Employee</a>
+  <a href="#admin"><span class="nav-dot" style="background:#7C3AED"></span>Admin</a>
+  <a href="#blog"><span class="nav-dot" style="background:#EC4899"></span>Blog Editor</a>
+
+  <div class="nav-section">Workflows</div>
+  <a href="#lead-lifecycle">Lead Lifecycle</a>
+  <a href="#commission">Commission Flow</a>
+  <a href="#registration">Registration Flows</a>
+  <a href="#permissions">Permissions Matrix</a>
+</nav>
+
+<!-- ════ MAIN ════ -->
+<main>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-tag">v1.1 · August 2026</div>
+  <h1>MySilah CRM<br/>User Journey Flow</h1>
+  <p>Complete reference for all user roles, journeys through the platform, lead lifecycle states, commission flows, and access permissions.</p>
+  <div class="cover-meta">
+    <span>📋 5 User Roles</span>
+    <span>📍 6 Lead Statuses</span>
+    <span>💰 4 Commission States</span>
+    <span>🔐 Role-based Access</span>
+    <span>🏦 Credit Cards &amp; Personal Loans</span>
+  </div>
+</div>
+
+<!-- ═══ OVERVIEW ═══ -->
+<section id="overview">
+  <h2 class="sec">System Overview <span class="badge" style="background:#f5f3ff;color:#7c3aed">Platform Architecture</span></h2>
+
+  <div class="info">
+    MySilah CRM is a B2B2C lead management platform connecting <strong>Customers → Agents → Agencies → Banks</strong>. Agents capture customer leads for credit cards and personal loans. Agencies review and process them. Commissions flow back through the chain once a lead is approved and disbursed.
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-n" style="color:#10B981">Agent</div><div class="kpi-l">Captures &amp; submits leads</div></div>
+    <div class="kpi"><div class="kpi-n" style="color:#0EA5E9">Agency</div><div class="kpi-l">Reviews &amp; processes</div></div>
+    <div class="kpi"><div class="kpi-n" style="color:#64748B">Bank</div><div class="kpi-l">Approves &amp; disburses</div></div>
+    <div class="kpi"><div class="kpi-n" style="color:#7C3AED">Admin</div><div class="kpi-l">Oversees &amp; releases commission</div></div>
+  </div>
+</section>
+
+<!-- ═══ MASTER FLOW DIAGRAM ═══ -->
+<section id="master-flow">
+  <h2 class="sec">Master Flow Diagram <span class="badge" style="background:#f0fdf4;color:#15803d">Full End-to-End</span></h2>
+
+  <div class="card">
+    <h3 class="sub" style="margin-bottom:16px">Swimlane — Customer to Commission</h3>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:#fdf4ff;border:1.5px solid #f0abfc"></div>Customer</div>
+      <div class="legend-item"><div class="ldot" style="background:#f0fdf4;border:1.5px solid #a7f3d0"></div>Agent</div>
+      <div class="legend-item"><div class="ldot" style="background:#f0f9ff;border:1.5px solid #bae6fd"></div>Agency</div>
+      <div class="legend-item"><div class="ldot" style="background:#f1f5f9;border:1.5px solid #cbd5e1"></div>Bank / System</div>
+      <div class="legend-item"><div class="ldot" style="background:#faf5ff;border:1.5px solid #c4b5fd"></div>Admin</div>
+    </div>
+    <div class="swimlane">
+      <div class="sl-wrap">
+        <div class="sl-labels">
+          <div class="sl-label" style="color:#7e22ce;background:#fdf4ff">Customer</div>
+          <div class="sl-label" style="color:#166534;background:#f0fdf4">Agent</div>
+          <div class="sl-label" style="color:#0369a1;background:#f0f9ff">Agency</div>
+          <div class="sl-label" style="color:#334155;background:#f1f5f9">Bank</div>
+          <div class="sl-label" style="color:#5b21b6;background:#faf5ff">Admin</div>
+        </div>
+        <div class="sl-lanes">
+          <!-- Row 1 Customer -->
+          <div class="sl-row" style="background:#fdf4ff22">
+            <div class="sl-node n-cust">Browses MySilah.ae</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-cust">Applies via public form<br/><small style="font-weight:400;font-size:10px">or contacts agent directly</small></div>
+            <span class="sl-spacer"></span>
+          </div>
+          <!-- Row 2 Agent -->
+          <div class="sl-row" style="background:#f0fdf422">
+            <div class="sl-node n-agent">Creates lead<br/><small style="font-weight:400;font-size:10px">/agent/leads/new</small></div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-agent" style="border-color:#fde68a;background:#fffbeb;color:#92400e">DRAFT</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-agent">Send to Agency</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-sys" style="background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8">SUBMITTED</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-agent">Track at /agent/leads</div>
+            <span class="sl-spacer"></span>
+          </div>
+          <!-- Row 3 Agency -->
+          <div class="sl-row" style="background:#f0f9ff22">
+            <div class="sl-node n-agency">Receives lead<br/><small style="font-weight:400;font-size:10px">/agency/leads</small></div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-agency" style="background:#fefce8;border-color:#fef08a;color:#a16207">UNDER REVIEW</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-agency">Assign Employee</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-agency" style="background:#fff7ed;border-color:#fed7aa;color:#c2410c">ASSIGNED</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-agency">Upload Receipt</div>
+            <span class="sl-spacer"></span>
+          </div>
+          <!-- Row 4 Bank -->
+          <div class="sl-row" style="background:#f1f5f922">
+            <span class="sl-spacer"></span>
+            <div class="sl-node n-sys">Reviews application</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-ok">APPROVED</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-sys" style="background:#faf5ff;border-color:#e9d5ff;color:#7e22ce">DISBURSED</div>
+            <span class="sl-spacer"></span>
+          </div>
+          <!-- Row 5 Admin -->
+          <div class="sl-row" style="background:#faf5ff22">
+            <span class="sl-spacer"></span>
+            <div class="sl-node n-admin">Receives funds from bank</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-admin">Commission → PAYABLE</div>
+            <span class="sl-arrow">→</span>
+            <div class="sl-node n-ok">Pays Agent<br/><small style="font-weight:400;font-size:10px">commission PAID</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lead Status Flow visual -->
+  <div class="card">
+    <h3 class="sub">Lead Status Pipeline</h3>
+    <div class="flow" style="margin-top:14px">
+      <div class="f-node" style="background:#f1f5f9;border-color:#cbd5e1;color:#475569">DRAFT<br/><small style="font-weight:400;font-size:10px">Agent creates</small></div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8">SUBMITTED<br/><small style="font-weight:400;font-size:10px">Agent sends</small></div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#fefce8;border-color:#fef08a;color:#a16207">UNDER REVIEW<br/><small style="font-weight:400;font-size:10px">Agency reviews</small></div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#fff7ed;border-color:#fed7aa;color:#c2410c">ASSIGNED<br/><small style="font-weight:400;font-size:10px">Employee assigned</small></div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#f0fdf4;border-color:#bbf7d0;color:#15803d">APPROVED<br/><small style="font-weight:400;font-size:10px">Bank confirms</small></div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#faf5ff;border-color:#e9d5ff;color:#7e22ce">DISBURSED<br/><small style="font-weight:400;font-size:10px">Funds released</small></div>
+    </div>
+    <div class="flow" style="margin-top:4px">
+      <div style="font-size:11px;color:var(--muted);margin-right:6px">Any active status can move to →</div>
+      <div class="f-node bad">REJECTED<br/><small style="font-weight:400;font-size:10px">Terminal state</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ROLES ═══ -->
+<section id="roles">
+  <h2 class="sec">Role Summary</h2>
+  <div class="card-grid">
+    <div class="role-card" style="border-top-color:#7C3AED">
+      <h3 style="color:#7C3AED">🛡 Admin</h3>
+      <p>Full system access. Manages all users, products, leads, commissions, and platform content.</p>
+      <ul>
+        <li>Created internally — no registration</li>
+        <li>20+ management screens</li>
+        <li>Can override any lead state</li>
+        <li>Manages commission payouts</li>
+      </ul>
+    </div>
+    <div class="role-card" style="border-top-color:#0EA5E9">
+      <h3 style="color:#0EA5E9">🏢 Agency</h3>
+      <p>Company entity managing a team of agents and employees. Reviews, assigns, and processes leads.</p>
+      <ul>
+        <li>Self-register (admin approval) or admin-invite</li>
+        <li>Manages internal employees</li>
+        <li>Controls lead pipeline for their agents</li>
+      </ul>
+    </div>
+    <div class="role-card" style="border-top-color:#10B981">
+      <h3 style="color:#10B981">👤 Agent</h3>
+      <p>Field-level user who captures customer leads and tracks commissions. Earns per approved disbursed lead.</p>
+      <ul>
+        <li>Self-registers with email verification</li>
+        <li>Also supports UAE PASS</li>
+        <li>Earns commissions per product brackets</li>
+      </ul>
+    </div>
+    <div class="role-card" style="border-top-color:#F59E0B">
+      <h3 style="color:#b45309">🔧 Employee</h3>
+      <p>Agency's internal staff (CPV verifier or Sales). Assigned to leads for on-ground processing.</p>
+      <ul>
+        <li>Created by agency — never self-registers</li>
+        <li>Types: <code>cpv</code> or <code>sales</code></li>
+        <li>Marks CPV / activation / spend tasks</li>
+      </ul>
+    </div>
+    <div class="role-card" style="border-top-color:#EC4899">
+      <h3 style="color:#be185d">✍️ Blog Editor</h3>
+      <p>Content-only role for managing the MySilah blog. No access to leads or financial data.</p>
+      <ul>
+        <li>Created directly by admin</li>
+        <li>Access: blog posts only</li>
+        <li>No approval flow needed</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<hr/>
+
+<!-- ═══ AGENT JOURNEY ═══ -->
+<section id="agent">
+  <h2 class="sec">
+    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#10B981"></span>
+    Agent Journey
+    <span class="badge" style="background:#f0fdf4;color:#15803d">Self-registered · Email verified</span>
+  </h2>
+
+  <!-- Flow diagram -->
+  <div class="card">
+    <h3 class="sub">Agent End-to-End Flow</h3>
+    <div class="flow" style="flex-wrap:wrap;gap:8px">
+      <div class="f-node agent">Register<br/><small>/register</small></div>
+      <span class="f-arrow">→</span>
+      <div class="f-node sys">Email sent</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node agent">Verify link</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node agent">Login<br/><small>/agent</small></div>
+      <span class="f-arrow">→</span>
+      <div class="f-node agent">New Lead<br/><small>/agent/leads/new</small></div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#fffbeb;border-color:#fde68a;color:#92400e">DRAFT</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node agent">Send to Agency</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8">SUBMITTED</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node agent">Track + earn commission</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <h3 class="sub">Registration &amp; Onboarding</h3>
+      <ul class="jlist">
+        <li>
+          <div class="jnum" style="background:#dcfce7;color:#15803d">1</div>
+          <div class="jbody"><strong>Visit /register</strong>
+          <p>Fill: Full Name, Email, Password, Phone (UAE), Emirates ID (optional). Accept Terms.</p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#dcfce7;color:#15803d">2</div>
+          <div class="jbody"><strong>Or — UAE PASS</strong>
+          <p>Sign in with UAE PASS for instant Emirates ID verification. Prefills name, phone, Emirates ID.</p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#dcfce7;color:#15803d">3</div>
+          <div class="jbody"><strong>Email Verification</strong>
+          <p>Verification link sent. Agent must click to activate before login.</p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#dcfce7;color:#15803d">4</div>
+          <div class="jbody"><strong>Login → /agent Dashboard</strong>
+          <p>Monthly stats: total leads, approved count, commissions earned.</p></div>
+        </li>
+      </ul>
+    </div>
+    <div>
+      <h3 class="sub">Lead Submission Flow</h3>
+      <ul class="jlist">
+        <li>
+          <div class="jnum" style="background:#dcfce7;color:#15803d">1</div>
+          <div class="jbody"><strong>New Lead → /agent/leads/new</strong>
+          <p>Select product type (Credit Card or Personal Loan). Pick bank product from dropdown.</p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#dcfce7;color:#15803d">2</div>
+          <div class="jbody"><strong>Fill Customer Details</strong>
+          <p>Name, Phone, Email, Nationality, Visa Type, Salary, Company, Job Title, Loan Amount (if loan). Lead auto-numbered: <code>LD-ABCDEF-0001</code></p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#dcfce7;color:#15803d">3</div>
+          <div class="jbody"><strong>Save as Draft</strong>
+          <p>Status: <span class="s s-draft" style="font-size:10px;padding:2px 8px">DRAFT</span> WhatsApp consent auto-sent to customer.</p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#dcfce7;color:#15803d">4</div>
+          <div class="jbody"><strong>Send to Agency</strong>
+          <p>Status: <span class="s s-sub" style="font-size:10px;padding:2px 8px">SUBMITTED</span> Agency notified. Lead locked from edit.</p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#dcfce7;color:#15803d">5</div>
+          <div class="jbody"><strong>Track Progress</strong>
+          <p>Monitor status at /agent/leads. Track commissions at /agent/commissions.</p></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:8px">
+    <h3 class="sub">Agent Pages</h3>
+    <table style="margin-top:10px">
+      <thead><tr><th>Page</th><th>Route</th><th>Key Actions</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard</td><td><code>/agent</code></td><td>Monthly stats, lead counts, commission summary</td></tr>
+        <tr><td>My Leads</td><td><code>/agent/leads</code></td><td>List all leads, filter by status, engagement labels</td></tr>
+        <tr><td>New Lead</td><td><code>/agent/leads/new</code></td><td>Submit new lead for credit card or loan</td></tr>
+        <tr><td>Lead Detail</td><td><code>/agent/leads/:id</code></td><td>View status history, add notes, upload documents</td></tr>
+        <tr><td>Commissions</td><td><code>/agent/commissions</code></td><td>Commission ledger, pending and paid amounts</td></tr>
+        <tr><td>Products</td><td><code>/agent/products</code></td><td>Browse available card &amp; loan products with commission rates</td></tr>
+        <tr><td>Profile</td><td><code>/agent/profile</code></td><td>Update personal info, bank details for payout</td></tr>
+        <tr><td>Notifications</td><td><code>/agent/notifications</code></td><td>Status change alerts, approval notices</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="info green">
+    <strong>Commission Earning:</strong> Agent earns a % or fixed amount per product bracket. Commission starts as <em>pending</em> on approval, becomes <em>payable</em> after disbursement, and <em>paid</em> when admin processes payout. Credit card leads may have a <em>hold amount</em> released after minimum spend is confirmed.
+  </div>
+</section>
+
+<hr/>
+
+<!-- ═══ AGENCY JOURNEY ═══ -->
+<section id="agency">
+  <h2 class="sec">
+    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#0EA5E9"></span>
+    Agency Journey
+    <span class="badge" style="background:#f0f9ff;color:#0369a1">Self-register + Admin Approval · OR Admin Invite</span>
+  </h2>
+
+  <div class="card">
+    <h3 class="sub">Agency Registration Paths</h3>
+    <div class="two-col" style="margin-top:14px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:10px">Path A — Self Register</div>
+        <div class="vflow">
+          <div class="vflow-item"><div class="vf-node agency">1. Visit /register/agency → fill company details</div><div class="vf-down">↓</div></div>
+          <div class="vflow-item"><div class="vf-node sys">2. Account created — status: PENDING, isActive: false</div><div class="vf-down">↓</div></div>
+          <div class="vflow-item"><div class="vf-node admin">3. Admin reviews at /admin/agencies → Approves</div><div class="vf-down">↓</div></div>
+          <div class="vflow-item"><div class="vf-node ok">4. isActive: true → Agency can login</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#7c3aed;margin-bottom:10px">Path B — Admin Invite</div>
+        <div class="vflow">
+          <div class="vflow-item"><div class="vf-node admin">1. Admin creates agency at /admin/agencies</div><div class="vf-down">↓</div></div>
+          <div class="vflow-item"><div class="vf-node sys">2. Invite email sent (link valid 24 hours)</div><div class="vf-down">↓</div></div>
+          <div class="vflow-item"><div class="vf-node agency">3. Agency clicks link → sets password</div><div class="vf-down">↓</div></div>
+          <div class="vflow-item"><div class="vf-node ok">4. Immediately active — login at /login</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="sub">Agency Lead Processing Flow</h3>
+    <div class="flow" style="flex-wrap:wrap;gap:8px;margin-top:14px">
+      <div class="f-node agency">Receive lead<br/><small>SUBMITTED</small></div>
+      <span class="f-arrow">→</span>
+      <div class="f-node agency">Verify details</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#fefce8;border-color:#fef08a;color:#a16207">UNDER REVIEW</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node agency">Assign CPV/Sales employee</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#fff7ed;border-color:#fed7aa;color:#c2410c">ASSIGNED</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node agency">Bank approves</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node ok">APPROVED</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node agency">Upload receipt</div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#faf5ff;border-color:#e9d5ff;color:#7e22ce">DISBURSED</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="sub">Agency Pages</h3>
+    <table style="margin-top:10px">
+      <thead><tr><th>Page</th><th>Route</th><th>Key Actions</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard</td><td><code>/agency</code></td><td>Pipeline overview, lead counts by status, commission totals</td></tr>
+        <tr><td>Leads</td><td><code>/agency/leads</code></td><td>Full lead pipeline, bulk actions, export</td></tr>
+        <tr><td>Lead Detail</td><td><code>/agency/leads/:id</code></td><td>Update status, assign employee, upload receipt, add notes</td></tr>
+        <tr><td>Employees</td><td><code>/agency/employees</code></td><td>Create/manage CPV &amp; Sales employees</td></tr>
+        <tr><td>Payouts</td><td><code>/agency/payouts</code></td><td>Agency-level payout history</td></tr>
+        <tr><td>Agent Payouts</td><td><code>/agency/agent-payouts</code></td><td>Commissions owed to agents within agency</td></tr>
+        <tr><td>Pipeline</td><td><code>/agency/pipeline</code></td><td>Kanban view of active leads by stage</td></tr>
+        <tr><td>Consent Logs</td><td><code>/agency/consent-logs</code></td><td>WhatsApp consent status per lead</td></tr>
+        <tr><td>Reports</td><td><code>/agency/reports</code></td><td>Performance by agent, product, period</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr/>
+
+<!-- ═══ EMPLOYEE JOURNEY ═══ -->
+<section id="employee">
+  <h2 class="sec">
+    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#F59E0B"></span>
+    Employee Journey
+    <span class="badge" style="background:#fffbeb;color:#b45309">Created by Agency · CPV or Sales type</span>
+  </h2>
+
+  <div class="info amber">
+    Employees are internal agency staff — they never register themselves. The agency creates their account and sets credentials. Two types: <strong>CPV</strong> (Customer Presence Verification) and <strong>Sales</strong> (activation &amp; spend tracking).
+  </div>
+
+  <div class="two-col" style="margin-top:16px">
+    <div>
+      <h3 class="sub">Account Creation (by Agency)</h3>
+      <ul class="jlist">
+        <li>
+          <div class="jnum" style="background:#fef9c3;color:#b45309">1</div>
+          <div class="jbody"><strong>Agency → /agency/employees</strong>
+          <p>Clicks "Add Employee". Enters name, email, phone, type (cpv or sales).</p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#fef9c3;color:#b45309">2</div>
+          <div class="jbody"><strong>Agency Sets Password</strong>
+          <p>Via "Change Password" action. Shares credentials with employee offline.</p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#fef9c3;color:#b45309">3</div>
+          <div class="jbody"><strong>Employee Logs In → /employee</strong>
+          <p>Sees only leads assigned to them.</p></div>
+        </li>
+      </ul>
+    </div>
+    <div>
+      <h3 class="sub">Lead Processing Tasks</h3>
+      <ul class="jlist">
+        <li>
+          <div class="jnum" style="background:#fef9c3;color:#b45309">1</div>
+          <div class="jbody"><strong>View Assigned Leads → /employee/leads</strong>
+          <p>Agency has assigned them. Employee sees customer info and current status.</p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#fef9c3;color:#b45309">2</div>
+          <div class="jbody"><strong>Mark CPV Done</strong>
+          <p>(CPV type) Verify customer physical presence / ID. Mark <code>cpvDone ✓</code></p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#fef9c3;color:#b45309">3</div>
+          <div class="jbody"><strong>Mark Activation Done</strong>
+          <p>(Sales type) Card/loan activated with bank. Mark <code>activateDone ✓</code></p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#fef9c3;color:#b45309">4</div>
+          <div class="jbody"><strong>Mark Spend Done</strong>
+          <p>(Credit card) Customer meets minimum spend. Mark <code>spendDone ✓</code> — triggers hold release eligibility.</p></div>
+        </li>
+        <li>
+          <div class="jnum" style="background:#fef9c3;color:#b45309">5</div>
+          <div class="jbody"><strong>Update Consent &amp; Loan Status</strong>
+          <p>Track WhatsApp consent and loan processing stage via custom labels.</p></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:8px">
+    <h3 class="sub">Employee Pages</h3>
+    <table style="margin-top:10px">
+      <thead><tr><th>Page</th><th>Route</th><th>Access</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard</td><td><code>/employee</code></td><td>Assigned lead counts, pending tasks</td></tr>
+        <tr><td>Assigned Leads</td><td><code>/employee/leads</code></td><td>Only leads assigned to this employee</td></tr>
+        <tr><td>Lead Detail</td><td><code>/employee/leads/:id</code></td><td>Mark tasks, update consent/loan status, add notes</td></tr>
+        <tr><td>Pipeline</td><td><code>/employee/pipeline</code></td><td>Pipeline view of assigned leads</td></tr>
+        <tr><td>Consent Logs</td><td><code>/employee/consent-logs</code></td><td>WhatsApp consent tracking</td></tr>
+        <tr><td>Profile</td><td><code>/employee/profile</code></td><td>Personal info update only</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr/>
+
+<!-- ═══ ADMIN JOURNEY ═══ -->
+<section id="admin">
+  <h2 class="sec">
+    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#7C3AED"></span>
+    Admin Journey
+    <span class="badge" style="background:#f5f3ff;color:#7c3aed">Full system access · Internally created</span>
+  </h2>
+
+  <div class="info">
+    Admin accounts are created internally — no public registration. Admin has full read/write access to every entity. Key responsibilities: approve agencies, manage products, oversee lead pipeline, process commission payouts.
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h3 class="sub">Admin Capabilities Overview</h3>
+    <div class="two-col" style="margin-top:14px">
+      <div>
+        <div style="font-size:11.5px;font-weight:700;color:#7c3aed;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">User Management</div>
+        <ul style="margin:0 0 18px 16px;font-size:12px;color:var(--muted);line-height:1.9">
+          <li>Approve / reject self-registered agencies</li>
+          <li>Create agents &amp; agencies directly</li>
+          <li>Toggle any user active/inactive</li>
+          <li>View per-agent lead stats &amp; earnings</li>
+          <li>Create blog editors</li>
+        </ul>
+        <div style="font-size:11.5px;font-weight:700;color:#7c3aed;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Lead Management</div>
+        <ul style="margin:0 0 0 16px;font-size:12px;color:var(--muted);line-height:1.9">
+          <li>View ALL leads across all agents/agencies</li>
+          <li>Override any lead status transition</li>
+          <li>Set / override agent commission (% or fixed)</li>
+          <li>Delete leads entirely</li>
+          <li>Bulk: mark paid, mark received, release holds</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-size:11.5px;font-weight:700;color:#7c3aed;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Product Management</div>
+        <ul style="margin:0 0 18px 16px;font-size:12px;color:var(--muted);line-height:1.9">
+          <li>Create / edit banks</li>
+          <li>Create / edit credit card products</li>
+          <li>Create / edit loan products</li>
+          <li>Set commission brackets per product</li>
+          <li>Restrict products to specific agencies</li>
+        </ul>
+        <div style="font-size:11.5px;font-weight:700;color:#7c3aed;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">System &amp; Content</div>
+        <ul style="margin:0 0 0 16px;font-size:12px;color:var(--muted);line-height:1.9">
+          <li>Manage custom employee statuses</li>
+          <li>Post notices to users</li>
+          <li>Upload / manage legal pages</li>
+          <li>View reports &amp; consent logs</li>
+          <li>Manage blog category images</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="sub">Admin Pages</h3>
+    <table style="margin-top:10px">
+      <thead><tr><th>Page</th><th>Route</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>Dashboard</td><td><code>/admin</code></td><td>Platform KPIs, recent activity</td></tr>
+        <tr><td>Leads</td><td><code>/admin/leads</code></td><td>All leads, all statuses — full pipeline</td></tr>
+        <tr><td>Agents</td><td><code>/admin/agents</code></td><td>Create, manage, activate/deactivate agents</td></tr>
+        <tr><td>Agencies</td><td><code>/admin/agencies</code></td><td>Approve/reject registrations, manage agency settings</td></tr>
+        <tr><td>Banks</td><td><code>/admin/banks</code></td><td>Bank records, logos, active status</td></tr>
+        <tr><td>Card Products</td><td><code>/admin/card-products</code></td><td>Credit card catalog, commission brackets</td></tr>
+        <tr><td>Loan Products</td><td><code>/admin/loan-products</code></td><td>Loan catalog, commission brackets</td></tr>
+        <tr><td>Payouts</td><td><code>/admin/payouts</code></td><td>Process agent commissions, bulk mark paid</td></tr>
+        <tr><td>Receive</td><td><code>/admin/receive</code></td><td>Record money received from banks</td></tr>
+        <tr><td>Pipeline</td><td><code>/admin/pipeline</code></td><td>Kanban across all agencies</td></tr>
+        <tr><td>Reports</td><td><code>/admin/reports</code></td><td>Performance analytics, export</td></tr>
+        <tr><td>Employee Statuses</td><td><code>/admin/employee-statuses</code></td><td>Configure custom lead labels</td></tr>
+        <tr><td>Consent Logs</td><td><code>/admin/consent-logs</code></td><td>WhatsApp consent audit trail</td></tr>
+        <tr><td>Bucket Requests</td><td><code>/admin/bucket-requests</code></td><td>Manage overpayment credit buckets</td></tr>
+        <tr><td>Inquiries</td><td><code>/admin/inquiries</code></td><td>Customer inquiry messages</td></tr>
+        <tr><td>Notices</td><td><code>/admin/notices</code></td><td>Platform-wide announcements</td></tr>
+        <tr><td>Blog</td><td><code>/admin/blog</code></td><td>Create &amp; manage blog posts</td></tr>
+        <tr><td>Legal Pages</td><td><code>/admin/legal-pages</code></td><td>Terms, Privacy, etc.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<hr/>
+
+<!-- ═══ BLOG EDITOR ═══ -->
+<section id="blog">
+  <h2 class="sec">
+    <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:#EC4899"></span>
+    Blog Editor Journey
+    <span class="badge" style="background:#fdf2f8;color:#be185d">Content only · Created by Admin</span>
+  </h2>
+  <div class="card">
+    <ul class="jlist" style="margin-top:4px">
+      <li>
+        <div class="jnum" style="background:#fce7f3;color:#be185d">1</div>
+        <div class="jbody"><strong>Admin creates account at /admin</strong>
+        <p>Admin enters name, email, password. Account immediately active — no approval flow.</p></div>
+      </li>
+      <li>
+        <div class="jnum" style="background:#fce7f3;color:#be185d">2</div>
+        <div class="jbody"><strong>Login → /blog_editor</strong>
+        <p>Access restricted to blog management only. No visibility into leads, agents, commissions, or financial data.</p></div>
+      </li>
+      <li>
+        <div class="jnum" style="background:#fce7f3;color:#be185d">3</div>
+        <div class="jbody"><strong>Manage Blog Posts → /blog_editor/blog</strong>
+        <p>Create, edit, publish, and delete blog articles. Upload featured images.</p></div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<hr/>
+
+<!-- ═══ LEAD LIFECYCLE ═══ -->
+<section id="lead-lifecycle">
+  <h2 class="sec">Lead Lifecycle <span class="badge" style="background:#eef2ff;color:#4338ca">Full Status Flow</span></h2>
+
+  <div class="card">
+    <h3 class="sub">Status Pipeline</h3>
+    <div class="pipeline" style="margin-top:14px">
+      <span class="s s-draft">DRAFT</span><span class="s-arrow">→</span>
+      <span class="s s-sub">SUBMITTED</span><span class="s-arrow">→</span>
+      <span class="s s-review">UNDER REVIEW</span><span class="s-arrow">→</span>
+      <span class="s s-assigned">ASSIGNED</span><span class="s-arrow">→</span>
+      <span class="s s-approved">APPROVED</span><span class="s-arrow">→</span>
+      <span class="s s-disbursed">DISBURSED</span>
+    </div>
+    <div class="pipeline">
+      <span style="font-size:11px;color:var(--muted);margin-right:6px">Any active status →</span>
+      <span class="s s-rejected">REJECTED</span>
+      <span style="font-size:11px;color:var(--muted);margin-left:6px">(terminal · commission voided)</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="sub">Detailed Status Transitions</h3>
+    <table style="margin-top:10px">
+      <thead><tr><th>From</th><th>To</th><th>Who</th><th>What happens</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="s s-draft" style="font-size:10px;padding:2px 7px">DRAFT</span></td>
+          <td><span class="s s-sub" style="font-size:10px;padding:2px 7px">SUBMITTED</span></td>
+          <td><span class="chip c-agent">Agent</span></td>
+          <td>Agent clicks "Send to Agency". WhatsApp consent auto-sent. Lead locked from agent edits.</td>
+        </tr>
+        <tr>
+          <td><span class="s s-sub" style="font-size:10px;padding:2px 7px">SUBMITTED</span></td>
+          <td><span class="s s-review" style="font-size:10px;padding:2px 7px">UNDER REVIEW</span></td>
+          <td><span class="chip c-agency">Agency</span> <span class="chip c-admin">Admin</span></td>
+          <td>Agency reviews customer details, may update loan amount. Employee label set to "New Lead".</td>
+        </tr>
+        <tr>
+          <td><span class="s s-review" style="font-size:10px;padding:2px 7px">UNDER REVIEW</span></td>
+          <td><span class="s s-assigned" style="font-size:10px;padding:2px 7px">ASSIGNED</span></td>
+          <td><span class="chip c-agency">Agency</span> <span class="chip c-admin">Admin</span></td>
+          <td>CPV/Sales employee assigned. Employee notified. Tasks queued.</td>
+        </tr>
+        <tr>
+          <td><span class="s s-assigned" style="font-size:10px;padding:2px 7px">ASSIGNED</span></td>
+          <td><span class="s s-approved" style="font-size:10px;padding:2px 7px">APPROVED</span></td>
+          <td><span class="chip c-agency">Agency</span> <span class="chip c-admin">Admin</span></td>
+          <td>Bank confirms approval. Commission bracket calculated. Commission status → <em>pending</em>.</td>
+        </tr>
+        <tr>
+          <td><span class="s s-approved" style="font-size:10px;padding:2px 7px">APPROVED</span></td>
+          <td><span class="s s-disbursed" style="font-size:10px;padding:2px 7px">DISBURSED</span></td>
+          <td><span class="chip c-agency">Agency</span> <span class="chip c-admin">Admin</span></td>
+          <td>Agency uploads disbursement receipt. Commission → <em>payable</em>.</td>
+        </tr>
+        <tr>
+          <td><em>Any active</em></td>
+          <td><span class="s s-rejected" style="font-size:10px;padding:2px 7px">REJECTED</span></td>
+          <td><span class="chip c-agency">Agency</span> <span class="chip c-admin">Admin</span> <span class="chip c-emp">Employee</span></td>
+          <td>Bank declined or customer dropped out. Terminal. Commission voided.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 class="sub">Engagement Status (Agent-managed)</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Agent updates engagement status independently from main lead status to track customer interaction.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <span class="chip c-sys">New Lead</span>
+      <span class="chip c-sys">No Answer</span>
+      <span class="chip c-sys">Follow Up</span>
+      <span class="chip c-sys">Focused Follow Up</span>
+      <span class="chip c-sys">Meeting Scheduled</span>
+      <span class="chip c-sys">Not Interested</span>
+      <span class="chip c-sys">Junk</span>
+      <span class="chip c-sys">Pool</span>
+      <span class="chip c-agent">Closed Deal</span>
+    </div>
+  </div>
+</section>
+
+<hr/>
+
+<!-- ═══ COMMISSION FLOW ═══ -->
+<section id="commission">
+  <h2 class="sec">Commission Flow <span class="badge" style="background:#fffbeb;color:#b45309">none → pending → payable → paid</span></h2>
+
+  <div class="card">
+    <h3 class="sub" style="margin-bottom:16px">Commission State Transitions</h3>
+    <div class="flow" style="gap:8px">
+      <div class="f-node sys" style="text-align:center">
+        <div style="font-size:11px;font-weight:800">NONE</div>
+        <div style="font-size:10px;font-weight:400;color:#64748b">Lead created / draft</div>
+      </div>
+      <span class="f-arrow">→</span>
+      <div class="f-node" style="background:#fffbeb;border-color:#fde68a;text-align:center">
+        <div style="font-size:11px;font-weight:800;color:#b45309">PENDING</div>
+        <div style="font-size:10px;font-weight:400;color:#92400e">Lead approved by bank</div>
+      </div>
+      <span class="f-arrow">→</span>
+      <div class="f-node agency" style="text-align:center">
+        <div style="font-size:11px;font-weight:800">PAYABLE</div>
+        <div style="font-size:10px;font-weight:400">Disbursed + tasks done</div>
+      </div>
+      <span class="f-arrow">→</span>
+      <div class="f-node ok" style="text-align:center">
+        <div style="font-size:11px;font-weight:800">PAID</div>
+        <div style="font-size:10px;font-weight:400">Admin processes payout</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h3 class="sub">Loan Commission</h3>
+      <ul style="margin:10px 0 0 16px;font-size:12px;color:var(--muted);line-height:1.9">
+        <li>Calculated from product's commission brackets</li>
+        <li>Typically % of approved loan amount</li>
+        <li>Moves to <em>payable</em> after disbursement</li>
+        <li>No hold mechanism for loans</li>
+        <li>Admin marks <em>paid</em> + records payment date</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 class="sub">Credit Card Commission</h3>
+      <ul style="margin:10px 0 0 16px;font-size:12px;color:var(--muted);line-height:1.9">
+        <li>Fixed amount per approved card</li>
+        <li>Hold amount withheld until minimum spend confirmed</li>
+        <li>Employee marks <code>spendDone ✓</code></li>
+        <li>Admin releases hold → full commission becomes payable</li>
+        <li>Bulk hold-release available for admin</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<hr/>
+
+<!-- ═══ REGISTRATION FLOWS ═══ -->
+<section id="registration">
+  <h2 class="sec">Registration Flows</h2>
+
+  <div class="card-grid">
+    <div class="card" style="border-top:3px solid #10B981">
+      <h3 style="color:#10B981;margin-bottom:12px;font-size:13px">👤 Agent — Self Register</h3>
+      <div class="vflow">
+        <div class="vflow-item"><div class="vf-node agent">1. Visit /register → fill details</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node sys">2. Email verification link sent</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node agent">3. Click verify link</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node ok">4. Account active — login at /login</div></div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted)">Also supports UAE PASS for instant Emirates ID verification.</div>
+    </div>
+
+    <div class="card" style="border-top:3px solid #0EA5E9">
+      <h3 style="color:#0EA5E9;margin-bottom:12px;font-size:13px">🏢 Agency — Self Register + Approval</h3>
+      <div class="vflow">
+        <div class="vflow-item"><div class="vf-node agency">1. Visit /register/agency → fill details</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node sys">2. Account created — status: PENDING</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node admin">3. Admin reviews → approves</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node ok">4. isActive: true → can login</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="border-top:3px solid #7C3AED">
+      <h3 style="color:#7C3AED;margin-bottom:12px;font-size:13px">🛡 Agency — Admin Invite</h3>
+      <div class="vflow">
+        <div class="vflow-item"><div class="vf-node admin">1. Admin creates agency at /admin/agencies</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node sys">2. Invite email sent (link valid 24h)</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node agency">3. Agency clicks link → sets password</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node ok">4. Immediately active — login at /login</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="border-top:3px solid #F59E0B">
+      <h3 style="color:#b45309;margin-bottom:12px;font-size:13px">🔧 Employee — Created by Agency</h3>
+      <div class="vflow">
+        <div class="vflow-item"><div class="vf-node agency">1. Agency → /agency/employees → Add Employee</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node agency">2. Agency sets password directly</div><div class="vf-down">↓</div></div>
+        <div class="vflow-item"><div class="vf-node ok">3. Immediately active — login at /login</div></div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted)">No email verification or approval flow. Credentials shared offline.</div>
+    </div>
+  </div>
+</section>
+
+<hr/>
+
+<!-- ═══ PERMISSIONS ═══ -->
+<section id="permissions">
+  <h2 class="sec">Role Permissions Matrix</h2>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Action</th>
+          <th><span class="chip c-admin">Admin</span></th>
+          <th><span class="chip c-agency">Agency</span></th>
+          <th><span class="chip c-agent">Agent</span></th>
+          <th><span class="chip c-emp">Employee</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Submit new lead</td><td>✅</td><td>✅</td><td>✅</td><td>—</td></tr>
+        <tr><td>View own leads only</td><td>—</td><td>—</td><td>✅</td><td>✅ assigned</td></tr>
+        <tr><td>View all agency leads</td><td>✅</td><td>✅</td><td>—</td><td>—</td></tr>
+        <tr><td>View all leads (system-wide)</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Move lead to Under Review</td><td>✅</td><td>✅</td><td>—</td><td>—</td></tr>
+        <tr><td>Assign employee to lead</td><td>✅</td><td>✅</td><td>—</td><td>—</td></tr>
+        <tr><td>Approve / Reject lead</td><td>✅</td><td>✅</td><td>—</td><td>Reject only</td></tr>
+        <tr><td>Mark lead Disbursed</td><td>✅</td><td>✅</td><td>—</td><td>—</td></tr>
+        <tr><td>Upload disbursement receipt</td><td>✅</td><td>✅</td><td>—</td><td>—</td></tr>
+        <tr><td>Mark CPV / Activation / Spend done</td><td>✅</td><td>✅</td><td>—</td><td>✅</td></tr>
+        <tr><td>Delete DRAFT lead</td><td>✅</td><td>—</td><td>✅</td><td>—</td></tr>
+        <tr><td>Hard delete any lead</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Set / override commission</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Mark commission paid</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Release commission hold</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Manage employees</td><td>—</td><td>✅</td><td>—</td><td>—</td></tr>
+        <tr><td>Create / edit banks</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Create / edit products</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Approve / reject agency registrations</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>View commission ledger</td><td>✅</td><td>✅</td><td>✅ own</td><td>—</td></tr>
+        <tr><td>Import leads from Excel</td><td>✅</td><td>✅</td><td>—</td><td>—</td></tr>
+        <tr><td>Export leads to Excel</td><td>✅</td><td>✅</td><td>✅ own</td><td>—</td></tr>
+        <tr><td>Manage blog content</td><td>✅</td><td>—</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 class="sub">Lead Number Format</h3>
+    <p style="font-size:12.5px;color:var(--muted);line-height:1.8;margin-top:8px">
+      Every lead auto-assigned unique number on creation: <code>LD-ABCDEF-0001</code><br/>
+      Format: <strong>LD</strong> prefix — 6-char agent code — 4-digit sequence per agent.<br/>
+      Reference number is separate and manually set (e.g. bank application ID).
+    </p>
+  </div>
+
+  <div style="margin-top:28px;text-align:center;color:var(--muted);font-size:11px;padding:16px 0;border-top:1px solid var(--border)">
+    MySilah CRM · User Journey Flow Document · v1.1 · August 2026 · california-media
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('nav a[href^="#"]');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => { if(window.scrollY >= s.offsetTop - 120) current = s.id; });
+    links.forEach(a => { a.classList.toggle('active', a.getAttribute('href') === '#' + current); });
+  }, { passive: true });
+</script>
+</body>
+</html>

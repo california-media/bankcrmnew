@@ -42,6 +42,7 @@ exports.create = async (req, res) => {
 
     const commissionBrackets = parseJsonField(req.body.commissionBrackets);
     const cashbackCategories = parseJsonField(req.body.cashbackCategories);
+    const rewardBadges = parseJsonField(req.body.rewardBadges);
     const benefits = req.body.benefits || '';
     const feesEligibility = req.body.feesEligibility || '';
     const keyFeatures = req.body.keyFeatures || '';
@@ -57,6 +58,7 @@ exports.create = async (req, res) => {
       agency: agency || undefined,
       commissionBrackets,
       cashbackCategories,
+      rewardBadges,
       benefits,
       feesEligibility,
       keyFeatures,
@@ -96,6 +98,9 @@ exports.update = async (req, res) => {
     }
     if (req.body.cashbackCategories !== undefined) {
       update.cashbackCategories = parseJsonField(req.body.cashbackCategories);
+    }
+    if (req.body.rewardBadges !== undefined) {
+      update.rewardBadges = parseJsonField(req.body.rewardBadges);
     }
     if (req.body.benefits !== undefined) update.benefits = req.body.benefits || '';
     if (req.body.feesEligibility !== undefined) update.feesEligibility = req.body.feesEligibility || '';

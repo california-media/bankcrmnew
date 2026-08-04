@@ -162,6 +162,13 @@ function CardProducts() {
         category: cat.category?._id || cat.category,
         rate: cat.rate ?? null,
       })),
+      rewardBadges: (c.rewardBadges || []).map((b) => ({
+        badgeOrder: b.badgeOrder ?? 1,
+        icon: b.icon || '',
+        valueType: b.valueType || 'text',
+        percentValue: b.percentValue ?? null,
+        labelOrText: b.labelOrText || '',
+      })),
       rate: c.rate || '',
       redirectUrl: c.redirectUrl || '',
       redirectActive: c.redirectActive || false,
@@ -189,6 +196,7 @@ function CardProducts() {
       fd.append('clawbackDays', values.clawbackDays || 0);
       fd.append('commissionBrackets', JSON.stringify(values.commissionBrackets || []));
       fd.append('cashbackCategories', JSON.stringify(values.cashbackCategories || []));
+      fd.append('rewardBadges', JSON.stringify(values.rewardBadges || []));
       fd.append('benefits', benefitsHtml);
       fd.append('feesEligibility', feesHtml);
       fd.append('keyFeatures', keyFeaturesHtml);
@@ -535,6 +543,69 @@ function CardProducts() {
                 ))}
                 <Button type="dashed" onClick={() => add()} icon={<PlusOutlined />} block>
                   Add Category
+                </Button>
+              </>
+            )}
+          </Form.List>
+
+          <Divider orientation="left" style={{ fontSize: 13 }}>Reward Badges</Divider>
+          <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 12 }}>
+            Up to 3 highlight badges shown on the card. Use an emoji icon, choose percent or text type.
+          </Typography.Text>
+
+          <Form.List name="rewardBadges">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name }) => (
+                  <Space key={key} align="baseline" style={{ display: 'flex', marginBottom: 8 }} wrap>
+                    <Form.Item name={[name, 'icon']} style={{ marginBottom: 0 }}>
+                      <Input placeholder="🎁" style={{ width: 64, textAlign: 'center', fontSize: 18 }} maxLength={4} />
+                    </Form.Item>
+                    <Form.Item
+                      name={[name, 'valueType']}
+                      initialValue="text"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Select style={{ width: 100 }} options={[
+                        { value: 'text', label: 'Text' },
+                        { value: 'percent', label: 'Percent' },
+                      ]} />
+                    </Form.Item>
+                    <Form.Item
+                      noStyle
+                      shouldUpdate={(prev, cur) =>
+                        prev.rewardBadges?.[name]?.valueType !== cur.rewardBadges?.[name]?.valueType
+                      }
+                    >
+                      {({ getFieldValue }) =>
+                        getFieldValue(['rewardBadges', name, 'valueType']) === 'percent' ? (
+                          <Form.Item name={[name, 'percentValue']} style={{ marginBottom: 0 }}>
+                            <InputNumber min={0} max={100} step={0.5} placeholder="%" addonAfter="%" style={{ width: 110 }} />
+                          </Form.Item>
+                        ) : null
+                      }
+                    </Form.Item>
+                    <Form.Item
+                      name={[name, 'labelOrText']}
+                      rules={[{ required: true, message: 'Label required' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input placeholder="e.g. Non-AED Spend" style={{ width: 220 }} />
+                    </Form.Item>
+                    <MinusCircleOutlined
+                      onClick={() => remove(name)}
+                      style={{ color: '#ff4d4f', cursor: 'pointer' }}
+                    />
+                  </Space>
+                ))}
+                <Button
+                  type="dashed"
+                  onClick={() => add({ badgeOrder: fields.length + 1, icon: '', valueType: 'text', percentValue: null, labelOrText: '' })}
+                  icon={<PlusOutlined />}
+                  block
+                  disabled={fields.length >= 3}
+                >
+                  Add Badge {fields.length >= 3 ? '(max 3)' : ''}
                 </Button>
               </>
             )}

@@ -391,25 +391,6 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   .af-consent input{margin-top:2px; accent-color:var(--violet); flex-shrink:0;}
   .af-submit{width:100%; font-family:var(--font-b); font-weight:600; font-size:14.5px; color:#fff; border:none; cursor:pointer; padding:15px; border-radius:13px; background:var(--line); box-shadow:0 12px 28px rgba(123,63,228,.3); transition:transform .2s;}
   .af-submit:hover{transform:translateY(-2px);}
-  .af-back-btn{font-family:var(--font-b); font-weight:600; font-size:14px; color:var(--line); background:transparent; border:2px solid var(--line); cursor:pointer; padding:14px 20px; border-radius:13px; transition:opacity .2s; white-space:nowrap;}
-  .af-back-btn:hover{opacity:.7;}
-  .af-phone-wrap{display:flex; align-items:center; gap:0; border:1.5px solid var(--silk); border-radius:10px; overflow:hidden; background:#fff;}
-  .af-phone-prefix{padding:0 12px; font-size:13.5px; font-weight:600; color:var(--ink); white-space:nowrap; border-right:1.5px solid var(--silk); background:#f8f6ff; height:48px; display:flex; align-items:center;}
-  .af-phone-wrap .af-input{border:none; border-radius:0; flex:1; min-width:0;}
-  .af-step-badge{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.5px; color:#7C3AED; background:#EDE9FE; padding:3px 10px; border-radius:20px; margin-bottom:6px;}
-  .edu-byline{display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:12px; color:var(--mist); margin:2px 0 24px;}
-  .edu-byline-dot{opacity:.5;}
-  .edu-glance{background:var(--line-soft); border-radius:16px; padding:22px 26px; margin-bottom:28px;}
-  .edu-glance-title{font-family:var(--font-d); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.5px; color:var(--violet); margin-bottom:10px;}
-  .edu-glance-list{margin:0 0 0 18px; font-size:13.5px; line-height:1.7; color:var(--ink);}
-  .edu-glance-list li{margin-bottom:6px;}
-  .edu-glance-list li:last-child{margin-bottom:0;}
-  .edu-toc{background:#fff; border:1px solid rgba(139,146,184,.18); border-radius:16px; padding:20px 26px; margin-bottom:32px;}
-  .edu-toc-title{font-family:var(--font-d); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.5px; color:var(--ink); margin-bottom:10px;}
-  .edu-toc-list{display:grid; grid-template-columns:repeat(2,1fr); gap:6px 24px; margin:0; list-style:none; padding:0;}
-  @media(max-width:600px){ .edu-toc-list{grid-template-columns:1fr;} }
-  .edu-toc-list a{font-size:13px; color:var(--blue); text-decoration:none; font-weight:600;}
-  .edu-toc-list a:hover{text-decoration:underline;}
   .af-secure{display:flex; align-items:center; justify-content:center; gap:6px; font-size:11px; color:var(--mist); margin-top:14px;}
   .apply-success{display:none; text-align:center; padding:20px 6px 6px;}
   .apply-success.show{display:block;}
@@ -553,14 +534,14 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   <section class="hero">
     <div class="hero-copy">
       <div class="eyebrow">Connect · Empower · Grow</div>
-      <h1>Compare the Best Credit Cards in UAE 2026. <span class="g">Cashback, Travel and Islamic Cards Online.</span></h1>
-      <p class="hero-sub">Tell us your salary and spending habits once, and MySilah compares every credit card in UAE from every major bank to hand you the single match worth applying for.</p>
+      <h1>183 cards on the market. <span class="g">One tied to you.</span></h1>
+      <p class="hero-sub">Tell us your salary and spending habits once — MySilah threads through every UAE bank card and hands you the single match worth applying for.</p>
       <div class="hero-actions">
         <button class="btn-primary" onclick="openMatchModal();">Find My Match →</button>
-        <button class="btn-ghost" id="heroBrowseAllBtn" onclick="document.querySelector('.filter-rail').scrollIntoView({behavior:'smooth'});">Browse All Cards</button>
+        <button class="btn-ghost" onclick="document.querySelector('.filter-rail').scrollIntoView({behavior:'smooth'});">Browse All 183</button>
       </div>
       <div class="hero-trust">
-        <div><div class="ht-num" id="heroCardCount">—</div><div class="ht-lbl">Cards Compared</div></div>
+        <div><div class="ht-num">183</div><div class="ht-lbl">Cards Threaded</div></div>
         <div><div class="ht-num">24</div><div class="ht-lbl">UAE Banks</div></div>
         <div><div class="ht-num">2 min</div><div class="ht-lbl">To Your Match</div></div>
       </div>
@@ -686,12 +667,12 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   </div>
 </div>
 
-<!-- <div class="trust">
+<div class="trust">
   <div class="trust-item"><div class="trust-ic">🔒</div><div><div class="trust-h">Bank-Grade Security</div><div class="trust-s">Your data stays yours</div></div></div>
   <div class="trust-item"><div class="trust-ic">⚡</div><div><div class="trust-h">Instant Matching</div><div class="trust-s">Ranked results in seconds</div></div></div>
   <div class="trust-item"><div class="trust-ic">🆓</div><div><div class="trust-h">Always Free</div><div class="trust-s">We never charge applicants</div></div></div>
   <div class="trust-item"><div class="trust-ic">🤝</div><div><div class="trust-h">26 Bank Partners</div><div class="trust-s">Every major UAE issuer</div></div></div>
-</div> -->
+</div>
 
 <section class="edu-section" id="credit-card-guide">
   <div class="edu-wrap">
@@ -699,43 +680,8 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       <h2 class="section-title">📚 Everything You Need to Know About Credit Cards in the UAE</h2>
     </div>
 
-    <div class="edu-byline">
-      <span>✍️ Written by the <strong>MySilah Content Team</strong></span>
-      <span class="edu-byline-dot">•</span>
-      <span>🔎 Reviewed by <strong>MySilah's Research &amp; Compliance Desk</strong></span>
-      <span class="edu-byline-dot">•</span>
-      <span>🕒 Last reviewed: <strong id="guideLastUpdated">30 July 2026</strong></span>
-    </div>
-
-    <div class="edu-glance">
-      <div class="edu-glance-title">At a Glance</div>
-      <ul class="edu-glance-list">
-        <li>A credit card lets you borrow up to an approved limit and repay it later, interest free if you clear the balance in full each month.</li>
-        <li>There are six main types of credit cards in the UAE: cashback, rewards, travel, Islamic, dining and fuel cards.</li>
-        <li>Most banks require a minimum monthly salary of around AED 5,000, though premium cards ask for considerably more.</li>
-        <li>Paying on time every month is one of the simplest ways to build a strong Al Etihad Credit Bureau score.</li>
-        <li>MySilah compares real credit cards in the UAE, matched instantly to your salary and spending habits.</li>
-      </ul>
-    </div>
-
-    <div class="edu-toc">
-      <div class="edu-toc-title">On This Page</div>
-      <ul class="edu-toc-list">
-        <li><a href="#guide-features">Features and Benefits</a></li>
-        <li><a href="#guide-types">Types of Credit Cards</a></li>
-        <li><a href="#guide-how-it-works">How a Credit Card Works</a></li>
-        <li><a href="#guide-fees">Fees and Charges</a></li>
-        <li><a href="#guide-pros-cons">Pros and Cons</a></li>
-        <li><a href="#guide-eligibility">Who Can Apply</a></li>
-        <li><a href="#guide-how-to-choose">How to Choose</a></li>
-        <li><a href="#guide-when-to-apply">When to Apply</a></li>
-        <li><a href="#guide-mistakes">Common Mistakes</a></li>
-        <li><a href="#guide-faq">FAQs</a></li>
-      </ul>
-    </div>
-
     <div class="edu-block">
-      <h3 class="edu-h3" id="guide-features">Features and Benefits of a Credit Card in the UAE</h3>
+      <h3 class="edu-h3">Features and Benefits of a Credit Card in the UAE</h3>
       <p class="edu-p">A credit card gives you a spending limit set by your bank, and you pay it back later instead of handing over cash on the spot. Used properly, that simple idea comes with a handful of real advantages.</p>
       <table class="edu-table">
         <tr><th>Feature</th><th>What it actually means for you</th></tr>
@@ -748,19 +694,16 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     </div>
 
     <div class="edu-block">
-      <h3 class="edu-h3" id="guide-types">Types of Credit Cards Available in the UAE</h3>
+      <h3 class="edu-h3">Types of Credit Cards Available in the UAE</h3>
       <p class="edu-p">Not every card is built the same way. Here's a quick rundown of the main types you'll come across while comparing cards on this page.</p>
       <ul class="edu-list">
-        <li><strong>Cashback Credit Cards</strong> return a percentage of what you spend straight back onto your statement. The simplest type to understand and use.</li>
-        <li><strong>Rewards or Points Credit Cards</strong> earn points on your spend that you redeem for flights, vouchers or merchandise.</li>
-        <li><strong>Travel and Air Miles Credit Cards</strong> are built for frequent flyers, earning miles and often bundling in lounge access. If Emirates is your airline, look specifically for Skywards branded credit cards, which earn Emirates Skywards Miles directly rather than generic points you'd need to convert.</li>
-        <li><strong>Islamic (Shari'ah Compliant) Credit Cards</strong> run on a profit based structure such as Murabaha instead of interest, so there's no Riba involved. Banks typically offer these as a distinct product line through their Islamic banking arm, which makes them straightforward to identify and compare separately from conventional cards.</li>
-        <li><strong>Dining Credit Cards</strong> concentrate their best rates on restaurants and food delivery apps.</li>
-        <li><strong>Fuel Credit Cards</strong> pay you back more at the pump, useful if you drive often.</li>
-        <li><strong>Zero Annual Fee Credit Cards</strong> cost nothing to hold each year, a sensible starting point for a first card.</li>
-        <li><strong>Balance Transfer Credit Cards</strong> let you move an outstanding balance from another card over at a reduced or 0% rate for a promotional period, useful if you're paying high interest elsewhere.</li>
-        <li><strong>School Fee Credit Cards</strong> treat education as its own reward category. Some pay back as much as 10% on tuition, well above their standard cashback rate.</li>
-        <li><strong>Cinema and Entertainment Credit Cards</strong> often include Buy 1 Get 1 tickets at VOX, Reel or Novo as a standard benefit, worth checking before you assume you need a premium card just for that.</li>
+        <li><strong>Cashback cards</strong> return a percentage of what you spend straight back onto your statement. The simplest type to understand and use.</li>
+        <li><strong>Rewards or points cards</strong> earn points on your spend that you redeem for flights, vouchers or merchandise.</li>
+        <li><strong>Travel and air miles cards</strong> are built for frequent flyers, earning miles and often bundling in lounge access.</li>
+        <li><strong>Islamic (Shari'ah compliant) cards</strong> run on a profit based structure such as Murabaha instead of interest, so there's no Riba involved.</li>
+        <li><strong>Dining cards</strong> concentrate their best rates on restaurants and food delivery apps.</li>
+        <li><strong>Fuel cards</strong> pay you back more at the pump, useful if you drive often.</li>
+        <li><strong>Zero annual fee cards</strong> cost nothing to hold each year, a sensible starting point for a first card.</li>
       </ul>
       <table class="edu-table">
         <tr><th>Category</th><th>Best for</th><th>Typical benefit</th></tr>
@@ -770,20 +713,18 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
         <tr><td>Dining</td><td>People who eat out often</td><td>Cashback and discounts at restaurants</td></tr>
         <tr><td>Islamic</td><td>Those who want Shari'ah compliant finance</td><td>Profit based structure with no interest</td></tr>
         <tr><td>Zero fee</td><td>First time cardholders</td><td>No annual cost while you build your credit history</td></tr>
-        <tr><td>Balance transfer</td><td>Paying off debt on another card</td><td>Reduced or 0% rate for a promotional period</td></tr>
-        <tr><td>School fees</td><td>Parents paying UAE tuition</td><td>Up to 10% back on education spend</td></tr>
       </table>
     </div>
 
     <div class="edu-block">
-      <h3 class="edu-h3" id="guide-how-it-works">How Does a Credit Card Actually Work?</h3>
+      <h3 class="edu-h3">How Does a Credit Card Actually Work?</h3>
       <p class="edu-p">When a bank approves your application, they set a credit limit, the maximum you can spend before you need to pay some of it back. Every time you tap, swipe or enter your card details online, the bank pays the merchant on your behalf. At the end of each billing cycle, usually around 30 days, you receive a statement showing everything you spent.</p>
       <p class="edu-p">From there you have a choice. Pay the full balance by the due date and you generally pay no interest at all. Most UAE banks give an interest free period of roughly 45 to 55 days on new purchases. Pay only part of it, or just the minimum due, and the bank starts charging interest, often called the retail rate, on whatever balance is left outstanding.</p>
       <div class="edu-callout">💡 Two numbers matter most when you're comparing cards: the interest rate you'd pay if you carried a balance, and the annual fee, if there is one. If you always clear your statement in full, the interest rate barely matters. If you sometimes carry a balance, it matters a great deal.</div>
     </div>
 
     <div class="edu-block">
-      <h3 class="edu-h3" id="guide-fees">Typical Fees and Charges to Know Before You Apply</h3>
+      <h3 class="edu-h3">Typical Fees and Charges to Know Before You Apply</h3>
       <table class="edu-table">
         <tr><th>Charge</th><th>When it applies</th></tr>
         <tr><td>Annual fee</td><td>The yearly cost of holding the primary card. Some are free for life, some waive it in year one</td></tr>
@@ -798,7 +739,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     </div>
 
     <div class="edu-block">
-      <h3 class="edu-h3" id="guide-pros-cons">The Real Pros and Cons of Carrying a Credit Card</h3>
+      <h3 class="edu-h3">The Real Pros and Cons of Carrying a Credit Card</h3>
       <div class="edu-two-col">
         <div>
           <p class="edu-p" style="font-weight:700; color:var(--ink);">Pros</p>
@@ -823,7 +764,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     </div>
 
     <div class="edu-block">
-      <h3 class="edu-h3" id="guide-eligibility">Who Can Apply, and What You'll Typically Need</h3>
+      <h3 class="edu-h3">Who Can Apply, and What You'll Typically Need</h3>
       <p class="edu-p">Every bank sets its own criteria, but most UAE credit cards share a similar baseline: you'll usually need to be at least 21 years old, a UAE resident or national, in salaried or self employed work, and earning a minimum monthly income that varies by card, often starting around AED 5,000.</p>
       <div class="edu-two-col">
         <div>
@@ -847,12 +788,11 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
           </ul>
         </div>
       </div>
-      <p class="edu-p" style="margin-top:16px;">You also don't have to move your salary to a bank to get a card there. Most UAE banks approve applications based on your last 3 to 6 months of bank statements instead of a salary transfer, which is useful if you'd rather keep your main account elsewhere or hold cards from more than one bank. The tradeoff is usually a slightly lower starting credit limit, since the bank has less direct visibility into your income.</p>
       <p class="edu-p" style="margin-top:16px;"><strong>A few things that genuinely improve your approval odds:</strong> keep every bill paid on or before the due date, since missed payments are the single biggest drag on your credit score. Pay in full whenever you can, since partial payments quietly add interest and grow what you owe. Try to keep your credit utilisation, how much of your limit you're actually using, under roughly 30%. Avoid applying for several cards in a short window, since each application triggers a credit check that can briefly lower your score. And don't close old cards just to tidy up your wallet, since older accounts support your credit history and closing them can raise your utilisation ratio.</p>
     </div>
 
     <div class="edu-block">
-      <h3 class="edu-h3" id="guide-how-to-choose">How to Actually Choose the Right Card for You</h3>
+      <h3 class="edu-h3">How to Actually Choose the Right Card for You</h3>
       <ul class="edu-list">
         <li><strong>Start with your own spending, not the card's marketing.</strong> Look at where your money genuinely goes each month, groceries, dining, fuel, travel, and match a card's strongest category to that.</li>
         <li><strong>Weigh the annual fee against what you'd realistically earn back.</strong> A card with a fee isn't automatically worse than a free one if the rewards comfortably outweigh the cost for how you actually spend.</li>
@@ -863,13 +803,13 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     </div>
 
     <div class="edu-block">
-      <h3 class="edu-h3" id="guide-when-to-apply">When to Apply for a Credit Card in the UAE</h3>
+      <h3 class="edu-h3">When to Apply for a Credit Card in the UAE</h3>
       <p class="edu-p"><strong>Good timing looks like this:</strong> you've had a stable salary landing in your UAE bank account for at least three months, your employer is on the bank's approved list, you comfortably meet the minimum income for the card you want, or you're just starting out and want an entry level card to begin building credit.</p>
       <p class="edu-p"><strong>It's usually worth waiting</strong> if you're still in your probation period at a new job, since banks want to see a consistent salary history first, or if a previous credit card application was rejected recently. Most banks prefer you wait around 90 days before applying again.</p>
     </div>
 
     <div class="edu-block">
-      <h3 class="edu-h3" id="guide-mistakes">Common Mistakes That Quietly Cost Cardholders Money</h3>
+      <h3 class="edu-h3">Common Mistakes That Quietly Cost Cardholders Money</h3>
       <div class="edu-two-col">
         <div>
           <p class="edu-p" style="font-weight:700; color:var(--ink);">Money mistakes</p>
@@ -895,7 +835,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     </div>
 
     <div class="edu-block" style="margin-bottom:8px;">
-      <h3 class="edu-h3" id="guide-faq">Frequently Asked Questions</h3>
+      <h3 class="edu-h3">Frequently Asked Questions</h3>
       <div class="faq-list">
         <div class="faq-item">
           <button class="faq-q" onclick="toggleFaq(this)">What is the minimum salary needed for a credit card in the UAE?<span class="faq-q-ic">+</span></button>
@@ -906,44 +846,20 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
           <div class="faq-a"><div class="faq-a-inner">Yes. Each application triggers a credit check, and applying for multiple cards in a short space of time can lower your score and make banks more cautious about approving you.</div></div>
         </div>
         <div class="faq-item">
+          <button class="faq-q" onclick="toggleFaq(this)">Can I actually get a credit card in the UAE?<span class="faq-q-ic">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">If you're at least 21 years old and earning roughly AED 5,000 or more a month, you're generally eligible to apply, though the exact requirement depends on the specific card and bank.</div></div>
+        </div>
+        <div class="faq-item">
           <button class="faq-q" onclick="toggleFaq(this)">Do UAE credit cards come with cashback or rewards?<span class="faq-q-ic">+</span></button>
           <div class="faq-a"><div class="faq-a-inner">Yes, most do. Depending on the card, you could earn cashback, reward points, air miles, or lifestyle perks like lounge access and dining discounts.</div></div>
         </div>
         <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">Can a self employed or freelance person get a credit card in the UAE?<span class="faq-q-ic">+</span></button>
-          <div class="faq-a"><div class="faq-a-inner">Yes. Instead of a salary certificate, banks typically ask for your trade licence, Emirates ID, and 6 to 12 months of business bank statements, and lean more heavily on your income stability and average balance than a salaried applicant. Approval is common, though the shortlist of suitable cards is usually narrower and starting credit limits can be lower until you build a track record with the bank.</div></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">Can I get a credit card in the UAE without salary transfer?<span class="faq-q-ic">+</span></button>
-          <div class="faq-a"><div class="faq-a-inner">Yes. Several major UAE banks approve credit cards without requiring you to move your salary to them, verifying your income instead through 3 to 6 months of bank statements. The tradeoff is usually a lower starting credit limit and a slightly higher fee, since the bank has less visibility into your finances than it would with your salary landing directly in their account.</div></div>
+          <button class="faq-q" onclick="toggleFaq(this)">Can a self employed person get a credit card here?<span class="faq-q-ic">+</span></button>
+          <div class="faq-a"><div class="faq-a-inner">Yes, though you'll usually need to show your trade licence and several months of business bank statements instead of a salary certificate, and approval leans more heavily on your income stability.</div></div>
         </div>
         <div class="faq-item">
           <button class="faq-q" onclick="toggleFaq(this)">Is it safe to use a credit card for online payments in the UAE?<span class="faq-q-ic">+</span></button>
           <div class="faq-a"><div class="faq-a-inner">Generally yes. UAE issued cards come with fraud monitoring, one time passwords for online purchases, and instant transaction alerts, which together catch most suspicious activity quickly.</div></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">Which is the best credit card in the UAE?<span class="faq-q-ic">+</span></button>
-          <div class="faq-a"><div class="faq-a-inner">There's no single best card for everyone. It genuinely depends on how you spend. A big grocery shopper does better with a strong cashback card, a frequent flyer gets more value from a miles or lounge focused card, and someone who wants to avoid fees entirely should look at zero annual fee options. Tell MySilah your salary and spending habits and it will rank every eligible card for your specific situation rather than a generic average.</div></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">How do I apply for a credit card online in the UAE?<span class="faq-q-ic">+</span></button>
-          <div class="faq-a"><div class="faq-a-inner">Compare a few cards against your salary and spending first, check that you meet the minimum income and eligibility criteria, then apply directly through the bank with your Emirates ID, passport copy, salary certificate or trade licence, and recent bank statements ready. Most UAE banks now approve digitally submitted applications within a few working days.</div></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">What's the difference between a credit card and a debit card in the UAE?<span class="faq-q-ic">+</span></button>
-          <div class="faq-a"><div class="faq-a-inner">A debit card spends money you already have in your bank account, so there's nothing to repay. A credit card lets you borrow up to an approved limit and repay it later, with an interest free period if you clear the balance in full, and interest charged if you don't. Credit cards also build your credit history, something a debit card can't do.</div></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">Which UAE credit cards are Shariah compliant?<span class="faq-q-ic">+</span></button>
-          <div class="faq-a"><div class="faq-a-inner">Every Islamic bank in the UAE, along with the Islamic arms of conventional banks, offers Shariah compliant credit cards built on a Murabaha or similar profit based structure instead of interest. These are usually marketed as a distinct product line, which makes them easy to identify and compare separately from conventional credit cards.</div></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">Can I pay my child's school fees with a credit card in the UAE?<span class="faq-q-ic">+</span></button>
-          <div class="faq-a"><div class="faq-a-inner">Most private schools in the UAE accept credit card payments, sometimes with a small processing fee. Several banks treat education as a dedicated reward category and pay back considerably more on tuition than their standard cashback rate, so it's worth comparing before you pay a full year's fees on a card that wasn't built for it.</div></div>
-        </div>
-        <div class="faq-item">
-          <button class="faq-q" onclick="toggleFaq(this)">Which credit cards offer Emirates Skywards Miles in the UAE?<span class="faq-q-ic">+</span></button>
-          <div class="faq-a"><div class="faq-a-inner">Several UAE banks issue Emirates co-branded cards that earn Skywards Miles directly on every spend, rather than generic points you'd have to convert. These typically also come with fast-tracked Skywards tier status and Emirates specific travel perks that a general travel card won't offer.</div></div>
         </div>
       </div>
     </div>
@@ -966,10 +882,6 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
         <p>Comparing credit cards on MySilah is free. Some of the banks on this page may pay us a referral fee if you apply through a link here and your application is approved; others are listed at no cost to us. That relationship never changes where a card appears or how it's ranked, since every position on this page is driven purely by the numbers — real value back for your spend, first, not by who pays us.</p>
       </div>
 
-      <!-- <div class="disclosure-card">
-        <div class="disclosure-h4">🔍 Editorial Independence</div>
-        <p>Fees, rates and benefits on this page are researched directly from each bank's own Key Facts Statement, published rate card, or product page, not supplied to us by the banks for placement. When a bank's own materials disagree with each other, which happens more often than you'd expect, we flag it directly in that card's detail panel rather than picking a number silently.</p>
-      </div> -->
       <div class="disclosure-card warn">
         <div class="disclosure-h4">⚠️ Disclaimer</div>
         <p>MySilah is not a bank, lender, or licensed financial advisor, and nothing on this page is financial advice. Fee, rate, and benefit information is sourced from banks' own published materials and other publicly available resources; MySilah does not own this content and doesn't guarantee it is complete, current, or error-free, since banks can change their terms at any time without notice.</p>
@@ -1084,11 +996,24 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     <div class="apply-form" id="matchFormWrap">
       <div class="apply-modal-head">
         <div class="apply-modal-eyebrow">🎯 Find My Match</div>
-        <div class="af-step-badge">Step 1 of 2 — Your Spend</div>
         <div class="apply-modal-title">Let's thread your match</div>
         <div class="apply-modal-sub">Tell us your monthly spend — we'll estimate real cashback &amp; rewards value.</div>
       </div>
       <form id="matchForm" onsubmit="submitMatchForm(event);">
+        <div class="af-group">
+          <label class="af-label">Full Name</label>
+          <input class="af-input" type="text" id="matchFullName" placeholder="e.g. Ahmed Al Mansoori" required/>
+        </div>
+        <div class="af-row">
+          <div class="af-group">
+            <label class="af-label">Mobile Number</label>
+            <input class="af-input" type="tel" id="matchMobile" placeholder="+971 5X XXX XXXX" required/>
+          </div>
+          <div class="af-group">
+            <label class="af-label">Email Address</label>
+            <input class="af-input" type="email" id="matchEmail" placeholder="you@email.com" required/>
+          </div>
+        </div>
         <div class="match-spend-grid">
           <div class="af-group" style="margin-bottom:0;">
             <label class="af-label">Monthly Salary (AED)</label>
@@ -1125,39 +1050,8 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
           </select>
         </div>
         <!-- <div class="af-hint" style="dislay:block; margin:-6px 0 14px; line-height:1.5;">💡 Industry note: groceries, dining &amp; international spend usually earn the highest cashback in the UAE; fuel, utilities, telecom, Salik &amp; school fees are often "restricted categories" that earn reduced rates on most cards.</div> -->
-        <button type="submit" class="af-submit">Next — Enter Contact Details →</button>
+        <button type="submit" class="af-submit">Find My Match →</button>
         <div class="af-secure">🔒 Free forever · Estimates are indicative, not guaranteed</div>
-      </form>
-    </div>
-
-    <div class="apply-form hide" id="matchContactWrap">
-      <div class="apply-modal-head">
-        <div class="apply-modal-eyebrow">🎯 Find My Match</div>
-        <div class="af-step-badge">Step 2 of 2 — Your Details</div>
-        <div class="apply-modal-title">Almost there!</div>
-        <div class="apply-modal-sub">Where should we send your personalised card match?</div>
-      </div>
-      <form id="matchContactForm" onsubmit="submitMatchContactForm(event);">
-        <div class="af-group">
-          <label class="af-label">Full Name</label>
-          <input class="af-input" type="text" id="matchFullName" placeholder="e.g. Ahmed Al Mansoori" required/>
-        </div>
-        <div class="af-group">
-          <label class="af-label">Mobile Number</label>
-          <div class="af-phone-wrap">
-            <span class="af-phone-prefix">🇦🇪 +971</span>
-            <input class="af-input" id="matchMobile" placeholder="501234567" type="tel" inputmode="numeric" maxlength="9" required/>
-          </div>
-        </div>
-        <div class="af-group">
-          <label class="af-label">Email Address</label>
-          <input class="af-input" type="email" id="matchEmail" placeholder="you@email.com" required/>
-        </div>
-        <div style="display:flex; gap:10px; margin-top:4px;">
-          <button type="button" class="af-back-btn" onclick="backToMatchSpendStep();">← Back</button>
-          <button type="submit" class="af-submit" style="flex:1;">See My Match →</button>
-        </div>
-        <div class="af-secure">🔒 Free forever · No spam · Your data stays private</div>
       </form>
     </div>
 
@@ -1190,7 +1084,6 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     ? 'http://localhost:8000/api'
     : 'https://api.mysilah.ae/api';
   const UPLOADS_BASE = 'https://mysilah.s3.us-east-1.amazonaws.com';
-  let pendingMatchResult = null;
   let ALL_CARDS = [];
   let FILTERED_CARDS = [];
 
@@ -1341,7 +1234,6 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     const _eduGroup = document.getElementById('eduFeeGroup');
     if(_eduGroup) _eduGroup.style.display = 'none';
     document.getElementById('matchFormWrap').classList.remove('hide');
-    document.getElementById('matchContactWrap').classList.add('hide');
     document.getElementById('matchSuccess').classList.remove('show');
     document.getElementById('matchSavingsHero').style.display = 'none';
     document.getElementById('feeBreakdown').style.display = 'none';
@@ -1467,8 +1359,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     document.getElementById('featSalaryTransfer').textContent = card.salaryTransfer || (salaryN >= 15000 ? 'Yes' : 'No');
     document.getElementById('featMinSalary').textContent = 'AED ' + card.salary;
     document.getElementById('featOffer').textContent = card.offer || '';
-    const _featChipSrc = (card.badges && card.badges.length) ? card.badges : (card.cardRewards||[]);
-    document.getElementById('featChips').innerHTML = _featChipSrc.slice(0,3).map(r=>{
+    document.getElementById('featChips').innerHTML = (card.cardRewards||[]).slice(0,3).map(r=>{
       const pctPfx = r.pct ? r.pct+'% ' : '';
       const label  = r.text || r.label || '';
       return `<div class="feat-perk-chip">${r.icon} ${pctPfx}${label}</div>`;
@@ -1497,17 +1388,38 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   function submitMatchForm(e){
     e.preventDefault();
 
+    // Create lead in CRM (fire-and-forget — don't block the UI)
+    (function(){
+      const _salary = _SALARY_RANGE_TO_NUM[document.getElementById('matchSalary').value] || 5000;
+      fetch(API_BASE + '/public/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: document.getElementById('matchFullName').value.trim(),
+          phone:        document.getElementById('matchMobile').value.trim(),
+          email:        document.getElementById('matchEmail').value.trim(),
+          salary:       _salary,
+        }),
+      }).catch(function(){});
+    })();
+
     const salaryBracket = document.getElementById('matchSalary').value;
     const maxSalary = SALARY_BRACKET_MAX[salaryBracket] || 50000;
     const minSalary = SALARY_BRACKET_MIN[salaryBracket] || 0;
     const preference = document.getElementById('cardPreference').value;
-
+    window._matchUserData = {
+      fullName: document.getElementById('matchFullName').value,
+      mobile: document.getElementById('matchMobile').value,
+      email: document.getElementById('matchEmail').value,
+      salary: salaryBracket,
+    };
     // Collect dynamic category spend values
     const spend = { tripsPerYear: 0 };
     document.querySelectorAll('#dynamicSpendFields input[data-cat-id]').forEach(inp => {
       const catName = inp.dataset.catName || '';
       spend[catName] = parseFloat(inp.value) || 0;
     });
+    // Map dynamic category names to scoring keys
     spend.grocery      = spend['Groceries'] || spend['Groceries & Supermarkets'] || 0;
     spend.dining       = spend['Dining'] || spend['Dining & Food Delivery'] || 0;
     spend.fuel         = spend['Fuel'] || spend['Fuel & Automobile'] || spend['spent fuel'] || 0;
@@ -1517,6 +1429,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     spend.international = spend['International Spend'] || spend['International'] || 0;
     const eduExtra = (document.getElementById('matchPaySchool')?.checked) ? (parseFloat(document.getElementById('matchEduFee')?.value) || 0) : 0;
     spend.education    = spend['Education'] || spend['School Fees / Education'] || eduExtra;
+    // Travel — flights maps to tripsPerYear (approx: AED 1,000 spend ≈ 1 trip)
     if(spend['Travel — flights'] || spend['Travel'] || spend['Travel & Miles']) {
       const travelSpend = spend['Travel — flights'] || spend['Travel'] || spend['Travel & Miles'] || 0;
       spend.tripsPerYear = Math.round(travelSpend / 1000);
@@ -1524,57 +1437,13 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
 
     const eligible = getFilteredCards({maxSalary, minSalary});
     const ranked = rankCandidates(eligible, spend, preference);
+
     const savingsMap = {};
     ranked.forEach(r=>{ savingsMap[r.c.id] = r.net; });
+
     const top = ranked.slice(0, 5);
     const best = top[0];
 
-    pendingMatchResult = { top, best, eligible, spend, maxSalary, minSalary, preference, savingsMap, salaryBracket };
-
-    document.getElementById('matchFormWrap').classList.add('hide');
-    document.getElementById('matchContactWrap').classList.remove('hide');
-    document.getElementById('matchContactWrap').scrollTop = 0;
-  }
-
-  function backToMatchSpendStep(){
-    document.getElementById('matchContactWrap').classList.add('hide');
-    document.getElementById('matchFormWrap').classList.remove('hide');
-  }
-
-  function submitMatchContactForm(e){
-    e.preventDefault();
-    if(!pendingMatchResult) return;
-
-    const fullName = document.getElementById('matchFullName').value.trim();
-    const phoneLocal = document.getElementById('matchMobile').value.replace(/[\s\-]/g, '');
-    const email = document.getElementById('matchEmail').value.trim();
-
-    if(!/^5\d{8}$/.test(phoneLocal)){
-      document.getElementById('matchMobile').focus();
-      alert('Enter 9 digits starting with 5 (e.g. 501234567)');
-      return;
-    }
-
-    const { top, best, eligible, maxSalary, preference, savingsMap, salaryBracket } = pendingMatchResult;
-
-    // Fire CRM lead
-    (function(){
-      const _salary = _SALARY_RANGE_TO_NUM[salaryBracket] || 5000;
-      fetch(API_BASE + '/public/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerName: fullName,
-          phone:        '971' + phoneLocal,
-          email:        email,
-          salary:       _salary,
-        }),
-      }).catch(function(){});
-    })();
-
-    window._matchUserData = { fullName, mobile: '971' + phoneLocal, email, salary: salaryBracket };
-
-    // Render results
     let titleText, resultText;
     const feeBreakdownEl = document.getElementById('feeBreakdown');
     if(best && best.net > 0){
@@ -1631,16 +1500,16 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     const ruBlock = document.getElementById('matchRunnerUps');
     if(runnerUps.length){
       ruBlock.innerHTML = '<div class="runner-up-list"><div class="runner-up-title">Other Strong Options</div>' +
-        runnerUps.map(r=>'<div class="runner-up-item"><div><div class="ru-name">' + r.c.name + '</div><div class="ru-bank">' + r.c.bank + (r.fee > 0 ? ' \u00b7 AED '+Math.round(r.fee)+'/yr fee' : ' \u00b7 Free') + '</div></div><div style="display:flex; align-items:center; gap:10px;"><div class="ru-amt">AED ' + Math.round(r.net).toLocaleString() + '/mo net</div><button class="ru-apply" onclick="applyToCard(\'' + r.c.name.replace(/'/g,"\\'") + '\', \'' + r.c.bank.replace(/'/g,"\\'") + '\', \'' + (r.c._id||r.c.id||'') + '\');">Apply</button></div></div>').join('') +
+        runnerUps.map(r=>'<div class="runner-up-item"><div><div class="ru-name">' + r.c.name + '</div><div class="ru-bank">' + r.c.bank + (r.fee > 0 ? ' · AED '+Math.round(r.fee)+'/yr fee' : ' · Free') + '</div></div><div style="display:flex; align-items:center; gap:10px;"><div class="ru-amt">AED ' + Math.round(r.net).toLocaleString() + '/mo net</div><button class="ru-apply" onclick="applyToCard(\'' + r.c.name.replace(/'/g,"\\'") + '\', \'' + r.c.bank.replace(/'/g,"\\'") + '\', \'' + (r.c._id||r.c.id||'') + '\');">Apply</button></div></div>').join('') +
         '</div>';
     } else {
       ruBlock.innerHTML = '';
     }
 
-    document.getElementById('matchContactWrap').classList.add('hide');
+    document.getElementById('matchFormWrap').classList.add('hide');
     document.getElementById('matchSuccess').classList.add('show');
 
-    // Sync sidebar filters + re-render catalog
+    // Sync sidebar salary + fee-preference filters, and re-render catalog + personalized matches
     document.querySelectorAll('.cat-chk, .bank-chk, .fee-chk').forEach(el=>{ el.checked = false; });
     if(preference === 'free'){
       const freeChk = document.querySelector('.fee-chk[value="free"]');
@@ -1658,6 +1527,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     renderMyMatches(top.map(r=>r.c), savingsMap);
     if(best) updateFeaturedTile(best.c, best.net);
 
+    // Reveal Silah Insight with dynamic salary + eligible card count
     const insightEl = document.getElementById('silahInsightCard');
     if(insightEl && eligible.length > 0){
       document.getElementById('insightSalary').textContent = 'AED ' + maxSalary.toLocaleString();
@@ -1666,7 +1536,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       insightEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }
-    function viewMyMatch(){
+  function viewMyMatch(){
     closeMatchModal();
     const el = document.getElementById('sec-mymatch');
     if(el && el.style.display !== 'none') el.scrollIntoView({behavior:'smooth', block:'start'});
@@ -1697,8 +1567,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     const offer = c.offer || '';
     const salaryN = parseInt(String(c.salary).replace(/,/g,''),10);
     const salaryTransfer = c.salaryTransfer || (salaryN >= 15000 ? 'Yes' : 'No');
-    const _chipSrc = (c.badges && c.badges.length) ? c.badges : c.cardRewards;
-    const rewardChips = _chipSrc.map(r=>{
+    const rewardChips = c.cardRewards.map(r=>{
       const pctPfx = r.pct ? r.pct+'% ' : '';
       const label  = r.text || r.label || '';
       return `<div class="feat-perk-chip">${r.icon} ${pctPfx}${label}</div>`;
@@ -1808,7 +1677,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     const extras = c.extras || [];
     const perks = c.perks || [];
     const keyFeatures = c.keyFeatures || [];
-    const rewardsTxt = [...(c.cardRewards||[]), ...(c.badges||[])].map(r => (r.label||'') + ' ' + (r.text||'')).join(' ');
+    const rewardsTxt = (c.cardRewards||[]).map(r => (r.label||'') + ' ' + (r.text||'')).join(' ');
     return [c.name||'', rewardsTxt, features.join(' '), extras.join(' '), perks.join(' '), keyFeatures.join(' '), c.offer||''].join(' ').toLowerCase();
   }
   function cardMatchesCategory(c, categoryLabel){
@@ -2189,13 +2058,6 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       return {icon, text: catName, pct};
     });
     const cashbackCategoryNames = (card.cashbackCategories || []).map(c=>(c.category?.name || c.name || '').toLowerCase());
-    const badges = (card.rewardBadges || [])
-      .sort((a,b)=>(a.badgeOrder||0)-(b.badgeOrder||0))
-      .map(b=>({
-        icon: b.icon || '',
-        text: b.labelOrText || '',
-        pct: b.valueType === 'percent' && b.percentValue > 0 ? b.percentValue : undefined,
-      }));
     return {
       id: card._id,
       _id: card._id,
@@ -2206,7 +2068,6 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       bank: bankName || '',
       name: card.name || '',
       cardRewards,
-      badges,
       cashbackCategoryNames,
       fee,
       feeGreen,
@@ -2297,11 +2158,6 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       const data = await cardsRes.json();
       ALL_CARDS = data.map(mapApiCard);
       console.log('[mysilah] loaded', ALL_CARDS.length, 'cards');
-      const _n = ALL_CARDS.length;
-      const _heroCount = document.getElementById('heroCardCount');
-      if(_heroCount) _heroCount.textContent = _n;
-      const _heroBtn = document.getElementById('heroBrowseAllBtn');
-      if(_heroBtn) _heroBtn.textContent = 'Browse All ' + _n;
     } catch(err) {
       clearTimeout(timer);
       const msg = err.name === 'AbortError' ? 'Request timed out' : 'Could not load cards';

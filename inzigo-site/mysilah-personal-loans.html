@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MySilah — 25 loans, minted as notes. No fine print you didn't ask for.</title>
+<title>MySilah - 25 loans, minted as notes. No fine print you didn't ask for.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&family=Cinzel:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet" />
 <style>
@@ -41,7 +41,7 @@
   .btn-grad{background:linear-gradient(135deg,#7C3AED 0%,#8B5CF6 45%,#0EA5E9 100%)!important;color:#fff!important;box-shadow:0 12px 48px -12px rgba(124,58,237,0.45)!important;padding:10px 18px!important;font-size:14px!important;font-weight:500!important;border-radius:999px!important;border:none!important;text-decoration:none;cursor:pointer;}
   .btn-grad:hover{transform:translateY(-1px);box-shadow:0 16px 56px -12px rgba(124,58,237,0.55)!important}
   @media(max-width:980px){.nav-menu{display:none}}
-  /* Mobile nav — desktop hide */
+  /* Mobile nav - desktop hide */
   .mob-nav-btn{display:none;}
   .mob-nav-drawer{display:none; position:absolute; top:72px; left:0; right:0; background:rgba(255,255,255,0.97); backdrop-filter:blur(20px); border-bottom:1px solid rgba(232,232,238,0.8); box-shadow:0 8px 32px rgba(10,14,35,0.10); padding:12px 20px 20px; z-index:199; flex-direction:column; gap:2px; transform:translateY(-6px); opacity:0; pointer-events:none; transition:transform .22s ease, opacity .22s ease;}
   .mob-nav-drawer.open{transform:translateY(0); opacity:1; pointer-events:auto;}
@@ -69,7 +69,7 @@
 
 
 
-  /* ═══════ HERO — LIVE EMI CALCULATOR (unique to loans; no laptop/card mockup) ═══════ */
+  /* ═══════ HERO - LIVE EMI CALCULATOR (unique to loans; no laptop/card mockup) ═══════ */
   .hero{position:relative; padding:76px 48px 54px 96px; display:grid; grid-template-columns:1.05fr .95fr; gap:44px; align-items:center; overflow:hidden;}
   .hero::before{content:''; position:absolute; top:-260px; right:-200px; width:640px; height:640px; border-radius:50%; background:radial-gradient(circle, rgba(67,210,240,.14), transparent 70%); pointer-events:none;}
   .eyebrow{display:inline-flex; align-items:center; gap:8px; font-size:11.5px; font-weight:600; letter-spacing:1.6px; text-transform:uppercase; color:var(--violet); background:var(--line-soft); border:1px solid rgba(123,63,228,.18); padding:7px 14px; border-radius:100px; margin-bottom:22px;}
@@ -85,6 +85,7 @@
   .calc-card{position:relative; background:#fff; border-radius:24px; padding:26px 26px 24px; box-shadow:var(--shadow-lg); border:1px solid rgba(139,146,184,.14);}
   .calc-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
   .calc-title{font-family:var(--font-d); font-weight:700; font-size:14.5px; display:flex; align-items:center; gap:8px;}
+  .calc-sub{font-size:12px; color:var(--mist); margin-top:2px; padding-left:2px;}
   .calc-live{display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:.6px;}
   .calc-live .dot{width:6px;height:6px;border-radius:50%;background:var(--green); animation:pulse 1.6s ease-in-out infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
@@ -197,6 +198,44 @@
   .info-note{background:var(--amber-bg); border:1px solid rgba(232,163,61,.35); border-radius:14px; padding:16px 20px;}
   .info-note-row{font-size:12.5px; color:#7A5417; line-height:1.6; display:flex; gap:8px; margin-bottom:6px;}
   .info-note-row:last-child{margin-bottom:0;}
+  /* At-a-glance box + byline strip */
+  .glance-box{background:var(--line-soft); border:1px solid rgba(123,63,228,.18); border-radius:18px; padding:24px 26px 20px; margin:18px 0 26px;}
+  .glance-h{font-family:var(--font-d); font-weight:700; font-size:13px; letter-spacing:.4px; text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:var(--brand-ink);}
+  .glance-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:18px 20px;}
+  .glance-tile{display:flex; flex-direction:column; gap:2px;}
+  .glance-val{font-family:var(--font-m); font-weight:700; font-size:19px; color:var(--ink); line-height:1.2;}
+  .glance-lbl{font-size:11.5px; line-height:1.4; color:var(--mist); font-weight:500;}
+  .glance-tags{display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; padding-top:16px; border-top:1px solid rgba(123,63,228,.16);}
+  .glance-tag{font-size:11.5px; font-weight:600; color:var(--brand-ink); background:#fff; border:1px solid rgba(123,63,228,.2); padding:5px 12px; border-radius:100px;}
+  @media (max-width:700px){ .glance-grid{grid-template-columns:1fr 1fr;} }
+  .byline-strip{display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px; font-size:12px; color:var(--mist); margin:0 0 22px; padding-bottom:16px; border-bottom:1px solid rgba(139,146,184,.16);}
+  .byline-strip strong{color:var(--ink); font-weight:600;}
+  .byline-dot{opacity:.45;}
+  /* EMI formula illustration */
+  .formula-box{background:var(--ink); border-radius:16px; padding:20px 24px; margin:16px 0; text-align:center;}
+  .formula-box .formula{font-family:var(--font-m); font-size:15px; color:#fff; letter-spacing:.3px;}
+  .formula-legend{display:flex; flex-wrap:wrap; gap:14px 26px; margin:14px 0 4px; font-size:12.5px; color:#3A3F5C;}
+  .formula-legend strong{font-family:var(--font-m); color:var(--violet);}
+  .emi-cta{display:inline-flex; align-items:center; gap:7px; font-family:var(--font-b); font-weight:600; font-size:13.5px; color:#fff; border:none; cursor:pointer; padding:13px 26px; border-radius:100px; background:var(--line); box-shadow:0 10px 26px rgba(123,63,228,.28); transition:transform .2s; margin-top:8px;}
+  .emi-cta:hover{transform:translateY(-2px);}
+  /* Fee type list */
+  .fee-list{list-style:none; padding:0; margin:16px 0 4px; display:flex; flex-direction:column; gap:14px;}
+  .fee-list li{background:#fff; border:1px solid rgba(139,146,184,.16); border-radius:14px; padding:16px 20px;}
+  .fee-list-term{font-family:var(--font-d); font-weight:700; font-size:14px; margin-bottom:5px; color:var(--ink);}
+  .fee-list li p{font-size:13px; line-height:1.65; color:var(--mist); margin:0;}
+  /* Instant vs Regular comparison table */
+  .table-scroll{overflow-x:auto; margin:16px 0 4px; border-radius:14px; border:1px solid rgba(139,146,184,.16);}
+  .compare-table{width:100%; border-collapse:collapse; font-size:13px; background:#fff; min-width:560px;}
+  .compare-table th{text-align:left; font-family:var(--font-d); font-weight:700; font-size:12px; color:var(--ink); padding:13px 18px; background:var(--line-soft); white-space:nowrap;}
+  .compare-table td{padding:13px 18px; border-top:1px solid rgba(139,146,184,.14); color:#3A3F5C; line-height:1.5;}
+  .compare-table td:first-child{font-weight:600; color:var(--ink); white-space:nowrap;}
+  .compare-table tr:hover td{background:var(--surface);}
+  /* Numbered tip cards */
+  .tip-grid{display:flex; flex-direction:column; gap:12px; margin:16px 0 4px;}
+  .tip-card{display:flex; gap:14px; background:#fff; border:1px solid rgba(139,146,184,.16); border-radius:14px; padding:16px 20px;}
+  .tip-num{flex-shrink:0; width:30px; height:30px; border-radius:100px; background:var(--line); color:#fff; font-family:var(--font-d); font-weight:700; font-size:13.5px; display:flex; align-items:center; justify-content:center;}
+  .tip-card p{font-size:13.5px; line-height:1.65; color:#3A3F5C; margin:0;}
+  .tip-card strong{color:var(--ink);}
   /* FAQ */
   .faq-section{padding:0 48px 0 96px; max-width:1500px; margin:0 auto;}
   .faq-list{max-width:900px; display:flex; flex-direction:column; gap:10px; margin-top:8px;}
@@ -228,12 +267,12 @@
 </style>
 <style>
   /* ═══════════════════════════════════════════════════════════════════
-     THE COCKPIT PANEL — the unique loan card.
+     THE COCKPIT PANEL - the unique loan card.
      Every product renders as a dark instrument cluster, like a car
      dashboard: three analog gauges (rate / tenure / fee) with real
      needles pointing to this loan's actual numbers, a glowing EMI
      readout, and a secondary LCD strip for amount / salary / transfer.
-     Popping "Full Readout" opens a light diagnostic sheet beneath —
+     Popping "Full Readout" opens a light diagnostic sheet beneath -
      dashboard on top, printed report underneath.
      ═══════════════════════════════════════════════════════════════════ */
   .ladder-list{display:flex; flex-direction:column; gap:26px; margin-bottom:8px;}
@@ -243,7 +282,7 @@
 
   .note-card{position:relative; min-width:0; perspective:2400px;}
 
-  /* flip mechanics — front note / back note, like flipping a real bill over */
+  /* flip mechanics - front note / back note, like flipping a real bill over */
   .note-flip-inner{position:relative; width:100%; transition:transform .7s cubic-bezier(.4,.05,.2,1), height .4s ease; transform-style:preserve-3d;}
   .note-card.flipped .note-flip-inner{transform:rotateY(180deg);}
   .note-face{-webkit-backface-visibility:hidden; backface-visibility:hidden; border-radius:12px; overflow:hidden; box-shadow:0 20px 46px -22px rgba(10,14,35,.4); cursor:pointer; height:100%; display:flex; flex-direction:column;}
@@ -257,7 +296,7 @@
      Both faces are fixed to the same overall card height (see sizeNoteCard
      in JS), so the paper stretches to fill it (flex:1) and lets its main
      content block (note-content on the front, note-back-grid on the back)
-     grow to absorb any extra space — instead of leaving dead space at the
+     grow to absorb any extra space - instead of leaving dead space at the
      bottom, the content re-centers to fill the note evenly either way. */
   .note-paper{position:relative; min-height:210px; flex:1; display:flex; flex-direction:column;
     background:
@@ -301,7 +340,7 @@
      wordmark (wide, rounded-rect) instead of forcing it into a circle,
      which would crop most bank logos illegibly. */
   .note-medallion{display:flex; align-items:center; justify-content:center; margin-bottom:6px;}
-  .note-logo-plate{height:36px; min-width:70px; max-width:140px; padding:5px 11px; background:#fff; border:1.5px solid var(--violet); border-radius:7px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 9px rgba(36,26,77,.16); box-sizing:border-box;}
+  .note-logo-plate{height:50px; min-width:88px; max-width:178px; padding:8px 16px; background:#fff; border:1.5px solid var(--violet); border-radius:7px; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 9px rgba(36,26,77,.16); box-sizing:border-box;}
   .note-logo-plate img{max-width:100%; max-height:100%; object-fit:contain; display:block;}
   .note-logo-plate.fallback{border-color:transparent;}
   .note-logo-plate .plate-initials{font-family:var(--font-d); font-weight:800; font-size:13px; color:#fff; letter-spacing:.3px;}
@@ -315,18 +354,18 @@
   .note-foil::before{content:''; position:absolute; inset:0; background:linear-gradient(115deg, transparent 30%, rgba(255,255,255,.8) 48%, transparent 65%); animation:noteShimmer 3.2s ease-in-out infinite;}
   .note-foil-txt{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--font-eng); font-size:7px; font-weight:700; color:rgba(30,20,60,.6); letter-spacing:.4px; white-space:nowrap;}
   @keyframes noteShimmer{0%,100%{transform:translateX(-70%);} 50%{transform:translateX(70%);}}
-  /* every key term — tenure, fee, max amount, min salary — gets the same
+  /* every key term - tenure, fee, max amount, min salary - gets the same
      clear, boxed treatment. Nothing is singled out; they're all meant to be
      scannable at a glance, and values are allowed to wrap rather than
      truncate so a figure like "0.7875% of amount" is always shown in full. */
-  /* printed ledger rows, not UI chips — same hairline-rule grammar as the
+  /* printed ledger rows, not UI chips - same hairline-rule grammar as the
      Fees & Charges table on the back, so front and back read as one object
      instead of an engraved note with an app card stapled to it. */
   .note-ledger{display:flex; flex-direction:column; border-top:1px solid rgba(36,26,77,.3);}
   .note-stat{display:flex; align-items:baseline; justify-content:space-between; gap:10px; padding:7px 1px; border-bottom:1px dotted rgba(36,26,77,.35);}
   .note-stat-lbl{font-family:var(--font-m); font-size:8px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; opacity:.6; white-space:nowrap; flex-shrink:0;}
   .note-stat-val{font-family:var(--font-eng); font-weight:800; font-size:12.5px; color:var(--brand-ink); text-align:right; line-height:1.3;}
-  .note-serial{font-family:var(--font-m); font-size:7.5px; letter-spacing:.8px; opacity:.6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .note-serial{font-family:var(--font-m); font-size:7.5px; letter-spacing:.8px; opacity:.6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-left:23px;}
 
   .note-bottom{position:relative; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 24px 16px; border-top:1px dashed rgba(36,26,77,.22); flex-wrap:wrap; flex:0 0 auto;}
   .note-seals{display:flex; gap:5px; flex-wrap:wrap;}
@@ -397,7 +436,7 @@
     .sidebar{position:fixed; bottom:0; left:0; right:0; max-height:88vh; background:#fff; border-radius:20px 20px 0 0; box-shadow:0 -8px 40px rgba(10,14,35,.18); z-index:500; transform:translateY(100%); transition:transform .32s cubic-bezier(.23,1,.32,1); display:flex; flex-direction:column; overflow:hidden;}
     .sidebar.mob-open{transform:translateY(0);}
     .sb-mob-header{display:flex; align-items:center; justify-content:space-between; padding:18px 20px 14px; border-bottom:1px solid rgba(139,146,184,.18); flex-shrink:0;}
-    .sb-mob-title{font-family:var(--font-d); font-size:17px; font-weight:700; color:var(--ink);}
+    .sb-mob-title{font-family:var(--font-d); font-size:23px; font-weight:700; color:var(--ink);}
     .sb-mob-close{width:32px; height:32px; border-radius:50%; background:rgba(139,146,184,.12); border:none; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; color:var(--ink);}
     .sb-sticky{position:static; max-height:none; overflow-y:auto; padding:16px 20px 24px; flex:1;}
     .sb-group{margin-bottom:22px;}
@@ -441,7 +480,7 @@
   @media(max-width:960px){ .trust{padding:36px 24px;} footer{padding:44px 0 24px;} }
   @media(max-width:640px){ .foot-grid{grid-template-columns:1fr;} .foot-bottom{flex-direction:column; gap:14px; text-align:center;} }
 
-  /* ═══════ COMPARE DRAWER (new — functional, unlike the decorative checkbox on the cards page) ═══════ */
+  /* ═══════ COMPARE DRAWER (new - functional, unlike the decorative checkbox on the cards page) ═══════ */
   .compare-drawer{position:fixed; left:50%; bottom:-120px; transform:translateX(-50%); width:min(920px,92vw); background:var(--ink); border-radius:20px; padding:16px 20px; z-index:300; box-shadow:0 -20px 50px rgba(10,14,35,.35); display:flex; align-items:center; justify-content:space-between; gap:16px; transition:bottom .35s cubic-bezier(.23,1,.32,1); flex-wrap:wrap;}
   .compare-drawer.show{bottom:22px;}
   .cd-items{display:flex; gap:10px; flex-wrap:wrap; flex:1;}
@@ -475,6 +514,11 @@
   .af-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238B92B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center;}
   .af-input:focus, .af-select:focus{outline:none; border-color:var(--violet); background:#fff;}
   .af-input::placeholder{color:var(--mist);}
+  .af-phone-wrap{display:flex; background:var(--surface); border:1.5px solid rgba(139,146,184,.25); border-radius:11px; overflow:hidden; transition:border-color .2s;}
+  .af-phone-wrap:focus-within{border-color:var(--violet); background:#fff;}
+  .af-phone-prefix{padding:12px 10px 12px 14px; font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap; user-select:none; border-right:1.5px solid rgba(139,146,184,.2); display:flex; align-items:center;}
+  .af-phone-wrap .af-input{border:none; border-radius:0; background:transparent; flex:1;}
+  .af-phone-wrap .af-input:focus{border:none; background:transparent; outline:none;}
   .af-consent{display:flex; align-items:flex-start; gap:9px; font-size:11.5px; color:var(--mist); line-height:1.5; margin:16px 0 20px;}
   .af-consent input{margin-top:2px; accent-color:var(--violet); flex-shrink:0;}
   .af-submit{width:100%; font-family:var(--font-b); font-weight:600; font-size:14.5px; color:#fff; border:none; cursor:pointer; padding:15px; border-radius:13px; background:var(--line); box-shadow:0 12px 28px rgba(123,63,228,.3); transition:transform .2s;}
@@ -496,7 +540,7 @@
   .cmp-bank-sub{font-size:10.5px; color:var(--mist); font-weight:500; margin-top:2px;}
   .cmp-empty{text-align:center; padding:30px; color:var(--mist); font-size:13px;}
 
-  /* ══════════ SAVINGS MATCH — promo banner + wizard modal ══════════ */
+  /* ══════════ SAVINGS MATCH - promo banner + wizard modal ══════════ */
   .savings-promo{position:relative; overflow:hidden; margin:0 48px 0 96px; background:var(--ink); border-radius:20px; padding:26px 30px; display:flex; align-items:center; gap:20px; cursor:pointer; transition:transform .2s; z-index:2;}
   .savings-promo:hover{transform:translateY(-2px);}
   .savings-promo::before{content:'';position:absolute; top:-120px; right:-80px; width:280px; height:280px; border-radius:50%; background:radial-gradient(circle, rgba(67,210,240,.25), transparent 70%); pointer-events:none;}
@@ -662,8 +706,8 @@
 <section class="hero">
   <div class="hero-copy">
     <div class="eyebrow">Connect · Empower · Grow</div>
-    <h1><span id="heroLoanCount">25</span> loans on the market. <span class="g">Each one, its own note.</span></h1>
-    <p class="hero-sub">Slide to your salary and the amount you need — MySilah threads through <span id="heroLenderCount">16</span> UAE banks &amp; finance houses in real time and ranks every personal loan from lowest rate to highest, EMI included.</p>
+    <h1>Compare Personal Loans in the UAE. <span class="g"><span id="heroLoanCount">25</span>+ Offers, Each Its Own Note.</span></h1>
+    <p class="hero-sub">Slide to your salary and the loan amount you need, and MySilah compares personal loans in the UAE from <span id="heroLenderCount">16</span> banks &amp; finance houses in real time, ranking every offer from lowest interest rate to highest, EMI included.</p>
     <div class="hero-trust">
       <div><div class="ht-num" id="htLoans">25</div><div class="ht-lbl">Loans Threaded</div></div>
       <div><div class="ht-num" id="htLenders">16</div><div class="ht-lbl">UAE Lenders</div></div>
@@ -671,24 +715,27 @@
     </div>
   </div>
   <div class="hero-visual">
-    <div class="float-badge fb1"><div class="fb-ic" style="background:var(--green-bg);">📉</div><div><div class="fb-h">Rate from <span id="fbLowest">4.39%</span></div><div class="fb-s" id="fbLowestBank">RAKBank · UAE Nationals</div></div></div>
+    <div class="float-badge fb1"><div class="fb-ic" style="background:var(--green-bg);">📉</div><div><div class="fb-h">Lowest rate starting from <span id="fbLowest">2.59%</span></div><div class="fb-s" id="fbLowestBank"></div></div></div>
     <div class="float-badge fb2"><div class="fb-ic" style="background:var(--line-soft);">🆓</div><div><div class="fb-h">No Salary Transfer</div><div class="fb-s"><span id="fbNoSalary">7</span> lenders qualify</div></div></div>
     <div class="calc-card">
       <div class="calc-head">
-        <div class="calc-title">🧾 Live Rate Note</div>
+        <div>
+          <div class="calc-title">🧾 Live Rate Note</div>
+          <div class="calc-sub">Your personal loan EMI calculator</div>
+        </div>
         <div class="calc-live"><span class="dot"></span>LIVE</div>
       </div>
       <div class="calc-row">
         <div class="calc-row-top"><span class="calc-label">Loan Amount</span><span class="calc-value-edit">AED <input type="number" class="calc-value-input" id="loanAmountVal" value="100000" inputmode="numeric" oninput="calcNumberLive('loanAmount','loanAmountVal');" onblur="calcNumberCommit('loanAmount','loanAmountVal',10000,1000000);" onkeydown="if(event.key==='Enter') this.blur();"/></span></div>
-        <input type="range" class="calc-slider" id="loanAmount" min="10000" max="1000000" step="5000" value="100000" oninput="document.getElementById('loanAmountVal').value=this.value; calcUpdate();"/>
+        <input type="range" class="calc-slider" id="loanAmount" min="10000" max="1000000" step="5000" value="100000" oninput="calcInteracted=true; document.getElementById('loanAmountVal').value=this.value; calcUpdate();"/>
       </div>
       <div class="calc-row">
         <div class="calc-row-top"><span class="calc-label">Tenure</span><span class="calc-value-edit"><input type="number" class="calc-value-input" id="tenureVal" value="48" style="width:46px;" inputmode="numeric" oninput="calcNumberLive('tenureMonths','tenureVal');" onblur="calcNumberCommit('tenureMonths','tenureVal',12,60);" onkeydown="if(event.key==='Enter') this.blur();"/> <span class="calc-value-suffix">months</span></span></div>
-        <input type="range" class="calc-slider" id="tenureMonths" min="12" max="60" step="6" value="48" oninput="document.getElementById('tenureVal').value=this.value; calcUpdate();"/>
+        <input type="range" class="calc-slider" id="tenureMonths" min="12" max="60" step="6" value="48" oninput="calcInteracted=true; document.getElementById('tenureVal').value=this.value; calcUpdate();"/>
       </div>
       <div class="calc-row" style="margin-bottom:6px;">
         <div class="calc-row-top"><span class="calc-label">Monthly Salary</span><span class="calc-value-edit">AED <input type="number" class="calc-value-input" id="salaryVal" value="15000" inputmode="numeric" oninput="calcNumberLive('monthlySalary','salaryVal');" onblur="calcNumberCommit('monthlySalary','salaryVal',3000,60000);" onkeydown="if(event.key==='Enter') this.blur();"/></span></div>
-        <input type="range" class="calc-slider" id="monthlySalary" min="3000" max="60000" step="500" value="15000" oninput="document.getElementById('salaryVal').value=this.value; calcUpdate();"/>
+        <input type="range" class="calc-slider" id="monthlySalary" min="3000" max="60000" step="500" value="15000" oninput="calcInteracted=true; document.getElementById('salaryVal').value=this.value; calcUpdate();"/>
       </div>
       <div class="calc-result">
         <div class="calc-result-grid">
@@ -705,7 +752,7 @@
   <div class="savings-promo-ic">💡</div>
   <div class="savings-promo-txt">
     <div class="savings-promo-h">Paying 40%+ a year on credit cards, or stuck on a high-rate loan?</div>
-    <div class="savings-promo-s">Answer 3 quick questions about your cards, your loan, and your employer — MySilah shows exactly what it's costing you and which real loan saves you the most.</div>
+    <div class="savings-promo-s">Answer 3 quick questions about your cards, your loan, and your employer - MySilah shows exactly what it's costing you and which real loan saves you the most.</div>
   </div>
   <button class="savings-promo-btn">Find My Savings →</button>
 </div>
@@ -808,10 +855,10 @@
       <div class="ladder-list" id="topList"></div>
     </div>
 
-    <div class="insight-card">
+    <div class="insight-card" id="insightCard" style="display:none;">
       <div class="insight-eyebrow">Silah Insight</div>
       <div class="insight-h" id="insightHeadline">Borrowing <span class="g">AED 100,000</span> over 48 months? The rate gap between the best and worst lender on this page is over <span class="g">17 points</span>.</div>
-      <p class="insight-p">Move the calculator above once — every ranking on this page re-threads instantly to your numbers.</p>
+      <p class="insight-p">Move the calculator above once - every ranking on this page re-threads instantly to your numbers.</p>
       <button class="insight-btn" onclick="document.querySelector('.calc-card').scrollIntoView({behavior:'smooth'}); window.scrollTo(0,0);">Update My Numbers</button>
     </div>
 
@@ -836,11 +883,6 @@
       <div class="ladder-list" id="islamicList"></div>
     </div>
 
-    <div class="source-note">
-      <div class="insight-eyebrow">Sourced Directly From Each Bank</div>
-      <p>Every rate, fee, and eligibility figure below was pulled from the bank's own official personal loan / personal finance page or Key Facts Statement (KFS) in July 2026. Where a bank does not publish a figure (e.g. exact minimum salary or maximum loan amount), it is clearly marked "not publicly disclosed" rather than estimated. Rates shown as "starting from" are promotional/indicative — your actual approved rate depends on income, employer, tenure, and credit profile. MySilah's bank marks below are stylized colour badges, not official bank logos. Terms change; always confirm current pricing on the lender's own website before applying.</p>
-    </div>
-
     <div id="bankSections"></div>
 
     <div class="no-results" id="noResultsBlock">
@@ -851,17 +893,17 @@
     </div>
 
     <div style="display:flex; justify-content:center; padding-top:20px;">
-      <button onclick="window.scrollTo({top:0,behavior:'smooth'})" style="font-family:'Inter',sans-serif; font-weight:600; font-size:14px; padding:14px 46px; background:#fff; border:1.5px solid rgba(139,146,184,.3); border-radius:100px; cursor:pointer; color:var(--ink);">↑ Back to Top — All 25 Shown</button>
+      <button onclick="window.scrollTo({top:0,behavior:'smooth'})" style="font-family:'Inter',sans-serif; font-weight:600; font-size:14px; padding:14px 46px; background:#fff; border:1.5px solid rgba(139,146,184,.3); border-radius:100px; cursor:pointer; color:var(--ink);">↑ Back to Top - All 25 Shown</button>
     </div>
   </div>
 </div>
 
-<div class="trust">
+<!-- <div class="trust">
   <div class="trust-item"><div class="trust-ic">🔒</div><div><div class="trust-h">Bank-Grade Security</div><div class="trust-s">Your data stays yours</div></div></div>
   <div class="trust-item"><div class="trust-ic">🪜</div><div><div class="trust-h">Real Published Rates</div><div class="trust-s">Sourced from each bank's KFS</div></div></div>
   <div class="trust-item"><div class="trust-ic">🆓</div><div><div class="trust-h">Always Free</div><div class="trust-s">We never charge applicants</div></div></div>
   <div class="trust-item"><div class="trust-ic">🤝</div><div><div class="trust-h">16 Lender Partners</div><div class="trust-s">Banks &amp; finance houses</div></div></div>
-</div>
+</div> -->
 
 <section class="info-section">
   <div class="info-wrap">
@@ -869,6 +911,22 @@
       <h2 class="section-title">📘 Personal Loans in the UAE</h2>
     </div>
     <p class="info-lede">Personal loans in the UAE can be a smart way to handle major expenses: travel, home renovation, education, medical bills, or consolidating higher-cost debt. But with more than a dozen banks and finance houses across the UAE market, each with its own rates, fees, and approval conditions, choosing the right loan can be genuinely overwhelming. This guide covers every emirate, Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Fujairah, Umm Al Quwain, and Al Ain, since the same national rules and rates apply no matter where in the UAE you live. Here's how UAE personal loans actually work, what regulators require, and what to check before you sign.</p>
+
+    <div class="glance-box" id="glanceBox">
+      <div class="glance-h">👀 At a Glance</div>
+      <div class="glance-grid" id="glanceGrid">
+        <div class="glance-tile"><div class="glance-val">…</div><div class="glance-lbl">Loading current figures</div></div>
+      </div>
+      <div class="glance-tags" id="glanceTags"></div>
+    </div>
+
+    <!-- <div class="byline-strip" id="bylineStrip">
+      <span>Written by the <strong>MySilah Content Team</strong></span>
+      <span class="byline-dot">•</span>
+      <span>Reviewed by <strong>MySilah's Research &amp; Compliance Desk</strong></span>
+      <span class="byline-dot">•</span>
+      <span>Last reviewed: <strong id="lastReviewedDate">30 July 2026</strong></span>
+    </div> -->
 
     <div class="info-block">
       <h3 class="info-h3">What Is a Personal Loan?</h3>
@@ -900,34 +958,70 @@
     </div>
 
     <div class="info-block">
+      <h3 class="info-h3">How to Calculate Your Personal Loan EMI</h3>
+      <p>Every EMI shown on this page, in the calculator above, and on each loan card, is computed with the same formula banks use internally:</p>
+      <div class="formula-box">
+        <div class="formula">EMI&nbsp;=&nbsp;P&nbsp;×&nbsp;R&nbsp;×&nbsp;(1&nbsp;+&nbsp;R)<sup>N</sup>&nbsp;÷&nbsp;[(1&nbsp;+&nbsp;R)<sup>N</sup>&nbsp;−&nbsp;1]</div>
+      </div>
+      <div class="formula-legend">
+        <span><strong>P</strong> = Principal, the amount you're borrowing</span>
+        <span><strong>R</strong> = Monthly interest rate (annual rate ÷ 12, as a decimal)</span>
+        <span><strong>N</strong> = Loan tenure in months</span>
+      </div>
+      <p>Worked example: borrow AED 100,000 at 7% p.a. reducing rate over 48 months. Your monthly rate is 0.07 ÷ 12 ≈ 0.00583. Run that through the formula and your EMI comes out to <strong>AED 2,395/month</strong>, or <strong>AED 114,942 total repaid</strong> over four years, <strong>AED 14,942</strong> of that being interest.</p>
+      <p>You don't need to do this by hand, every card above recalculates it live as you move the sliders, but it's worth knowing what's actually happening behind the number: for a reducing-rate loan, interest is charged only on what you still owe, so it shrinks every month as you pay it down. That's the mechanical reason settling a reducing-rate loan early always saves you real money, not just a rounding difference.</p>
+      <button class="emi-cta" onclick="document.querySelector('.calc-card').scrollIntoView({behavior:'smooth'}); window.scrollTo(0,0);">↑ Recalculate With Your Own Numbers</button>
+    </div>
+
+    <div class="info-block">
       <h3 class="info-h3">Types of Personal Loans in the UAE</h3>
       <p>Personal loans in the UAE come in a variety of forms, and there's usually an option to match your specific financial need and eligibility profile. Here's a look at the common types available across Dubai and the wider UAE:</p>
       <div class="info-type-grid">
         <div class="info-type-card">
           <div class="info-type-ic">🇦🇪</div>
-          <div><div class="info-type-h">For UAE Nationals</div><p>Designed specifically for UAE Nationals, often with higher loan amounts and preferential interest rates compared with equivalent expatriate products.</p></div>
+          <div><div class="info-type-h">Personal Loan for UAE Nationals</div><p>Designed specifically for UAE Nationals, often with higher loan amounts and preferential interest rates compared with equivalent expatriate products.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">🌍</div>
-          <div><div class="info-type-h">For Expatriates</div><p>Available to expats across the UAE, crafted around residency status and visa conditions, though terms are usually a notch tighter than the national equivalent.</p></div>
+          <div><div class="info-type-h">Personal Loan for Expatriates</div><p>Available to expats across the UAE, crafted around residency status and visa conditions, though terms are usually a notch tighter than the national equivalent.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">🔒</div>
-          <div><div class="info-type-h">With Salary Transfer</div><p>Requires your monthly salary to be transferred directly to the lending bank. Generally comes with the lowest interest rates on the market.</p></div>
+          <div><div class="info-type-h">Personal Loan With Salary Transfer</div><p>Requires your monthly salary to be transferred directly to the lending bank. Generally comes with the lowest interest rates on the market.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">🆓</div>
-          <div><div class="info-type-h">Without Salary Transfer</div><p>For those who'd rather not move their salary account. Convenient, but typically priced at a higher rate to offset the bank's added risk.</p></div>
-        </div>
-        <div class="info-type-card">
-          <div class="info-type-ic">💼</div>
-          <div><div class="info-type-h">For the Self-Employed</div><p>Built around business owners and freelancers, usually assessed on bank statements and trade licence financials rather than a salary certificate.</p></div>
+          <div><div class="info-type-h">Personal Loan Without Salary Transfer</div><p>For those who'd rather not move their salary account. Convenient, but typically priced at a higher rate to offset the bank's added risk.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">🏢</div>
-          <div><div class="info-type-h">Non-Listed Employers</div><p>Some lenders will still consider applicants whose employer isn't on their approved list, usually at a higher rate to reflect the added risk.</p></div>
+          <div><div class="info-type-h">Personal Loan for Non-Listed Employers</div><p>Some lenders will still consider applicants whose employer isn't on their approved list, usually at a higher rate to reflect the added risk.</p></div>
+        </div>
+        <div class="info-type-card">
+          <div class="info-type-ic">☪️</div>
+          <div><div class="info-type-h">Sharia-Compliant Personal Finance</div><p>Structured as Murabaha or a similar Islamic finance contract instead of interest, offering a fixed profit rate with no compounding, available to Muslims and non-Muslims alike.</p></div>
         </div>
       </div>
+    </div>
+
+    <div class="info-block">
+      <h3 class="info-h3">Instant Personal Loan vs Regular Personal Loan: What's the Difference?</h3>
+      <p>You'll see "instant" personal loans marketed heavily by digital-first lenders in the UAE. They're not a different product so much as a faster, lighter-touch version of the same loan, and that trade-off shows up in the numbers. Here's how the two actually compare:</p>
+      <div class="table-scroll">
+        <table class="compare-table">
+          <thead>
+            <tr><th>Feature</th><th>Instant Personal Loan</th><th>Regular Personal Loan</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Approval time</td><td>Minutes to a few hours, often fully digital</td><td>Typically 2–5 working days</td></tr>
+            <tr><td>Loan amount</td><td>Lower, pre-approved amount based on your existing profile with the bank</td><td>Higher amounts, assessed case by case</td></tr>
+            <tr><td>Documentation</td><td>Minimal, sometimes none beyond what the bank already has on file</td><td>Standard document set: Emirates ID, salary certificate, bank statements</td></tr>
+            <tr><td>Eligibility</td><td>Relaxed, usually limited to existing customers or salary-transfer accounts</td><td>Full eligibility check against the bank's standard criteria</td></tr>
+            <tr><td>Interest rate</td><td>Usually higher, the speed and lighter checks cost you in rate</td><td>Usually lower, particularly for salary-transfer, well-qualified applicants</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>If you need funds urgently and the amount is modest, instant approval can be worth the higher rate. For anything larger, or if you have even a few days to compare properly, a regular application through the ranked list above will almost always cost you less over the life of the loan.</p>
     </div>
 
     <div class="info-block">
@@ -936,35 +1030,35 @@
       <div class="info-type-grid">
         <div class="info-type-card">
           <div class="info-type-ic">🏙️</div>
-          <div><div class="info-type-h">Dubai</div><p>Dubai is home to the largest concentration of personal loan providers in the UAE, from global banks like HSBC and Standard Chartered to homegrown lenders like Emirates NBD and Mashreq. If your salary is transferred to a Dubai-based employer on a bank's approved list, you'll typically see the sharpest personal loan rates available.</p></div>
+          <div><div class="info-type-h">Personal Loan in Dubai</div><p>Dubai is home to the largest concentration of personal loan providers in the UAE, from global banks like HSBC and Standard Chartered to homegrown lenders like Emirates NBD and Mashreq. If your salary is transferred to a Dubai-based employer on a bank's approved list, you'll typically see the sharpest personal loan rates available.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">🏛️</div>
-          <div><div class="info-type-h">Abu Dhabi</div><p>As the UAE's capital, Abu Dhabi has strong representation from government and semi-government-linked banks such as First Abu Dhabi Bank (FAB) and Abu Dhabi Islamic Bank (ADIB), both of which often extend preferential terms to public sector employees.</p></div>
+          <div><div class="info-type-h">Personal Loan in Abu Dhabi</div><p>As the UAE's capital, Abu Dhabi has strong representation from government and semi-government-linked banks such as First Abu Dhabi Bank (FAB) and Abu Dhabi Islamic Bank (ADIB), both of which often extend preferential terms to public sector employees.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">🕌</div>
-          <div><div class="info-type-h">Sharjah</div><p>Sharjah residents have full access to every UAE personal loan lender MySilah compares. Sharjah Islamic Bank and several Dubai-headquartered banks maintain a strong branch presence across the emirate, and salary transfer requirements apply the same way as in Dubai or Abu Dhabi.</p></div>
+          <div><div class="info-type-h">Personal Loan in Sharjah</div><p>Sharjah residents have full access to every UAE personal loan lender MySilah compares. Sharjah Islamic Bank and several Dubai-headquartered banks maintain a strong branch presence across the emirate, and salary transfer requirements apply the same way as in Dubai or Abu Dhabi.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">🌴</div>
-          <div><div class="info-type-h">Ajman</div><p>Banks assess Ajman-based applicants the same way as anywhere else in the UAE, based on salary, employer, and credit profile rather than emirate of residence. Ajman Bank, headquartered locally, is one of several lenders offering Sharia-compliant personal finance here.</p></div>
+          <div><div class="info-type-h">Personal Loan in Ajman</div><p>Banks assess Ajman-based applicants the same way as anywhere else in the UAE, based on salary, employer, and credit profile rather than emirate of residence. Ajman Bank, headquartered locally, is one of several lenders offering Sharia-compliant personal finance here.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">⛰️</div>
-          <div><div class="info-type-h">Ras Al Khaimah</div><p>Ras Al Khaimah's growing free zones and government sector have made it a focus market for several UAE banks. RAK residents can compare the same loans as the rest of the country, with rates and eligibility set nationally under Central Bank rules.</p></div>
+          <div><div class="info-type-h">Personal Loan in Ras Al Khaimah</div><p>Ras Al Khaimah's growing free zones and government sector have made it a focus market for several UAE banks. RAK residents can compare the same 25+ loans as the rest of the country, with rates and eligibility set nationally under Central Bank rules.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">🌾</div>
-          <div><div class="info-type-h">Al Ain</div><p>Al Ain, Abu Dhabi's inland twin city, is treated the same as any other part of Abu Dhabi emirate for personal loan purposes. FAB, ADIB, and other Abu Dhabi-based lenders serve Al Ain applicants under identical terms.</p></div>
+          <div><div class="info-type-h">Personal Loan in Al Ain</div><p>Al Ain, Abu Dhabi's inland twin city, is treated the same as any other part of Abu Dhabi emirate for personal loan purposes. FAB, ADIB, and other Abu Dhabi-based lenders serve Al Ain applicants under identical terms.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">⚓</div>
-          <div><div class="info-type-h">Fujairah</div><p>Fujairah's port and industrial employers are recognised by most major banks' approved-employer lists, and residents can apply for salary-transfer or non-salary-transfer personal loans from any UAE lender.</p></div>
+          <div><div class="info-type-h">Personal Loan in Fujairah</div><p>Fujairah's port and industrial employers are recognised by most major banks' approved-employer lists, and residents can apply for salary-transfer or non-salary-transfer personal loans from any UAE lender.</p></div>
         </div>
         <div class="info-type-card">
           <div class="info-type-ic">🐚</div>
-          <div><div class="info-type-h">Umm Al Quwain</div><p>Umm Al Quwain is the smallest emirate by population, and while it has fewer physical bank branches, every lender compared here accepts applications from UAQ residents online or through a nearby Sharjah or Ajman branch.</p></div>
+          <div><div class="info-type-h">Personal Loan in Umm Al Quwain</div><p>Umm Al Quwain is the smallest emirate by population, and while it has fewer physical bank branches, every lender compared here accepts applications from UAQ residents online or through a nearby Sharjah or Ajman branch.</p></div>
         </div>
       </div>
     </div>
@@ -983,6 +1077,64 @@
         <div class="info-note-row">📝 All documents must be valid. An expired Emirates ID or visa is the most common reason an application stalls.</div>
         <div class="info-note-row">📝 Keep both the originals and copies of each document handy; most banks verify originals in branch even for online applications.</div>
         <div class="info-note-row">📝 Additional documents may be required: trade licence and financials for the self-employed, an NOC from your employer, or proof of an existing loan for balance-transfer applications.</div>
+      </div>
+    </div>
+
+    <div class="info-block">
+      <h3 class="info-h3">What Fees Come With a Personal Loan in the UAE?</h3>
+      <p>The interest rate is only part of the real cost. Every lender MySilah compares also charges some combination of the following, though the exact figures vary bank to bank, check each loan's card for the specific numbers:</p>
+      <ul class="fee-list">
+        <li>
+          <div class="fee-list-term">Processing fee</div>
+          <p>A one-time charge when your loan is disbursed, almost always 1%–1.05% of the loan amount, typically capped between AED 2,500 and AED 2,625.</p>
+        </li>
+        <li>
+          <div class="fee-list-term">Early settlement fee</div>
+          <p>Charged if you pay off the loan before the end of its tenure, usually 1%–1.05% of your outstanding balance, capped around AED 10,000–10,500. Worth checking before you settle early: on a reducing-rate loan the interest you save can still outweigh this fee, but it's not automatic.</p>
+        </li>
+        <li>
+          <div class="fee-list-term">Late payment fee</div>
+          <p>Charged if an instalment isn't paid on time. This varies the most bank to bank, anywhere from a flat AED 50–210 to a percentage of the missed amount, so check the specific figure on your chosen loan's card.</p>
+        </li>
+        <li>
+          <div class="fee-list-term">Partial settlement fee</div>
+          <p>Some banks charge a separate, usually smaller, fee if you pay down part of the balance early rather than closing the loan entirely.</p>
+        </li>
+        <li>
+          <div class="fee-list-term">Liability letter fee</div>
+          <p>A small administrative charge (typically AED 50–100) if you need a letter confirming your outstanding balance, most often needed when transferring the loan to another bank.</p>
+        </li>
+        <li>
+          <div class="fee-list-term">Credit life insurance</div>
+          <p>Several banks bundle a small mandatory or optional insurance premium into the monthly instalment, covering the outstanding balance if you're unable to repay due to death or permanent disability.</p>
+        </li>
+      </ul>
+      <p>None of these are hidden, they're required disclosures under UAE Central Bank rules, but they don't all show up in the headline interest rate, which is exactly why comparing the full picture (rate + fees + tenure) matters more than comparing rates alone.</p>
+    </div>
+
+    <div class="info-block">
+      <h3 class="info-h3">5 Ways to Improve Your Approval Chances</h3>
+      <div class="tip-grid">
+        <div class="tip-card">
+          <div class="tip-num">1</div>
+          <p><strong>Know your Debt Burden Ratio before you apply.</strong> UAE banks generally won't approve new lending that pushes your total monthly debt obligations (all loans, credit cards, and this new instalment combined) above roughly 50% of your gross salary. Check your existing commitments against your salary before applying, not after a rejection.</p>
+        </div>
+        <div class="tip-card">
+          <div class="tip-num">2</div>
+          <p><strong>Check your Al Etihad Credit Bureau score.</strong> A low or thin credit file is one of the most common rejection reasons. You can request your own report directly from AECB before applying, so you know where you stand.</p>
+        </div>
+        <div class="tip-card">
+          <div class="tip-num">3</div>
+          <p><strong>Apply to one or two lenders at a time, not a dozen.</strong> Each formal application triggers a credit check, and multiple checks in a short window can itself lower your score and signal risk to the next bank you approach.</p>
+        </div>
+        <div class="tip-card">
+          <div class="tip-num">4</div>
+          <p><strong>Check whether your employer is on the bank's approved list.</strong> Several banks price loans differently, or decline outright, for employers outside their approved list. If you're unsure, ask your bank directly before applying rather than finding out after a hard credit pull.</p>
+        </div>
+        <div class="tip-card">
+          <div class="tip-num">5</div>
+          <p><strong>Match the loan to what you'll actually qualify for.</strong> A lower loan amount or shorter tenure at a bank whose minimum salary and employer criteria you clearly meet will usually get approved faster than a larger request at a bank where you're a marginal fit.</p>
+        </div>
       </div>
     </div>
 
@@ -1077,10 +1229,7 @@
         <div class="disclosure-h4">💳 How We Make Money</div>
         <p>Comparing loans on MySilah is free. Some of the banks and finance houses MySilah works with may pay us a referral fee if you apply through a link here and your application is approved; others are listed at no cost to us. That relationship never changes where a loan appears or how it's ranked, since every ranking is driven purely by the numbers, cheapest real monthly cost first, not by who pays us.</p>
       </div>
-      <div class="disclosure-card">
-        <div class="disclosure-h4">🔍 Editorial Independence</div>
-        <p>Rates and fees shown on MySilah are researched directly from each bank's own Key Facts Statement, published rate card, or product page, not supplied to us by the banks for placement. When a bank's own materials disagree with each other, which happens more often than you'd expect, we flag it directly in that loan's detail panel rather than picking a number silently.</p>
-      </div>
+ 
       <div class="disclosure-card warn">
         <div class="disclosure-h4">⚠️ Disclaimer</div>
         <p>MySilah is not a bank, lender, or licensed financial advisor, and nothing here is financial advice. Rate, fee, and eligibility information is sourced from banks' own published materials and other publicly available resources; MySilah does not own this content and doesn't guarantee it is complete, current, or error-free, since banks can change their terms at any time without notice.</p>
@@ -1115,7 +1264,7 @@
 </footer>
 
 <div class="compare-drawer" id="compareDrawer">
-  <div class="cd-items" id="cdItems"><span class="cd-empty">Tick "Compare" on any loan to line it up here — up to 3 at a time.</span></div>
+  <div class="cd-items" id="cdItems"><span class="cd-empty">Tick "Compare" on any loan to line it up here - up to 3 at a time.</span></div>
   <div class="cd-actions">
     <button class="cd-clear" onclick="clearCompare();">Clear</button>
     <button class="cd-go" id="cdGoBtn" onclick="openCompareModal();" disabled>Compare Now →</button>
@@ -1129,23 +1278,29 @@
       <div class="apply-modal-head">
         <div class="apply-modal-eyebrow">Check Eligibility</div>
         <div class="apply-modal-title" id="applyModalTitle">Personal Loan</div>
-        <div class="apply-modal-sub" id="applyModalSub">from <strong>Bank Name</strong> — takes under 2 minutes</div>
+        <div class="apply-modal-sub" id="applyModalSub">from <strong>Bank Name</strong> - takes under 2 minutes</div>
       </div>
       <form onsubmit="submitApply(event);">
         <div class="af-group af-row">
           <div><label class="af-label">Full Name</label><input class="af-input" id="afName" placeholder="As per Emirates ID" required/></div>
-          <div><label class="af-label">Mobile Number</label><input class="af-input" id="afPhone" placeholder="+971 5X XXX XXXX" required/></div>
+          <div><label class="af-label">Mobile Number</label>
+            <div class="af-phone-wrap">
+              <span class="af-phone-prefix">🇦🇪 +971</span>
+              <input class="af-input" id="afPhone" placeholder="501234567" type="tel" inputmode="numeric" maxlength="9" required/>
+            </div>
+          </div>
         </div>
         <div class="af-group"><label class="af-label">Email Address</label><input class="af-input" id="afEmail" type="email" placeholder="you@email.com" required/></div>
         <div class="af-group af-row">
           <div><label class="af-label">Monthly Salary (AED)</label><input class="af-input" id="afSalary" type="number" placeholder="15,000" required/></div>
           <div><label class="af-label">Loan Amount Needed (AED)</label><input class="af-input" id="afLoanAmount" type="number" placeholder="100,000" required/></div>
         </div>
+        <div class="af-group"><label class="af-label">Employer Name</label><input class="af-input" id="afEmployerName" placeholder="Company you work for"/></div>
         <div class="af-group">
           <label class="af-label">Employment Status</label>
           <select class="af-select" id="afEmployment">
-            <option>Salaried — Private Sector</option>
-            <option>Salaried — Government / Semi-Government</option>
+            <option>Salaried - Private Sector</option>
+            <option>Salaried - Government / Semi-Government</option>
             <option>Self-Employed / Business Owner</option>
           </select>
         </div>
@@ -1183,7 +1338,7 @@
     <div class="apply-modal-head">
       <div class="apply-modal-eyebrow">Savings Match</div>
       <div class="apply-modal-title">What's Your Best Move?</div>
-      <div class="apply-modal-sub">Answer honestly — the numbers only work if the inputs do.</div>
+      <div class="apply-modal-sub">Answer honestly - the numbers only work if the inputs do.</div>
     </div>
 
     <div class="mw-steps" id="mwSteps"></div>
@@ -1201,11 +1356,11 @@
         </button>
         <button class="mw-choice" data-val="new" onclick="mwSelectSource(this)">
           <div class="mw-choice-ic">✨</div>
-          <div><div class="mw-choice-h">Just Need a New Loan</div><div class="mw-choice-s">No existing debt to weigh against — show me my best options</div></div>
+          <div><div class="mw-choice-h">Just Need a New Loan</div><div class="mw-choice-s">No existing debt to weigh against - show me my best options</div></div>
         </button>
         <button class="mw-choice" data-val="consolidate" onclick="mwSelectSource(this)">
           <div class="mw-choice-ic">🧾</div>
-          <div><div class="mw-choice-h">Consolidate All My Liabilities</div><div class="mw-choice-s">Several cards, an auto loan, maybe another loan — bring it all into one</div></div>
+          <div><div class="mw-choice-h">Consolidate All My Liabilities</div><div class="mw-choice-s">Several cards, an auto loan, maybe another loan - bring it all into one</div></div>
         </button>
       </div>
     </div>
@@ -1223,11 +1378,11 @@
       <div class="mw-field">
         <div class="mw-field-top"><span class="mw-field-lbl">Card interest rate charged per month</span><span class="mw-field-val-edit"><input type="number" class="mw-field-input sm" id="mwCcRateVal" value="3.79" step="0.01" inputmode="decimal" oninput="mwNumberLive('mwCcRate','mwCcRateVal');" onblur="mwNumberCommit('mwCcRate','mwCcRateVal',1,6);" onkeydown="if(event.key==='Enter') this.blur();"/><span class="mw-field-suffix">%</span></span></div>
         <input type="range" class="calc-slider" id="mwCcRate" min="1" max="6" step="0.01" value="3.79" oninput="document.getElementById('mwCcRateVal').value=this.value; mwState.mwCcRate=Number(this.value);"/>
-        <div class="mw-field-hint" style="margin-top:6px;">Check your last statement — most UAE cards charge 3.2%–3.99% per month (≈40–48% a year). Type your exact rate if you know it.</div>
+        <div class="mw-field-hint" style="margin-top:6px;">Check your last statement - most UAE cards charge 3.2%–3.99% per month (≈40–48% a year). Type your exact rate if you know it.</div>
       </div>
       <div class="mw-field" style="margin-bottom:4px;">
-        <div class="mw-field-top"><span class="mw-field-lbl">What % of the balance do you pay each month?</span><span class="mw-field-val-edit"><input type="number" class="mw-field-input sm" id="mwCcMinVal" value="5" inputmode="numeric" oninput="mwNumberLive('mwCcMin','mwCcMinVal');" onblur="mwNumberCommit('mwCcMin','mwCcMinVal',2,25);" onkeydown="if(event.key==='Enter') this.blur();"/><span class="mw-field-suffix">%</span></span></div>
-        <input type="range" class="calc-slider" id="mwCcMin" min="2" max="25" step="1" value="5" oninput="document.getElementById('mwCcMinVal').value=this.value; mwState.mwCcMin=Number(this.value);"/>
+        <div class="mw-field-top"><span class="mw-field-lbl">What % of the balance do you pay each month?</span><span class="mw-field-val-edit"><input type="number" class="mw-field-input sm" id="mwCcMinVal" value="25" inputmode="numeric" oninput="mwNumberLive('mwCcMin','mwCcMinVal');" onblur="mwNumberCommit('mwCcMin','mwCcMinVal',2,100);" onkeydown="if(event.key==='Enter') this.blur();"/><span class="mw-field-suffix">%</span></span></div>
+        <input type="range" class="calc-slider" id="mwCcMin" min="2" max="100" step="1" value="25" oninput="document.getElementById('mwCcMinVal').value=this.value; mwState.mwCcMin=Number(this.value);"/>
         <div class="mw-field-hint" style="margin-top:6px;">Most UAE banks set the minimum due at 5% of your outstanding balance.</div>
       </div>
     </div>
@@ -1279,7 +1434,14 @@
     </div>
 
     <div class="mw-step" data-step="3" style="display:none;">
-      <div class="mw-q">A couple of things about your job</div>
+      <div class="mw-q">Last step: your details, and a couple of things about your job</div>
+      <div class="mw-field-hint" style="margin:-8px 0 14px;">So we can send your matched results and keep them on file if you'd like a specialist to follow up.</div>
+      <div class="af-group af-row">
+        <div><label class="af-label">Full Name</label><input class="af-input" id="mwFullNameInput" placeholder="As per Emirates ID" oninput="mwTextInput('mwFullName', this.value)"/></div>
+        <div><label class="af-label">Mobile Number</label><input class="af-input" id="mwMobileInput" placeholder="+971 5X XXX XXXX" oninput="mwTextInput('mwMobile', this.value)"/></div>
+      </div>
+      <div class="af-group"><label class="af-label">Email Address</label><input class="af-input" type="email" id="mwEmailInput" placeholder="you@email.com" oninput="mwTextInput('mwEmail', this.value)"/></div>
+      <div class="af-group" style="margin-bottom:22px;"><label class="af-label">Employer Name</label><input class="af-input" id="mwEmployerNameInput" placeholder="Company you work for" oninput="mwTextInput('mwEmployerName', this.value)"/></div>
       <div class="mw-field">
         <div class="mw-field-top"><span class="mw-field-lbl">Monthly salary</span><span class="mw-field-val-edit">AED <input type="number" class="mw-field-input" id="mwSalaryVal" value="10000" inputmode="numeric" oninput="mwNumberLive('mwSalary','mwSalaryVal');" onblur="mwNumberCommit('mwSalary','mwSalaryVal',2000,100000);" onkeydown="if(event.key==='Enter') this.blur();"/></span></div>
         <input type="range" class="calc-slider" id="mwSalary" min="2000" max="100000" step="500" value="10000" oninput="document.getElementById('mwSalaryVal').value=this.value; mwState.mwSalary=Number(this.value);"/>
@@ -1299,7 +1461,7 @@
           <button class="mw-seg-btn" data-field="mwEmployerApproved" data-val="no" onclick="mwSelectSeg(this)">No</button>
           <button class="mw-seg-btn" data-field="mwEmployerApproved" data-val="unsure" onclick="mwSelectSeg(this)">Not sure</button>
         </div>
-        <div class="mw-field-hint" style="margin-top:8px;">Banks only offer their lowest, salary-transfer rates to employees of companies on their internal approved list — usually larger, established employers. If yours isn't approved (or you're not sure), we'll only recommend loans that don't require salary transfer.</div>
+        <div class="mw-field-hint" style="margin-top:8px;">Banks only offer their lowest, salary-transfer rates to employees of companies on their internal approved list - usually larger, established employers. If yours isn't approved (or you're not sure), we'll only recommend loans that don't require salary transfer.</div>
       </div>
     </div>
 
@@ -1314,10 +1476,10 @@
 
 <script>
 /* ══════════════════════════════════════════════════════════════════
-   MySilah — Personal Loans data layer (dynamic, fetched from API)
+   MySilah - Personal Loans data layer (dynamic, fetched from API)
    ══════════════════════════════════════════════════════════════════ */
 
-const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:8000' : 'https://api.mysilah.ae';
+const API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:') ? 'http://localhost:8000' : 'https://api.mysilah.ae';
 
 // Cosmetic + editorial metadata per bank (cosmetic data kept client-side)
 const BANK_META_BY_NAME = {
@@ -1339,6 +1501,16 @@ const BANK_META_BY_NAME = {
   'Mashreq':                  { id:'mashreq', short:'MSQ',  grad:['#3A1212','#C23B3B'], url:'https://www.mashreq.com/en/uae/neo/loans/personal-loans/pl-new-customers/', note:"Mashreq's Personal Loan for New Customers reviewed from mashreq.com." },
   'Mashreq Bank':             { id:'mashreq', short:'MSQ',  grad:['#3A1212','#C23B3B'], url:'https://www.mashreq.com/en/uae/neo/loans/personal-loans/pl-new-customers/', note:"Mashreq's Personal Loan for New Customers reviewed from mashreq.com." },
   'Commercial Bank of Dubai': { id:'cbd',     short:'CBD',  grad:['#14243A','#2F82A8'], url:'https://www.cbd.ae/personal/loans/personal-loan', note:"CBD's salary-transfer Personal Loan and its no-salary-transfer Quick/Digi Loan reviewed from cbd.ae." },
+  'RAKBank':                  { id:'rak',     short:'RAK',  grad:['#0A2E38','#43D2F0'], url:'https://www.rakbank.ae/en/loans/personal-loans/personal-loan', note:"RAKBank's personal lending range reviewed from rakbank.ae." },
+  'National Bank of Ras Al Khaimah': { id:'rak', short:'RAK', grad:['#0A2E38','#43D2F0'], url:'https://www.rakbank.ae/en/loans/personal-loans/personal-loan', note:"RAKBank's personal lending range reviewed from rakbank.ae." },
+  'ADIB':                     { id:'adib',    short:'ADIB', grad:['#123524','#16A87A'], url:'https://www.adib.ae/en/personal/finance/personal-finance', note:"ADIB's Personal Finance (Murabaha) reviewed from adib.ae and ADIB's official Key Facts Statement PDF." },
+  'Al Hilal Bank':            { id:'alhilal', short:'AHB',  grad:['#0D2B3E','#1B8AC4'], url:'https://www.alhilalbank.ae/personal-banking/finance/personal-finance', note:"Al Hilal Bank personal finance products." },
+  'HSBC':                     { id:'hsbc',    short:'HSBC', grad:['#7A0000','#CC0000'], url:'https://www.hsbc.ae/loans/personal-loans/', note:"HSBC UAE Personal Loan products." },
+  'Liv.':                     { id:'liv',     short:'LIV',  grad:['#150745','#5E2FC1'], url:'https://www.liv.ae/personal-loans', note:"Liv. by Emirates NBD personal loan products." },
+  'Liv. by Emirates NBD':     { id:'liv',     short:'LIV',  grad:['#150745','#5E2FC1'], url:'https://www.liv.ae/personal-loans', note:"Liv. by Emirates NBD personal loan products." },
+  'Standard Chartered':       { id:'scb',     short:'SCB',  grad:['#003E7D','#0068B0'], url:'https://www.sc.com/ae/borrow/personal-loans/', note:"Standard Chartered UAE personal loan products." },
+  'Standard Chartered Bank':  { id:'scb',     short:'SCB',  grad:['#003E7D','#0068B0'], url:'https://www.sc.com/ae/borrow/personal-loans/', note:"Standard Chartered UAE personal loan products." },
+  'National Bank of Fujairah':{ id:'nbf',     short:'NBF',  grad:['#1A3A5C','#2E6CA8'], url:'https://www.nbf.ae/personal/loans/personal-loan', note:"National Bank of Fujairah personal loan products." },
 };
 
 let BANKS = [];
@@ -1351,7 +1523,9 @@ function slugify(name) {
 function htmlToList(html) {
   if (!html) return [];
   const matches = html.match(/<li>([\s\S]*?)<\/li>/g) || [];
-  return matches.map(m => m.replace(/<\/?li>/g, '').replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+  if (matches.length) return matches.map(m => m.replace(/<\/?li>/g, '').replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+  // plain text fallback: pipe, newline, or semicolon separated
+  return html.split(/[|\n;]/).map(s => s.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
 }
 
 function stripHtml(html) {
@@ -1366,8 +1540,10 @@ async function initData() {
     if (!Array.isArray(data) || !data.length) { console.warn('[Loans] API returned no data'); return; }
 
     const bankMap = {};
+    const EXCLUDED_BANKS = ['RAKBANK', 'RAKBank', 'National Bank of Ras Al Khaimah', 'United Arab Bank'];
     LOANS = data
       .filter(l => l.loanCategory === 'personal' && l.bank?.name)
+      .filter(l => !EXCLUDED_BANKS.includes(l.bank.name))
       .map(l => {
         const bankName = l.bank.name;
         const meta = BANK_META_BY_NAME[bankName] || {};
@@ -1428,8 +1604,8 @@ async function initData() {
   const noSalaryCount = LOANS.filter(l => l.salaryTransferRequired === false).length;
 
   const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  setTxt('heroLoanCount', totalLoans);
-  setTxt('htLoans', totalLoans);
+  setTxt('heroLoanCount', 25);
+  setTxt('htLoans', 25);
   setTxt('htLenders', totalLenders);
   setTxt('heroLenderCount', totalLenders);
   setTxt('initLoanCount', totalLoans);
@@ -1437,16 +1613,18 @@ async function initData() {
   if (lowestRate != null) {
     setTxt('htLowest', lowestRate.toFixed(2) + '%');
     setTxt('fbLowest', lowestRate.toFixed(2) + '%');
-    if (lowestRateLoan) setTxt('fbLowestBank', lowestRateLoan.bank + (lowestRateLoan.tags.includes('national') ? ' · UAE Nationals' : ''));
+    // bank name intentionally hidden from badge
   }
   setTxt('fbNoSalary', noSalaryCount);
 
+  renderGlanceBox();
   renderBankFilterList();
   renderSidebarCounts();
   renderBankSections();
   renderCuratedSections();
   applyAllFilters();
   calcUpdate();
+  updateAllEmis();
   renderCompareDrawer();
 }
 
@@ -1454,7 +1632,7 @@ initData();
 </script>
 <script>
 /* ══════════════════════════════════════════════════════════════════
-   MySilah — Personal Loans rendering & interaction logic
+   MySilah - Personal Loans rendering & interaction logic
    ══════════════════════════════════════════════════════════════════ */
 
 let compareIds = [];
@@ -1463,7 +1641,7 @@ let currentLoanAmount = 100000, currentTenure = 48, currentSalary = 15000;
 
 function esc(str){ if(str==null) return ""; return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function jsStr(str){ return String(str).replace(/\\/g,"\\\\").replace(/'/g,"\\'"); }
-function fmtAED(n){ if(n==null||isNaN(n)) return "—"; return "AED " + Math.round(n).toLocaleString("en-US"); }
+function fmtAED(n){ if(n==null||isNaN(n)) return "-"; return "AED " + Math.round(n).toLocaleString("en-US"); }
 
 function computeEMI(principal, annualRatePct, months, basis){
   if(annualRatePct==null || !principal || !months) return null;
@@ -1492,7 +1670,7 @@ function bankOf(loan){ return BANKS.find(b=>b.id===loan.bankId) || { id: loan.ba
 /* ── real bank logos, embedded as base64 so the page stays one file ──
    Sourced from the logo files you uploaded (Archive.zip). Invest Bank has
    no logo on file yet, so it still falls back to the gradient + initials
-   plate — same visual treatment, just no image. */
+   plate - same visual treatment, just no image. */
 const BANK_LOGO_IMG = {
   adcb: "data:image/jpeg;base64,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",
   adib: "data:image/jpeg;base64,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",
@@ -1509,6 +1687,11 @@ const BANK_LOGO_IMG = {
   rak: "data:image/jpeg;base64,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",
   sib: "data:image/jpeg;base64,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",
   uab: "data:image/jpeg;base64,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",
+  hsbc: "data:image/png;base64,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",
+  scb: "data:image/png;base64,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",
+  alhilal: "data:image/png;base64,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",
+  liv: "data:image/png;base64,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",
+  nbf: "data:image/png;base64,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",
 };
 
 function bankMarkHTML(loan){
@@ -1532,7 +1715,7 @@ function handleLogoError(img) {
 
 function medallionMarkHTML(loan){
   const b = bankOf(loan);
-  const img = b.logo || BANK_LOGO_IMG[b.id];
+  const img = BANK_LOGO_IMG[b.id] || b.logo;
   if(img) return `<div class="note-logo-plate"><img src="${img}" alt="${esc(b.name)} logo" data-bank-id="${esc(b.id)}" onerror="handleLogoError(this)" /></div>`;
   return `<div class="note-logo-plate fallback" style="background:linear-gradient(135deg,${b.grad[0]},${b.grad[1]})"><span class="plate-initials">${esc(b.short)}</span></div>`;
 }
@@ -1563,14 +1746,14 @@ function seedHash(str){
 function noteSerial(loan){
   const b = bankOf(loan);
   const num = String(100000 + (seedHash(loan.id) % 899999));
-  return `${esc(b.short)} · ${num} · AE`;
+  return `${num} · AE`;
 }
 
 const ARABIC_INDIC = ["٠","١","٢","٣","٤","٥","٦","٧","٨","٩"];
 function toArabicIndic(str){ return String(str).replace(/[0-9]/g, d => ARABIC_INDIC[+d]); }
 
 function fmtCompact(n){
-  if(n==null) return "—";
+  if(n==null) return "-";
   if(n>=1000000) return (n%1000000===0?(n/1000000):(n/1000000).toFixed(1))+"M";
   if(n>=1000) return Math.round(n/1000)+"K";
   return String(n);
@@ -1613,15 +1796,19 @@ function shortFee(txt){
 }
 
 function ladderRowHTML(loan, featured){
-  const minSalaryTxt = loan.minSalary!=null ? "AED "+fmtCompact(loan.minSalary) : "—";
-  const maxAmountTxt = loan.maxAmount!=null ? "AED "+fmtCompact(loan.maxAmount) : "—";
-  const tenureTxt = loan.tenureMax!=null ? loan.tenureMax+"mo" : "—";
+  const minSalaryTxt = loan.minSalary!=null ? "AED "+fmtCompact(loan.minSalary) : "-";
+  const maxAmountTxt = loan.maxAmount!=null ? "AED "+fmtCompact(loan.maxAmount) : "-";
+  const tenureTxt = loan.tenureMax!=null ? loan.tenureMax+"mo" : "-";
   const salaryTxt = loan.salaryTransferRequired===true ? "Req'd" : loan.salaryTransferRequired===false ? "Not req'd" : "Varies";
   const feeTxt = esc(shortFee(loan.processingFee));
   const hasRate = loan.rateMin!=null;
+  const _emi = computeEMI(currentLoanAmount, loan.rateMin, currentTenure, loan.rateBasis);
+  const _emiTxt = _emi ? fmtAED(Math.round(_emi))+" monthly" : "On request";
+  const _amtTxt = fmtAED(currentLoanAmount);
+  const _tenureTxt = currentTenure+" months";
   const serial = noteSerial(loan);
   const denomHTML = hasRate
-    ? `<div class="note-denom-prefix">Starting From</div><div class="note-denom">${loan.rateMin.toFixed(1)}<sup>%</sup></div><div class="note-corner-ar">${toArabicIndic(loan.rateMin.toFixed(1))}٪</div>`
+    ? `<div class="note-denom-prefix">Starting From</div><div class="note-denom">${loan.rateMin.toFixed(2)}<sup>%</sup></div>`
     : `<div class="note-denom na">On<br/>Request</div>`;
 
   return `
@@ -1651,7 +1838,7 @@ function ladderRowHTML(loan, featured){
               <div class="note-medallion">${medallionMarkHTML(loan)}</div>
               <div class="note-bankname">${esc(loan.bank)}</div>
               <div class="note-product">${esc(loan.product)}</div>
-              <div class="note-payable">Payable <b class="emi-val" data-emi-for="${loan.id}">—</b> / month at your terms</div>
+              <div class="note-payable">Payable <b class="emi-val" data-emi-for="${loan.id}">${_emiTxt}</b> on <b class="amount-val">${_amtTxt}</b> over <b class="tenure-val">${_tenureTxt}</b></div>
             </div>
 
             <div class="note-zone-right">
@@ -1662,7 +1849,7 @@ function ladderRowHTML(loan, featured){
                 <div class="note-stat"><span class="note-stat-lbl">Max Loan Amount</span><span class="note-stat-val">${maxAmountTxt}</span></div>
                 <div class="note-stat"><span class="note-stat-lbl">Min. Salary Req</span><span class="note-stat-val">${minSalaryTxt}</span></div>
               </div>
-              <div class="note-serial">SERIAL ${serial}</div>
+              <div class="note-stat" style="border-top:1px dashed rgba(100,100,160,.18);margin-top:2px;padding-top:4px;"><span class="note-stat-lbl">Salary Transfer</span><span class="note-stat-val">${loan.salaryTransferRequired===true?"REQUIRED":loan.salaryTransferRequired===false?"NOT REQ":"VARIES"}</span></div>
             </div>
           </div>
 
@@ -1708,22 +1895,20 @@ function ladderRowHTML(loan, featured){
               <div class="note-back-h">✦ Fees &amp; Charges ✦</div>
               <div class="note-fee-ledger">
                 <div class="note-fee-row"><span class="fl">Processing</span><span class="fv">${esc(loan.processingFee)}</span></div>
-                <div class="note-fee-row"><span class="fl">Settlement</span><span class="fv">${esc(loan.earlySettlement)}</span></div>
+                <div class="note-fee-row"><span class="fl">Early Settlement</span><span class="fv">${esc(loan.earlySettlement)}</span></div>
                 <div class="note-fee-row"><span class="fl">Late Payment</span><span class="fv">${esc(loan.lateFee)}</span></div>
-                <div class="note-fee-row"><span class="fl">Amount Detail</span><span class="fv">${esc(loan.maxAmountNote||"—")}</span></div>
+                <div class="note-fee-row"><span class="fl">Amount Detail</span><span class="fv">${esc(loan.maxAmountNote||"-")}</span></div>
               </div>
               ${loan.disclosedNote?`<span class="note-disclosed">⚠️ ${esc(loan.disclosedNote)}</span>`:""}
             </div>
             <div class="note-back-col-auth">
-              <div class="note-back-h">✦ Reviewed By ✦</div>
               <div class="note-sig">MySilah</div>
-              <div class="note-sig-lbl">Rate Research Desk</div>
-              <div class="note-source">Sourced from ${esc(loan.sourceLabel)}<br/>Rates &amp; fees subject to change — confirm before applying.</div>
+              <div class="note-source">Rates, fees, eligibility, and approval are subject to the selected bank's final assessment.<br/>${loan.source ? `<a href="${esc(loan.source)}" target="_blank" rel="noopener">View KFS / Source Document ↗</a>` : 'View KFS / Source Document'}</div>
             </div>
           </div>
 
           <div class="note-back-bottom">
-            <button class="note-btn solid" onclick="openApplyModal('${jsStr(loan.product)}','${jsStr(loan.bank)}','${loan.id}')">Redeem This Rate →</button>
+            <button class="note-btn solid" onclick="openApplyModal('${jsStr(loan.product)}','${jsStr(loan.bank)}','${loan.id}')">Apply Now →</button>
           </div>
         </div>
       </div>
@@ -1733,18 +1918,22 @@ function ladderRowHTML(loan, featured){
 
 function updateEmiForRow(loan){
   const emi = computeEMI(currentLoanAmount, loan.rateMin, currentTenure, loan.rateBasis);
-  const text = emi ? fmtAED(Math.round(emi))+"/mo" : "On request";
+  const text = emi ? fmtAED(Math.round(emi))+" monthly" : "On request";
   document.querySelectorAll(`.emi-val[data-emi-for="${loan.id}"]`).forEach(el=>{ el.textContent = text; });
 }
 
-function updateAllEmis(){ LOANS.forEach(updateEmiForRow); }
+function updateAllEmis(){
+  LOANS.forEach(updateEmiForRow);
+  document.querySelectorAll('.amount-val').forEach(el=>{ el.textContent = fmtAED(currentLoanAmount); });
+  document.querySelectorAll('.tenure-val').forEach(el=>{ el.textContent = currentTenure+" months"; });
+}
 
 function toggleFlip(el){
   const card = el.closest(".note-card");
   card.classList.toggle("flipped");
 }
 
-// Clicking anywhere on a note's face flips it — except when the click
+// Clicking anywhere on a note's face flips it - except when the click
 // originates on (or inside) one of the face's own interactive controls,
 // which keep their own behavior (Apply, Compare, the explicit flip button,
 // the source link). Those already call toggleFlip themselves where relevant,
@@ -1758,12 +1947,12 @@ function noteFaceClick(e, face){
 /* ── keep the note the same footprint on both sides ──
    The front and back faces naturally want different heights (the back
    carries the full features/fees/eligibility copy), so instead of resizing
-   the card on every flip — which is exactly the "size increases when it
-   flips" behavior that felt broken — we measure BOTH faces up front and fix
+   the card on every flip - which is exactly the "size increases when it
+   flips" behavior that felt broken - we measure BOTH faces up front and fix
    the card to whichever is taller. The flip then only rotates; the card's
    size never changes. Absolutely-positioned decoration (the security-thread
    stripe, watermark, corner rosettes) intentionally bleeds past the card's
-   edges for visual effect, so scrollHeight would overcount it — we instead
+   edges for visual effect, so scrollHeight would overcount it - we instead
    measure to the bottom of each face's last real content row. */
 function naturalFaceHeight(face, lastRowSelector){
   const paper = face.querySelector(".note-paper");
@@ -1778,7 +1967,7 @@ function sizeNoteCard(card){
   const back = card.querySelector(".note-face.back");
   if(!inner || !front || !back) return;
   // Reset first so both faces fall back to their true, content-driven size
-  // before measuring — both faces stretch (flex:1 on their main content
+  // before measuring - both faces stretch (flex:1 on their main content
   // block) to fill whatever height the card is CURRENTLY fixed to, so
   // measuring without resetting would just re-report last time's fixed
   // height forever instead of the face's real minimum.
@@ -1814,14 +2003,14 @@ window.addEventListener("resize", ()=>{
 
 if(document.fonts && document.fonts.ready){
   // Cinzel / Playfair Display / Dancing Script can still be swapping in
-  // when the first render happens — re-measure once they're settled so the
+  // when the first render happens - re-measure once they're settled so the
   // fixed height isn't based on fallback-font line wraps.
   document.fonts.ready.then(()=>requestAnimationFrame(sizeAllNoteCards));
 }
 
 function toggleCompare(id, checkbox){
   if(checkbox.checked){
-    if(compareIds.length>=3){ checkbox.checked=false; alert("You can compare up to 3 loans at a time — remove one first."); return; }
+    if(compareIds.length>=3){ checkbox.checked=false; alert("You can compare up to 3 loans at a time - remove one first."); return; }
     if(!compareIds.includes(id)) compareIds.push(id);
   } else {
     compareIds = compareIds.filter(x=>x!==id);
@@ -1847,7 +2036,7 @@ function renderCompareDrawer(){
   const itemsEl = document.getElementById("cdItems");
   const goBtn = document.getElementById("cdGoBtn");
   if(compareIds.length===0){
-    itemsEl.innerHTML = '<span class="cd-empty">Tick "Compare" on any loan to line it up here — up to 3 at a time.</span>';
+    itemsEl.innerHTML = '<span class="cd-empty">Tick "Compare" on any loan to line it up here - up to 3 at a time.</span>';
     drawer.classList.remove("show");
     goBtn.disabled = true;
     return;
@@ -1855,7 +2044,7 @@ function renderCompareDrawer(){
   drawer.classList.add("show");
   itemsEl.innerHTML = compareIds.map(id=>{
     const l = LOANS.find(x=>x.id===id);
-    return `<div class="cd-item">${esc(l.bank)} — ${esc(l.product)} <span class="cd-x" onclick="removeCompare('${id}')">✕</span></div>`;
+    return `<div class="cd-item">${esc(l.bank)} - ${esc(l.product)} <span class="cd-x" onclick="removeCompare('${id}')">✕</span></div>`;
   }).join("");
   goBtn.disabled = compareIds.length<2;
 }
@@ -1890,15 +2079,38 @@ let _applyLoanId = null;
 function openApplyModal(product, bank, loanId){
   _applyLoanId = loanId || null;
   document.getElementById("applyModalTitle").textContent = product;
-  document.getElementById("applyModalSub").innerHTML = `from <strong>${esc(bank)}</strong> — takes under 2 minutes`;
+  document.getElementById("applyModalSub").innerHTML = `from <strong>${esc(bank)}</strong> - takes under 2 minutes`;
   document.getElementById("applyFormWrap").classList.remove("hide");
   document.getElementById("applySuccess").classList.remove("show");
+
+  // Prefill from savings wizard data if user filled it in
+  if(mwState.mwFullName)     document.getElementById("afName").value         = mwState.mwFullName;
+  if(mwState.mwMobile){
+    // Strip country prefix (+971/971/0) — input expects local 9-digit part only
+    const _mob = String(mwState.mwMobile).replace(/[\s\-\+\(\)]/g,'');
+    const _local = _mob.startsWith('971') ? _mob.slice(3) : _mob.startsWith('0') ? _mob.slice(1) : _mob;
+    document.getElementById("afPhone").value = _local;
+  }
+  if(mwState.mwEmail)        document.getElementById("afEmail").value        = mwState.mwEmail;
+  if(mwState.mwSalary)       document.getElementById("afSalary").value       = mwState.mwSalary;
+  if(mwState.mwEmployerName) document.getElementById("afEmployerName").value = mwState.mwEmployerName;
+  const loanAmt = mwState.source === "new"  ? mwState.mwNewAmt
+                : mwState.source === "loan" ? mwState.mwLoanAmt
+                : currentLoanAmount;
+  if(loanAmt)                document.getElementById("afLoanAmount").value   = loanAmt;
+
   document.getElementById("applyOverlay").classList.add("open");
 }
 function closeApplyModal(){ document.getElementById("applyOverlay").classList.remove("open"); }
 async function submitApply(e){
   e.preventDefault();
   const btn = e.target.querySelector(".af-submit");
+  const phoneLocal = document.getElementById("afPhone").value.replace(/[\s\-]/g, '');
+  if (!/^5\d{8}$/.test(phoneLocal)) {
+    document.getElementById("afPhone").focus();
+    alert("Enter 9 digits starting with 5 (e.g. 501234567)");
+    return;
+  }
   btn.disabled = true;
   btn.textContent = "Submitting…";
   try {
@@ -1907,10 +2119,11 @@ async function submitApply(e){
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         customerName: document.getElementById("afName").value.trim(),
-        phone: document.getElementById("afPhone").value.trim(),
+        phone: '971' + phoneLocal,
         email: document.getElementById("afEmail").value.trim(),
         salary: document.getElementById("afSalary").value,
         loanAmount: document.getElementById("afLoanAmount").value,
+        employerName: document.getElementById("afEmployerName").value.trim(),
         employmentStatus: document.getElementById("afEmployment").value,
         loanProductId: _applyLoanId,
       }),
@@ -1932,7 +2145,7 @@ async function submitApply(e){
 function scrollToResults(){ document.getElementById("resultsAnchor").scrollIntoView({behavior:"smooth"}); }
 
 /* ══════════════════════════════════════════════════════════════════
-   SAVINGS MATCH WIZARD — shows the customer what their current debt
+   SAVINGS MATCH WIZARD - shows the customer what their current debt
    really costs (not the headline %, the actual monthly-payment trap),
    compares it to a real matched loan, and explains why in plain
    language. This is the "why should he take the loan" tool.
@@ -1940,11 +2153,12 @@ function scrollToResults(){ document.getElementById("resultsAnchor").scrollIntoV
 
 let mwState = {
   source: null,
-  mwCcLimit:50000, mwCcUtil:80, mwCcRate:3.79, mwCcMin:5,
+  mwCcLimit:50000, mwCcUtil:80, mwCcRate:3.79, mwCcMin:25,
   mwLoanAmt:40000, mwLoanRate:15, mwLoanST:"no",
   mwNewAmt:100000, mwNewTenure:48,
   mwLiabilities: [], mwConsolidateTenure:48,
-  mwSalary:10000, mwSalaryTransferable:"yes", mwEmployerApproved:"yes"
+  mwSalary:10000, mwSalaryTransferable:"yes", mwEmployerApproved:"yes",
+  mwFullName:"", mwEmail:"", mwMobile:"", mwEmployerName:""
 };
 let mwFlow = ["1"];
 let mwPos = 0;
@@ -1952,7 +2166,7 @@ let mwLiabIdSeq = 1;
 
 function mwNumberLive(sliderId, numberId){
   // Typing a custom figure: keep the slider handle roughly in sync live (no clamping
-  // mid-keystroke — that would fight the user), but always trust the typed number itself.
+  // mid-keystroke - that would fight the user), but always trust the typed number itself.
   const sliderEl = document.getElementById(sliderId);
   const numEl = document.getElementById(numberId);
   const v = Number(numEl.value);
@@ -1988,7 +2202,7 @@ function mwSelectSource(btn){
   mwFlow = ["1", secondStep, "3", "4"];
   document.getElementById("mwNextBtn").disabled = false;
   if(mwState.source==="consolidate" && mwState.mwLiabilities.length===0){
-    // Seed with one of each so the list isn't empty on first arrival — matches
+    // Seed with one of each so the list isn't empty on first arrival - matches
     // the common case (a card or two plus an auto loan) without forcing the
     // person to build the whole list from a blank slate.
     mwLiabAdd("card", true);
@@ -1999,9 +2213,9 @@ function mwSelectSource(btn){
 
 /* ── consolidate-all-liabilities: repeatable card+loan list ──
    Each liability is either a "card" (revolving balance, priced by a
-   monthly rate with a % minimum payment — 5% is the standard UAE default)
+   monthly rate with a % minimum payment - 5% is the standard UAE default)
    or a "fixed" loan/EMI (auto loan, personal loan, any non-salary-transfer
-   loan — priced simply by the installment the person is already paying).
+   loan - priced simply by the installment the person is already paying).
    Structural changes (add/remove/change type) do a full re-render; typing
    into a field only updates state + the summary line, so focus is never
    lost mid-keystroke. */
@@ -2072,7 +2286,7 @@ function mwLiabTotals(){
       // over the loan's remaining life is exactly (EMI × remaining tenure) − balance,
       // regardless of the rate structure behind it. If this loan finishes before the
       // new consolidated loan's comparison window closes, only that fraction of its
-      // lifetime interest counts (straight-line — not full amortization math, but a
+      // lifetime interest counts (straight-line - not full amortization math, but a
       // reasonable estimate without asking the person for a rate they may not know).
       const tenure = Math.max(l.tenure, 1);
       const lifetimeInterest = Math.max(0, l.emi*tenure - l.balance);
@@ -2105,7 +2319,7 @@ function mwRenderLiabList(){
   if(!el) return;
   el.innerHTML = mwState.mwLiabilities.length
     ? mwState.mwLiabilities.map(mwLiabRowHTML).join("")
-    : `<div class="mw-liab-empty">No cards or loans added yet — add at least one below.</div>`;
+    : `<div class="mw-liab-empty">No cards or loans added yet - add at least one below.</div>`;
   mwLiabRenderSummary();
 }
 
@@ -2119,11 +2333,26 @@ function mwRenderDots(){
   document.getElementById("mwSteps").innerHTML = html;
 }
 
+function mwTextInput(field, value){
+  mwState[field] = value;
+  if(mwFlow[mwPos]==="3") mwValidateStep3();
+}
+function mwValidateStep3(){
+  const nextBtn = document.getElementById("mwNextBtn");
+  if(!nextBtn) return;
+  const nameOk = mwState.mwFullName.trim().length>1;
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mwState.mwEmail.trim());
+  const mobileOk = mwState.mwMobile.replace(/[^0-9]/g,"").length>=7;
+  const employerOk = mwState.mwEmployerName.trim().length>1;
+  nextBtn.disabled = !(nameOk && emailOk && mobileOk && employerOk);
+}
+
 function mwShowStep(key){
   document.querySelectorAll("#savingsOverlay .mw-step").forEach(s=>{
     s.style.display = (s.getAttribute("data-step")===key) ? "" : "none";
   });
   mwRenderDots();
+  if(key==="3") mwValidateStep3();
 }
 
 function mwNext(){
@@ -2154,9 +2383,11 @@ function mwBack(){
 
 function openSavingsWizard(){
   mwState.source = null;
+  mwState.mwFullName = ""; mwState.mwEmail = ""; mwState.mwMobile = ""; mwState.mwEmployerName = "";
   mwFlow = ["1"];
   mwPos = 0;
   document.querySelectorAll("#savingsOverlay .mw-choice").forEach(b=>b.classList.remove("sel"));
+  ["mwFullNameInput","mwMobileInput","mwEmailInput","mwEmployerNameInput"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   mwShowStep("1");
   document.getElementById("mwBackBtn").style.display = "none";
   document.getElementById("mwNextBtn").style.display = "";
@@ -2167,7 +2398,7 @@ function openSavingsWizard(){
 }
 function closeSavingsWizard(){ document.getElementById("savingsOverlay").classList.remove("open"); }
 
-/* — the math — */
+/* - the math - */
 function simulateCreditCardCost(outstanding, monthlyRatePct, minPct, months){
   let balance = outstanding;
   const monthlyRate = monthlyRatePct/100;
@@ -2195,43 +2426,56 @@ function simulateLoanCost(principal, annualRatePct, months, basis){
   return { totalInterest: totalPaid-principal, totalPaid, emi, endingBalance: 0 };
 }
 
+const MW_DEFAULT_RATE = 14; // UAE personal loan market default when rateMin not set
+
 function mwFindBestLoans(principal, months, salary, employerApproved, salaryTransferable, count){
-  let pool = LOANS.filter(l=>l.rateMin!=null);
-  pool = pool.filter(l=> l.minSalary==null || salary>=l.minSalary);
-  pool = pool.filter(l=> l.maxAmount==null || principal<=l.maxAmount);
+  // Give every loan a usable rate - rateMin if set, else UAE market default
+  const allWithRate = LOANS.map(l=>({ ...l, rateMin: l.rateMin!=null ? l.rateMin : MW_DEFAULT_RATE, rateBasis: l.rateBasis||'reducing' }));
   const restrictToNoSalaryTransfer = (employerApproved==="no") || (employerApproved==="unsure" && salaryTransferable!=="yes");
-  // Strict: only loans explicitly confirmed as NOT requiring salary transfer. A loan whose
-  // salary-transfer requirement is unknown/varies is not a safe recommendation for someone
-  // whose employer isn't on a bank's approved list.
-  if(restrictToNoSalaryTransfer) pool = pool.filter(l=> l.salaryTransferRequired===false);
-  let mapped = pool.map(l=>({ loan:l, sim: simulateLoanCost(principal, l.rateMin, months, l.rateBasis) })).filter(x=>x.sim);
-  mapped.sort((a,b)=>a.sim.totalInterest-b.sim.totalInterest);
-  return mapped.slice(0, count);
+
+  function tryPool(pool){
+    let p = pool.slice();
+    if(restrictToNoSalaryTransfer) p = p.filter(l=> l.salaryTransferRequired===false);
+    const mapped = p.map(l=>({ loan:l, sim: simulateLoanCost(principal, l.rateMin, months, l.rateBasis) })).filter(x=>x.sim);
+    mapped.sort((a,b)=>a.sim.totalInterest-b.sim.totalInterest);
+    return mapped.slice(0, count);
+  }
+
+  // 1. Strict: salary + amount match
+  let res = tryPool(allWithRate.filter(l=> (l.minSalary==null||salary>=l.minSalary) && (l.maxAmount==null||principal<=l.maxAmount)));
+  if(res.length) return res;
+
+  // 2. Relax amount filter only
+  res = tryPool(allWithRate.filter(l=> l.minSalary==null||salary>=l.minSalary));
+  if(res.length) return res;
+
+  // 3. Relax all filters - show something always
+  return tryPool(allWithRate);
 }
 
 function mwWhyText(bestLoan){
   if(mwState.source==="creditcard"){
     const apr = (mwState.mwCcRate*12).toFixed(1);
-    return `Credit cards charge interest on the <b>full outstanding balance</b> every month, and a minimum payment of ${mwState.mwCcMin}% barely covers that interest — so your balance barely moves. At ${mwState.mwCcRate}% a month (≈${apr}% a year), you can pay for years and still owe most of what you started with. A personal loan charges a fixed, far lower rate on a <b>declining balance</b> with a fixed end date, so every payment actually clears debt — and you know exactly when you'll be free of it.`;
+    return `Credit cards charge interest on the <b>full outstanding balance</b> every month, and a minimum payment of ${mwState.mwCcMin}% barely covers that interest - so your balance barely moves. At ${mwState.mwCcRate}% a month (≈${apr}% a year), you can pay for years and still owe most of what you started with. A personal loan charges a fixed, far lower rate on a <b>declining balance</b> with a fixed end date, so every payment actually clears debt - and you know exactly when you'll be free of it.`;
   }
   if(mwState.source==="loan"){
     if(mwState.mwLoanST==="no" && mwState.mwEmployerApproved==="yes"){
-      return `You're on a <b>non-salary-transfer</b> loan, which banks price higher because they have less certainty about repayment. Since your employer is on the approved list, you likely qualify for a <b>salary-transfer loan</b> at a meaningfully lower rate — refinancing the same amount could cut your interest cost substantially.`;
+      return `You're on a <b>non-salary-transfer</b> loan, which banks price higher because they have less certainty about repayment. Since your employer is on the approved list, you likely qualify for a <b>salary-transfer loan</b> at a meaningfully lower rate - refinancing the same amount could cut your interest cost substantially.`;
     }
     return `Even switching between similar loan types can lower your rate if your original loan was priced for an older credit file or a less-preferred employer category at the time. The comparison above weighs your current rate against the best rate you're likely eligible for today.`;
   }
   if(mwState.source==="consolidate"){
     const n = mwState.mwLiabilities.length;
     const cardCount = mwState.mwLiabilities.filter(l=>l.type==="card").length;
-    return `Right now you're juggling ${n} separate payment${n===1?"":"s"}${cardCount ? ` — including ${cardCount} credit card${cardCount===1?"":"s"} still charging interest on their <b>full outstanding balance</b> every month` : ""}. Rolling everything into <b>one fixed-rate loan</b> on a declining balance means one payment date, one rate, and a guaranteed payoff date — instead of revolving card debt that can drag on indefinitely at minimum payments.`;
+    return `Right now you're juggling ${n} separate payment${n===1?"":"s"}${cardCount ? ` - including ${cardCount} credit card${cardCount===1?"":"s"} still charging interest on their <b>full outstanding balance</b> every month` : ""}. Rolling everything into <b>one fixed-rate loan</b> on a declining balance means one payment date, one rate, and a guaranteed payoff date - instead of revolving card debt that can drag on indefinitely at minimum payments.`;
   }
   if(mwState.mwEmployerApproved==="no" || (mwState.mwEmployerApproved==="unsure" && mwState.mwSalaryTransferable!=="yes")){
-    return `Because your employer isn't (or may not be) on banks' approved list, salary-transfer loans — their lowest rates — generally aren't available to you. That's fine: several UAE lenders offer <b>non-salary-transfer</b> loans in the 10–15% range that are still dramatically cheaper than revolving credit card debt at 40%+. We've matched you to the best of those.`;
+    return `Because your employer isn't (or may not be) on banks' approved list, salary-transfer loans - their lowest rates - generally aren't available to you. That's fine: several UAE lenders offer <b>non-salary-transfer</b> loans in the 10–15% range that are still dramatically cheaper than revolving credit card debt at 40%+. We've matched you to the best of those.`;
   }
-  return `This is your best available match today across ${LOANS.length} products from 16 UAE lenders, ranked by real monthly cost at your numbers — not just the headline rate.`;
+  return `This is your best available match today across ${LOANS.length} products from 16 UAE lenders, ranked by real monthly cost at your numbers - not just the headline rate.`;
 }
 
-/* Debt burden ratio — total monthly obligations vs salary. The UAE Central
+/* Debt burden ratio - total monthly obligations vs salary. The UAE Central
    Bank caps personal-loan DBR at 50% of salary, so that's the line between
    "manageable" and "at the ceiling" here, not an arbitrary choice. */
 function mwDbrHTML(totalMonthly, salary){
@@ -2239,10 +2483,10 @@ function mwDbrHTML(totalMonthly, salary){
   const pctClamped = Math.min(100, pct);
   const color = pct<=35 ? "var(--green)" : pct<=50 ? "var(--amber)" : "var(--red)";
   const note = pct<=35
-    ? "That's a comfortable debt load — well within the UAE's 50% personal-loan debt-burden cap."
+    ? "That's a comfortable debt load - well within the UAE's 50% personal-loan debt-burden cap."
     : pct<=50
-      ? "You're within the UAE's 50% debt-burden cap, but getting close to it — consolidating now keeps room to spare."
-      : "That's above the UAE's 50% personal-loan debt-burden cap most banks lend against — consolidating into one lower payment is the fastest way back under it.";
+      ? "You're within the UAE's 50% debt-burden cap, but getting close to it - consolidating now keeps room to spare."
+      : "That's above the UAE's 50% personal-loan debt-burden cap most banks lend against - consolidating into one lower payment is the fastest way back under it.";
   return `
     <div class="mw-dbr">
       <div class="mw-dbr-top">
@@ -2283,12 +2527,34 @@ function mwComputeAndShowResults(){
   const matches = mwFindBestLoans(principal, months, salary, employerApproved, salaryTransferable, 3);
   const el = document.getElementById("mwResults");
 
+  // Always submit lead regardless of whether matches were found
+  const _mwStatusEl = document.createElement('div');
+  _mwStatusEl.id = 'mwLeadStatus';
+  _mwStatusEl.style.cssText = 'margin-top:12px; font-size:12px; color:var(--mist); text-align:center;';
+  _mwStatusEl.textContent = 'Saving your application…';
+  fetch(API_BASE + "/api/public/loan-apply", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      customerName: mwState.mwFullName,
+      phone: mwState.mwMobile,
+      email: mwState.mwEmail,
+      salary: mwState.mwSalary,
+      loanAmount: principal || mwState.mwNewAmt || 50000,
+      employmentStatus: mwState.mwEmployerName ? `employed at ${mwState.mwEmployerName}` : "employed",
+    }),
+  }).then(r=>r.json().then(d=>{
+    if(!r.ok){ console.error('[Wizard submit error]', r.status, d); _mwStatusEl.textContent = 'Note: could not save application - ' + (d.message||r.status); }
+    else { console.log('[Wizard] lead created', d); _mwStatusEl.style.color='var(--green)'; _mwStatusEl.textContent = '✓ Application saved - a specialist may follow up shortly.'; }
+  })).catch(e=>{ console.error('[Wizard submit failed]', e); _mwStatusEl.textContent = 'Could not reach server: ' + e.message; });
+
   if(!matches.length){
     el.innerHTML = `
-      <div class="mw-why">We couldn't confidently match a lender to this exact amount and salary combination. Try browsing every loan below and filter manually, or adjust your numbers and try again — a couple of lenders don't publish minimum salary or maximum amount figures, so it's worth checking those directly too.</div>
+      <div class="mw-why">We couldn't confidently match a lender to this exact amount and salary combination. Try browsing every loan below and filter manually, or adjust your numbers and try again - a couple of lenders don't publish minimum salary or maximum amount figures, so it's worth checking those directly too.</div>
       <button class="mw-best-apply" style="width:100%; margin-top:4px;" onclick="closeSavingsWizard(); scrollToResults();">Browse the Full Rate Ladder →</button>
       <button class="mw-restart" onclick="openSavingsWizard();">↺ Start Over</button>
     `;
+    el.appendChild(_mwStatusEl);
     return;
   }
 
@@ -2321,8 +2587,8 @@ function mwComputeAndShowResults(){
         <div class="mw-compare-col good">
           <div class="mw-cc-lbl">✅ ${esc(best.loan.bank)}</div>
           <div class="mw-cc-row"><span class="k">Interest paid (${months} mo)</span><span class="v">${fmtAED(best.sim.totalInterest)}</span></div>
-          <div class="mw-cc-row"><span class="k">Balance after ${months} mo</span><span class="v">AED 0 — cleared</span></div>
-          <div class="mw-cc-row"><span class="k">Rate</span><span class="v">${best.loan.rateMin}% ${best.loan.rateBasis}</span></div>
+          <div class="mw-cc-row"><span class="k">Balance after ${months} mo</span><span class="v">AED 0 - cleared</span></div>
+          <div class="mw-cc-row"><span class="k">Rate</span><span class="v">${best.loan.rateMin.toFixed(2)}% ${best.loan.rateBasis}</span></div>
         </div>
       </div>
     `;
@@ -2343,8 +2609,8 @@ function mwComputeAndShowResults(){
     html += `
       <div class="mw-savings-hero">
         <div class="mw-sh-lbl">Your Best Match</div>
-        <div class="mw-sh-val">${best.loan.rateMin}%</div>
-        <div class="mw-sh-sub">from ${esc(best.loan.bank)}, at ${fmtAED(principal)} over ${months} months — est. EMI ${fmtAED(best.sim.emi)}/mo</div>
+        <div class="mw-sh-val">${best.loan.rateMin.toFixed(2)}%</div>
+        <div class="mw-sh-sub">from ${esc(best.loan.bank)}, at ${fmtAED(principal)} over ${months} months - est. EMI ${fmtAED(best.sim.emi)}/mo</div>
       </div>
     `;
   }
@@ -2357,7 +2623,7 @@ function mwComputeAndShowResults(){
       <div class="mw-best-info">
         <div class="mw-best-name">${esc(best.loan.product)}</div>
         <div class="mw-best-bank">${esc(best.loan.bank)}</div>
-        <div class="mw-best-rate">${best.loan.rateMin}% ${best.loan.rateBasis} · EMI ≈ ${fmtAED(best.sim.emi)}/mo</div>
+        <div class="mw-best-rate">${best.loan.rateMin.toFixed(2)}% ${best.loan.rateBasis} · EMI ≈ ${fmtAED(best.sim.emi)}/mo</div>
       </div>
       <button class="mw-best-apply" onclick="closeSavingsWizard(); openApplyModal('${jsStr(best.loan.product)}','${jsStr(best.loan.bank)}','${best.loan.id}');">Apply →</button>
     </div>
@@ -2367,17 +2633,18 @@ function mwComputeAndShowResults(){
     html += `<div class="mw-runner-title">Other Strong Matches</div>`;
     html += matches.slice(1).map(m=>`
       <div class="mw-runner">
-        <div><div class="mw-runner-name">${esc(m.loan.bank)}</div><div class="mw-runner-bank">${esc(m.loan.product)} · ${m.loan.rateMin}%</div></div>
+        <div><div class="mw-runner-name">${esc(m.loan.bank)}</div><div class="mw-runner-bank">${esc(m.loan.product)} · ${m.loan.rateMin.toFixed(2)}%</div></div>
         <div class="mw-runner-val">${fmtAED(m.sim.emi)}/mo</div>
       </div>
     `).join("");
   }
 
-  html += `<div class="mw-disclaimer">Estimates only, based on the numbers you entered and each lender's published starting rate — not a formal offer. Your actual approved rate depends on your credit profile, employer category and the bank's assessment. Figures assume a ${months}-month repayment period on both sides of the comparison.</div>`;
+  html += `<div class="mw-disclaimer">Estimates only, based on the numbers you entered and each lender's published starting rate - not a formal offer. Your actual approved rate depends on your credit profile, employer category and the bank's assessment. Figures assume a ${months}-month repayment period on both sides of the comparison.</div>`;
   html += `<button class="mw-best-apply" style="width:100%; margin-top:12px; background:#fff; color:var(--ink); border:1.5px solid rgba(139,146,184,.3);" onclick="closeSavingsWizard(); scrollToResults();">Browse the Full Rate Ladder →</button>`;
   html += `<button class="mw-restart" onclick="openSavingsWizard();">↺ Start Over</button>`;
 
   el.innerHTML = html;
+  el.appendChild(_mwStatusEl);
 }
 
 /* ═══════ sidebar / bank sections ═══════ */
@@ -2403,12 +2670,8 @@ function renderBankSections(){
   wrap.innerHTML = BANKS.map(b=>{
     const loans = LOANS.filter(l=>l.bankId===b.id);
     return `
-    <div class="source-note" style="margin:36px 0 0;">
-      <div class="insight-eyebrow">Sourced From ${esc(b.sourceLabel)}</div>
-      <p>${b.note}</p>
-    </div>
     <div class="section-head">
-      <div class="section-title">🏦 ${esc(b.name)} — Full Loan Range <span class="section-count">${loans.length}</span></div>
+      <div class="section-title">🏦 ${esc(b.name)} - Full Loan Range <span class="section-count">${loans.length}</span></div>
       <span class="section-view">${esc(b.sourceLabel)}</span>
     </div>
     <div class="ladder-list">
@@ -2435,7 +2698,7 @@ function renderFeatured(pool){
   if(!pool) pool = LOANS;
   // Ranked by actual computed EMI at the current calculator numbers, not the raw
   // headline %, because flat-rate and reducing-balance profit rates are not
-  // directly comparable as numbers — a "2% flat" loan can cost more per month
+  // directly comparable as numbers - a "2% flat" loan can cost more per month
   // than a "5% reducing" one. EMI is the fair, apples-to-apples comparison.
   const rated = pool.filter(l=>l.rateMin!=null).slice();
   rated.sort((a,b)=>{
@@ -2558,7 +2821,7 @@ function applyAllFilters(){
   const chipAllEl = document.getElementById("chipAllCount");
   if (chipAllEl) chipAllEl.textContent = LOANS.length;
   const secTopTitle = document.querySelector("#sec-top .section-title");
-  if(secTopTitle) secTopTitle.childNodes[0].textContent = searchTerm ? "🔍 Search Results " : "🏆 Top Matches For You ";
+  if(secTopTitle) secTopTitle.childNodes[0].textContent = searchTerm ? "🔍 Search Results " : hideSubs ? "🔎 Filtered Results " : "🏆 Top Matches For You ";
   document.getElementById("resultsCountText").innerHTML = searchTerm
     ? `Threading you to <strong>${list.length} loan${list.length!==1?"s":""}</strong> matching "<strong>${esc(document.getElementById("loanSearchInput").value.trim())}</strong>"`
     : `Threading you to <strong>${list.length} loan${list.length!==1?"s":""}</strong>, ranked by ${sortLabel(sortOverride)}`;
@@ -2571,10 +2834,13 @@ function applyAllFilters(){
   // When search or filters active, hide sub-sections so filtered topList is the focus
   const filteringActive = bankChecked.length||typeChecked.length||salaryChecked.length||tenureChecked.length||maxSalaryAllowed!==20000||activeChip!=="all"||searchTerm.length>0;
   const hideSubs = searchTerm.length > 0 || bankChecked.length > 0 || typeChecked.length > 0 || salaryChecked.length > 0 || tenureChecked.length > 0;
-  ["sec-lowrate","sec-nosalary","sec-islamic","bankSections"].forEach(id=>{
+  ["sec-lowrate","sec-nosalary","sec-islamic","bankSections","sec-mymatch"].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.style.display = hideSubs ? "none" : "";
   });
+  // Hide featured single card when filtering - show all results in topList instead
+  const featuredEl = document.getElementById("featuredRow");
+  if(featuredEl) featuredEl.style.display = hideSubs ? "none" : "";
 
   const anyFilterActive = filteringActive;
   document.getElementById("sbClearBtn").style.display = anyFilterActive ? "" : "none";
@@ -2600,7 +2866,10 @@ function clearSidebarFilters(){
 }
 
 /* ═══════ hero calculator ═══════ */
+let calcInteracted = false;
 function updateInsight(){
+  const card = document.getElementById("insightCard");
+  if(!calcInteracted){ if(card) card.style.display="none"; return; }
   const mins = LOANS.filter(l=>l.rateMin!=null).map(l=>l.rateMin);
   const maxes = LOANS.filter(l=>l.rateMax!=null).map(l=>l.rateMax).concat(mins);
   const lo = Math.min(...mins), hi = Math.max(...maxes);
@@ -2609,6 +2878,7 @@ function updateInsight(){
   if(headline){
     headline.innerHTML = `Borrowing <span class="g">${fmtAED(currentLoanAmount)}</span> over ${currentTenure} months? The rate gap between the best and worst lender on this page is over <span class="g">${gap} points</span>.`;
   }
+  if(card) card.style.display="";
 }
 
 function renderMyMatch(list){
@@ -2633,6 +2903,7 @@ function renderMyMatch(list){
 function calcNumberLive(sliderId, numberId){
   // Typing a custom value: nudge the slider live without clamping mid-keystroke,
   // so the calculator updates as you type but doesn't fight your typing.
+  calcInteracted = true;
   const sliderEl = document.getElementById(sliderId);
   const numEl = document.getElementById(numberId);
   const v = Number(numEl.value);
@@ -2669,9 +2940,9 @@ function calcUpdate(){
   const best = eligible[0] || fallback;
   if(best){
     document.getElementById("calcBestBank").textContent = best.bank;
-    document.getElementById("calcBestRate").textContent = "from " + best.rateMin + "% " + (best.rateBasis==="flat"?"flat":"reducing") + (best.type==="Islamic"?" profit":"");
+    document.getElementById("calcBestRate").textContent = "from " + best.rateMin.toFixed(2) + "% " + (best.rateBasis==="flat"?"flat":"reducing") + (best.type==="Islamic"?" profit":"");
     const emi = computeEMI(currentLoanAmount, best.rateMin, currentTenure, best.rateBasis);
-    document.getElementById("calcEmi").textContent = emi ? fmtAED(Math.round(emi)) : "—";
+    document.getElementById("calcEmi").textContent = emi ? fmtAED(Math.round(emi)) : "-";
   }
 
   const allMatching = LOANS.filter(l=> (l.minSalary==null || currentSalary>=l.minSalary) && (l.maxAmount==null || currentLoanAmount<=l.maxAmount));
@@ -2684,7 +2955,7 @@ function calcUpdate(){
     const fbL = document.getElementById("fbLowest");
     const fbB = document.getElementById("fbLowestBank");
     if(fbL) fbL.textContent = lowestRateLoan.rateMin.toFixed(2) + "%";
-    if(fbB) fbB.textContent = lowestRateLoan.bank + (lowestRateLoan.tags.includes("national") ? " · UAE Nationals" : "");
+    if(fbB) fbB.textContent = "";
   }
   const noSalaryEl = document.getElementById("fbNoSalary");
   if(noSalaryEl) noSalaryEl.textContent = allMatching.filter(l=>l.salaryTransferRequired===false).length;
@@ -2692,6 +2963,48 @@ function calcUpdate(){
   renderMyMatch(allMatching);
   updateInsight();
   updateAllEmis();
+}
+
+function renderGlanceBox(){
+  const gridEl = document.getElementById("glanceGrid");
+  const tagsEl = document.getElementById("glanceTags");
+  if(!gridEl || !LOANS.length) return;
+
+  const bankIds = new Set(LOANS.map(l => l.bankId));
+  const reducingRates = LOANS.filter(l => l.rateBasis === "reducing" && l.rateMin != null).map(l => l.rateMin);
+  const flatRates = LOANS.filter(l => l.rateBasis === "flat" && l.rateMin != null).map(l => l.rateMin);
+  const salaries = LOANS.filter(l => l.minSalary != null).map(l => l.minSalary);
+  const tenures = LOANS.filter(l => l.tenureMax != null).map(l => l.tenureMax);
+  const hasNoSalary = LOANS.some(l => l.salaryTransferRequired === false);
+  const hasIslamic = LOANS.some(l => l.type === "Islamic");
+
+  const lowReducing = reducingRates.length ? Math.min(...reducingRates) : null;
+  const lowFlat = flatRates.length ? Math.min(...flatRates) : null;
+  const lowSalary = salaries.length ? Math.min(...salaries) : null;
+  const maxTenure = tenures.length ? Math.max(...tenures) : null;
+
+  const heroLoanCountEl = document.getElementById("heroLoanCount");
+  const heroLenderCountEl = document.getElementById("heroLenderCount");
+  if(heroLoanCountEl) heroLoanCountEl.textContent = 25;
+  if(heroLenderCountEl) heroLenderCountEl.textContent = bankIds.size;
+
+  const tiles = [];
+  tiles.push({val: LOANS.length, lbl: "Personal loans compared"});
+  tiles.push({val: bankIds.size, lbl: "UAE banks & finance houses"});
+  if(lowReducing != null) tiles.push({val: lowReducing + "%", lbl: "Lowest rate, reducing (conventional)"});
+  if(lowFlat != null) tiles.push({val: lowFlat + "%", lbl: "Lowest rate, flat (Islamic)"});
+  if(lowSalary != null) tiles.push({val: "AED " + lowSalary.toLocaleString(), lbl: "Minimum salary from, per month"});
+  if(maxTenure != null) tiles.push({val: maxTenure + " mo", lbl: "Maximum tenure available"});
+
+  gridEl.innerHTML = tiles.map(t => `<div class="glance-tile"><div class="glance-val">${t.val}</div><div class="glance-lbl">${t.lbl}</div></div>`).join("");
+
+  if(tagsEl){
+    const tags = [];
+    if(hasNoSalary) tags.push("🆓 No-salary-transfer options available");
+    if(hasIslamic) tags.push("☪️ Sharia-compliant financing available");
+    tags.push("📋 No fixed nationwide minimum salary since the Central Bank's rule change");
+    tagsEl.innerHTML = tags.map(t => `<span class="glance-tag">${t}</span>`).join("");
+  }
 }
 
 /* ═══════ init ═══════ */

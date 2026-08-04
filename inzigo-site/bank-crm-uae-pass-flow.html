@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bank CRM — UAE Pass Application Approval Flow</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f8; padding: 24px; }
+.dl-bar { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+.dl-btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600;
+          cursor: pointer; display: flex; align-items: center; gap: 6px; font-family: 'Segoe UI', Arial, sans-serif; }
+.dl-btn.pdf { background: #1a1a2e; color: #fff; }
+.dl-btn.png { background: #2563eb; color: #fff; }
+.dl-btn:hover { opacity: 0.85; }
+#dl-progress { display:none; text-align:center; font-size:11px; color:#2563eb; margin-bottom:8px; }
+
+.diagram-wrap { background:#fff; border-radius:14px; padding:16px;
+                box-shadow:0 2px 12px rgba(0,0,0,.09); overflow:auto; }
+svg { display:block; }
+.zoom-bar { display:flex; align-items:center; justify-content:center; gap:8px;
+            margin-bottom:12px; flex-wrap:wrap; }
+.z-btn { padding:5px 14px; border:1.5px solid #CBD5E1; border-radius:6px; background:#fff;
+         font-size:12px; font-weight:600; cursor:pointer; color:#334155;
+         font-family:'Segoe UI',Arial,sans-serif; transition:.15s; }
+.z-btn:hover { background:#F1F5F9; }
+.z-btn.active { background:#1D4ED8; color:#fff; border-color:#1D4ED8; }
+#zoom-label { font-size:12px; font-weight:700; color:#334155; min-width:40px;
+              text-align:center; font-family:'Segoe UI',Arial,sans-serif; }
+.legend-wrap { background:#fff; border-radius:14px; padding:20px 28px;
+               margin-top:16px; box-shadow:0 1px 6px rgba(0,0,0,.07); }
+.legend { display:flex; flex-wrap:wrap; gap:14px; margin-top:10px; }
+.legend-item { display:flex; align-items:center; gap:7px; font-size:11px; color:#475569;
+               font-family:'Segoe UI',Arial,sans-serif; }
+.legend-swatch { width:24px; height:14px; border-radius:4px; border:1.5px solid; flex-shrink:0; }
+@media print { .dl-bar,#dl-progress,.zoom-bar { display:none!important; } body { padding:8px; background:#fff; } }
+</style>
+</head>
+<body>
+
+<div class="dl-bar">
+  <button class="dl-btn pdf" onclick="window.print()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14,2 14,8 20,8"/>
+    </svg>Save as PDF
+  </button>
+  <button class="dl-btn png" onclick="downloadPNG()">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <polyline points="21,15 16,10 5,21"/>
+    </svg>Download PNG
+  </button>
+</div>
+<div id="dl-progress">Rendering at 2.5× — please wait…</div>
+
+
+<!-- ZOOM CONTROLS -->
+<div class="zoom-bar">
+  <span style="font-size:11px;color:#64748B;font-family:'Segoe UI',Arial,sans-serif">Zoom:</span>
+  <button class="z-btn" onclick="setZoom(zPct-10)">−</button>
+  <span id="zoom-label">—</span>
+  <button class="z-btn" onclick="setZoom(zPct+10)">+</button>
+  <button class="z-btn" id="btn-fit" onclick="fitWidth()">Fit Width</button>
+  <button class="z-btn" onclick="setZoom(100)">100%</button>
+  <button class="z-btn" onclick="setZoom(50)">50%</button>
+</div>
+
+<div class="diagram-wrap" id="diagram-wrap">
+<svg id="mainsvg" viewBox="0 0 2600 1000" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="ab" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="9" markerHeight="7" orient="auto">
+    <polygon points="0 0,10 3.5,0 7" fill="#3B82F6"/>
+  </marker>
+  <marker id="ag" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="9" markerHeight="7" orient="auto">
+    <polygon points="0 0,10 3.5,0 7" fill="#22C55E"/>
+  </marker>
+  <marker id="ar" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="9" markerHeight="7" orient="auto">
+    <polygon points="0 0,10 3.5,0 7" fill="#EF4444"/>
+  </marker>
+  <marker id="ap" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="9" markerHeight="7" orient="auto">
+    <polygon points="0 0,10 3.5,0 7" fill="#8B5CF6"/>
+  </marker>
+  <marker id="aa" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="9" markerHeight="7" orient="auto">
+    <polygon points="0 0,10 3.5,0 7" fill="#F59E0B"/>
+  </marker>
+  <marker id="agr" viewBox="0 0 10 7" refX="9" refY="3.5" markerWidth="9" markerHeight="7" orient="auto">
+    <polygon points="0 0,10 3.5,0 7" fill="#94A3B8"/>
+  </marker>
+  <filter id="sh" x="-8%" y="-8%" width="116%" height="116%">
+    <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.10"/>
+  </filter>
+</defs>
+
+<!-- ══════════════════════════════════════
+     LANE BACKGROUNDS
+══════════════════════════════════════ -->
+<rect x="0" y="0"   width="2600" height="385" fill="#EEF4FF"/>
+<rect x="0" y="385" width="2600" height="170" fill="#F5F3FF"/>
+<rect x="0" y="555" width="2600" height="185" fill="#F0FDF4"/>
+<rect x="0" y="740" width="2600" height="260" fill="#FFFBEB"/>
+
+<line x1="0" y1="385"  x2="2600" y2="385"  stroke="#CBD5E1" stroke-width="1.5"/>
+<line x1="0" y1="555"  x2="2600" y2="555"  stroke="#CBD5E1" stroke-width="1.5"/>
+<line x1="0" y1="740"  x2="2600" y2="740"  stroke="#CBD5E1" stroke-width="1.5"/>
+<rect x="0" y="0" width="2600" height="1000" fill="none" stroke="#CBD5E1" stroke-width="1.5"/>
+
+<!-- Lane label strips -->
+<rect x="0" y="0"   width="90" height="385" fill="#1D4ED8"/>
+<rect x="0" y="385" width="90" height="170" fill="#7C3AED"/>
+<rect x="0" y="555" width="90" height="185" fill="#16A34A"/>
+<rect x="0" y="740" width="90" height="260" fill="#D97706"/>
+<line x1="90" y1="0" x2="90" y2="1000" stroke="#CBD5E1" stroke-width="1"/>
+
+<text transform="translate(45,192) rotate(-90)" text-anchor="middle" dominant-baseline="middle"
+  fill="white" font-size="11.5" font-weight="700" letter-spacing="1"
+  font-family="'Segoe UI',Arial,sans-serif">CUSTOMER JOURNEY</text>
+<text transform="translate(45,470) rotate(-90)" text-anchor="middle" dominant-baseline="middle"
+  fill="white" font-size="11.5" font-weight="700" letter-spacing="1"
+  font-family="'Segoe UI',Arial,sans-serif">BACKEND INTEGRATION</text>
+<text transform="translate(45,647) rotate(-90)" text-anchor="middle" dominant-baseline="middle"
+  fill="white" font-size="11.5" font-weight="700" letter-spacing="1"
+  font-family="'Segoe UI',Arial,sans-serif">CM CRM ADVISOR</text>
+<text transform="translate(45,870) rotate(-90)" text-anchor="middle" dominant-baseline="middle"
+  fill="white" font-size="11.5" font-weight="700" letter-spacing="1"
+  font-family="'Segoe UI',Arial,sans-serif">CM CMS ADMIN</text>
+
+<!-- ══════════════════════════════════════
+     LANE 1 — CUSTOMER JOURNEY
+     Main path cy=170 (top=147, bottom=193)
+     Reject path cy=295 (top=273, bottom=317)
+══════════════════════════════════════ -->
+
+<!-- ─ Annotation: UAE Pass auto-fill ─ -->
+<rect x="445" y="88" width="178" height="44" rx="6" fill="#FFFBEB" stroke="#FCD34D" stroke-width="1"/>
+<text x="534" y="103" text-anchor="middle" fill="#78350F" font-size="9" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">In case UAE Pass selected:</text>
+<text x="534" y="117" text-anchor="middle" fill="#78350F" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">Name · Emirates ID · DOB · Address auto-filled</text>
+<line x1="510" y1="132" x2="510" y2="144" stroke="#FCD34D" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#aa)"/>
+
+<!-- ─ Annotation: Not eligible warning ─ -->
+<rect x="1475" y="86" width="180" height="47" rx="6" fill="#FFF1F2" stroke="#FCA5A5" stroke-width="1"/>
+<text x="1565" y="101" text-anchor="middle" fill="#991B1B" font-size="9" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Not Eligible if:</text>
+<text x="1565" y="115" text-anchor="middle" fill="#991B1B" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">AECB Score low · Defaults · Active loans</text>
+<text x="1565" y="128" text-anchor="middle" fill="#991B1B" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">exceed salary criteria</text>
+<line x1="1565" y1="133" x2="1565" y2="145" stroke="#FCA5A5" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ar)"/>
+
+<!-- S0: START -->
+<circle cx="120" cy="170" r="24" fill="#1D4ED8" stroke="#1E40AF" stroke-width="2" filter="url(#sh)"/>
+<text x="120" y="167" text-anchor="middle" fill="white" font-size="10" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">START</text>
+<text x="120" y="180" text-anchor="middle" fill="#BFDBFE" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">Customer</text>
+
+<!-- N1: Select Financial Product (x=155 w=130 cx=220) -->
+<rect x="155" y="147" width="130" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="220" y="166" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Select Financial</text>
+<text x="220" y="180" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Product</text>
+<!-- Products annotation bubble -->
+<rect x="155" y="205" width="130" height="92" rx="6" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+<text x="220" y="219" text-anchor="middle" fill="#1E40AF" font-size="8.5" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">SLB Name:</text>
+<text x="220" y="232" text-anchor="middle" fill="#1E40AF" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">• Credit Cards</text>
+<text x="220" y="245" text-anchor="middle" fill="#1E40AF" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">• Personal Loan</text>
+<text x="220" y="258" text-anchor="middle" fill="#1E40AF" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">• Mortgage</text>
+<text x="220" y="271" text-anchor="middle" fill="#1E40AF" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">• Business Finance</text>
+<text x="220" y="284" text-anchor="middle" fill="#1E40AF" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">• Car Loan</text>
+<line x1="220" y1="193" x2="220" y2="203" stroke="#BFDBFE" stroke-width="1"/>
+
+<!-- N2: Check Eligibility (x=305 w=120 cx=365) -->
+<rect x="305" y="147" width="120" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="365" y="166" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Check</text>
+<text x="365" y="180" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Eligibility</text>
+<!-- A2 sub-path annotation -->
+<rect x="305" y="248" width="120" height="36" rx="6" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1" opacity="0.9"/>
+<text x="365" y="263" text-anchor="middle" fill="#78350F" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">A2: Check my credit</text>
+<text x="365" y="275" text-anchor="middle" fill="#78350F" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">card eligibility</text>
+<line x1="365" y1="193" x2="365" y2="246" stroke="#F59E0B" stroke-width="1" stroke-dasharray="3,2"/>
+
+<!-- N3: UAE Pass Login (x=445 w=130 cx=510 — SPECIAL) -->
+<rect x="445" y="145" width="130" height="50" rx="8" fill="#1D4ED8" stroke="#1E40AF" stroke-width="2" filter="url(#sh)"/>
+<text x="510" y="162" text-anchor="middle" fill="white" font-size="10" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">🪪 UAE Pass</text>
+<text x="510" y="175" text-anchor="middle" fill="white" font-size="10" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Login / Auth</text>
+<text x="510" y="189" text-anchor="middle" fill="#93C5FD" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">Enter Emirate ID &amp; Verify</text>
+
+<!-- N4: Identity Verified (x=595 w=120 cx=655) -->
+<rect x="595" y="147" width="120" height="46" rx="8" fill="#DCFCE7" stroke="#22C55E" stroke-width="1.5" filter="url(#sh)"/>
+<text x="655" y="166" text-anchor="middle" fill="#14532D" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Identity</text>
+<text x="655" y="180" text-anchor="middle" fill="#14532D" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Verified ✓</text>
+
+<!-- N5: Display Eligible Products (x=735 w=125 cx=797) -->
+<rect x="735" y="147" width="125" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="797" y="166" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Display Eligible</text>
+<text x="797" y="180" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Products</text>
+
+<!-- N6: Select Credit Card (x=880 w=125 cx=942) -->
+<rect x="880" y="147" width="125" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="942" y="166" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Select Credit</text>
+<text x="942" y="180" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Card / Product</text>
+<!-- Go back annotation -->
+<path d="M 942 195 C 942 232 797 232 797 195" stroke="#94A3B8" stroke-width="1" stroke-dasharray="4,2" fill="none"/>
+<text x="869" y="246" text-anchor="middle" fill="#64748B" font-size="7.5"
+  font-family="'Segoe UI',Arial,sans-serif">Go back for change of selection</text>
+
+<!-- N7: Confirm Pre-filled Data (x=1025 w=130 cx=1090) -->
+<rect x="1025" y="147" width="130" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="1090" y="166" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Confirm Pre-filled</text>
+<text x="1090" y="180" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Application Data</text>
+<!-- OTP stamp -->
+<rect x="1065" y="205" width="54" height="54" rx="6" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5"/>
+<text x="1092" y="228" text-anchor="middle" font-size="18" font-family="'Segoe UI',Arial,sans-serif">🔏</text>
+<text x="1092" y="249" text-anchor="middle" fill="#1E40AF" font-size="9" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">OTP</text>
+<line x1="1090" y1="193" x2="1090" y2="203" stroke="#3B82F6" stroke-width="1" stroke-dasharray="3,2"/>
+
+<!-- N8: Verify via EID / KYC (x=1175 w=130 cx=1240) -->
+<rect x="1175" y="147" width="130" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="1240" y="166" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Verify via EID</text>
+<text x="1240" y="180" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Number (KYC)</text>
+
+<!-- N9: Face Recognition (x=1325 w=130 cx=1390) -->
+<rect x="1325" y="147" width="130" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="1390" y="166" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Face Recognition</text>
+<text x="1390" y="180" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">/ KYC Upload</text>
+
+<!-- N10: Check AECB Score (x=1475 w=130 cx=1540) -->
+<rect x="1475" y="147" width="130" height="46" rx="8" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5" filter="url(#sh)"/>
+<text x="1540" y="166" text-anchor="middle" fill="#78350F" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Check AECB</text>
+<text x="1540" y="180" text-anchor="middle" fill="#78350F" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Score</text>
+
+<!-- D1: AECB Eligible? (diamond cx=1660) -->
+<polygon points="1660,147 1712,170 1660,193 1608,170"
+  fill="#FEF9C3" stroke="#EAB308" stroke-width="2" filter="url(#sh)"/>
+<text x="1660" y="167" text-anchor="middle" fill="#713F12" font-size="9" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">AECB</text>
+<text x="1660" y="179" text-anchor="middle" fill="#713F12" font-size="9" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Eligible?</text>
+
+<!-- ── Eligible path (Yes, right of D1) ── -->
+<!-- N11: Application Created (x=1730 w=130 cx=1795) -->
+<rect x="1730" y="147" width="130" height="46" rx="8" fill="#DCFCE7" stroke="#22C55E" stroke-width="2" filter="url(#sh)"/>
+<text x="1795" y="166" text-anchor="middle" fill="#14532D" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Application</text>
+<text x="1795" y="180" text-anchor="middle" fill="#14532D" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Created ✓</text>
+<!-- Bank Statement note -->
+<rect x="1730" y="205" width="130" height="26" rx="5" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1"/>
+<text x="1795" y="215" text-anchor="middle" fill="#1E40AF" font-size="8.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Bank Statement</text>
+<text x="1795" y="226" text-anchor="middle" fill="#1E40AF" font-size="8"
+  font-family="'Segoe UI',Arial,sans-serif">Support Required</text>
+
+<!-- N12: Contact Advisor / CRM (x=1880 w=130 cx=1945) -->
+<rect x="1880" y="147" width="130" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="1945" y="162" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Contact Advisor</text>
+<text x="1945" y="175" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">/ Assign CRM</text>
+<text x="1945" y="188" text-anchor="middle" fill="#3B82F6" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">→ Routed to CM CRM</text>
+
+<!-- N13: Bank Review (x=2030 w=120 cx=2090) -->
+<rect x="2030" y="147" width="120" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="2090" y="166" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Bank</text>
+<text x="2090" y="180" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Review</text>
+
+<!-- N14: Notify Customer (x=2175 w=130 cx=2240) -->
+<rect x="2175" y="147" width="130" height="46" rx="8" fill="#DCFCE7" stroke="#22C55E" stroke-width="2" filter="url(#sh)"/>
+<text x="2240" y="162" text-anchor="middle" fill="#14532D" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Notify Customer</text>
+<text x="2240" y="175" text-anchor="middle" fill="#14532D" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">Application Status</text>
+<text x="2240" y="188" text-anchor="middle" fill="#14532D" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">Sent</text>
+<!-- Notification badges -->
+<rect x="2176" y="207" width="58" height="22" rx="5" fill="#25D366"/>
+<text x="2205" y="222" text-anchor="middle" fill="white" font-size="8" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">WhatsApp</text>
+<rect x="2241" y="207" width="36" height="22" rx="5" fill="#EA4335"/>
+<text x="2259" y="222" text-anchor="middle" fill="white" font-size="8" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Email</text>
+<rect x="2284" y="207" width="26" height="22" rx="5" fill="#0EA5E9"/>
+<text x="2297" y="222" text-anchor="middle" fill="white" font-size="8" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">CRM</text>
+
+<!-- N15: Application Status / End (x=2330 w=130 cx=2395) -->
+<rect x="2330" y="147" width="130" height="46" rx="8" fill="#1D4ED8" stroke="#1E40AF" stroke-width="2" filter="url(#sh)"/>
+<text x="2395" y="164" text-anchor="middle" fill="white" font-size="10" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Application</text>
+<text x="2395" y="177" text-anchor="middle" fill="white" font-size="10" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Status</text>
+<text x="2395" y="190" text-anchor="middle" fill="#93C5FD" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">Approved</text>
+<!-- Status notification badges -->
+<rect x="2330" y="207" width="58" height="22" rx="5" fill="#25D366"/>
+<text x="2359" y="222" text-anchor="middle" fill="white" font-size="8" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">WhatsApp</text>
+<rect x="2395" y="207" width="36" height="22" rx="5" fill="#EA4335"/>
+<text x="2413" y="222" text-anchor="middle" fill="white" font-size="8" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Email</text>
+<rect x="2438" y="207" width="26" height="22" rx="5" fill="#0EA5E9"/>
+<text x="2451" y="222" text-anchor="middle" fill="white" font-size="8" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">CRM</text>
+
+<!-- ── Not Eligible path (below D1) ── -->
+<!-- N16: Not Eligible (x=1608 w=104 cx=1660 cy=295 top=273) -->
+<rect x="1608" y="273" width="104" height="44" rx="8" fill="#FEE2E2" stroke="#EF4444" stroke-width="2" filter="url(#sh)"/>
+<text x="1660" y="292" text-anchor="middle" fill="#991B1B" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Not Eligible</text>
+<text x="1660" y="306" text-anchor="middle" fill="#991B1B" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">AECB: No Options</text>
+
+<!-- N17: Rejection Notice (x=1730 w=130 cx=1795 cy=295) -->
+<rect x="1730" y="273" width="130" height="44" rx="8" fill="#FEE2E2" stroke="#EF4444" stroke-width="1.5" filter="url(#sh)"/>
+<text x="1795" y="292" text-anchor="middle" fill="#991B1B" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Rejection Notice</text>
+<text x="1795" y="306" text-anchor="middle" fill="#991B1B" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">Sent to Customer</text>
+<!-- Rejection badges -->
+<rect x="1731" y="328" width="58" height="21" rx="5" fill="#25D366"/>
+<text x="1760" y="343" text-anchor="middle" fill="white" font-size="8" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">WhatsApp</text>
+<rect x="1797" y="328" width="33" height="21" rx="5" fill="#EA4335"/>
+<text x="1813" y="343" text-anchor="middle" fill="white" font-size="8" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Email</text>
+
+<!-- ══ ARROWS LANE 1 ══ -->
+<line x1="144" y1="170" x2="153" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="285" y1="170" x2="303" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="425" y1="170" x2="443" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="575" y1="170" x2="593" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="715" y1="170" x2="733" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="860" y1="170" x2="878" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="1005" y1="170" x2="1023" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="1155" y1="170" x2="1173" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="1305" y1="170" x2="1323" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="1455" y1="170" x2="1473" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="1605" y1="170" x2="1606" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<!-- D1 → N11 Yes -->
+<line x1="1714" y1="170" x2="1728" y2="170" stroke="#22C55E" stroke-width="2" marker-end="url(#ag)"/>
+<text x="1721" y="162" text-anchor="middle" fill="#16A34A" font-size="9" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Yes</text>
+<line x1="1860" y1="170" x2="1878" y2="170" stroke="#22C55E" stroke-width="2" marker-end="url(#ag)"/>
+<line x1="2010" y1="170" x2="2028" y2="170" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<line x1="2150" y1="170" x2="2173" y2="170" stroke="#22C55E" stroke-width="2" marker-end="url(#ag)"/>
+<line x1="2305" y1="170" x2="2328" y2="170" stroke="#22C55E" stroke-width="2" marker-end="url(#ag)"/>
+<!-- D1 → Not Eligible (down) -->
+<path d="M 1660 193 L 1660 271" stroke="#EF4444" stroke-width="2" fill="none" marker-end="url(#ar)"/>
+<text x="1673" y="237" fill="#EF4444" font-size="9" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">No</text>
+<line x1="1712" y1="295" x2="1728" y2="295" stroke="#EF4444" stroke-width="1.5" marker-end="url(#ar)"/>
+
+<!-- ══════════════════════════════════════
+     LANE 2 — BACKEND INTEGRATION
+     cy=472, top=452, bottom=492
+══════════════════════════════════════ -->
+<text x="510" y="400" text-anchor="middle" fill="#7C3AED" font-size="9" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Through API Integration</text>
+<text x="1660" y="400" text-anchor="middle" fill="#7C3AED" font-size="9" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Through API Integration</text>
+
+<!-- UAE Pass API (x=452 w=115 cx=509) -->
+<rect x="452" y="452" width="115" height="40" rx="8" fill="#EDE9FE" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="509" y="469" text-anchor="middle" fill="#5B21B6" font-size="9.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">UAE Pass API</text>
+<text x="509" y="483" text-anchor="middle" fill="#5B21B6" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">Identity Provider</text>
+
+<!-- Document OCR (x=875 w=120 cx=935) -->
+<rect x="875" y="452" width="120" height="40" rx="8" fill="#EDE9FE" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="935" y="469" text-anchor="middle" fill="#5B21B6" font-size="9.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Document OCR</text>
+<text x="935" y="483" text-anchor="middle" fill="#5B21B6" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">Verification Engine</text>
+
+<!-- AECB API (x=1475 w=115 cx=532→1532) -->
+<rect x="1475" y="452" width="115" height="40" rx="8" fill="#EDE9FE" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="1532" y="469" text-anchor="middle" fill="#5B21B6" font-size="9.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">AECB API</text>
+<text x="1532" y="483" text-anchor="middle" fill="#5B21B6" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">Credit Bureau</text>
+
+<!-- Fraud Detection (x=1610 w=115 cx=1667) -->
+<rect x="1610" y="452" width="115" height="40" rx="8" fill="#FEE2E2" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="1667" y="469" text-anchor="middle" fill="#991B1B" font-size="9.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Fraud Detection</text>
+<text x="1667" y="483" text-anchor="middle" fill="#991B1B" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">Risk Engine</text>
+
+<!-- LMS / Core Banking (x=1880 w=120 cx=1940) -->
+<rect x="1880" y="452" width="120" height="40" rx="8" fill="#EDE9FE" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="1940" y="469" text-anchor="middle" fill="#5B21B6" font-size="9.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">LMS System</text>
+<text x="1940" y="483" text-anchor="middle" fill="#5B21B6" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">Core Banking</text>
+
+<!-- Notification Engine (x=2175 w=130 cx=2240) -->
+<rect x="2175" y="452" width="130" height="40" rx="8" fill="#EDE9FE" stroke="#7C3AED" stroke-width="1.5" stroke-dasharray="5,3"/>
+<text x="2240" y="469" text-anchor="middle" fill="#5B21B6" font-size="9.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Notification Engine</text>
+<text x="2240" y="483" text-anchor="middle" fill="#5B21B6" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">WhatsApp / SMS / Email</text>
+
+<!-- Backend integrations center bar -->
+<rect x="640" y="511" width="950" height="30" rx="8" fill="white" stroke="#7C3AED" stroke-width="1.5"/>
+<text x="1115" y="531" text-anchor="middle" fill="#5B21B6" font-size="10.5" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Backend Integrations — API Middleware Layer</text>
+<text x="800" y="547" text-anchor="middle" fill="#7C3AED" font-size="8"
+  font-family="'Segoe UI',Arial,sans-serif">Provides</text>
+<text x="1560" y="547" text-anchor="middle" fill="#7C3AED" font-size="8"
+  font-family="'Segoe UI',Arial,sans-serif">OCEN / LMS Provider</text>
+
+<!-- API horizontal flow arrows (lane 2) -->
+<line x1="567" y1="472" x2="872" y2="472" stroke="#7C3AED" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#ap)"/>
+<text x="719" y="466" text-anchor="middle" fill="#7C3AED" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">API Integration</text>
+<line x1="995" y1="472" x2="1472" y2="472" stroke="#7C3AED" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#ap)"/>
+<text x="1233" y="466" text-anchor="middle" fill="#7C3AED" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">API Integration</text>
+<line x1="1725" y1="472" x2="1877" y2="472" stroke="#7C3AED" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#ap)"/>
+<line x1="2000" y1="472" x2="2172" y2="472" stroke="#7C3AED" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#ap)"/>
+
+<!-- Vertical connections: Lane 1 → Lane 2 (dashed) -->
+<path d="M 510 196 L 510 450" stroke="#7C3AED" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#ap)"/>
+<path d="M 935 193 L 935 450" stroke="#7C3AED" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#ap)"/>
+<path d="M 1532 193 L 1532 450" stroke="#7C3AED" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#ap)"/>
+<path d="M 1667 193 L 1667 450" stroke="#EF4444" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#ar)"/>
+<path d="M 1940 193 L 1940 450" stroke="#7C3AED" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#ap)"/>
+<path d="M 2240 237 L 2240 450" stroke="#7C3AED" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#ap)"/>
+
+<!-- ══════════════════════════════════════
+     LANE 3 — CM CRM ADVISOR
+     cy=640, node top=617, bottom=663
+══════════════════════════════════════ -->
+<!-- "Journey monitored by Advisor" annotation -->
+<text x="155" y="571" text-anchor="middle" fill="#166534" font-size="8.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Journey</text>
+<text x="155" y="582" text-anchor="middle" fill="#166534" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">monitored by</text>
+<text x="155" y="593" text-anchor="middle" fill="#166534" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">the Advisor</text>
+
+<!-- CRM User start circle -->
+<circle cx="165" cy="640" r="22" fill="#16A34A" stroke="#15803D" stroke-width="2" filter="url(#sh)"/>
+<text x="165" y="637" text-anchor="middle" fill="white" font-size="10" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">CRM</text>
+<text x="165" y="650" text-anchor="middle" fill="white" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">User</text>
+<text x="165" y="671" text-anchor="middle" fill="#166534" font-size="8"
+  font-family="'Segoe UI',Arial,sans-serif">CRM Char</text>
+
+<!-- C1: CRM Dashboard (x=198 w=115 cx=255) -->
+<rect x="198" y="617" width="115" height="46" rx="8" fill="#0369A1" stroke="#075985" stroke-width="2" filter="url(#sh)"/>
+<text x="255" y="638" text-anchor="middle" fill="white" font-size="11" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">CRM</text>
+<text x="255" y="652" text-anchor="middle" fill="white" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Dashboard</text>
+
+<!-- Application Number diamond (cx=345) -->
+<polygon points="345,617 385,640 345,663 305,640" fill="#FEF9C3" stroke="#EAB308" stroke-width="1.5" filter="url(#sh)"/>
+<text x="345" y="637" text-anchor="middle" fill="#713F12" font-size="8.5" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Application</text>
+<text x="345" y="649" text-anchor="middle" fill="#713F12" font-size="8.5" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Number</text>
+
+<!-- C2: Application View (x=403 w=125 cx=465) -->
+<rect x="403" y="617" width="125" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="465" y="638" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Application</text>
+<text x="465" y="652" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">View / Review</text>
+
+<!-- Check Docs diamond (cx=575) -->
+<polygon points="575,617 615,640 575,663 535,640" fill="#FEF9C3" stroke="#EAB308" stroke-width="1.5" filter="url(#sh)"/>
+<text x="575" y="637" text-anchor="middle" fill="#713F12" font-size="8.5" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Check</text>
+<text x="575" y="649" text-anchor="middle" fill="#713F12" font-size="8.5" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Docs?</text>
+
+<!-- C3: Application Details (x=633 w=120 cx=693) -->
+<rect x="633" y="617" width="120" height="46" rx="8" fill="#DBEAFE" stroke="#3B82F6" stroke-width="1.5" filter="url(#sh)"/>
+<text x="693" y="638" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Application</text>
+<text x="693" y="652" text-anchor="middle" fill="#1E3A8A" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Details</text>
+
+<!-- Advisor Decision diamond (cx=805) -->
+<polygon points="805,617 845,640 805,663 765,640" fill="#FEF9C3" stroke="#EAB308" stroke-width="1.5" filter="url(#sh)"/>
+<text x="805" y="637" text-anchor="middle" fill="#713F12" font-size="8.5" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Advisor</text>
+<text x="805" y="649" text-anchor="middle" fill="#713F12" font-size="8.5" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Decision</text>
+
+<!-- C4: Customer Process / Submit to Bank (x=860 w=130 cx=925) -->
+<rect x="860" y="617" width="130" height="46" rx="8" fill="#DCFCE7" stroke="#22C55E" stroke-width="1.5" filter="url(#sh)"/>
+<text x="925" y="633" text-anchor="middle" fill="#14532D" font-size="10" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Customer Process</text>
+<text x="925" y="646" text-anchor="middle" fill="#14532D" font-size="9.5"
+  font-family="'Segoe UI',Arial,sans-serif">from CRM</text>
+<text x="925" y="659" text-anchor="middle" fill="#14532D" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">Submit to Bank</text>
+
+<!-- E3: End circle -->
+<circle cx="1040" cy="640" r="22" fill="#16A34A" stroke="#15803D" stroke-width="2" filter="url(#sh)"/>
+<text x="1040" y="645" text-anchor="middle" fill="white" font-size="9" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">END</text>
+
+<!-- C5: Request More Docs (below Check Docs diamond, cy=715) -->
+<rect x="513" y="696" width="124" height="36" rx="8" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
+<text x="575" y="711" text-anchor="middle" fill="#78350F" font-size="9.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Request More</text>
+<text x="575" y="724" text-anchor="middle" fill="#78350F" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">Documents</text>
+
+<!-- Arrows Lane 3 -->
+<line x1="187" y1="640" x2="196" y2="640" stroke="#16A34A" stroke-width="1.5" marker-end="url(#ag)"/>
+<line x1="313" y1="640" x2="303" y2="640" stroke="#16A34A" stroke-width="1.5"/>
+<line x1="313" y1="640" x2="343" y2="640" stroke="#16A34A" stroke-width="0"/>
+<!-- C1 right → App Num diamond left -->
+<line x1="313" y1="640" x2="303" y2="640" stroke="#16A34A" stroke-width="0"/>
+<line x1="313" y1="640" x2="343" y2="640" stroke="#16A34A" stroke-width="1.5" marker-end="url(#ag)"/>
+<!-- App Num → C2 -->
+<line x1="385" y1="640" x2="401" y2="640" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<!-- C2 → Check diamond -->
+<line x1="528" y1="640" x2="533" y2="640" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<!-- Check → C3 Yes -->
+<line x1="615" y1="640" x2="631" y2="640" stroke="#22C55E" stroke-width="1.5" marker-end="url(#ag)"/>
+<text x="623" y="633" text-anchor="middle" fill="#16A34A" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">Yes</text>
+<!-- Check → Request More (No, down) -->
+<path d="M 575 663 L 575 694" stroke="#F59E0B" stroke-width="1.5" fill="none" marker-end="url(#aa)"/>
+<text x="589" y="683" fill="#B45309" font-size="9" font-family="'Segoe UI',Arial,sans-serif">No</text>
+<!-- Resubmit loop -->
+<path d="M 513 714 L 465 714 L 465 665" stroke="#F59E0B" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#aa)"/>
+<text x="432" y="730" text-anchor="middle" fill="#B45309" font-size="8"
+  font-family="'Segoe UI',Arial,sans-serif">Resubmit</text>
+<!-- C3 → Advisor Decision -->
+<line x1="753" y1="640" x2="763" y2="640" stroke="#3B82F6" stroke-width="1.5" marker-end="url(#ab)"/>
+<!-- Advisor Decision → C4 Yes -->
+<line x1="845" y1="640" x2="858" y2="640" stroke="#22C55E" stroke-width="2" marker-end="url(#ag)"/>
+<text x="851" y="633" text-anchor="middle" fill="#16A34A" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">Yes</text>
+<!-- C4 → End -->
+<line x1="990" y1="640" x2="1016" y2="640" stroke="#22C55E" stroke-width="1.5" marker-end="url(#ag)"/>
+
+<!-- ══════════════════════════════════════
+     LANE 4 — CM CMS ADMIN
+     cy=825, node top=807, bottom=843
+══════════════════════════════════════ -->
+<!-- Admin figure -->
+<circle cx="145" cy="818" r="18" fill="#D97706" stroke="#B45309" stroke-width="1.5" filter="url(#sh)"/>
+<text x="145" y="823" text-anchor="middle" font-size="14" font-family="'Segoe UI',Arial,sans-serif">👤</text>
+<text x="145" y="846" text-anchor="middle" fill="#78350F" font-size="8.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">CMS User</text>
+
+<!-- M1: Login (x=173 w=85 cx=215) -->
+<rect x="173" y="807" width="85" height="36" rx="8" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5" filter="url(#sh)"/>
+<text x="215" y="822" text-anchor="middle" fill="#78350F" font-size="10" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Login</text>
+<text x="215" y="836" text-anchor="middle" fill="#78350F" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">Admin Auth</text>
+
+<!-- M2: CMS Dashboard (x=276 w=110 cx=331) -->
+<text x="326" y="800" text-anchor="middle" fill="#B45309" font-size="8.5"
+  font-family="'Segoe UI',Arial,sans-serif">No Selection</text>
+<rect x="276" y="807" width="110" height="36" rx="8" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2" filter="url(#sh)"/>
+<text x="331" y="823" text-anchor="middle" fill="#78350F" font-size="11" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">CMS</text>
+<text x="331" y="836" text-anchor="middle" fill="#78350F" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">Dashboard</text>
+
+<!-- M3: Financial Products (x=403 w=130 cx=468) -->
+<rect x="403" y="807" width="130" height="36" rx="8" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2" filter="url(#sh)"/>
+<text x="468" y="823" text-anchor="middle" fill="#78350F" font-size="11" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Financial</text>
+<text x="468" y="836" text-anchor="middle" fill="#78350F" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">Product</text>
+<!-- Product sub-tags -->
+<line x1="468" y1="843" x2="468" y2="854" stroke="#F59E0B" stroke-width="1"/>
+<rect x="403" y="855" width="62" height="23" rx="4" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
+<text x="434" y="870" text-anchor="middle" fill="#1E40AF" font-size="8.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Credit Cards</text>
+<rect x="472" y="855" width="62" height="23" rx="4" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
+<text x="503" y="870" text-anchor="middle" fill="#1E40AF" font-size="8.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Mortgages</text>
+<rect x="403" y="883" width="62" height="23" rx="4" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
+<text x="434" y="898" text-anchor="middle" fill="#1E40AF" font-size="8.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Pers. Loans</text>
+<rect x="472" y="883" width="62" height="23" rx="4" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
+<text x="503" y="898" text-anchor="middle" fill="#1E40AF" font-size="8.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Biz Finance</text>
+<rect x="403" y="911" width="62" height="23" rx="4" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
+<text x="434" y="926" text-anchor="middle" fill="#1E40AF" font-size="8.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Personal</text>
+<rect x="472" y="911" width="62" height="23" rx="4" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
+<text x="503" y="926" text-anchor="middle" fill="#1E40AF" font-size="8.5" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Car Loans</text>
+
+<!-- Data Store cylinder (cx=635) -->
+<ellipse cx="635" cy="817" rx="52" ry="12" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
+<rect x="583" y="817" width="104" height="30" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
+<ellipse cx="635" cy="847" rx="52" ry="12" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1.5"/>
+<text x="635" y="836" text-anchor="middle" fill="#78350F" font-size="10" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">Data Store</text>
+<!-- Add/Remove below cylinder -->
+<line x1="635" y1="859" x2="635" y2="867" stroke="#F59E0B" stroke-width="1"/>
+<rect x="583" y="868" width="62" height="26" rx="5" fill="#FEE2E2" stroke="#FCA5A5" stroke-width="1"/>
+<text x="614" y="880" text-anchor="middle" fill="#991B1B" font-size="8" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Add</text>
+<text x="614" y="890" text-anchor="middle" fill="#991B1B" font-size="8"
+  font-family="'Segoe UI',Arial,sans-serif">Product &amp; Features</text>
+<rect x="652" y="868" width="62" height="26" rx="5" fill="#DCFCE7" stroke="#86EFAC" stroke-width="1"/>
+<text x="683" y="880" text-anchor="middle" fill="#14532D" font-size="8" font-weight="600"
+  font-family="'Segoe UI',Arial,sans-serif">Remove</text>
+<text x="683" y="890" text-anchor="middle" fill="#14532D" font-size="8"
+  font-family="'Segoe UI',Arial,sans-serif">Product</text>
+
+<!-- M5: CMS Module (x=718 w=115 cx=775) -->
+<rect x="718" y="807" width="115" height="36" rx="8" fill="#FEF3C7" stroke="#F59E0B" stroke-width="2" filter="url(#sh)"/>
+<text x="775" y="823" text-anchor="middle" fill="#78350F" font-size="11" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">CMS</text>
+<text x="775" y="836" text-anchor="middle" fill="#78350F" font-size="9"
+  font-family="'Segoe UI',Arial,sans-serif">Module</text>
+
+<!-- CMS Settings list box -->
+<rect x="846" y="792" width="178" height="132" rx="8" fill="white" stroke="#FCD34D" stroke-width="1.5"/>
+<text x="935" y="808" text-anchor="middle" fill="#78350F" font-size="9.5" font-weight="700"
+  font-family="'Segoe UI',Arial,sans-serif">CMS Module Contains:</text>
+<text x="856" y="822" fill="#78350F" font-size="8.5" font-family="'Segoe UI',Arial,sans-serif">• Business Settings</text>
+<text x="856" y="836" fill="#78350F" font-size="8.5" font-family="'Segoe UI',Arial,sans-serif">• CMS Settings</text>
+<text x="856" y="850" fill="#78350F" font-size="8.5" font-family="'Segoe UI',Arial,sans-serif">• Permissions &amp; Roles</text>
+<text x="856" y="864" fill="#78350F" font-size="8.5" font-family="'Segoe UI',Arial,sans-serif">• Product Details</text>
+<text x="856" y="878" fill="#78350F" font-size="8.5" font-family="'Segoe UI',Arial,sans-serif">• Banks Configuration</text>
+<text x="856" y="892" fill="#78350F" font-size="8.5" font-family="'Segoe UI',Arial,sans-serif">• UAE Pass Config</text>
+<text x="856" y="906" fill="#78350F" font-size="8.5" font-family="'Segoe UI',Arial,sans-serif">• Others</text>
+
+<!-- Arrows Lane 4 -->
+<line x1="163" y1="825" x2="171" y2="825" stroke="#F59E0B" stroke-width="1.5" marker-end="url(#aa)"/>
+<line x1="258" y1="825" x2="274" y2="825" stroke="#F59E0B" stroke-width="1.5" marker-end="url(#aa)"/>
+<line x1="386" y1="825" x2="401" y2="825" stroke="#F59E0B" stroke-width="1.5" marker-end="url(#aa)"/>
+<line x1="533" y1="825" x2="581" y2="825" stroke="#F59E0B" stroke-width="1.5" marker-end="url(#aa)"/>
+<line x1="687" y1="825" x2="716" y2="825" stroke="#F59E0B" stroke-width="1.5" marker-end="url(#aa)"/>
+<line x1="833" y1="825" x2="844" y2="825" stroke="#F59E0B" stroke-width="1.5" marker-end="url(#aa)"/>
+
+<!-- ══════════════════════════════════════
+     CROSS-LANE CONNECTIONS
+══════════════════════════════════════ -->
+<!-- N12 → CM CRM: short vertical indicator into lane 2 only -->
+<path d="M 1945 195 L 1945 383" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#agr)"/>
+<rect x="1862" y="350" width="165" height="22" rx="5" fill="rgba(255,255,255,0.85)" stroke="#CBD5E1" stroke-width="1"/>
+<text x="1944" y="365" text-anchor="middle" fill="#64748B" font-size="8.5" font-style="italic"
+  font-family="'Segoe UI',Arial,sans-serif">↓ Routed to CM CRM Advisor</text>
+
+<!-- CRM End → Notification Engine: short vertical indicator up from lane 3 -->
+<path d="M 1040 555 L 1040 617" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#agr)"/>
+<rect x="958" y="530" width="168" height="20" rx="5" fill="rgba(255,255,255,0.85)" stroke="#CBD5E1" stroke-width="1"/>
+<text x="1042" y="544" text-anchor="middle" fill="#64748B" font-size="8.5" font-style="italic"
+  font-family="'Segoe UI',Arial,sans-serif">↑ Bank decision via Notification Engine</text>
+
+</svg>
+</div>
+
+<!-- LEGEND -->
+<div class="legend-wrap">
+  <div style="font-size:13px;font-weight:700;color:#0B0F1E;margin-bottom:10px;font-family:'Segoe UI',Arial,sans-serif">Legend</div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#DBEAFE;border-color:#3B82F6"></div>Customer Process Step
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#1D4ED8;border-color:#1E40AF"></div>UAE Pass Authentication
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#DCFCE7;border-color:#22C55E"></div>Approved / Success Path
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#FEE2E2;border-color:#EF4444"></div>Rejected / Failure Path
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#FEF3C7;border-color:#F59E0B"></div>Decision Point
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#EDE9FE;border-color:#7C3AED;border-style:dashed"></div>Backend API (dashed)
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#0369A1;border-color:#075985"></div>CM CRM System
+    </div>
+    <div class="legend-item">
+      <div class="legend-swatch" style="background:#FEF3C7;border-color:#F59E0B"></div>CM CMS Admin
+    </div>
+    <div class="legend-item" style="gap:5px">
+      <svg width="28" height="8"><line x1="0" y1="4" x2="28" y2="4" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,3"/></svg>
+      Cross-lane connection
+    </div>
+  </div>
+</div>
+
+<p style="text-align:center;font-size:9px;color:#999;margin-top:12px;font-family:'Segoe UI',Arial,sans-serif">
+  Bank CRM — UAE Pass Application Approval Flow | v1.0 | August 2026
+</p>
+
+<script>
+// ── Zoom controls ──
+let zPct = 55;
+const SVG_W = 2600, SVG_H = 1000;
+
+function setZoom(pct) {
+  zPct = Math.min(Math.max(Math.round(pct), 20), 250);
+  const svg = document.getElementById('mainsvg');
+  svg.setAttribute('width',  Math.round(SVG_W * zPct / 100));
+  svg.setAttribute('height', Math.round(SVG_H * zPct / 100));
+  document.getElementById('zoom-label').textContent = zPct + '%';
+}
+
+function fitWidth() {
+  const wrap = document.getElementById('diagram-wrap');
+  const avail = wrap.clientWidth - 32;
+  setZoom(Math.floor(avail / SVG_W * 100));
+}
+
+window.addEventListener('load', fitWidth);
+window.addEventListener('resize', fitWidth);
+
+// ── PNG export ──
+async function downloadPNG() {
+  const bar = document.querySelector('.dl-bar');
+  const prog = document.getElementById('dl-progress');
+  bar.style.display = 'none';
+  prog.style.display = 'block';
+  try {
+    const canvas = await html2canvas(document.body, {
+      scale: 2.5, useCORS: true, backgroundColor: '#f0f2f8', logging: false
+    });
+    const a = document.createElement('a');
+    a.download = 'BankCRM_UAEPass_Approval_Flow.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  } catch(e) {
+    alert('PNG export failed. Use Save as PDF instead.');
+  } finally {
+    prog.style.display = 'none';
+    bar.style.display = 'flex';
+  }
+}
+</script>
+</body>
+</html>

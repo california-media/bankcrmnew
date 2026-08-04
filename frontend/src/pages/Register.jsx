@@ -172,7 +172,7 @@ function Register() {
           >
             <Checkbox style={{ fontSize:13, color:'#374151' }}>
               I agree to the{' '}
-              <a href="http://127.0.0.1:5500/inzigo-site/terms.html" target="_blank" rel="noreferrer" style={{ color:'#7C3AED', fontWeight:500 }}>Terms and Conditions</a>
+              <a href="https://mysilah.ae/terms.html" target="_blank" rel="noreferrer" style={{ color:'#7C3AED', fontWeight:500 }}>Terms and Conditions</a>
             </Checkbox>
           </Form.Item>
 

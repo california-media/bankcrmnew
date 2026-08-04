@@ -97,7 +97,7 @@ function RegisterAgency() {
             name="agreeToTerms" valuePropName="checked" style={itemStyle}
             rules={[{ validator: (_, v) => v ? Promise.resolve() : Promise.reject('You must accept the Terms and Conditions') }]}
           >
-            <Checkbox>I agree to the <a href="http://127.0.0.1:5500/inzigo-site/terms.html" target="_blank" rel="noreferrer">Terms and Conditions</a></Checkbox>
+            <Checkbox>I agree to the <a href="https://mysilah.ae/terms.html" target="_blank" rel="noreferrer">Terms and Conditions</a></Checkbox>
           </Form.Item>
           <Button type="primary" htmlType="submit" loading={status === 'loading'} block>
             Submit for Approval

@@ -174,6 +174,11 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   .sb-div{height:1px; background:rgba(139,146,184,.2); margin:16px 0;}
   .sb-range{width:100%; accent-color:var(--violet); margin:10px 0;}
   .sb-range-lbl{display:flex; justify-content:space-between; font-family:var(--font-m); font-size:10.5px; color:var(--mist);}
+  .sb-search-wrap{position:relative; margin-bottom:20px;}
+  .sb-search-wrap svg{position:absolute; left:10px; top:50%; transform:translateY(-50%); opacity:.4; pointer-events:none;}
+  .sb-search{width:100%; padding:9px 10px 9px 34px; border:1.5px solid rgba(139,146,184,.25); border-radius:10px; font-size:13px; font-family:var(--font-b); color:var(--ink); background:#fff; outline:none; transition:.15s;}
+  .sb-search:focus{border-color:var(--violet); box-shadow:0 0 0 3px rgba(124,58,237,.08);}
+  .sb-search::placeholder{color:var(--mist);}
   .sb-apply{width:100%; font-family:var(--font-b); font-weight:600; font-size:13.5px; color:#fff; border:none; cursor:pointer; padding:13px; border-radius:12px; background:var(--line); margin-top:4px;}
   .sb-clear{width:100%; font-family:var(--font-b); font-weight:600; font-size:13px; color:var(--mist); border:1.5px solid rgba(139,146,184,.25); cursor:pointer; padding:11px; border-radius:12px; background:#fff; margin-top:8px; transition:all .2s;}
   .sb-clear:hover{border-color:var(--violet); color:var(--violet); background:var(--line-soft);}
@@ -260,8 +265,10 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
   .benefit-block:last-child{margin-bottom:0;}
   .benefit-block-h{font-family:var(--font-d); font-weight:700; font-size:11px; color:var(--cyan); margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid rgba(67,210,240,.22);}
   .legal-links{margin:2px 0 12px; padding-top:10px; border-top:1px solid rgba(255,255,255,.14); display:flex; flex-direction:column; gap:5px;}
+  .legal-doc-links{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
   .legal-links a{font-size:10.5px; font-weight:600; color:var(--cyan); text-decoration:none; display:inline-flex; align-items:center; gap:5px; width:fit-content;}
   .legal-links a:hover{text-decoration:underline;}
+  .legal-sep{color:rgba(255,255,255,.25); font-size:10px;}
   .legal-disclaimer{font-size:9.5px; color:rgba(255,255,255,.42); line-height:1.5; margin-top:1px;}
 
   .flip-back{position:absolute; inset:0; background:linear-gradient(160deg,#11142B,#1C2247); color:#fff; padding:20px 20px 18px; transform:rotateY(180deg);}
@@ -619,6 +626,10 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
         <button class="sb-mob-close" onclick="closeMobFilter()">✕</button>
       </div>
       <div class="sb-sticky">
+        <div class="sb-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" class="sb-search" id="sbCardSearch" placeholder="Search cards…" oninput="handleSearchInput()" autocomplete="off"/>
+        </div>
         <div class="sb-group">
           <div class="sb-title">Bank</div>
           <div id="bankFilterList"></div>
@@ -667,7 +678,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
 
       <div id="sec-all">
         <div class="section-head">
-          <div class="section-title">💳 All Credit Cards <span class="section-count" id="cnt-all">0</span></div>
+          <div class="section-title">💳 Compare All Credit Cards <span class="section-count" id="cnt-all">0</span></div>
         </div>
         <div class="flip-grid" id="allCardsGrid"></div>
       </div>
@@ -680,7 +691,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       </div>
 
       <div style="display:flex; justify-content:center; padding-top:20px;">
-        <button onclick="window.scrollTo({top:0,behavior:'smooth'})" style="font-family:'Inter',sans-serif; font-weight:600; font-size:14px; padding:14px 46px; background:#fff; border:1.5px solid rgba(139,146,184,.3); border-radius:100px; cursor:pointer; color:var(--ink);">↑ Back to Top — All 183 Shown</button>
+        <button onclick="window.scrollTo({top:0,behavior:'smooth'})" style="font-family:'Inter',sans-serif; font-weight:600; font-size:14px; padding:14px 46px; background:#fff; border:1.5px solid rgba(139,146,184,.3); border-radius:100px; cursor:pointer; color:var(--ink);">↑ Back to Top</button>
       </div>
     </div>
   </div>
@@ -699,13 +710,6 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       <h2 class="section-title">📚 Everything You Need to Know About Credit Cards in the UAE</h2>
     </div>
 
-    <div class="edu-byline">
-      <span>✍️ Written by the <strong>MySilah Content Team</strong></span>
-      <span class="edu-byline-dot">•</span>
-      <span>🔎 Reviewed by <strong>MySilah's Research &amp; Compliance Desk</strong></span>
-      <span class="edu-byline-dot">•</span>
-      <span>🕒 Last reviewed: <strong id="guideLastUpdated">30 July 2026</strong></span>
-    </div>
 
     <div class="edu-glance">
       <div class="edu-glance-title">At a Glance</div>
@@ -1012,10 +1016,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
         <div class="apply-modal-eyebrow">🧵 Quick Application</div>
         <div class="apply-modal-title" id="applyCardName">Card Name</div>
         <div class="apply-modal-sub" id="applyCardBank">Issued by <strong>Bank</strong></div>
-        <div style="display:flex; gap:18px; margin-top:8px; font-size:12.5px; color:var(--mist);">
-          <span>Rate: <strong id="applyCardRate" style="color:var(--ink);">—</strong></span>
-          <span>Annual Fee: <strong id="applyCardFee" style="color:var(--ink);">—</strong></span>
-        </div>
+
       </div>
       <form id="applyForm" onsubmit="submitApplyForm(event);">
         <div class="af-group">
@@ -1104,6 +1105,15 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
           <div id="dynamicSpendFields" style="display:contents;">
             <div class="af-group" style="grid-column:2/-1; text-align:center; padding:12px 0; color:var(--mist); font-size:13px;">⏳ Loading…</div>
           </div>
+          <div class="af-group" style="margin-bottom:0;">
+            <label class="af-label">✈️ Travel — flights / year</label>
+            <select class="af-select" id="travelFreq">
+              <option value="0">Rarely / Never</option>
+              <option value="1.5">1–2 times</option>
+              <option value="4">3–5 times</option>
+              <option value="8">6+ times</option>
+            </select>
+          </div>
         </div>
         <div style="margin-bottom:14px;">
           <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13.5px;color:#7C3AED;font-weight:500;user-select:none;">
@@ -1125,7 +1135,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
           </select>
         </div>
         <!-- <div class="af-hint" style="dislay:block; margin:-6px 0 14px; line-height:1.5;">💡 Industry note: groceries, dining &amp; international spend usually earn the highest cashback in the UAE; fuel, utilities, telecom, Salik &amp; school fees are often "restricted categories" that earn reduced rates on most cards.</div> -->
-        <button type="submit" class="af-submit">Next — Enter Contact Details →</button>
+        <button type="submit" class="af-submit">Find My Match →</button>
         <div class="af-secure">🔒 Free forever · Estimates are indicative, not guaranteed</div>
       </form>
     </div>
@@ -1139,7 +1149,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       </div>
       <form id="matchContactForm" onsubmit="submitMatchContactForm(event);">
         <div class="af-group">
-          <label class="af-label">Full Name</label>
+          <label class="af-label">Full Name (as per Emirates ID)</label>
           <input class="af-input" type="text" id="matchFullName" placeholder="e.g. Ahmed Al Mansoori" required/>
         </div>
         <div class="af-group">
@@ -1157,7 +1167,6 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
           <button type="button" class="af-back-btn" onclick="backToMatchSpendStep();">← Back</button>
           <button type="submit" class="af-submit" style="flex:1;">See My Match →</button>
         </div>
-        <div class="af-secure">🔒 Free forever · No spam · Your data stays private</div>
       </form>
     </div>
 
@@ -1235,7 +1244,12 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     return CATEGORY_ICON_MAP[k] || CATEGORY_ICON_MAP[k.split(/[\s\/&,]/)[0].trim()] || '💳';
   }
 
-  function flipTile(id){ document.getElementById(id).classList.toggle('flipped'); }
+  function flipTile(id){
+    const el = document.getElementById(id);
+    const wasFlipped = el.classList.contains('flipped');
+    document.querySelectorAll('.flip-tile.flipped').forEach(t => t.classList.remove('flipped'));
+    if (!wasFlipped) el.classList.add('flipped');
+  }
 
   /* ══════════ APPLY MODAL ══════════ */
   function openApplyModal(cardName, bankName, cardId, rate, fee){
@@ -1517,10 +1531,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     spend.international = spend['International Spend'] || spend['International'] || 0;
     const eduExtra = (document.getElementById('matchPaySchool')?.checked) ? (parseFloat(document.getElementById('matchEduFee')?.value) || 0) : 0;
     spend.education    = spend['Education'] || spend['School Fees / Education'] || eduExtra;
-    if(spend['Travel — flights'] || spend['Travel'] || spend['Travel & Miles']) {
-      const travelSpend = spend['Travel — flights'] || spend['Travel'] || spend['Travel & Miles'] || 0;
-      spend.tripsPerYear = Math.round(travelSpend / 1000);
-    }
+    spend.tripsPerYear = parseFloat(document.getElementById('travelFreq')?.value) || 0;
 
     const eligible = getFilteredCards({maxSalary, minSalary});
     const ranked = rankCandidates(eligible, spend, preference);
@@ -1705,17 +1716,16 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     }).join('');
     const savingsBadge = (savings != null) ? `<div class="savings-badge">💸 Est. AED ${Math.round(savings).toLocaleString()}/mo back for you</div>` : '';
     let legalLinks = '';
-    if(c.cat === 'fab'){
+    const _kfs = c.kfsUrl || (c.cat === 'fab' ? 'https://apply.bankfab.com/-/media/fabgroup/home/personal/key-facts-statements/fab-consolidated-credit-cards.pdf?view=1' : '');
+    const _tnc = c.tncUrl || '';
+    if(_kfs || _tnc){
+      const kfsLink = _kfs ? `<a href="${_kfs}" target="_blank" rel="noopener" onclick="event.stopPropagation();">📄 Key Facts Statement</a>` : '';
+      const tncLink = _tnc ? `<a href="${_tnc}" target="_blank" rel="noopener" onclick="event.stopPropagation();">📋 T&amp;Cs</a>` : '';
+      const sep = (kfsLink && tncLink) ? '<span class="legal-sep">·</span>' : '';
       legalLinks = `
           <div class="legal-links">
-            <a href="https://apply.bankfab.com/-/media/fabgroup/home/personal/key-facts-statements/fab-consolidated-credit-cards.pdf?view=1" target="_blank" rel="noopener" onclick="event.stopPropagation();">📄 Key Facts Statement</a>
-            <div class="legal-disclaimer">Rates, fees and benefits shown are indicative and may change. Always verify current terms directly with FAB before applying.</div>
-          </div>`;
-    } else if(c.kfsLink){
-      legalLinks = `
-          <div class="legal-links">
-            <a href="${c.kfsLink}" target="_blank" rel="noopener" onclick="event.stopPropagation();">📄 Key Facts Statement</a>
-            <div class="legal-disclaimer">Rates, fees and benefits shown are indicative and may change. Always verify current terms directly with ${c.bank} before applying.</div>
+            <div class="legal-doc-links">${kfsLink}${sep}${tncLink}</div>
+            <div class="legal-disclaimer">Rates, fees and benefits shown are indicative. Verify current terms directly with ${c.bank} before applying.</div>
           </div>`;
     }
     const _imgSrc = c.imgUrl || c.image || null;
@@ -1778,6 +1788,7 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
             <div class="benefit-block-h">Additional Benefits</div>
             <ul class="back-perks">${(c.extras||[]).map(p=>`<li>${p}</li>`).join('')}</ul>
           </div>
+          <div class="legal-disclaimer">Rates, fees and benefits shown are indicative and may change. Always verify current terms directly with Authorised agency or Bank.</div>
           ${legalLinks}
           <button class="front-apply" style="margin-top:auto; margin-bottom:0;" onclick="event.stopPropagation(); openApplyModal('${safeName}', '${safeBank}', '${c._id||c.id||""}', '${(c.rate||"").replace(/'/g,"\\'")}', '${(c.fee||"").replace(/'/g,"\\'")}');">Apply Now →</button>
         </div>
@@ -2014,17 +2025,30 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     applyAllFilters();
   }
 
+  let _searchTimer = null;
+  function handleSearchInput(){
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(applyAllFilters, 220);
+  }
+
   function applyAllFilters(){
     const banks = Array.from(document.querySelectorAll('.bank-chk:checked')).map(el=>el.value);
     const categories = Array.from(document.querySelectorAll('.cat-chk:checked')).map(el=>el.value);
     const feeRanges = Array.from(document.querySelectorAll('.fee-chk:checked')).map(el=>el.value);
     const maxSalary = parseInt(document.getElementById('salaryRange').value, 10);
+    const query = (document.getElementById('sbCardSearch')?.value || '').trim().toLowerCase();
     let filtered = getFilteredCards({banks, categories, feeRanges, maxSalary});
+    if(query){
+      filtered = filtered.filter(c=>{
+        const blob = cardTextBlob(c) + ' ' + (c.bank||'').toLowerCase();
+        return blob.includes(query);
+      });
+    }
     filtered = filtered.filter(c=>chipMatches(c, currentChip));
     const sortType = document.getElementById('sortSelect').value;
     filtered = sortCards(filtered, sortType);
     renderFilteredGrid(filtered);
-    const anyActive = banks.length || categories.length || feeRanges.length || maxSalary < 50000 || currentChip !== 'all' || sortType !== 'best';
+    const anyActive = banks.length || categories.length || feeRanges.length || maxSalary < 50000 || currentChip !== 'all' || sortType !== 'best' || !!query;
     document.getElementById('sbClearBtn').style.display = anyActive ? 'block' : 'none';
   }
   function clearSidebarFilters(){
@@ -2032,6 +2056,8 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     document.getElementById('salaryRange').value = 50000;
     document.getElementById('salaryRangeVal').textContent = '50,000';
     document.getElementById('sortSelect').value = 'best';
+    const searchEl = document.getElementById('sbCardSearch');
+    if(searchEl) searchEl.value = '';
     currentChip = 'all';
     document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
     const allChip = document.querySelector('.chip[data-chip="all"]');
@@ -2177,7 +2203,8 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
     const bankName = card.bank ? card.bank.name : '';
     const bankSlug = bankName.toLowerCase().replace(/\s+/g,'-') || 'bank';
     const imgUrl = card.cardImage ? (UPLOADS_BASE + '/card-images/' + card.cardImage) : null;
-    const ribbon = card.cardType === 'premium' ? 'Premium' : (feeType === 'free' ? 'Free' : null);
+    const isIslamic = /islamic|shari[a']?h/i.test((card.name || '') + ' ' + (card.bank?.name || ''));
+    const ribbon = isIslamic ? 'Islamic' : (card.cardType === 'premium' ? 'Premium' : (feeType === 'free' ? 'Free' : null));
     const offerText = card.feesEligibility ? stripHtml(card.feesEligibility).slice(0,120) : '';
     const allBullets = parseBullets(card.benefits, 12);
     const perks = allBullets.slice(0, 4);
@@ -2220,6 +2247,8 @@ footer{padding:64px 0 40px;border-top:1px solid #E8E8EE;background:#fff}
       extras: parseBullets(card.feesEligibility, 6),
       keyFeatures: parseBullets(card.keyFeatures, 8),
       imgUrl,
+      kfsUrl: card.kfsUrl || '',
+      tncUrl: card.tncUrl || '',
     };
   }
 

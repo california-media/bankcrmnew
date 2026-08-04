@@ -46,6 +46,8 @@ const cardProductSchema = new mongoose.Schema(
     cardImage:      { type: String, trim: true },
     redirectUrl:    { type: String, trim: true },
     redirectActive: { type: Boolean, default: false },
+    kfsUrl:         { type: String, trim: true, default: '' },
+    tncUrl:         { type: String, trim: true, default: '' },
   },
   { timestamps: true }
 );

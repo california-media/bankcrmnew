@@ -3,51 +3,34 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>MySilah CRM — Flowchart Diagrams</title>
+<title>MySilah CRM — Agent User Flow</title>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
-  :root{--violet:#7C3AED;--blue:#0EA5E9;--green:#10B981;--amber:#F59E0B;--pink:#EC4899;--ink:#0B0F1E;--bg:#F8F7FF;--card:#fff;--border:#E8E8EE;--muted:#6B7186}
+  :root{--violet:#7C3AED;--blue:#0EA5E9;--green:#10B981;--amber:#F59E0B;--ink:#0B0F1E;--bg:#F8F7FF;--card:#fff;--border:#E8E8EE;--muted:#6B7186}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:32px 40px}
   @media print{body{padding:10px}.no-print{display:none!important}.page-break{page-break-before:always}}
 
-  /* HEADER */
   .header{background:linear-gradient(135deg,#4C1D95,#7C3AED 50%,#0EA5E9);color:#fff;border-radius:16px;padding:36px 44px;margin-bottom:36px;position:relative;overflow:hidden}
   .header::before{content:'';position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.06);top:-80px;right:-40px;pointer-events:none}
   .header-tag{display:inline-block;background:rgba(255,255,255,.18);padding:3px 12px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.06em;margin-bottom:12px}
   .header h1{font-size:26px;font-weight:800;letter-spacing:-.03em;margin-bottom:8px}
   .header p{opacity:.82;font-size:13.5px;max-width:600px;line-height:1.6}
 
-  /* TOOLBAR */
   .toolbar{display:flex;gap:10px;margin-bottom:28px;flex-wrap:wrap;align-items:center}
   .btn{padding:8px 18px;border:none;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:inherit;transition:.15s}
   .btn:hover{opacity:.85;transform:translateY(-1px)}
   .btn-pdf{background:#1a1a2e;color:#fff}
-  .btn-png{background:var(--violet);color:#fff}
   .btn-print{background:#fff;color:var(--ink);border:1.5px solid var(--border)}
 
-  /* SECTION */
   .section{margin-bottom:44px}
-  .section-label{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .section-label{display:flex;align-items:center;gap:10px;margin-bottom:8px}
   .section-label h2{font-size:17px;font-weight:800;letter-spacing:-.02em}
   .section-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:99px;background:#f5f3ff;color:var(--violet)}
+  .section-desc{font-size:12.5px;color:var(--muted);margin-bottom:16px;line-height:1.6}
 
-  /* CHART CARD */
   .chart-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 32px;overflow:auto}
-  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  .chart-grid .chart-card{padding:20px 24px}
-  @media(max-width:900px){.chart-grid{grid-template-columns:1fr}}
 
-  /* LEGEND */
-  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:18px;padding:12px 16px;background:#f8f7ff;border-radius:10px;border:1px solid var(--border)}
-  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-  .ldot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
-
-  /* MERMAID overrides */
-  .mermaid{text-align:center}
-  .mermaid svg{max-width:100%;height:auto}
-
-  /* STATUS CHIPS */
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
   .chip{padding:5px 14px;border-radius:99px;font-size:11.5px;font-weight:600;border:1.5px solid}
   .s-draft   {background:#f1f5f9;color:#475569;border-color:#cbd5e1}
@@ -58,236 +41,227 @@
   .s-disbursed{background:#faf5ff;color:#7e22ce;border-color:#e9d5ff}
   .s-rejected{background:#fff1f2;color:#be123c;border-color:#fecdd3}
   .s-arrow{font-size:14px;color:#a78bfa}
+
+  .mermaid{text-align:center}
+  .mermaid svg{max-width:100%;height:auto}
+
+  .note-box{margin-top:14px;padding:12px 16px;background:#f5f3ff;border-left:3px solid var(--violet);border-radius:0 8px 8px 0;font-size:12px;color:#4c1d95;line-height:1.6}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <div class="header-tag">MySilah CRM · August 2026</div>
-  <h1>User Journey Flowchart Diagrams</h1>
-  <p>Visual flowcharts for the complete CRM platform — customer acquisition through commission payout. Five user roles, six lead statuses, four commission states.</p>
+  <div class="header-tag">MySilah CRM · Agent Flow · August 2026</div>
+  <h1>Agent User Flow</h1>
+  <p>Step-by-step journey for an agent — from registration through lead creation, status tracking, and commission payout.</p>
 </div>
 
 <div class="toolbar no-print">
   <button class="btn btn-pdf" onclick="window.print()">🖨️ Print / Save PDF</button>
-  <button class="btn btn-png" onclick="exportPNG()">⬇️ Export PNG</button>
   <button class="btn btn-print" onclick="window.print()">📄 Print View</button>
 </div>
 
-<!-- ═══════════ DIAGRAM 1: MASTER END-TO-END ═══════════ -->
+
+<!-- ═══════════ DIAGRAM 1: AGENT REGISTRATION & LOGIN ═══════════ -->
 <div class="section">
   <div class="section-label">
-    <h2>1 · Master Flow — Customer to Commission</h2>
-    <span class="section-badge">End-to-End</span>
+    <h2>1 · Registration &amp; Login</h2>
+    <span class="section-badge">Onboarding</span>
   </div>
-  <div class="legend">
-    <div class="legend-item"><div class="ldot" style="background:#fdf4ff;border:1.5px solid #d946ef"></div>Customer</div>
-    <div class="legend-item"><div class="ldot" style="background:#f0fdf4;border:1.5px solid #10B981"></div>Agent</div>
-    <div class="legend-item"><div class="ldot" style="background:#f0f9ff;border:1.5px solid #0EA5E9"></div>Agency</div>
-    <div class="legend-item"><div class="ldot" style="background:#fffbeb;border:1.5px solid #F59E0B"></div>Employee</div>
-    <div class="legend-item"><div class="ldot" style="background:#f1f5f9;border:1.5px solid #64748B"></div>Bank</div>
-    <div class="legend-item"><div class="ldot" style="background:#faf5ff;border:1.5px solid #7C3AED"></div>Admin</div>
-  </div>
+  <p class="section-desc">Agent signs up independently — no admin approval required. Account activates on email verification.</p>
   <div class="chart-card">
     <div class="mermaid">
 flowchart TD
-    %% CUSTOMER
-    subgraph CUST ["👤  CUSTOMER"]
-        direction TB
-        C1(["🌐  Browse MySilah.ae"]):::cust
-        C2["Applies via website form\nor contacts Agent directly"]:::cust
-    end
+    S(["🌐  Visit mysilah.ae/register"]):::agent
 
-    %% AGENT
-    subgraph AGT ["🤝  AGENT"]
-        direction TB
-        A1["Receives customer interest"]:::agent
-        A2["📝  Create New Lead\n/agent/leads/new\nSelect product: Card or Loan"]:::agent
-        A3[("🟡  DRAFT\nFill customer details")]:::draft
-        A4["WhatsApp consent\nauto-sent to customer"]:::sys
-        A5{{"Submit to\nAgency?"}}:::dec
-        A6[("🔵  SUBMITTED\nLead locked from edit")]:::sub
-        A7["Track at /agent/leads\nMonitor status changes"]:::agent
-    end
+    F1["Fill registration form
+    Name · Email · Password
+    Phone · Emirates ID (optional)"]:::agent
 
-    %% AGENCY
-    subgraph AGC ["🏢  AGENCY"]
-        direction TB
-        AG1["Receives submitted lead\n/agency/leads"]:::agency
-        AG2{{"Review lead\ndetails valid?"}}:::dec
-        AG3[("🟡  UNDER REVIEW\nVerify + update amount")]:::review
-        AG4["Assign CPV Employee\n+ Sales Employee"]:::agency
-        AG5[("🟠  ASSIGNED\nEmployee notified")]:::assigned
-        AG8[("🟢  APPROVED\nRecord bank approval")]:::approved
-        AG9["Upload Disbursement Receipt\n/agency/leads/:id"]:::agency
-        AG10[("🟣  DISBURSED\nCommission → PAYABLE")]:::disbursed
-        AGR[("🔴  REJECTED\nCommission voided")]:::rejected
-    end
+    UAE{{"Use UAE PASS?"}}:::dec
 
-    %% EMPLOYEE
-    subgraph EMP ["🔧  EMPLOYEE"]
-        direction TB
-        E1["View assigned lead\n/employee/leads"]:::emp
-        E2{{"Employee\nType?"}}:::dec
-        E3["Mark CPV Done ✓\nVerify ID presence"]:::emp
-        E4["Mark Activation Done ✓\nCard/loan activated"]:::emp
-        E5["Mark Spend Done ✓\nMin. spend reached\nCredit card only"]:::emp
-    end
+    UP["Sign in with UAE PASS
+    Auto-fills ID + phone"]:::sys
 
-    %% BANK
-    subgraph BNK ["🏦  BANK  (External)"]
-        direction TB
-        B1["Review application\nwith customer"]:::bank
-        B2{{"Bank\nDecision"}}:::dec
-        B3["Bank Approves\n+ issues card/loan"]:::bank
-        B4["Bank Disburses\nfunds to agency"]:::bank
-    end
+    SUB["Submit form"]:::agent
 
-    %% ADMIN
-    subgraph ADM ["🛡  ADMIN"]
-        direction TB
-        AD1["Receives funds from bank\n/admin/receive"]:::adm
-        AD2["Commission: PENDING\n→ PAYABLE"]:::adm
-        AD3["Process payout\n/admin/payouts"]:::adm
-        AD4(["✅  Commission PAID\nAgent receives payment"]):::ok
-    end
+    VE["📧  Verification email sent
+    by system"]:::sys
 
-    %% CONNECTIONS
-    C1 --> C2
-    C2 --> A1
-    A1 --> A2
-    A2 --> A3
-    A3 --> A4
-    A4 --> A5
-    A5 -- "Save Draft" --> A3
-    A5 -- "Submit ✓" --> A6
-    A6 --> A7
-    A6 --> AG1
-    AG1 --> AG2
-    AG2 -- "Issues found" --> AGR
-    AG2 -- "Valid ✓" --> AG3
-    AG3 --> AG4
-    AG4 --> AG5
-    AG5 --> E1
-    E1 --> E2
-    E2 -- "CPV type" --> E3
-    E2 -- "Sales type" --> E4
-    E3 --> E5
-    E4 --> E5
-    E5 --> B1
-    AG5 --> B1
-    B1 --> B2
-    B2 -- "Rejected" --> AGR
-    B2 -- "Approved ✓" --> B3
-    B3 --> AG8
-    AG8 --> B4
-    B4 --> AG9
-    AG9 --> AG10
-    AG10 --> AD1
-    AD1 --> AD2
-    AD2 --> AD3
-    AD3 --> AD4
+    EV{{"Email link
+    clicked?"}}:::dec
 
-    %% STYLES
-    classDef cust fill:#fdf4ff,stroke:#d946ef,color:#7e22ce,font-size:12px
-    classDef agent fill:#f0fdf4,stroke:#10B981,color:#166534,font-size:12px
-    classDef agency fill:#f0f9ff,stroke:#0EA5E9,color:#0369a1,font-size:12px
-    classDef emp fill:#fffbeb,stroke:#F59E0B,color:#92400e,font-size:12px
-    classDef bank fill:#f1f5f9,stroke:#64748B,color:#334155,font-size:12px
-    classDef adm fill:#faf5ff,stroke:#7C3AED,color:#5b21b6,font-size:12px
-    classDef dec fill:#fefce8,stroke:#ca8a04,color:#713f12,font-size:11px
-    classDef sys fill:#f0f4ff,stroke:#6366f1,color:#3730a3,font-size:12px
-    classDef ok fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-size:12px
-    classDef draft fill:#fffbeb,stroke:#d97706,color:#92400e,font-weight:700,font-size:12px
-    classDef sub fill:#eff6ff,stroke:#3b82f6,color:#1d4ed8,font-weight:700,font-size:12px
-    classDef review fill:#fefce8,stroke:#ca8a04,color:#a16207,font-weight:700,font-size:12px
-    classDef assigned fill:#fff7ed,stroke:#ea580c,color:#c2410c,font-weight:700,font-size:12px
-    classDef approved fill:#f0fdf4,stroke:#16a34a,color:#15803d,font-weight:700,font-size:12px
-    classDef disbursed fill:#faf5ff,stroke:#7C3AED,color:#7e22ce,font-weight:700,font-size:12px
-    classDef rejected fill:#fff1f2,stroke:#e11d48,color:#be123c,font-weight:700,font-size:12px
+    WAIT["Check spam / resend"]:::agent
+
+    ACTIVE(["✅  Account ACTIVE
+    Login at /login → /agent/dashboard"]):::ok
+
+    S --> F1
+    F1 --> UAE
+    UAE -- "Yes" --> UP
+    UAE -- "No" --> SUB
+    UP --> SUB
+    SUB --> VE
+    VE --> EV
+    EV -- "Not yet" --> WAIT
+    WAIT --> EV
+    EV -- "Verified ✓" --> ACTIVE
+
+    classDef agent fill:#f0fdf4,stroke:#10B981,color:#166534,font-size:13px
+    classDef sys   fill:#f0f4ff,stroke:#6366f1,color:#3730a3,font-size:13px
+    classDef dec   fill:#fefce8,stroke:#ca8a04,color:#713f12,font-size:12px
+    classDef ok    fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-weight:700,font-size:13px
     </div>
   </div>
 </div>
 
-<!-- ═══════════ DIAGRAM 2: LEAD LIFECYCLE ═══════════ -->
+
+<!-- ═══════════ DIAGRAM 2: CREATE & SUBMIT A LEAD ═══════════ -->
 <div class="section page-break">
   <div class="section-label">
-    <h2>2 · Lead Lifecycle — Status Transitions</h2>
-    <span class="section-badge">Lead Flow</span>
+    <h2>2 · Create &amp; Submit a Lead</h2>
+    <span class="section-badge">Core Agent Action</span>
   </div>
+  <p class="section-desc">The agent's primary task — create a lead for a customer, fill their details, and submit to the agency.</p>
   <div class="chart-card">
     <div class="mermaid">
 flowchart TD
-    START(["▶  New Lead Created"]):::ok
+    LOGIN(["🔐  Agent logged in
+    /agent/dashboard"]):::agent
 
-    D1[("🟡  DRAFT\nAgent fills customer details")]:::draft
-    D2["WhatsApp consent\nauto-sent to customer"]:::sys
+    NEW["Click + New Lead
+    /agent/leads/new"]:::agent
 
-    Q1{{"Ready to\nsubmit?"}}:::dec
+    PT{{"Product type?"}}:::dec
 
-    S1[("🔵  SUBMITTED\nLead sent to Agency\nAgent cannot edit")]:::sub
-    S2["Agency receives\nnotification"]:::sys
+    CARD["Credit Card Application
+    Select bank + card product"]:::agent
+    LOAN["Personal Loan Application
+    Select bank + loan product"]:::agent
 
-    Q2{{"Agency review\npassed?"}}:::dec
+    FILL["Fill customer details
+    ─────────────────────────
+    Full name · Emirates ID
+    Phone · Email · Nationality
+    City · Monthly salary
+    Employment type"]:::agent
 
-    RV[("🟡  UNDER REVIEW\nAgency verifying details")]:::review
-    Q3{{"Assign\nEmployee?"}}:::dec
+    WA["📲  WhatsApp consent message
+    auto-sent to customer"]:::sys
 
-    AS[("🟠  ASSIGNED\nCPV & Sales employee set\nEmployee notified")]:::assigned
+    DRAFT[("🟡  DRAFT
+    Lead saved — agent can edit")]:::draft
 
-    E1["Employee performs tasks\nCPV ✓  Activation ✓  Spend ✓"]:::emp
+    RDY{{"Ready to
+    submit?"}}:::dec
 
-    Q4{{"Bank\nDecision?"}}:::dec
+    EDIT["Edit / update details"]:::agent
 
-    AP[("🟢  APPROVED\nBank confirmed\nCommission → PENDING")]:::approved
+    SUBMIT["Click Submit to Agency"]:::agent
 
-    UP["Agency uploads\nDisbursement Receipt"]:::agency
-    DB[("🟣  DISBURSED\nFunds confirmed\nCommission → PAYABLE")]:::disbursed
+    LOCK[("🔵  SUBMITTED
+    Lead locked — no more edits
+    Agency notified")]:::sub
 
-    PA["Admin processes\ncommission payout"]:::adm
-    PAID(["✅  Commission PAID\nAgent earns commission"]):::ok
+    TRACK["Track at /agent/leads
+    Monitor status updates"]:::agent
 
-    REJ[("🔴  REJECTED\nTerminal state\nCommission voided")]:::rejected
+    LOGIN --> NEW
+    NEW --> PT
+    PT -- "Card" --> CARD
+    PT -- "Loan" --> LOAN
+    CARD --> FILL
+    LOAN --> FILL
+    FILL --> WA
+    WA --> DRAFT
+    DRAFT --> RDY
+    RDY -- "Need changes" --> EDIT
+    EDIT --> DRAFT
+    RDY -- "Ready ✓" --> SUBMIT
+    SUBMIT --> LOCK
+    LOCK --> TRACK
 
-    START --> D1
-    D1 --> D2
-    D2 --> Q1
-    Q1 -- "Save Draft" --> D1
-    Q1 -- "Submit to Agency" --> S1
-    S1 --> S2
-    S2 --> Q2
-    Q2 -- "Issues / Reject" --> REJ
-    Q2 -- "Proceed ✓" --> RV
-    RV --> Q3
-    Q3 -- "Assign CPV/Sales" --> AS
-    AS --> E1
-    E1 --> Q4
-    Q4 -- "Bank Rejects" --> REJ
-    Q4 -- "Bank Approves ✓" --> AP
-    AP --> UP
-    UP --> DB
-    DB --> PA
-    PA --> PAID
+    classDef agent fill:#f0fdf4,stroke:#10B981,color:#166534,font-size:13px
+    classDef sys   fill:#f0f4ff,stroke:#6366f1,color:#3730a3,font-size:13px
+    classDef dec   fill:#fefce8,stroke:#ca8a04,color:#713f12,font-size:12px
+    classDef draft fill:#fffbeb,stroke:#d97706,color:#92400e,font-weight:700,font-size:13px
+    classDef sub   fill:#eff6ff,stroke:#3b82f6,color:#1d4ed8,font-weight:700,font-size:13px
+    </div>
+  </div>
+  <div class="note-box">
+    ℹ️ Once SUBMITTED the agent cannot edit the lead. Any correction must be requested from the agency.
+  </div>
+</div>
 
-    classDef ok fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-size:13px
-    classDef draft fill:#fffbeb,stroke:#d97706,color:#92400e,font-weight:700
-    classDef sub fill:#eff6ff,stroke:#3b82f6,color:#1d4ed8,font-weight:700
-    classDef review fill:#fefce8,stroke:#ca8a04,color:#a16207,font-weight:700
+
+<!-- ═══════════ DIAGRAM 3: LEAD STATUS JOURNEY (AGENT VIEW) ═══════════ -->
+<div class="section page-break">
+  <div class="section-label">
+    <h2>3 · Lead Status Journey</h2>
+    <span class="section-badge">What the Agent Sees</span>
+  </div>
+  <p class="section-desc">After submission the agent watches status changes on /agent/leads. Background steps (agency, employee, bank) happen without agent action.</p>
+  <div class="chart-card">
+    <div class="mermaid">
+flowchart LR
+    subgraph AGENT ["🤝  AGENT — monitors /agent/leads"]
+        direction TB
+        A1(["Lead submitted ✓"]):::sub
+        A2["Waiting — agency
+        reviewing lead"]:::wait
+        A3["Waiting — employee
+        assigned & working"]:::wait
+        A4["Waiting — bank
+        processing application"]:::wait
+        A5(["🟢  APPROVED
+        Bank confirmed ✓"]):::approved
+        A6(["🟣  DISBURSED
+        Funds confirmed ✓
+        Commission → PAYABLE"]):::disbursed
+        AR(["🔴  REJECTED
+        Lead closed
+        Commission voided"]):::rejected
+    end
+
+    subgraph BG ["⚙️  Background — not agent action"]
+        direction TB
+        B1[("🟡  UNDER REVIEW
+        Agency verifying details")]:::review
+        B2[("🟠  ASSIGNED
+        CPV + Sales employee set")]:::assigned
+        B3["Bank reviews
+        application"]:::bank
+        B4["Agency uploads
+        disbursement receipt"]:::bank
+    end
+
+    A1 --> B1
+    B1 --> A2
+    A2 --> B2
+    B2 --> A3
+    A3 --> B3
+    B3 -- "Rejected" --> AR
+    B3 -- "Approved ✓" --> A4
+    A4 --> A5
+    A5 --> B4
+    B4 --> A6
+
+    classDef sub      fill:#eff6ff,stroke:#3b82f6,color:#1d4ed8,font-weight:700
+    classDef review   fill:#fefce8,stroke:#ca8a04,color:#a16207,font-weight:700
     classDef assigned fill:#fff7ed,stroke:#ea580c,color:#c2410c,font-weight:700
     classDef approved fill:#f0fdf4,stroke:#16a34a,color:#15803d,font-weight:700
     classDef disbursed fill:#faf5ff,stroke:#7C3AED,color:#7e22ce,font-weight:700
     classDef rejected fill:#fff1f2,stroke:#e11d48,color:#be123c,font-weight:700
-    classDef dec fill:#fefce8,stroke:#ca8a04,color:#713f12
-    classDef sys fill:#f0f4ff,stroke:#6366f1,color:#3730a3
-    classDef emp fill:#fffbeb,stroke:#F59E0B,color:#92400e
-    classDef agency fill:#f0f9ff,stroke:#0EA5E9,color:#0369a1
-    classDef adm fill:#faf5ff,stroke:#7C3AED,color:#5b21b6
+    classDef wait     fill:#f8fafc,stroke:#94a3b8,color:#475569,font-style:italic
+    classDef bank     fill:#f1f5f9,stroke:#64748B,color:#334155
+
+    style AGENT fill:#f0fdf4,stroke:#10B981,color:#166534
+    style BG    fill:#f8fafc,stroke:#cbd5e1,color:#64748b
     </div>
   </div>
 
-  <!-- Status chips reference -->
   <div style="margin-top:16px;padding:14px 18px;background:var(--card);border:1px solid var(--border);border-radius:10px">
-    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px">Lead Status Reference</div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px">Lead Status Pipeline</div>
     <div class="chips">
       <span class="chip s-draft">DRAFT</span>
       <span class="s-arrow">→</span>
@@ -306,284 +280,80 @@ flowchart TD
   </div>
 </div>
 
-<!-- ═══════════ DIAGRAM 3: COMMISSION FLOW ═══════════ -->
+
+<!-- ═══════════ DIAGRAM 4: COMMISSION JOURNEY (AGENT VIEW) ═══════════ -->
 <div class="section page-break">
   <div class="section-label">
-    <h2>3 · Commission Flow</h2>
-    <span class="section-badge">Loan &amp; Credit Card</span>
+    <h2>4 · Commission Journey</h2>
+    <span class="section-badge">Agent Earnings</span>
   </div>
-  <div class="chart-grid">
-    <div class="chart-card">
-      <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:#0369a1">💼 Personal Loan Commission</div>
-      <div class="mermaid">
-flowchart TD
-    L1(["Lead: APPROVED\nCommission = PENDING"]):::pending
-    L2{{"Disbursement\nreceipt uploaded?"}}:::dec
-    L3["Commission = PAYABLE\nLoan: % of approved amount"]:::payable
-    L4{{"Admin processes\npayout?"}}:::dec
-    L5(["Commission = PAID ✓\nAgent receives funds"]):::paid
-
-    L1 --> L2
-    L2 -- "Not yet" --> L2
-    L2 -- "Yes ✓" --> L3
-    L3 --> L4
-    L4 -- "Not yet" --> L4
-    L4 -- "Processed ✓" --> L5
-
-    classDef pending fill:#fffbeb,stroke:#d97706,color:#92400e,font-weight:700
-    classDef payable fill:#f0f9ff,stroke:#0EA5E9,color:#0369a1,font-weight:700
-    classDef paid fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-weight:700
-    classDef dec fill:#fefce8,stroke:#ca8a04,color:#713f12
-      </div>
-    </div>
-    <div class="chart-card">
-      <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:#7C3AED">💳 Credit Card Commission</div>
-      <div class="mermaid">
-flowchart TD
-    CC1(["Lead: APPROVED\nCommission = PENDING\nHold amount withheld"]):::pending
-    CC2{{"Disbursement\nreceipt uploaded?"}}:::dec
-    CC3["Commission = PAYABLE\nBut hold amount still locked"]:::payable
-    CC4{{"Employee marks\nSpend Done ✓?"}}:::dec
-    CC5["Admin releases hold\nFull commission = PAYABLE"]:::full
-    CC6{{"Admin processes\npayout?"}}:::dec
-    CC7(["Commission = PAID ✓\nFull amount to agent"]):::paid
-
-    CC1 --> CC2
-    CC2 -- "Not yet" --> CC2
-    CC2 -- "Yes ✓" --> CC3
-    CC3 --> CC4
-    CC4 -- "Not yet" --> CC4
-    CC4 -- "Confirmed ✓" --> CC5
-    CC5 --> CC6
-    CC6 -- "Not yet" --> CC6
-    CC6 -- "Processed ✓" --> CC7
-
-    classDef pending fill:#fffbeb,stroke:#d97706,color:#92400e,font-weight:700
-    classDef payable fill:#f0f9ff,stroke:#0EA5E9,color:#0369a1,font-weight:700
-    classDef full fill:#faf5ff,stroke:#7C3AED,color:#5b21b6,font-weight:700
-    classDef paid fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-weight:700
-    classDef dec fill:#fefce8,stroke:#ca8a04,color:#713f12
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════ DIAGRAM 4: REGISTRATION FLOWS ═══════════ -->
-<div class="section page-break">
-  <div class="section-label">
-    <h2>4 · Registration Flows — All Roles</h2>
-    <span class="section-badge">Onboarding</span>
-  </div>
-  <div class="chart-grid">
-
-    <!-- Agent Registration -->
-    <div class="chart-card">
-      <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:#10B981">👤 Agent — Self Register</div>
-      <div class="mermaid">
-flowchart TD
-    AR1(["Visit /register"]):::agent
-    AR2["Fill: Name, Email, Password\nPhone, Emirates ID (optional)"]:::agent
-    AR3{{"UAE PASS\navailable?"}}:::dec
-    AR4["Sign in with UAE PASS\nAuto-fills ID + phone"]:::agent
-    AR5["Submit registration form"]:::agent
-    AR6["System sends\nverification email"]:::sys
-    AR7{{"Email\nverified?"}}:::dec
-    AR8(["Account ACTIVE\nLogin at /login → /agent"]):::ok
-
-    AR1 --> AR2
-    AR2 --> AR3
-    AR3 -- "Yes" --> AR4
-    AR3 -- "No" --> AR5
-    AR4 --> AR5
-    AR5 --> AR6
-    AR6 --> AR7
-    AR7 -- "Not yet" --> AR7
-    AR7 -- "Clicked ✓" --> AR8
-
-    classDef agent fill:#f0fdf4,stroke:#10B981,color:#166534
-    classDef sys fill:#f0f4ff,stroke:#6366f1,color:#3730a3
-    classDef ok fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-weight:700
-    classDef dec fill:#fefce8,stroke:#ca8a04,color:#713f12
-      </div>
-    </div>
-
-    <!-- Agency Self-Register -->
-    <div class="chart-card">
-      <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:#0EA5E9">🏢 Agency — Self Register + Approval</div>
-      <div class="mermaid">
-flowchart TD
-    AS1(["Visit /register/agency"]):::agency
-    AS2["Fill: Company Name, Trade License\nContact Name, Email, Phone\nCity, Password"]:::agency
-    AS3["Account created\nregistrationStatus: PENDING\nisActive: false"]:::sys
-    AS4["Admin reviews\nat /admin/agencies"]:::adm
-    AS5{{"Admin\nDecision?"}}:::dec
-    AS6["Admin approves\nisActive: true"]:::adm
-    AS7["Agency notified\nby email"]:::sys
-    AS8(["Account ACTIVE\nLogin at /login → /agency"]):::ok
-    AS9["Registration rejected\nAgency notified"]:::bad
-
-    AS1 --> AS2
-    AS2 --> AS3
-    AS3 --> AS4
-    AS4 --> AS5
-    AS5 -- "Rejected" --> AS9
-    AS5 -- "Approved ✓" --> AS6
-    AS6 --> AS7
-    AS7 --> AS8
-
-    classDef agency fill:#f0f9ff,stroke:#0EA5E9,color:#0369a1
-    classDef adm fill:#faf5ff,stroke:#7C3AED,color:#5b21b6
-    classDef sys fill:#f0f4ff,stroke:#6366f1,color:#3730a3
-    classDef ok fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-weight:700
-    classDef bad fill:#fff1f2,stroke:#e11d48,color:#be123c
-    classDef dec fill:#fefce8,stroke:#ca8a04,color:#713f12
-      </div>
-    </div>
-
-    <!-- Agency Admin Invite -->
-    <div class="chart-card">
-      <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:#7C3AED">🛡 Agency — Admin Invite Path</div>
-      <div class="mermaid">
-flowchart TD
-    AI1(["Admin at /admin/agencies"]):::adm
-    AI2["Enters agency email\nClicks 'Invite Agency'"]:::adm
-    AI3["System sends invite email\nLink valid for 24 hours"]:::sys
-    AI4{{"Agency clicks\ninvite link?"}}:::dec
-    AI5["Agency sets password\nPOST /api/auth/set-password"]:::agency
-    AI6["Account immediately ACTIVE\nNo approval wait"]:::ok2
-    AI7(["Login at /login → /agency\nFull access from day one"]):::ok
-    AI8["Link expired\nAdmin re-sends invite"]:::bad
-
-    AI1 --> AI2
-    AI2 --> AI3
-    AI3 --> AI4
-    AI4 -- "Within 24h ✓" --> AI5
-    AI4 -- "Link expired" --> AI8
-    AI8 --> AI3
-    AI5 --> AI6
-    AI6 --> AI7
-
-    classDef adm fill:#faf5ff,stroke:#7C3AED,color:#5b21b6
-    classDef agency fill:#f0f9ff,stroke:#0EA5E9,color:#0369a1
-    classDef sys fill:#f0f4ff,stroke:#6366f1,color:#3730a3
-    classDef ok fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-weight:700
-    classDef ok2 fill:#f0fdf4,stroke:#16a34a,color:#14532d
-    classDef bad fill:#fff1f2,stroke:#e11d48,color:#be123c
-    classDef dec fill:#fefce8,stroke:#ca8a04,color:#713f12
-      </div>
-    </div>
-
-    <!-- Employee Creation -->
-    <div class="chart-card">
-      <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:#F59E0B">🔧 Employee — Created by Agency</div>
-      <div class="mermaid">
-flowchart TD
-    EM1(["Agency at /agency/employees"]):::agency
-    EM2["Click 'Add Employee'\nEnter: Name, Email, Phone\nType: CPV or Sales"]:::agency
-    EM3["Agency sets password\nvia 'Change Password' action"]:::agency
-    EM4["Agency shares credentials\nwith employee offline"]:::agency
-    EM5{{"Employee\ntype?"}}:::dec
-    EM6["CPV Employee\nVerifies customer presence\ncpvDone task"]:::emp
-    EM7["Sales Employee\nActivates card/loan\nspendDone task"]:::emp
-    EM8(["Login at /login → /employee\nSees only assigned leads"]):::ok
-
-    EM1 --> EM2
-    EM2 --> EM3
-    EM3 --> EM4
-    EM4 --> EM8
-    EM8 --> EM5
-    EM5 -- "CPV type" --> EM6
-    EM5 -- "Sales type" --> EM7
-
-    classDef agency fill:#f0f9ff,stroke:#0EA5E9,color:#0369a1
-    classDef emp fill:#fffbeb,stroke:#F59E0B,color:#92400e
-    classDef ok fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-weight:700
-    classDef dec fill:#fefce8,stroke:#ca8a04,color:#713f12
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- ═══════════ DIAGRAM 5: AGENCY LEAD PIPELINE ═══════════ -->
-<div class="section page-break">
-  <div class="section-label">
-    <h2>5 · Agency Lead Processing Pipeline</h2>
-    <span class="section-badge">Agency + Employee</span>
-  </div>
+  <p class="section-desc">Commission states the agent sees after lead approval. Credit card commission has a spend-hold; personal loans do not.</p>
   <div class="chart-card">
     <div class="mermaid">
-flowchart LR
-    subgraph IN ["📥  Incoming"]
+flowchart TD
+    START(["🟢  Lead APPROVED
+    Commission → PENDING"]):::approved
+
+    TYPE{{"Product type?"}}:::dec
+
+    subgraph LOAN ["💼  Personal Loan"]
         direction TB
-        I1["Agent submits lead"]
-        I2[("SUBMITTED")]
+        L1["Wait for agency to upload
+        disbursement receipt"]:::wait
+        L2[("Commission → PAYABLE
+        Full amount unlocked")]:::payable
     end
 
-    subgraph REV ["🔍  Review"]
+    subgraph CARD ["💳  Credit Card"]
         direction TB
-        R1["Agency reviews\ncustomer details"]
-        R2{{"Valid?"}}
-        R3[("UNDER REVIEW")]
-        R4[("REJECTED")]
+        C1["Wait for agency to upload
+        disbursement receipt"]:::wait
+        C2["Commission → PAYABLE
+        (hold amount still locked)"]:::payable2
+        C3["Wait for customer to
+        reach minimum spend ✓"]:::wait
+        C4[("Commission → PAYABLE
+        Hold released — full amount")]:::payable
     end
 
-    subgraph ASS ["👷  Assignment"]
-        direction TB
-        A1["Assign employees"]
-        A2[("ASSIGNED")]
-        A3["CPV Employee\n→ Mark CPV Done ✓"]
-        A4["Sales Employee\n→ Mark Activation Done ✓\n→ Mark Spend Done ✓"]
-    end
+    PAY["Admin processes payout
+    /admin/payouts"]:::sys
 
-    subgraph BNK ["🏦  Bank"]
-        direction TB
-        B1["Submit to bank"]
-        B2{{"Approved?"}}
-        B3["Bank approves"]
-        B4["Bank disburses"]
-    end
+    PAID(["✅  Commission PAID
+    Agent receives payment"]):::ok
 
-    subgraph CLO ["✅  Closing"]
-        direction TB
-        C1[("APPROVED")]
-        C2["Upload receipt"]
-        C3[("DISBURSED")]
-        C4["Commission\nPAYABLE"]
-    end
-
-    I1 --> I2
-    I2 --> R1
-    R1 --> R2
-    R2 -- "No" --> R4
-    R2 -- "Yes ✓" --> R3
-    R3 --> A1
-    A1 --> A2
-    A2 --> A3
-    A2 --> A4
-    A3 --> B1
-    A4 --> B1
-    B1 --> B2
-    B2 -- "No" --> R4
-    B2 -- "Yes ✓" --> B3
-    B3 --> C1
-    B4 --> C2
-    C1 --> B4
+    START --> TYPE
+    TYPE -- "Loan" --> L1
+    TYPE -- "Card" --> C1
+    L1 --> L2
+    L2 --> PAY
+    C1 --> C2
     C2 --> C3
     C3 --> C4
+    C4 --> PAY
+    PAY --> PAID
 
-    style IN fill:#f0fdf4,stroke:#10B981,color:#166534
-    style REV fill:#fefce8,stroke:#ca8a04,color:#713f12
-    style ASS fill:#fff7ed,stroke:#ea580c,color:#7c2d12
-    style BNK fill:#f1f5f9,stroke:#64748B,color:#334155
-    style CLO fill:#faf5ff,stroke:#7C3AED,color:#4c1d95
+    classDef approved fill:#f0fdf4,stroke:#16a34a,color:#15803d,font-weight:700
+    classDef payable  fill:#f0f9ff,stroke:#0EA5E9,color:#0369a1,font-weight:700
+    classDef payable2 fill:#f0f9ff,stroke:#0EA5E9,color:#0369a1,font-style:italic
+    classDef wait     fill:#f8fafc,stroke:#94a3b8,color:#475569,font-style:italic
+    classDef sys      fill:#faf5ff,stroke:#7C3AED,color:#5b21b6
+    classDef ok       fill:#f0fdf4,stroke:#16a34a,color:#14532d,font-weight:700
+    classDef dec      fill:#fefce8,stroke:#ca8a04,color:#713f12
+
+    style LOAN fill:#f0f9ff,stroke:#0EA5E9,color:#0369a1
+    style CARD fill:#faf5ff,stroke:#7C3AED,color:#4c1d95
     </div>
   </div>
+  <div class="note-box">
+    ℹ️ Credit card commissions include a <strong>hold amount</strong> withheld until the customer completes minimum spend. The agent sees partial PAYABLE first, then full PAYABLE once spend is confirmed by the employee.
+  </div>
 </div>
+
 
 <!-- FOOTER -->
 <div style="text-align:center;color:var(--muted);font-size:11px;padding:24px 0;margin-top:20px;border-top:1px solid var(--border)" class="no-print">
-  MySilah CRM · Flowchart Diagrams · August 2026 · california-media
+  MySilah CRM · Agent User Flow · August 2026 · california-media
 </div>
 
 <script>
@@ -598,26 +368,18 @@ flowchart LR
       secondaryColor: '#f0f9ff',
       tertiaryColor: '#f0fdf4',
       fontSize: '13px',
-      nodeBorder: '1.5px',
       clusterBkg: '#fafafa',
       clusterBorder: '#e2e8f0',
-      titleColor: '#0B0F1E',
       edgeLabelBackground: '#fafafa'
     },
     flowchart: {
       curve: 'basis',
       padding: 20,
-      nodeSpacing: 40,
-      rankSpacing: 50,
+      nodeSpacing: 45,
+      rankSpacing: 55,
       htmlLabels: true
     }
   });
-
-  function exportPNG(){
-    const svgs = document.querySelectorAll('.mermaid svg');
-    if(!svgs.length){ alert('Charts still loading — try again in a moment.'); return; }
-    alert('Use Print → Save as PDF for best quality export. Chrome: Print → Save as PDF → A3 landscape for full diagrams.');
-  }
 </script>
 </body>
 </html>

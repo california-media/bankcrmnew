@@ -232,6 +232,17 @@ function CardProducts() {
     }
   };
 
+  const toggleActive = async (row) => {
+    try {
+      const fd = new FormData();
+      fd.append('isActive', row.isActive ? 'false' : 'true');
+      await api.put(`/card-products/${row._id}`, fd);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
   const bankOptions = banks.map((b) => ({ value: b._id, label: b.name }));
   const agencyOptions = agencies.map((a) => ({ value: a._id, label: a.name || a.email }));
 
@@ -275,7 +286,14 @@ function CardProducts() {
     {
       title: 'Status',
       dataIndex: 'isActive',
-      render: (v) => v ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>,
+      render: (v, row) => (
+        <Switch
+          checked={v}
+          checkedChildren="Active"
+          unCheckedChildren="Inactive"
+          onChange={() => toggleActive(row)}
+        />
+      ),
     },
     {
       title: 'Actions',
@@ -613,19 +631,24 @@ function CardProducts() {
 
           <Divider orientation="left" style={{ fontSize: 13 }}>Rate & Redirect</Divider>
           <Row gutter={16}>
-            <Col span={5}>
+            <Col span={4}>
               <Form.Item name="rate" label="Interest Rate">
                 <Input placeholder="e.g. 3.99%/mo" />
               </Form.Item>
             </Col>
-            <Col span={13}>
+            <Col span={11}>
               <Form.Item name="redirectUrl" label="Redirect URL after submission">
                 <Input placeholder="https://app.mysilah.ae/apply/..." />
               </Form.Item>
             </Col>
-            <Col span={6}>
-              <Form.Item name="redirectActive" label="Active" valuePropName="checked">
+            <Col span={5}>
+              <Form.Item name="redirectActive" label="Redirect Active" valuePropName="checked">
                 <Switch />
+              </Form.Item>
+            </Col>
+            <Col span={4}>
+              <Form.Item name="isActive" label="Product Active" valuePropName="checked" initialValue={true}>
+                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
               </Form.Item>
             </Col>
           </Row>

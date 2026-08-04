@@ -273,7 +273,7 @@ export default function LeadDetail() {
       const { note } = actionForm.getFieldsValue();
       const { data } = await api.patch(`/leads/${id}/${actionModal.type}`, { note: note || undefined });
       setLead(data);
-      message.success(actionModal.type === 'cpv' ? 'CPV marked done' : 'Activated marked done');
+      message.success(actionModal.type === 'cpv' ? 'CPV marked done' : actionModal.type === 'spend' ? 'Spend marked done' : 'Activated marked done');
       setActionModal({ open: false, type: null });
     } catch (err) {
       message.error(err.response?.data?.message || 'Action failed');
@@ -464,6 +464,7 @@ export default function LeadDetail() {
           <Tag color={statusMeta.color} style={{ margin: 0 }}>{statusMeta.label}</Tag>
           {lead.cpvDone && <Tag color="green" style={{ margin: 0 }}>CPV ✓</Tag>}
           {lead.activateDone && <Tag color="green" style={{ margin: 0 }}>Activated ✓</Tag>}
+          {lead.spendDone && <Tag color="green" style={{ margin: 0 }}>Spend ✓</Tag>}
           {role !== 'employee' && lead.commissionStatus !== 'none' && (
             <Tag color={COMM_COLORS[lead.commissionStatus]} style={{ margin: 0 }}>{COMM_LABELS[lead.commissionStatus]}</Tag>
           )}
@@ -821,10 +822,11 @@ export default function LeadDetail() {
                   )}
                 </div>
               )}
-              {(lead.cpvDone || lead.activateDone) && (
+              {(lead.cpvDone || lead.activateDone || lead.spendDone) && (
                 <Space style={{ marginBottom: 10, flexWrap: 'wrap' }}>
                   {lead.cpvDone && <Tag color="green" style={{ margin: 0 }}>CPV ✓</Tag>}
                   {lead.activateDone && <Tag color="green" style={{ margin: 0 }}>Activated ✓</Tag>}
+                  {lead.spendDone && <Tag color="green" style={{ margin: 0 }}>Spend ✓</Tag>}
                 </Space>
               )}
               <Space direction="vertical" size={6} style={{ width: '100%' }}>
@@ -836,6 +838,9 @@ export default function LeadDetail() {
                 )}
                 {lead.status === 'approved' && !lead.activateDone && (
                   <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'activate' }); }}>Activated</Button>
+                )}
+                {lead.status === 'approved' && lead.bank?.hasSpend && !lead.spendDone && (
+                  <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'spend' }); }}>Spend</Button>
                 )}
                 {lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
                   <Button block size="small" onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>

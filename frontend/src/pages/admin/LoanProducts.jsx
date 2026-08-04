@@ -133,6 +133,15 @@ function LoanProducts() {
     }
   };
 
+  const toggleActive = async (row) => {
+    try {
+      await api.put(`/loan-products/${row._id}`, { isActive: !row.isActive });
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
   const bankOptions = banks.map((b) => ({ value: b._id, label: b.name }));
   const agencyOptions = agencies.map((a) => ({ value: a._id, label: a.name || a.email }));
 
@@ -167,7 +176,14 @@ function LoanProducts() {
     {
       title: 'Status',
       dataIndex: 'isActive',
-      render: (v) => v ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>,
+      render: (v, row) => (
+        <Switch
+          checked={v}
+          checkedChildren="Active"
+          unCheckedChildren="Inactive"
+          onChange={() => toggleActive(row)}
+        />
+      ),
     },
     {
       title: 'Actions',
@@ -424,14 +440,19 @@ function LoanProducts() {
 
           <Divider orientation="left" style={{ fontSize: 13 }}>Redirect Link</Divider>
           <Row gutter={16}>
-            <Col span={18}>
+            <Col span={14}>
               <Form.Item name="redirectUrl" label="Redirect URL after submission">
                 <Input placeholder="https://app.mysilah.ae/apply/..." />
               </Form.Item>
             </Col>
-            <Col span={6}>
-              <Form.Item name="redirectActive" label="Active" valuePropName="checked">
+            <Col span={5}>
+              <Form.Item name="redirectActive" label="Redirect Active" valuePropName="checked">
                 <Switch />
+              </Form.Item>
+            </Col>
+            <Col span={5}>
+              <Form.Item name="isActive" label="Product Active" valuePropName="checked" initialValue={true}>
+                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
               </Form.Item>
             </Col>
           </Row>

@@ -68,7 +68,9 @@ exports.registerAgent = async (req, res) => {
 
     let decodedPhone;
     try {
-      decodedPhone = jwt.verify(phoneVerifyToken, process.env.JWT_SECRET).phone;
+      const decoded = jwt.verify(phoneVerifyToken, process.env.JWT_SECRET);
+      if (decoded.purpose !== 'phone-verify') throw new Error('wrong token purpose');
+      decodedPhone = decoded.phone;
     } catch (_) {
       return res.status(400).json({ message: 'Phone verification expired, please verify your number again' });
     }
@@ -170,7 +172,7 @@ exports.verifyOtp = async (req, res) => {
 
     await PhoneOtp.deleteOne({ _id: record._id });
 
-    const phoneVerifyToken = jwt.sign({ phone }, process.env.JWT_SECRET, {
+    const phoneVerifyToken = jwt.sign({ phone, purpose: 'phone-verify' }, process.env.JWT_SECRET, {
       expiresIn: PHONE_VERIFY_TOKEN_EXPIRES_IN,
     });
 

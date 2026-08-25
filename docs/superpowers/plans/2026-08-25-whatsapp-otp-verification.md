@@ -195,7 +195,7 @@ Run (reads voycell's actual values and appends them to mysilah's `backend/.env` 
 
 ```bash
 VOYCELL_ENV="/Users/developer/Documents/GitHub/voycellcallcenter/voycellcallcenter-backend/.env"
-TARGET_ENV="/Users/developer/Documents/GitHub/bankcrmnew/backend/.env"
+TARGET_ENV="backend/.env"   # relative to repo root — run this from the repo/worktree root
 
 {
   echo ""

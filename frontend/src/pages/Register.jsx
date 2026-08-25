@@ -3,7 +3,7 @@ import { Form, Input, Button, Alert, Checkbox } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerAgent, clearError } from '../store/slices/authSlice';
+import { registerAgent, clearError, sendOtp, verifyOtp, resetOtp } from '../store/slices/authSlice';
 import { validateUAELocalPhone, toFullUAEPhone } from '../utils/validatePhone';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000';
@@ -29,15 +29,27 @@ function Register() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, status, error, registrationPending } = useSelector((s) => s.auth);
+  const { user, status, error, registrationPending, otpStatus, otpError, phoneVerifyToken } = useSelector((s) => s.auth);
   const [form] = Form.useForm();
   const [uaepassError, setUaepassError] = useState(null);
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [resendTimer, setResendTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
     if (user) navigate(`/${user.role}`, { replace: true });
   }, [user, navigate]);
 
   useEffect(() => () => dispatch(clearError()), [dispatch]);
+
+  useEffect(() => {
+    if (otpStatus !== 'sent' && otpStatus !== 'verifying') return;
+    if (resendTimer <= 0) { setCanResend(true); return; }
+    const interval = setInterval(() => setResendTimer((t) => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [otpStatus, resendTimer]);
+
+  useEffect(() => () => dispatch(resetOtp()), [dispatch]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -69,9 +81,47 @@ function Register() {
       password:   values.password,
       phone:      values.phone ? toFullUAEPhone(values.phone) : undefined,
       emiratesId: values.emiratesId,
+      phoneVerifyToken,
     };
     if (values._uaepassSub) payload.uaepassSub = values._uaepassSub;
     dispatch(registerAgent(payload));
+  };
+
+  const handleSendOtp = async () => {
+    try {
+      await form.validateFields(['phone']);
+    } catch {
+      return;
+    }
+    const phone = toFullUAEPhone(form.getFieldValue('phone'));
+    setOtpDigits(['', '', '', '', '', '']);
+    setResendTimer(60);
+    setCanResend(false);
+    dispatch(sendOtp({ phone }));
+  };
+
+  const handleResendOtp = () => {
+    const phone = toFullUAEPhone(form.getFieldValue('phone'));
+    setResendTimer(60);
+    setCanResend(false);
+    dispatch(sendOtp({ phone }));
+  };
+
+  const handleOtpDigitChange = (index, value) => {
+    const clean = value.replace(/\D/g, '').slice(-1);
+    const next = [...otpDigits];
+    next[index] = clean;
+    setOtpDigits(next);
+    if (clean && index < 5) {
+      const nextInput = document.getElementById(`otp-digit-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handleVerifyOtp = () => {
+    const phone = toFullUAEPhone(form.getFieldValue('phone'));
+    const otp = otpDigits.join('');
+    dispatch(verifyOtp({ phone, otp }));
   };
 
   const handleUaePass = () => { window.location.href = `${API_BASE}/api/auth/uaepass/init`; };
@@ -152,13 +202,69 @@ function Register() {
           <Form.Item name="email" rules={[{ required:true, type:'email', message:'Valid email required' }]} style={itemStyle}>
             <Input placeholder="Email *" style={inputStyle} />
           </Form.Item>
-          <Form.Item name="phone" rules={[{ validator: validateUAELocalPhone }]} style={itemStyle}>
+          <Form.Item
+            name="phone"
+            rules={[{ required: true, message: 'Phone number is required' }, { validator: validateUAELocalPhone }]}
+            style={itemStyle}
+          >
             <Input
               addonBefore={<span style={{ userSelect: 'none', pointerEvents: 'none', cursor: 'default' }}>🇦🇪 +971</span>}
               placeholder="501234567"
               style={inputStyle}
+              disabled={otpStatus === 'verified'}
+              suffix={
+                otpStatus === 'verified' ? (
+                  <span style={{ color: '#16A34A', fontSize: 12, fontWeight: 600 }}>Verified ✓</span>
+                ) : (
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={handleSendOtp}
+                    loading={otpStatus === 'sending'}
+                    style={{ padding: 0 }}
+                  >
+                    Send OTP
+                  </Button>
+                )
+              }
             />
           </Form.Item>
+
+          {otpError && <Alert type="error" message={otpError} style={{ marginBottom: 8, borderRadius: 10 }} />}
+
+          {(otpStatus === 'sent' || otpStatus === 'verifying') && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+                {otpDigits.map((digit, i) => (
+                  <Input
+                    key={i}
+                    id={`otp-digit-${i}`}
+                    value={digit}
+                    onChange={(e) => handleOtpDigitChange(i, e.target.value)}
+                    maxLength={1}
+                    style={{ width: 38, textAlign: 'center', ...inputStyle }}
+                  />
+                ))}
+                <Button
+                  type="primary"
+                  onClick={handleVerifyOtp}
+                  loading={otpStatus === 'verifying'}
+                  disabled={otpDigits.some((d) => !d)}
+                >
+                  Verify
+                </Button>
+              </div>
+              <div style={{ fontSize: 12, color: '#6B7186' }}>
+                {canResend ? (
+                  <Button type="link" size="small" onClick={handleResendOtp} style={{ padding: 0 }}>
+                    Resend OTP
+                  </Button>
+                ) : (
+                  `Resend OTP in ${resendTimer}s`
+                )}
+              </div>
+            </div>
+          )}
           <Form.Item name="password" rules={[{ required:true, min:6, message:'Min 6 characters' }]} style={itemStyle}>
             <Input.Password placeholder="Password *" style={inputStyle} />
           </Form.Item>
@@ -177,7 +283,8 @@ function Register() {
           </Form.Item>
 
           <Button
-            type="primary" htmlType="submit" loading={status === 'loading'} block size="large"
+            type="primary" htmlType="submit" loading={status === 'loading'}
+            disabled={otpStatus !== 'verified'} block size="large"
             style={{
               borderRadius:999, height:48, fontSize:15, fontWeight:600,
               background:'linear-gradient(90deg,#7C3AED,#8B5CF6 50%,#0EA5E9)',

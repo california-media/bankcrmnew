@@ -1,7 +1,16 @@
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const PhoneOtp = require('../models/PhoneOtp');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
 const { sendPasswordResetEmail, sendEmailVerification } = require('../utils/email');
+const { sendWhatsAppOtp } = require('../services/whatsappOtp.service');
+
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+const OTP_EXPIRY_MS = 10 * 60 * 1000;
+const PHONE_VERIFY_TOKEN_EXPIRES_IN = '15m';
+
+const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 /**
  * Public-safe user shape returned to clients.
@@ -49,9 +58,24 @@ const safeUser = async (id) =>
  */
 exports.registerAgent = async (req, res) => {
   try {
-    const { name, email, password, phone, referralCode, emiratesId, uaepassSub } = req.body;
+    const { name, email, password, phone, referralCode, emiratesId, uaepassSub, phoneVerifyToken } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+    if (!phone || !phoneVerifyToken) {
+      return res.status(400).json({ message: 'Phone verification is required' });
+    }
+
+    let decodedPhone;
+    try {
+      const decoded = jwt.verify(phoneVerifyToken, process.env.JWT_SECRET);
+      if (decoded.purpose !== 'phone-verify') throw new Error('wrong token purpose');
+      decodedPhone = decoded.phone;
+    } catch (_) {
+      return res.status(400).json({ message: 'Phone verification expired, please verify your number again' });
+    }
+    if (decodedPhone !== phone) {
+      return res.status(400).json({ message: 'Phone verification does not match' });
     }
 
     const exists = await User.findOne({ email: email.toLowerCase() });
@@ -92,6 +116,67 @@ exports.registerAgent = async (req, res) => {
     await sendEmailVerification({ to: agent.email, verifyUrl, name: agent.name });
 
     res.status(201).json({ message: 'Registration successful. Please check your email to verify your account.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/auth/send-otp  (public)
+ */
+exports.sendOtp = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ message: 'Phone number is required' });
+
+    const existing = await PhoneOtp.findOne({ phone });
+    if (existing && Date.now() - existing.lastSentAt.getTime() < OTP_RESEND_COOLDOWN_MS) {
+      return res.status(429).json({ message: 'Please wait before requesting another OTP' });
+    }
+
+    const otp = generateOtp();
+    const now = new Date();
+    const otpExpiresAt = new Date(now.getTime() + OTP_EXPIRY_MS);
+
+    const sendResult = await sendWhatsAppOtp({ phone, otp });
+    if (sendResult.error || (sendResult.status && sendResult.status >= 400)) {
+      return res.status(502).json({ message: 'Failed to send OTP, please try again' });
+    }
+
+    await PhoneOtp.findOneAndUpdate(
+      { phone },
+      { otp, otpExpiresAt, lastSentAt: now },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.status(200).json({ status: 'pending' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/auth/verify-otp  (public)
+ */
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+    if (!phone || !otp) return res.status(400).json({ message: 'Phone and OTP are required' });
+
+    const record = await PhoneOtp.findOne({ phone });
+    if (!record) return res.status(400).json({ message: 'No OTP requested for this number' });
+    if (record.otp !== otp) return res.status(400).json({ message: 'Invalid OTP' });
+    if (record.otpExpiresAt < new Date()) {
+      return res.status(400).json({ message: 'OTP expired, please resend' });
+    }
+
+    await PhoneOtp.deleteOne({ _id: record._id });
+
+    const phoneVerifyToken = jwt.sign({ phone, purpose: 'phone-verify' }, process.env.JWT_SECRET, {
+      expiresIn: PHONE_VERIFY_TOKEN_EXPIRES_IN,
+    });
+
+    res.status(200).json({ status: 'verified', phoneVerifyToken });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -9,6 +9,8 @@ router.get('/uaepass/link-init', protect, uaepass.linkInit);
 router.post('/uaepass/unlink', protect, uaepass.unlink);
 
 router.post('/register-agent', ctrl.registerAgent);
+router.post('/send-otp', ctrl.sendOtp);
+router.post('/verify-otp', ctrl.verifyOtp);
 router.get('/verify-email/:token', ctrl.verifyEmail);
 router.post('/register-agency', ctrl.registerAgency);
 router.post('/login', ctrl.login);

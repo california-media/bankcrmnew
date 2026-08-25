@@ -39,6 +39,34 @@ export const registerAgent = createAsyncThunk('auth/registerAgent', async (paylo
   }
 });
 
+/**
+ * POST /auth/send-otp
+ * @param {{ phone: string }} payload
+ * @returns {Promise<{ status: string }>}
+ */
+export const sendOtp = createAsyncThunk('auth/sendOtp', async (payload, { rejectWithValue }) => {
+  try {
+    const { data } = await api.post('/auth/send-otp', payload);
+    return data;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || 'Failed to send OTP');
+  }
+});
+
+/**
+ * POST /auth/verify-otp
+ * @param {{ phone: string, otp: string }} payload
+ * @returns {Promise<{ phoneVerifyToken: string }>}
+ */
+export const verifyOtp = createAsyncThunk('auth/verifyOtp', async (payload, { rejectWithValue }) => {
+  try {
+    const { data } = await api.post('/auth/verify-otp', payload);
+    return data;
+  } catch (err) {
+    return rejectWithValue(err.response?.data?.message || 'Failed to verify OTP');
+  }
+});
+
 export const verifyEmail = createAsyncThunk('auth/verifyEmail', async (token, { rejectWithValue }) => {
   try {
     const { data } = await api.get(`/auth/verify-email/${token}`);
@@ -106,6 +134,9 @@ const initialState = {
   error: null,
   hydrated: false,
   registrationPending: false,
+  otpStatus: 'idle',
+  otpError: null,
+  phoneVerifyToken: null,
 };
 
 const authSlice = createSlice({
@@ -119,6 +150,11 @@ const authSlice = createSlice({
     },
     clearError(state) {
       state.error = null;
+    },
+    resetOtp(state) {
+      state.otpStatus = 'idle';
+      state.otpError = null;
+      state.phoneVerifyToken = null;
     },
   },
   extraReducers: (builder) => {
@@ -184,8 +220,24 @@ const authSlice = createSlice({
         state.status = 'idle';
         state.error = action.payload;
       });
+
+    builder
+      .addCase(sendOtp.pending, (state) => { state.otpStatus = 'sending'; state.otpError = null; })
+      .addCase(sendOtp.fulfilled, (state) => { state.otpStatus = 'sent'; })
+      .addCase(sendOtp.rejected, (state, action) => { state.otpStatus = 'idle'; state.otpError = action.payload; });
+
+    builder
+      .addCase(verifyOtp.pending, (state) => { state.otpStatus = 'verifying'; state.otpError = null; })
+      .addCase(verifyOtp.fulfilled, (state, action) => {
+        state.otpStatus = 'verified';
+        state.phoneVerifyToken = action.payload.phoneVerifyToken;
+      })
+      .addCase(verifyOtp.rejected, (state, action) => {
+        state.otpStatus = 'sent';
+        state.otpError = action.payload;
+      });
   },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { logout, clearError, resetOtp } = authSlice.actions;
 export default authSlice.reducer;

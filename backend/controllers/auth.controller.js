@@ -58,9 +58,22 @@ const safeUser = async (id) =>
  */
 exports.registerAgent = async (req, res) => {
   try {
-    const { name, email, password, phone, referralCode, emiratesId, uaepassSub } = req.body;
+    const { name, email, password, phone, referralCode, emiratesId, uaepassSub, phoneVerifyToken } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+    if (!phone || !phoneVerifyToken) {
+      return res.status(400).json({ message: 'Phone verification is required' });
+    }
+
+    let decodedPhone;
+    try {
+      decodedPhone = jwt.verify(phoneVerifyToken, process.env.JWT_SECRET).phone;
+    } catch (_) {
+      return res.status(400).json({ message: 'Phone verification expired, please verify your number again' });
+    }
+    if (decodedPhone !== phone) {
+      return res.status(400).json({ message: 'Phone verification does not match' });
     }
 
     const exists = await User.findOne({ email: email.toLowerCase() });

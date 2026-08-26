@@ -135,22 +135,51 @@ exports.callback = async (req, res) => {
   try {
     // Exchange authorization code for access token
     const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
-    const tokenRes = await fetch(`${BASE_URL}/token`, {
+    console.log('[UAE Pass] token exchange request:', JSON.stringify({
+      url: `${BASE_URL}/token`,
+      redirect_uri: REDIRECT_URI,
+      client_id: CLIENT_ID,
+      code_length: code?.length,
+      code_prefix: code?.slice(0, 8),
+    }));
+    const tokenExchangeStart = Date.now();
+    // Old x-www-form-urlencoded version (kept for quick revert if multipart doesn't work):
+    // const tokenRes = await fetch(`${BASE_URL}/token`, {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/x-www-form-urlencoded',
+    //     Authorization: `Basic ${credentials}`,
+    //   },
+    //   body: new URLSearchParams({
+    //     grant_type: 'authorization_code',
+    //     code,
+    //     redirect_uri: REDIRECT_URI,
+    //   }).toString(),
+    // });
+    const tokenForm = new FormData();
+    tokenForm.append('grant_type', 'authorization_code');
+    tokenForm.append('code', code);
+    tokenForm.append('redirect_uri', REDIRECT_URI);
+    const tokenReq = new Request(`${BASE_URL}/token`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         Authorization: `Basic ${credentials}`,
       },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: REDIRECT_URI,
-      }).toString(),
+      body: tokenForm,
     });
+    console.log('[UAE Pass] token exchange Content-Type header:', tokenReq.headers.get('content-type'));
+    const tokenRes = await fetch(tokenReq);
+    console.log('[UAE Pass] token exchange response:', JSON.stringify({
+      status: tokenRes.status,
+      statusText: tokenRes.statusText,
+      ok: tokenRes.ok,
+      elapsed_ms: Date.now() - tokenExchangeStart,
+      headers: Object.fromEntries(tokenRes.headers.entries()),
+    }));
 
     if (!tokenRes.ok) {
       const err = await tokenRes.text();
-      console.error('[UAE Pass] token exchange failed:', err);
+      console.error('[UAE Pass] token exchange failed — status:', tokenRes.status, '| body:', err);
       return res.redirect(isLinkAction
         ? `${frontendUrl}/settings?uaepass=error`
         : `${frontendUrl}/register?uaepass_error=token_failed`);

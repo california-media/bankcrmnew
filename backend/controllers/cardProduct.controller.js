@@ -27,7 +27,7 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name, cardType, bank, agency, isActive } = req.body;
+    const { name, cardType, bank, agency, isActive, agentVisible, websiteVisible } = req.body;
     if (!name || !cardType || !bank) {
       if (req.file) deleteCardImage(getFilename(req.file));
       return res.status(400).json({ message: 'name, cardType, and bank are required' });
@@ -66,6 +66,8 @@ exports.create = async (req, res) => {
       clawbackMonths,
       clawbackDays,
       isActive: isActive === undefined ? true : isActive !== 'false' && isActive !== false,
+      agentVisible: agentVisible === undefined ? true : agentVisible !== 'false' && agentVisible !== false,
+      websiteVisible: websiteVisible === undefined ? true : websiteVisible !== 'false' && websiteVisible !== false,
       cardImage: req.file ? getFilename(req.file) : undefined,
       redirectUrl,
       redirectActive,
@@ -80,7 +82,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, cardType, bank, agency, isActive } = req.body;
+    const { name, cardType, bank, agency, isActive, agentVisible, websiteVisible } = req.body;
     const update = {};
     if (name !== undefined) update.name = name;
     if (cardType !== undefined) update.cardType = cardType;
@@ -108,6 +110,8 @@ exports.update = async (req, res) => {
     if (req.body.clawbackMonths !== undefined) update.clawbackMonths = Number(req.body.clawbackMonths) || 0;
     if (req.body.clawbackDays !== undefined) update.clawbackDays = Number(req.body.clawbackDays) || 0;
     if (isActive !== undefined) update.isActive = isActive !== 'false' && isActive !== false;
+    if (agentVisible !== undefined) update.agentVisible = agentVisible !== 'false' && agentVisible !== false;
+    if (websiteVisible !== undefined) update.websiteVisible = websiteVisible !== 'false' && websiteVisible !== false;
     if (req.body.redirectUrl !== undefined) update.redirectUrl = req.body.redirectUrl || '';
     if (req.body.redirectActive !== undefined) update.redirectActive = req.body.redirectActive === 'true' || req.body.redirectActive === true;
     if (req.body.rate !== undefined) update.rate = req.body.rate || '';

@@ -43,6 +43,8 @@ const cardProductSchema = new mongoose.Schema(
     clawbackMonths: { type: Number, default: 0, min: 0 },
     clawbackDays:   { type: Number, default: 30, min: 0 },
     isActive:       { type: Boolean, default: true },
+    agentVisible:   { type: Boolean, default: true },
+    websiteVisible: { type: Boolean, default: true },
     cardImage:      { type: String, trim: true },
     redirectUrl:    { type: String, trim: true },
     redirectActive: { type: Boolean, default: false },

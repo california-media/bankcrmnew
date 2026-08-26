@@ -181,7 +181,7 @@ exports.getPublicBanks = async (req, res) => {
 
 exports.getPublicCardProducts = async (req, res) => {
   try {
-    const cards = await CardProduct.find({ isActive: true })
+    const cards = await CardProduct.find({ isActive: true, websiteVisible: { $ne: false } })
       .populate({ path: 'bank', select: 'name isActive' })
       .populate({ path: 'cashbackCategories.category', select: 'name' })
       .select('name cardType cardImage commissionBrackets bank benefits feesEligibility keyFeatures cashbackCategories rewardBadges redirectUrl redirectActive rate kfsUrl tncUrl')
@@ -323,7 +323,7 @@ exports.submitWebLoanApply = async (req, res) => {
 
 exports.getPublicLoanProducts = async (req, res) => {
   try {
-    const loans = await LoanProduct.find({ isActive: true })
+    const loans = await LoanProduct.find({ isActive: true, websiteVisible: { $ne: false } })
       .populate({ path: 'bank', select: 'name code logo isActive' })
       .select('name loanCategory commissionBrackets bank benefits feesEligibility interestRateRange minSalary maxLoanAmount maxTenure keyNotes rateMin rateMax rateType rateBasis salaryTransferRequired tags processingFee earlySettlement lateFee maxAmountNote maxAmountNum disclosedNote source sourceLabel tenureMaxMonths loanType redirectUrl redirectActive')
       .lean();

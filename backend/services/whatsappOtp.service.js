@@ -14,7 +14,8 @@ function sendWhatsAppOtp({ phone, otp }) {
       to: phone,
       type: 'template',
       template: {
-        name: 'otp',
+        // name: 'otp',
+        name: 'mysilah_otp_registration',
         language: { code: 'en_US' },
         components: [
           { type: 'body', parameters: [{ type: 'text', text: otp }] },

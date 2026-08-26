@@ -81,6 +81,11 @@ exports.registerAgent = async (req, res) => {
     const exists = await User.findOne({ email: email.toLowerCase() });
     if (exists) return res.status(409).json({ message: 'Email already registered' });
 
+    if (emiratesId) {
+      const idExists = await User.findOne({ emiratesId });
+      if (idExists) return res.status(409).json({ message: 'A user is already registered with this Emirates ID' });
+    }
+
     let referredBy;
     if (referralCode) {
       const refUser = await User.findOne({ referralCode: referralCode.toUpperCase(), role: 'agent' });
@@ -219,6 +224,11 @@ exports.registerAgency = async (req, res) => {
 
     const exists = await User.findOne({ email: email.toLowerCase() });
     if (exists) return res.status(409).json({ message: 'Email already registered' });
+
+    if (emiratesId) {
+      const idExists = await User.findOne({ emiratesId });
+      if (idExists) return res.status(409).json({ message: 'A user is already registered with this Emirates ID' });
+    }
 
     await User.create({
       name: name || companyName,

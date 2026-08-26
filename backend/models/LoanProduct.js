@@ -19,6 +19,8 @@ const loanProductSchema = new mongoose.Schema(
     benefits: { type: String, default: '' },
     feesEligibility: { type: String, default: '' },
     isActive:       { type: Boolean, default: true },
+    agentVisible:   { type: Boolean, default: true },
+    websiteVisible: { type: Boolean, default: true },
     redirectUrl:    { type: String, trim: true },
     redirectActive: { type: Boolean, default: false },
     interestRateRange: { type: String, trim: true },

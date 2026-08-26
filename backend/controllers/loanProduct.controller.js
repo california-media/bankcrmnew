@@ -17,7 +17,7 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name, loanCategory, bank, agency, commissionBrackets, isActive, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes } = req.body;
+    const { name, loanCategory, bank, agency, commissionBrackets, isActive, agentVisible, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes } = req.body;
     if (!name || !loanCategory || !bank) {
       return res.status(400).json({ message: 'name, loanCategory, and bank are required' });
     }
@@ -27,7 +27,7 @@ exports.create = async (req, res) => {
     }
 
     const { benefits, feesEligibility, redirectUrl, redirectActive } = req.body;
-    const loan = await LoanProduct.create({ name, loanCategory, bank, agency: agency || undefined, commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive });
+    const loan = await LoanProduct.create({ name, loanCategory, bank, agency: agency || undefined, commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, agentVisible, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive });
     const populated = await loan.populate(POPULATE);
     res.status(201).json(populated);
   } catch (err) {
@@ -37,7 +37,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, loanCategory, bank, agency, commissionBrackets, isActive } = req.body;
+    const { name, loanCategory, bank, agency, commissionBrackets, isActive, agentVisible, websiteVisible } = req.body;
     const update = {};
     if (name !== undefined) update.name = name;
     if (loanCategory !== undefined) update.loanCategory = loanCategory;
@@ -49,6 +49,8 @@ exports.update = async (req, res) => {
     }
     if (commissionBrackets !== undefined) update.commissionBrackets = commissionBrackets;
     if (isActive !== undefined) update.isActive = isActive;
+    if (agentVisible !== undefined) update.agentVisible = agentVisible;
+    if (websiteVisible !== undefined) update.websiteVisible = websiteVisible;
     const { interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes } = req.body;
     if (interestRateRange !== undefined) update.interestRateRange = interestRateRange;
     if (minSalary !== undefined) update.minSalary = minSalary;

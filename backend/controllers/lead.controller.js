@@ -4,6 +4,7 @@ const User = require('../models/User');
 const CardProduct = require('../models/CardProduct');
 const LoanProduct = require('../models/LoanProduct');
 const EmployeeStatus = require('../models/EmployeeStatus');
+const AgencyPayout = require('../models/AgencyPayout');
 const commissionService = require('../services/commission.service');
 const { createAndEmit, getAdminIds, formatStatus } = require('../utils/notify');
 const waba = require('../services/waba.service');
@@ -581,6 +582,471 @@ exports.updateSpend = async (req, res) => {
   }
 };
 
+exports.updatePdcChq = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.pdcChqDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.pdcChqNote = note;
+    lead.statusHistory.push({ status: 'pdc_chq_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'pdc_chq_done', title: 'PDC Chq Completed', body: `${lead.customerName} — PDC Chq completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateFreshAccountOpen = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.freshAccountOpenDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.freshAccountOpenNote = note;
+    lead.statusHistory.push({ status: 'fresh_account_open_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'fresh_account_open_done', title: 'Account Open Completed', body: `${lead.customerName} — Account Open completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateFreshStl = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.freshStlDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.freshStlNote = note;
+    lead.statusHistory.push({ status: 'fresh_stl_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'fresh_stl_done', title: 'STL Completed', body: `${lead.customerName} — STL completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateBuyoutAccountOpen = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.buyoutAccountOpenDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.buyoutAccountOpenNote = note;
+    lead.statusHistory.push({ status: 'buyout_account_open_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'buyout_account_open_done', title: 'Account Open Completed', body: `${lead.customerName} — Account Open completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateBuyoutLlReceived = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.buyoutLlReceivedDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.buyoutLlReceivedNote = note;
+    lead.statusHistory.push({ status: 'buyout_ll_received_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'buyout_ll_received_done', title: 'LL Received Completed', body: `${lead.customerName} — LL Received completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateBuyoutMcSubmitted = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.buyoutMcSubmittedDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.buyoutMcSubmittedNote = note;
+    lead.statusHistory.push({ status: 'buyout_mc_submitted_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'buyout_mc_submitted_done', title: 'MC Submitted Completed', body: `${lead.customerName} — MC Submitted completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateBuyoutClReceived = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.buyoutClReceivedDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.buyoutClReceivedNote = note;
+    lead.statusHistory.push({ status: 'buyout_cl_received_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'buyout_cl_received_done', title: 'CL Received Completed', body: `${lead.customerName} — CL Received completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateBuyoutStl = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.buyoutStlDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.buyoutStlNote = note;
+    lead.statusHistory.push({ status: 'buyout_stl_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'buyout_stl_done', title: 'STL Completed', body: `${lead.customerName} — STL completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateSmeAccountOpen = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.smeAccountOpenDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.smeAccountOpenNote = note;
+    lead.statusHistory.push({ status: 'sme_account_open_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'sme_account_open_done', title: 'Account Open Completed', body: `${lead.customerName} — Account Open completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateSmeBuyoutAccountOpen = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.smeBuyoutAccountOpenDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.smeBuyoutAccountOpenNote = note;
+    lead.statusHistory.push({ status: 'sme_buyout_account_open_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'sme_buyout_account_open_done', title: 'Account Open Completed', body: `${lead.customerName} — Account Open completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateSmeBuyoutLl = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.smeBuyoutLlDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.smeBuyoutLlNote = note;
+    lead.statusHistory.push({ status: 'sme_buyout_ll_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'sme_buyout_ll_done', title: 'LL Completed', body: `${lead.customerName} — LL completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateSmeBuyoutMc = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.smeBuyoutMcDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.smeBuyoutMcNote = note;
+    lead.statusHistory.push({ status: 'sme_buyout_mc_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'sme_buyout_mc_done', title: 'MC Completed', body: `${lead.customerName} — MC completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateSmeBuyoutCl = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.smeBuyoutClDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.smeBuyoutClNote = note;
+    lead.statusHistory.push({ status: 'sme_buyout_cl_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'sme_buyout_cl_done', title: 'CL Completed', body: `${lead.customerName} — CL completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updatePosPdc = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.posPdcDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.posPdcNote = note;
+    lead.statusHistory.push({ status: 'pos_pdc_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'pos_pdc_done', title: 'PDC Completed', body: `${lead.customerName} — PDC completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updatePosDda = async (req, res) => {
+  try {
+    let lead;
+    if (req.user.role === 'employee') {
+      const empId = req.user._id;
+      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    } else {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    }
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    lead.posDdaDone = true;
+    const note = req.body.note ? String(req.body.note).trim() : undefined;
+    if (note) lead.posDdaNote = note;
+    lead.statusHistory.push({ status: 'pos_dda_done', note, changedBy: req.user._id, changedAt: new Date() });
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+      await createAndEmit(
+        recipients,
+        { type: 'pos_dda_done', title: 'DDA Completed', body: `${lead.customerName} — DDA completed`, lead: lead._id },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 /**
  * PATCH /api/leads/:id/agent-commission  (admin)
  * Admin sets how much commission the agent receives.
@@ -866,6 +1332,231 @@ exports.bulkMarkPaid = async (req, res) => {
 };
 
 /**
+ * POST /api/leads/pay-from-bucket-agent  (admin)
+ * Pays selected 'payable' leads to agents, funding the net payout from the
+ * leads' agency's bucket balance instead of it being a plain admin payout.
+ * All selected leads must belong to the same agency.
+ * Body: { leadIds: string[], holdPct?: number }
+ */
+exports.payFromBucketAgent = async (req, res) => {
+  try {
+    const { leadIds, holdPct: rawHoldPct } = req.body;
+    if (!Array.isArray(leadIds) || !leadIds.length)
+      return res.status(400).json({ message: 'Select at least one lead' });
+    const holdPct = Math.min(100, Math.max(0, Number(rawHoldPct) || 0));
+
+    const leads = await Lead.find({ _id: { $in: leadIds }, commissionStatus: 'payable' });
+    if (leads.length !== leadIds.length)
+      return res.status(400).json({ message: 'Some leads not found or already paid' });
+
+    const agencyIds = [...new Set(leads.map((l) => String(l.agency)))];
+    if (agencyIds.length !== 1)
+      return res.status(400).json({ message: 'Select leads from one agency at a time' });
+
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    let cardClawbackMap = {};
+    if (holdPct > 0) {
+      const cardIds = [...new Set(leads.filter((l) => l.productType === 'credit_card' && l.cardProduct).map((l) => String(l.cardProduct)))];
+      const cards = await CardProduct.find({ _id: { $in: cardIds } }).select('clawbackMonths clawbackDays');
+      cardClawbackMap = Object.fromEntries(cards.map((c) => [String(c._id), c.clawbackDays || (c.clawbackMonths ? c.clawbackMonths * 30 : 90)]));
+    }
+
+    const holdAmounts = {};
+    let netTotal = 0;
+    leads.forEach((lead) => {
+      let holdAmount = 0;
+      if (lead.productType === 'credit_card' && holdPct > 0) {
+        holdAmount = Math.round(lead.commission * holdPct / 100);
+      }
+      holdAmounts[String(lead._id)] = holdAmount;
+      netTotal += (lead.commission || 0) - holdAmount;
+    });
+
+    const agency = await User.findById(agencyIds[0]);
+    if (!agency) return res.status(404).json({ message: 'Agency not found' });
+
+    const bucketAvailable = agency.bucketBalance || 0;
+
+    await Promise.all(leads.map((lead) => {
+      const holdAmount = holdAmounts[String(lead._id)];
+      if (lead.productType === 'credit_card' && holdAmount > 0) {
+        const clawbackDays = cardClawbackMap[String(lead.cardProduct)] || 90;
+        if (clawbackDays > 0) {
+          const until = new Date(now);
+          until.setDate(until.getDate() + clawbackDays);
+          lead.clawbackUntil = until;
+        }
+        lead.holdAmount = holdAmount;
+      }
+      lead.payoutHistory.push({ amount: lead.commission - holdAmount, sentAt: now, sentBy: req.user._id, month, note: 'Funded from agency bucket' });
+      lead.commissionStatus = 'paid';
+      lead.commissionPaidAt = now;
+      return lead.save();
+    }));
+
+    agency.bucketBalance = bucketAvailable - netTotal;
+    await agency.save();
+
+    await AgencyPayout.create({
+      agency: agencyIds[0],
+      leads: leadIds,
+      totalSelected: netTotal,
+      amountPaid: 0,
+      bucketUsed: netTotal,
+      bucketAdded: 0,
+      receiptNote: 'Agent payout funded from bucket (admin)',
+    });
+
+    try {
+      const agentMap = {};
+      for (const l of leads) {
+        const id = String(l.agent);
+        if (!agentMap[id]) agentMap[id] = { count: 0, total: 0 };
+        agentMap[id].count += 1;
+        agentMap[id].total += l.commission || 0;
+      }
+      await Promise.all(
+        Object.entries(agentMap).map(([agentId, { count, total }]) =>
+          createAndEmit(
+            [agentId],
+            {
+              type: 'commission_paid',
+              title: 'Commission Paid',
+              body: `${count} commission(s) paid — AED ${Number(total).toLocaleString()} total`,
+            },
+            req.user._id,
+          )
+        )
+      );
+    } catch (_) {}
+
+    res.json({ count: leads.length, bucketBalance: agency.bucketBalance });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/leads/pay-from-bucket-full  (admin)
+ * Full settlement in one shot: the agency never actually paid admin for these
+ * disbursed leads, but admin funds BOTH the agency's debt and the agent's
+ * payout straight from that agency's bucket balance. Deducts the full
+ * grossCommission (not just the agent's cut) from the agency's bucket.
+ * All selected leads must belong to the same agency.
+ * Body: { leadIds: string[], holdPct?: number }
+ */
+exports.payFromBucketFull = async (req, res) => {
+  try {
+    const { leadIds, holdPct: rawHoldPct } = req.body;
+    if (!Array.isArray(leadIds) || !leadIds.length)
+      return res.status(400).json({ message: 'Select at least one lead' });
+    const holdPct = Math.min(100, Math.max(0, Number(rawHoldPct) || 0));
+
+    const leads = await Lead.find({
+      _id: { $in: leadIds },
+      status: 'disbursed',
+      agencyPaymentStatus: 'pending',
+      commissionStatus: { $in: ['pending', 'none'] },
+      commission: { $gt: 0 },
+    });
+    if (leads.length !== leadIds.length)
+      return res.status(400).json({ message: 'Some leads not found or already received/paid' });
+
+    const agencyIds = [...new Set(leads.map((l) => String(l.agency)))];
+    if (agencyIds.length !== 1)
+      return res.status(400).json({ message: 'Select leads from one agency at a time' });
+
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    let cardClawbackMap = {};
+    if (holdPct > 0) {
+      const cardIds = [...new Set(leads.filter((l) => l.productType === 'credit_card' && l.cardProduct).map((l) => String(l.cardProduct)))];
+      const cards = await CardProduct.find({ _id: { $in: cardIds } }).select('clawbackMonths clawbackDays');
+      cardClawbackMap = Object.fromEntries(cards.map((c) => [String(c._id), c.clawbackDays || (c.clawbackMonths ? c.clawbackMonths * 30 : 90)]));
+    }
+
+    const holdAmounts = {};
+    let grossTotal = 0;
+    leads.forEach((lead) => {
+      let holdAmount = 0;
+      if (lead.productType === 'credit_card' && holdPct > 0) {
+        holdAmount = Math.round(lead.commission * holdPct / 100);
+      }
+      holdAmounts[String(lead._id)] = holdAmount;
+      grossTotal += lead.grossCommission || 0;
+    });
+
+    const agency = await User.findById(agencyIds[0]);
+    if (!agency) return res.status(404).json({ message: 'Agency not found' });
+
+    const bucketAvailable = agency.bucketBalance || 0;
+
+    await Promise.all(leads.map((lead) => {
+      const holdAmount = holdAmounts[String(lead._id)];
+      if (lead.productType === 'credit_card' && holdAmount > 0) {
+        const clawbackDays = cardClawbackMap[String(lead.cardProduct)] || 90;
+        if (clawbackDays > 0) {
+          const until = new Date(now);
+          until.setDate(until.getDate() + clawbackDays);
+          lead.clawbackUntil = until;
+        }
+        lead.holdAmount = holdAmount;
+      }
+      lead.agencyPaymentStatus = 'received';
+      lead.agencyPaymentReceivedAt = now;
+      lead.agencyPaymentNote = 'Paid via bucket (admin) — full settlement';
+      lead.payoutHistory.push({ amount: lead.commission - holdAmount, sentAt: now, sentBy: req.user._id, month, note: 'Funded from agency bucket — full settlement' });
+      lead.commissionStatus = 'paid';
+      lead.commissionPaidAt = now;
+      return lead.save();
+    }));
+
+    agency.bucketBalance = bucketAvailable - grossTotal;
+    await agency.save();
+
+    await AgencyPayout.create({
+      agency: agencyIds[0],
+      leads: leadIds,
+      totalSelected: grossTotal,
+      amountPaid: 0,
+      bucketUsed: grossTotal,
+      bucketAdded: 0,
+      receiptNote: 'Full settlement (agency debt + agent payout) funded from bucket (admin)',
+    });
+
+    try {
+      const agentMap = {};
+      for (const l of leads) {
+        const id = String(l.agent);
+        if (!agentMap[id]) agentMap[id] = { count: 0, total: 0 };
+        agentMap[id].count += 1;
+        agentMap[id].total += l.commission || 0;
+      }
+      await Promise.all(
+        Object.entries(agentMap).map(([agentId, { count, total }]) =>
+          createAndEmit(
+            [agentId],
+            {
+              type: 'commission_paid',
+              title: 'Commission Paid',
+              body: `${count} commission(s) paid — AED ${Number(total).toLocaleString()} total`,
+            },
+            req.user._id,
+          )
+        )
+      );
+    } catch (_) {}
+
+    res.json({ count: leads.length, bucketBalance: agency.bucketBalance });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * POST /api/leads/bulk-mark-received  (admin)
  * Body: { leadIds?: string[], note?: string }
  * Marks gross commission as received from agency.
@@ -904,6 +1595,80 @@ exports.bulkMarkReceived = async (req, res) => {
       );
     } catch (_) {}
     res.json({ count: result.modifiedCount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/leads/admin-pay-from-bucket  (admin)
+ * Admin marks pending leads as received by drawing straight from the agency's bucket balance.
+ * Body: { leadIds: [...] } — all leads must belong to the same agency.
+ */
+exports.adminPayFromBucket = async (req, res) => {
+  try {
+    const { leadIds } = req.body;
+    if (!Array.isArray(leadIds) || !leadIds.length)
+      return res.status(400).json({ message: 'Select at least one lead' });
+
+    const leads = await Lead.find({ _id: { $in: leadIds }, agencyPaymentStatus: 'pending' });
+    if (leads.length !== leadIds.length)
+      return res.status(400).json({ message: 'Some leads not found or already submitted/received' });
+
+    const agencyIds = [...new Set(leads.map((l) => String(l.agency)))];
+    if (agencyIds.length !== 1)
+      return res.status(400).json({ message: 'Select leads from one agency at a time' });
+
+    const total = leads.reduce((sum, l) => sum + (l.grossCommission || 0), 0);
+    const agency = await User.findById(agencyIds[0]);
+    if (!agency) return res.status(404).json({ message: 'Agency not found' });
+
+    const bucketAvailable = agency.bucketBalance || 0;
+
+    agency.bucketBalance = bucketAvailable - total;
+    await agency.save();
+
+    await Lead.updateMany(
+      { _id: { $in: leadIds } },
+      {
+        agencyPaymentStatus: 'received',
+        agencyPaymentReceivedAt: new Date(),
+        agencyPaymentNote: 'Paid via bucket (admin)',
+      }
+    );
+    await Lead.updateMany(
+      { _id: { $in: leadIds }, commissionStatus: { $in: ['pending', 'none'] }, commission: { $gt: 0 } },
+      { commissionStatus: 'payable' }
+    );
+
+    await AgencyPayout.create({
+      agency: agencyIds[0],
+      leads: leadIds,
+      totalSelected: total,
+      amountPaid: 0,
+      bucketUsed: total,
+      bucketAdded: 0,
+      receiptNote: 'Paid via bucket (admin)',
+    });
+
+    try {
+      await Promise.all(
+        leads.map((l) =>
+          createAndEmit(
+            [String(l.agency), String(l.agent)],
+            {
+              type: 'commission_payable',
+              title: 'Commission Ready',
+              body: `${l.customerName} — AED ${Number(l.commission || 0).toLocaleString()} now payable`,
+              lead: l._id,
+            },
+            req.user._id,
+          )
+        )
+      );
+    } catch (_) {}
+
+    res.json({ count: leads.length, bucketBalance: agency.bucketBalance });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

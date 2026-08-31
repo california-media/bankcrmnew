@@ -14,6 +14,7 @@ router.delete('/agents/:id', ctrl.deleteAgent);
 
 router.post('/blog-editors', ctrl.createBlogEditor);
 router.get('/blog-editors', ctrl.listBlogEditors);
+router.put('/blog-editors/:id', ctrl.updateBlogEditor);
 router.delete('/blog-editors/:id', ctrl.deleteBlogEditor);
 
 router.get('/agencies/pending', ctrl.listPendingAgencies);

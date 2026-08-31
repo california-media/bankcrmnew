@@ -82,6 +82,7 @@ app.use('/api/blogs',             require('./routes/blog.routes'));
 app.use('/api/blog-categories',   require('./routes/blogCategory.routes'));
 app.use('/api/webhooks',          require('./routes/webhook.routes'));
 app.use('/api/legal',             require('./routes/legalPage.routes'));
+app.use('/api/featured-products', require('./routes/featuredProduct.routes'));
 
 app.use((err, req, res, _next) => {
   console.error(err);

@@ -346,6 +346,30 @@ exports.listBlogEditors = async (req, res) => {
 };
 
 /**
+ * PUT /api/admin/blog-editors/:id  (admin)
+ */
+exports.updateBlogEditor = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const editor = await User.findOne({ _id: req.params.id, role: 'blog_editor' });
+    if (!editor) return res.status(404).json({ message: 'Blog editor not found' });
+
+    if (email && email.toLowerCase() !== editor.email) {
+      const exists = await User.findOne({ email: email.toLowerCase(), _id: { $ne: editor._id } });
+      if (exists) return res.status(409).json({ message: 'Email already registered' });
+      editor.email = email.toLowerCase();
+    }
+    if (name) editor.name = name;
+    if (password) editor.password = password;
+
+    await editor.save();
+    res.json({ _id: editor._id, name: editor.name, email: editor.email, role: editor.role });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * DELETE /api/admin/blog-editors/:id  (admin)
  */
 exports.deleteBlogEditor = async (req, res) => {

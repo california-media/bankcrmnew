@@ -3,6 +3,7 @@ const Lead              = require('../models/Lead');
 const Bank              = require('../models/Bank');
 const CardProduct       = require('../models/CardProduct');
 const LoanProduct       = require('../models/LoanProduct');
+const FeaturedProduct   = require('../models/FeaturedProduct');
 const EmployeeStatus    = require('../models/EmployeeStatus');
 const commissionService = require('../services/commission.service');
 const waba              = require('../services/waba.service');
@@ -187,6 +188,17 @@ exports.getPublicCardProducts = async (req, res) => {
       .select('name cardType cardImage commissionBrackets bank benefits feesEligibility keyFeatures cashbackCategories rewardBadges redirectUrl redirectActive rate kfsUrl tncUrl')
       .lean();
     res.json(cards.filter(c => c.bank?.isActive !== false));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getPublicFeaturedProducts = async (req, res) => {
+  try {
+    const products = await FeaturedProduct.find({ isVisible: { $ne: false } })
+      .sort({ order: 1, createdAt: 1 })
+      .lean();
+    res.json(products);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

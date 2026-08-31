@@ -1,6 +1,6 @@
 const multer    = require('multer');
 const multerS3  = require('multer-s3');
-const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, DeleteObjectCommand, CopyObjectCommand } = require('@aws-sdk/client-s3');
 const path      = require('path');
 const crypto    = require('crypto');
 
@@ -21,6 +21,19 @@ const deleteFromS3 = (subdir, filename) => {
   if (!filename) return;
   const key = `${subdir}/${filename}`;
   s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key })).catch(() => {});
+};
+
+const copyInS3 = async (subdir, filename) => {
+  if (!filename) return undefined;
+  const rand = crypto.randomBytes(8).toString('hex');
+  const ext = path.extname(filename);
+  const newFilename = `${rand}${ext}`;
+  await s3.send(new CopyObjectCommand({
+    Bucket: BUCKET,
+    CopySource: `${BUCKET}/${subdir}/${filename}`,
+    Key: `${subdir}/${newFilename}`,
+  }));
+  return newFilename;
 };
 
 const makeUpload = (subdir, allowedExts) => {
@@ -50,6 +63,7 @@ module.exports.bankLogos          = makeUpload('bank-logos',           ['jpeg', 
 module.exports.blogImages         = makeUpload('blog-images',          ['jpeg', 'jpg', 'png', 'webp', 'avif']);
 module.exports.blogCategoryImages = makeUpload('blog-category-images', ['jpeg', 'jpg', 'png', 'webp', 'avif']);
 module.exports.leadDocuments      = makeUpload('lead-documents',       ['jpeg', 'jpg', 'png', 'pdf']);
+module.exports.featuredProductImages = makeUpload('featured-products', ['jpeg', 'jpg', 'png', 'webp', 'avif']);
 
 // In-memory upload for the leads bulk-import spreadsheet — parsed immediately, never persisted to S3.
 module.exports.leadImportFile = multer({
@@ -64,3 +78,4 @@ module.exports.leadImportFile = multer({
 // Helpers added after the module.exports reassignment so they aren't overwritten
 module.exports.getFilename  = getFilename;
 module.exports.deleteFromS3 = deleteFromS3;
+module.exports.copyInS3     = copyInS3;

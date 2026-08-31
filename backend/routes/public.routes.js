@@ -12,6 +12,7 @@ router.post('/loan-apply', ctrl.submitWebLoanApply);
 router.get('/banks', ctrl.getPublicBanks);
 router.get('/card-products', ctrl.getPublicCardProducts);
 router.get('/loan-products', ctrl.getPublicLoanProducts);
+router.get('/featured-products', ctrl.getPublicFeaturedProducts);
 router.get('/blogs', blogCtrl.listPublic);
 router.get('/blogs/:slug', blogCtrl.getBySlug);
 router.get('/blog-categories', catCtrl.list);

@@ -443,7 +443,16 @@ exports.updateLoanAmount = async (req, res) => {
       return res.status(400).json({ message: 'loanAmount must be a positive number' });
     }
 
-    const lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    let lead;
+    if (req.user.role === 'agency') {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    } else {
+      const empId = req.user._id;
+      lead = await Lead.findOne({
+        _id: req.params.id,
+        $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }],
+      });
+    }
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     if (lead.productType !== 'loan') {
       return res.status(400).json({ message: 'This lead is not a loan lead' });

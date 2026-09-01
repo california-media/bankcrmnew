@@ -36,7 +36,7 @@ router.post('/import', requireRole('admin', 'agency'), upload.leadImportFile.sin
 router.get('/agency', requireRole('agency'), ctrl.listForAgency);
 router.post('/bulk-assign-employee', requireRole('agency'), ctrl.bulkAssignEmployee);
 router.post('/bulk-receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.bulkAddReceipt);
-router.patch('/:id/loan-amount', requireRole('agency'), ctrl.updateLoanAmount);
+router.patch('/:id/loan-amount', requireRole('agency', 'employee'), ctrl.updateLoanAmount);
 router.patch('/:id/cpv', requireRole('agency', 'employee'), ctrl.updateCpv);
 router.patch('/:id/activate', requireRole('agency', 'employee'), ctrl.updateActivate);
 router.patch('/:id/spend', requireRole('agency', 'employee'), ctrl.updateSpend);

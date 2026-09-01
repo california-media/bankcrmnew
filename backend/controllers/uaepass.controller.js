@@ -207,6 +207,7 @@ exports.callback = async (req, res) => {
     }
 
     const sub        = info.sub;
+    const uuid       = info.uuid || null;
     const name       = info.fullnameEN || `${info.firstnameEN || ''} ${info.lastnameEN || ''}`.trim() || '';
     const email      = info.email      || null;
     const phone      = info.mobile     || null;
@@ -225,7 +226,7 @@ exports.callback = async (req, res) => {
         return res.redirect(`${frontendUrl}/settings?uaepass=conflict`);
       }
 
-      const updates = { uaepassSub: sub };
+      const updates = { uaepassSub: sub, uaepassUuid: uuid };
       if (name        && name !== targetUser.name)                    updates.name         = name;
       if (phone       && phone !== targetUser.phone)                  updates.phone        = phone;
       if (emiratesId  && emiratesId !== targetUser.emiratesId)        updates.emiratesId   = emiratesId;
@@ -244,6 +245,7 @@ exports.callback = async (req, res) => {
     if (agent) {
       const updates = {};
       if (!agent.uaepassSub)                                          updates.uaepassSub   = sub;
+      if (uuid        && uuid !== agent.uaepassUuid)                  updates.uaepassUuid  = uuid;
       if (name        && name !== agent.name)                         updates.name         = name;
       if (phone       && phone !== agent.phone)                       updates.phone        = phone;
       if (emiratesId  && emiratesId !== agent.emiratesId)             updates.emiratesId   = emiratesId;
@@ -279,6 +281,7 @@ exports.callback = async (req, res) => {
       referralCode: refCode,
       isActive: true,
       uaepassSub: sub,
+      ...(uuid         ? { uaepassUuid: uuid } : {}),
       ...(emiratesId   ? { emiratesId }        : {}),
       ...(nationality  ? { nationality }        : {}),
       ...(title        ? { uaepassTitle: title } : {}),

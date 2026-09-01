@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema(
     emiratesId: { type: String, default: null },
     nationality: { type: String, trim: true, default: null },
     uaepassSub: { type: String, sparse: true, default: null },
+    uaepassUuid: { type: String, sparse: true, default: null },
     uaepassTitle: { type: String, trim: true, default: null },
 
     // Agent bank details for payouts

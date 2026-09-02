@@ -220,7 +220,7 @@ const DEFAULTS = [
   <h2>1. What Are Cookies?</h2>
   <p>Cookies are small text files placed on your device when you visit a website. They allow the site to recognise your device, remember your preferences, and provide a more personalised experience.</p>
   <p>We also use similar technologies such as web beacons, pixel tags, and local storage. References to "cookies" in this policy include these similar technologies.</p>
-  <div class="highlight-box"><p>🍪 By continuing to use the MySilah Platform, you consent to our use of cookies as described in this policy. You can manage your preferences at any time via your browser settings.</p></div>
+  <div class="highlight-box"><p>🍪 The MySilah Platform only sets cookies if you accept them via the cookie banner shown on your first visit. You can change your choice at any time using the "Cookie settings" button, or via your browser settings.</p></div>
 </section>
 
 <section id="types">
@@ -228,26 +228,20 @@ const DEFAULTS = [
   <div class="cookie-toggle">
     <div class="cookie-item">
       <div class="cookie-item-info">
-        <h4>Strictly Necessary <span class="badge badge-required">Always Active</span></h4>
-        <p>Essential for the Platform to function. These cookies enable core features like secure login, session management, and fraud prevention. They cannot be disabled.</p>
+        <h4>Strictly Necessary <span class="badge badge-required">Not Used</span></h4>
+        <p>The MySilah Platform does not currently set any strictly-necessary cookies. Signing in does not rely on a cookie — your session is kept using your browser's local storage instead, which is not a cookie and is not shared with any third party.</p>
       </div>
     </div>
     <div class="cookie-item">
       <div class="cookie-item-info">
         <h4>Performance &amp; Analytics <span class="badge badge-optional">Optional</span></h4>
-        <p>Help us understand how users interact with the Platform — which pages are visited most, where errors occur, and how we can improve. Data is aggregated and anonymised.</p>
+        <p>The only cookies we use are set by Google Analytics, and only after you accept them via the cookie banner shown when you first visit the site. They help us understand which pages are visited and how we can improve the Platform. You can accept or reject them at any time using the "Cookie settings" button.</p>
       </div>
     </div>
     <div class="cookie-item">
       <div class="cookie-item-info">
-        <h4>Functional <span class="badge badge-optional">Optional</span></h4>
-        <p>Remember your preferences such as language, display settings, and previously viewed products to provide a more personalised experience.</p>
-      </div>
-    </div>
-    <div class="cookie-item">
-      <div class="cookie-item-info">
-        <h4>Marketing <span class="badge badge-optional">Optional</span></h4>
-        <p>Used to deliver relevant advertising and measure campaign effectiveness. We do not use aggressive tracking or share data with ad networks without your consent.</p>
+        <h4>Functional &amp; Marketing <span class="badge badge-optional">Not Used</span></h4>
+        <p>We do not currently use functional or marketing/advertising cookies of any kind.</p>
       </div>
     </div>
   </div>
@@ -257,39 +251,33 @@ const DEFAULTS = [
   <h2>3. Cookie List</h2>
   <table class="cookie-table">
     <tr><th>Name</th><th>Type</th><th>Duration</th><th>Purpose</th></tr>
-    <tr><td>ig_session</td><td>Necessary</td><td>Session</td><td>Maintains your authenticated session</td></tr>
-    <tr><td>ig_csrf</td><td>Necessary</td><td>Session</td><td>Cross-site request forgery protection</td></tr>
-    <tr><td>ig_prefs</td><td>Functional</td><td>1 year</td><td>Stores your display and language preferences</td></tr>
-    <tr><td>ig_analytics</td><td>Analytics</td><td>90 days</td><td>Anonymous usage analytics</td></tr>
-    <tr><td>_ga</td><td>Analytics</td><td>2 years</td><td>Google Analytics — distinguishes users</td></tr>
-    <tr><td>_gid</td><td>Analytics</td><td>24 hours</td><td>Google Analytics — distinguishes users</td></tr>
+    <tr><td>_ga</td><td>Analytics (Google)</td><td>2 years</td><td>Google Analytics — distinguishes users, set only if you accept cookies</td></tr>
+    <tr><td>_gid</td><td>Analytics (Google)</td><td>24 hours</td><td>Google Analytics — distinguishes users, set only if you accept cookies</td></tr>
   </table>
+  <p>These are the only cookies the MySilah Platform sets. No other first-party or third-party cookie is used.</p>
 </section>
 
 <section id="third-party">
   <h2>4. Third-Party Cookies</h2>
-  <p>We use a limited number of trusted third-party services that may place cookies on your device:</p>
+  <p>We use one trusted third-party service that may place cookies on your device, and only with your consent:</p>
   <ul>
-    <li><strong>Google Analytics</strong> — web analytics (opt-out available via Google's opt-out tool)</li>
-    <li><strong>Intercom</strong> — customer support chat widget</li>
-    <li><strong>Cloudflare</strong> — security and performance</li>
+    <li><strong>Google Analytics</strong> — web analytics (opt-out available via Google's opt-out tool, or by rejecting cookies via our on-site banner)</li>
   </ul>
-  <p>These third parties have their own privacy and cookie policies. We encourage you to review them.</p>
+  <p>Google has its own privacy and cookie policy. We encourage you to review it.</p>
 </section>
 
 <section id="control">
   <h2>5. Your Choices</h2>
-  <p>You can control cookies through your browser settings. Most browsers allow you to:</p>
+  <p>The primary way to control cookies on the MySilah Platform is the cookie banner shown on your first visit, or the "🍪 Cookie settings" button available at any time afterward — use it to accept or reject Google Analytics cookies. You can also control cookies through your browser settings, which let you:</p>
   <ul>
     <li>View and delete existing cookies</li>
     <li>Block all or certain cookies</li>
     <li>Set preferences for specific websites</li>
   </ul>
-  <p>Note that disabling necessary cookies will impair Platform functionality and may prevent you from logging in. For guidance on managing cookies in your specific browser, visit your browser's help documentation.</p>
+  <p>Since the Platform does not rely on cookies for login or core functionality, rejecting or blocking cookies will not prevent you from signing in or using the Platform.</p>
   <h3>Opt-Out Links</h3>
   <ul>
     <li>Google Analytics: tools.google.com/dlpage/gaoptout</li>
-    <li>Intercom: docs.intercom.com/privacy</li>
   </ul>
 </section>
 

@@ -6,6 +6,7 @@ const bracketSchema = new mongoose.Schema(
     receivable: { type: Number, required: true, min: 0 },
     payable: { type: Number, required: true, min: 0 },
     feeType: { type: String, enum: ['free', 'paid', 'free_tnc'], default: 'free' },
+    annualFeeAmount: { type: Number, min: 0, default: null },
   },
   { _id: false }
 );

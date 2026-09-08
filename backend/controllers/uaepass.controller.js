@@ -3,7 +3,7 @@ const User = require('../models/User');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
 
 const IS_STAGING   = process.env.UAEPASS_ENV !== 'production';
-const BASE_URL     = IS_STAGING ? 'https://stg-id.uaepass.ae/idshub' : 'https://id.uaepass.ae/idshub';
+const BASE_URL     = IS_STAGING ? 'https://id.uaepass.ae/idshub' : 'https://id.uaepass.ae/idshub';
 const CLIENT_ID    = process.env.UAEPASS_CLIENT_ID     || 'sandbox_stage';
 const CLIENT_SECRET= process.env.UAEPASS_CLIENT_SECRET || 'sandbox_stage';
 const REDIRECT_URI = process.env.UAEPASS_REDIRECT_URI  || 'http://localhost:8000/api/auth/uaepass/callback';

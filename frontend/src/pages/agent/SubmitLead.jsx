@@ -64,6 +64,11 @@ const VISA_OPTIONS = [
   { value: 'other',      label: 'Other' },
 ];
 
+// LoanProduct.loanCategory is a 9-value enum; 'business' maps to the Business
+// Loan bucket, everything else (personal/mortgage/investor/auto_loan/buyout/
+// fresh/pdc/stl) is grouped under Personal Loan for this agent-facing filter.
+const loanGroupOf = (loanCategory) => (loanCategory === 'business' ? 'business' : 'personal');
+
 const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
 
 1. Accuracy of Information
@@ -127,6 +132,10 @@ function SubmitLead() {
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [selectedBracket, setSelectedBracket] = useState(null);
   const [selectedBankId, setSelectedBankId] = useState(null);
+  const [selectedLoanGroup, setSelectedLoanGroup] = useState(null);
+  const [accountProducts, setAccountProducts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState(null);
+  const [selectedAccountType, setSelectedAccountType] = useState(null);
   const [loading, setLoading]           = useState(false);
   const [termsOpen, setTermsOpen]       = useState(false);
   const [pendingValues, setPendingValues] = useState(null);
@@ -135,10 +144,11 @@ function SubmitLead() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([api.get('/card-products'), api.get('/loan-products')])
-      .then(([cardsRes, loansRes]) => {
-        setCardProducts(cardsRes.data.filter((c) => c.isActive && c.bank?.isActive !== false));
-        setLoanProducts(loansRes.data.filter((l) => l.isActive && l.bank?.isActive !== false));
+    Promise.all([api.get('/card-products'), api.get('/loan-products'), api.get('/account-products')])
+      .then(([cardsRes, loansRes, accountsRes]) => {
+        setCardProducts(cardsRes.data.filter((c) => c.isActive && c.agentVisible !== false && c.bank?.isActive !== false));
+        setLoanProducts(loansRes.data.filter((l) => l.isActive && l.agentVisible !== false && l.bank?.isActive !== false));
+        setAccountProducts(accountsRes.data.filter((a) => a.isActive && a.agentVisible !== false && a.bank?.isActive !== false));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -146,16 +156,46 @@ function SubmitLead() {
   const resetProduct = () => {
     setSelectedCard(null);
     setSelectedLoan(null);
+    setSelectedAccount(null);
+    setSelectedAccountType(null);
     setSelectedBracket(null);
     setSelectedBankId(null);
-    form.resetFields(['bank', 'cardProduct', 'loanProduct', 'loanAmount', 'loanType', 'salaryBracket']);
+    setSelectedLoanGroup(null);
+    form.resetFields(['bank', 'cardProduct', 'loanProduct', 'loanAmount', 'loanType', 'loanGroup', 'salaryBracket', 'accountProduct', 'accountType']);
   };
 
-  const onProductTypeChange = (val) => { setProductType(val); resetProduct(); };
+  // Single control now covers Credit Card / Personal Loan / Business Loan —
+  // 'loan_personal' and 'loan_business' both set productType 'loan' plus the
+  // loanGroup that used to come from the separate Loan Category dropdown.
+  const selectProductTab = (tab) => {
+    if (tab === 'credit_card') {
+      setProductType('credit_card');
+      resetProduct();
+      return;
+    }
+    if (tab === 'account') {
+      setProductType('account');
+      resetProduct();
+      return;
+    }
+    setProductType('loan');
+    resetProduct();
+    setSelectedLoanGroup(tab === 'loan_business' ? 'business' : 'personal');
+  };
+
+  const activeTab = productType === 'credit_card'
+    ? 'credit_card'
+    : productType === 'account'
+    ? 'account'
+    : selectedLoanGroup === 'business' ? 'loan_business'
+    : selectedLoanGroup === 'personal' ? 'loan_personal'
+    : null;
 
   // Unique banks from loaded products for the current product type
   const bankOptions = (() => {
-    const source = productType === 'credit_card' ? cardProducts : loanProducts;
+    const source = productType === 'credit_card'
+      ? cardProducts
+      : loanProducts.filter((l) => loanGroupOf(l.loanCategory) === selectedLoanGroup);
     const seen = new Set();
     return source
       .filter((p) => p.bank?._id)
@@ -194,6 +234,12 @@ function SubmitLead() {
     const loan = loanProducts.find((l) => l._id === id) || null;
     setSelectedLoan(loan);
     autoSelectMinBracket(loan?.commissionBrackets);
+  };
+
+  const onAccountSelect = (id) => {
+    const account = accountProducts.find((a) => a._id === id) || null;
+    setSelectedAccount(account);
+    autoSelectMinBracket(account?.commissionBrackets);
   };
 
   const onBracketSelect = (minSalary) => {
@@ -240,6 +286,10 @@ function SubmitLead() {
         payload.loanAmount  = values.loanAmount;
         if (values.loanType) payload.loanType = values.loanType;
       }
+      if (productType === 'account') {
+        payload.accountProduct = values.accountProduct;
+        if (values.accountType) payload.accountType = values.accountType;
+      }
 
       const { data: lead } = await api.post('/leads', payload);
       await api.post(`/leads/${lead._id}/send-to-agency`);
@@ -262,6 +312,7 @@ function SubmitLead() {
     }));
 
   const loanOptions = loanProducts
+    .filter((l) => loanGroupOf(l.loanCategory) === selectedLoanGroup)
     .filter((l) => !selectedBankId || l.bank?._id === selectedBankId)
     .map((l) => ({
       value: l._id,
@@ -362,15 +413,17 @@ function SubmitLead() {
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.6 }}>Type</div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {[
-                    { value: 'credit_card', label: 'Credit Card', icon: <CreditCardOutlined />, activeColor: '#7C3AED', activeBg: '#f3e8ff', activeBorder: '#7C3AED' },
-                    { value: 'loan',        label: 'Loan',        icon: <BankOutlined />,       activeColor: '#15803d', activeBg: '#f0fdf4', activeBorder: '#22c55e' },
+                    { value: 'credit_card',   label: 'Credit Card',   icon: <CreditCardOutlined />, activeColor: '#7C3AED', activeBg: '#f3e8ff', activeBorder: '#7C3AED' },
+                    { value: 'loan_personal', label: 'Personal Loan', icon: <BankOutlined />,       activeColor: '#15803d', activeBg: '#f0fdf4', activeBorder: '#22c55e' },
+                    { value: 'loan_business', label: 'Business Loan', icon: <BankOutlined />,       activeColor: '#b45309', activeBg: '#fffbeb', activeBorder: '#f59e0b' },
+                    { value: 'account',       label: 'Account',       icon: <BankOutlined />,       activeColor: '#0e7490', activeBg: '#ecfeff', activeBorder: '#06b6d4' },
                   ].map((opt) => {
-                    const active = productType === opt.value;
+                    const active = activeTab === opt.value;
                     return (
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => onProductTypeChange(opt.value)}
+                        onClick={() => selectProductTab(opt.value)}
                         style={{
                           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                           padding: '7px 10px', borderRadius: 8,
@@ -414,6 +467,7 @@ function SubmitLead() {
                           )}
                         </div>
                       </div>
+                      {/* Cashback category pills — hidden on agent side per request, keep code for later restore
                       {selectedCard.cashbackCategories?.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
                           {selectedCard.cashbackCategories.map((c, idx) => {
@@ -426,6 +480,7 @@ function SubmitLead() {
                           })}
                         </div>
                       )}
+                      */}
                     </div>
                   )}
                   {selectedCard && activeBrackets.length > 0 && (
@@ -445,7 +500,7 @@ function SubmitLead() {
               {productType === 'loan' && (
                 <>
                   <Form.Item name="bank" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Bank <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select a bank' }]} style={{ marginBottom: 10 }}>
-                    <Select size="middle" showSearch allowClear filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())} placeholder="Select bank" options={bankOptions} onChange={onBankChange} loading={loading} />
+                    <Select size="middle" showSearch allowClear disabled={!selectedLoanGroup} filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())} placeholder={selectedLoanGroup ? 'Select bank' : 'Select loan category first'} options={bankOptions} onChange={onBankChange} loading={loading} />
                   </Form.Item>
                   <Form.Item name="loanProduct" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Product <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select a loan' }]} style={{ marginBottom: 10 }}>
                     <Select size="middle" loading={loading} showSearch disabled={!selectedBankId} filterOption={(input, opt) => opt.searchText?.includes(input.toLowerCase())} placeholder={selectedBankId ? 'Select loan product' : 'Select a bank first'} options={loanOptions} onChange={onLoanSelect} />
@@ -453,7 +508,7 @@ function SubmitLead() {
                   {selectedLoan && (
                     <div style={{ background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', padding: '8px 12px', marginBottom: 10, display: 'flex', gap: 16 }}>
                       <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Bank</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.bank?.name}</div></div>
-                      <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Category</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal'}</div></div>
+                      <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Category</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : selectedLoan.loanCategory === 'business' ? 'Business' : 'Personal'}</div></div>
                     </div>
                   )}
                   {selectedLoan && activeBrackets.length > 0 && (
@@ -467,17 +522,63 @@ function SubmitLead() {
                       <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>{selectedBracket.payable}% of loan</span>
                     </div>
                   )}
-                  <Form.Item name="loanType" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Type <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select loan type' }]} style={{ marginBottom: 10 }}>
-                    <Select size="middle" placeholder="Select loan type" options={[
-                      { value: 'new_stl_loan',  label: 'New STL Loan' },
-                      { value: 'buyout',        label: 'Buyout' },
-                      { value: 'pdc',           label: 'PDC' },
-                      { value: 'business_loan', label: 'Business Loan' },
-                    ]} />
-                  </Form.Item>
+                  {selectedLoanGroup && (
+                    <Form.Item name="loanType" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Type <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select loan type' }]} style={{ marginBottom: 10 }}>
+                      <Select size="middle" placeholder="Select loan type" options={
+                        selectedLoanGroup === 'business'
+                          ? [
+                              { value: 'sme_new_loan',      label: 'SME New Loan' },
+                              { value: 'sme_buyout_loan',   label: 'SME Buyout Loan' },
+                              { value: 'pos_loan_non_bank', label: 'POS Loan / Non Bank' },
+                            ]
+                          : [
+                              { value: 'new_stl_loan', label: 'New STL Loan' },
+                              { value: 'buyout',       label: 'Buyout' },
+                              { value: 'pdc',          label: 'PDC' },
+                            ]
+                      } />
+                    </Form.Item>
+                  )}
                   <Form.Item name="loanAmount" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Amount (AED) <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Loan amount required' }]} style={{ marginBottom: 4 }}>
                     <InputNumber size="middle" min={1} step={1000} style={{ width: '100%', borderRadius: 8 }} placeholder="e.g. 100000" />
                   </Form.Item>
+                </>
+              )}
+
+              {productType === 'account' && (
+                <>
+                  <Form.Item name="accountType" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Account Type <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select account type' }]} style={{ marginBottom: 10 }}>
+                    <Select
+                      size="middle"
+                      placeholder="Select account type"
+                      options={[
+                        { value: 'business_account', label: 'Business Account' },
+                        { value: 'current_account',   label: 'Current Account' },
+                        { value: 'savings_account',   label: 'Saving Account' },
+                      ]}
+                      onChange={(v) => { setSelectedAccountType(v); setSelectedAccount(null); setSelectedBracket(null); form.resetFields(['accountProduct', 'salaryBracket']); }}
+                    />
+                  </Form.Item>
+                  {selectedAccountType && (
+                    <Form.Item name="accountProduct" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Account Product <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select an account product' }]} style={{ marginBottom: 10 }}>
+                      <Select
+                        size="middle"
+                        placeholder="Select account product"
+                        showSearch
+                        filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+                        options={accountProducts
+                          .filter((a) => `${selectedAccountType}` === `${a.accountCategory}_account`)
+                          .map((a) => ({ value: a._id, label: `${a.name} — ${a.bank?.name || ''}` }))}
+                        onChange={onAccountSelect}
+                      />
+                    </Form.Item>
+                  )}
+                  {selectedBracket && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Estimated Payout</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>AED {selectedBracket.payable}</span>
+                    </div>
+                  )}
                 </>
               )}
             </div>

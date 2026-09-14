@@ -19,6 +19,23 @@ export const ACTION_LABELS = {
   'sme-buyout-cl': 'CL',
   'pos-pdc': 'PDC',
   'pos-dda': 'DDA',
+  'pos-loan-account-open': 'Account Open',
+  'car-loan-registration': 'Car Registration',
+  'mortgage-new-docs': 'Property Mortgage Docs',
+  'mortgage-new-evaluation': 'Evaluation',
+  'mortgage-new-registration': 'Property Registration',
+  'mortgage-buyout-docs': 'Property Mortgage Docs',
+  'mortgage-buyout-evaluation': 'Evaluation',
+  'mortgage-buyout-ll': 'LL',
+  'mortgage-buyout-mc': 'MC',
+  'mortgage-buyout-cl': 'CL',
+  'mortgage-buyout-registration': 'Property Registration',
+  'business-account-open': 'Account Open',
+  'business-account-fund-credited': 'Fund Credited',
+  'current-account-open': 'Account Open',
+  'current-account-salary-credited': 'Salary Credited',
+  'savings-account-open': 'Account Open',
+  'savings-fund-credited': 'Fund Credited',
 };
 
 // Full ordered milestone list per loanType, used to render done/pending
@@ -47,6 +64,33 @@ export const LOAN_MILESTONES = {
     { field: 'posPdcDone', type: 'pos-pdc' },
     { field: 'posDdaDone', type: 'pos-dda' },
   ],
+  pos_loan: [{ field: 'posLoanAccountOpenDone', type: 'pos-loan-account-open' }],
+  auto_loan: [{ field: 'carLoanRegistrationDone', type: 'car-loan-registration' }],
+  mortgage_new: [
+    { field: 'mortgageNewDocsDone', type: 'mortgage-new-docs' },
+    { field: 'mortgageNewEvaluationDone', type: 'mortgage-new-evaluation' },
+    { field: 'mortgageNewRegistrationDone', type: 'mortgage-new-registration' },
+  ],
+  mortgage_buyout: [
+    { field: 'mortgageBuyoutDocsDone', type: 'mortgage-buyout-docs' },
+    { field: 'mortgageBuyoutEvaluationDone', type: 'mortgage-buyout-evaluation' },
+    { field: 'mortgageBuyoutLlDone', type: 'mortgage-buyout-ll' },
+    { field: 'mortgageBuyoutMcDone', type: 'mortgage-buyout-mc' },
+    { field: 'mortgageBuyoutClDone', type: 'mortgage-buyout-cl' },
+    { field: 'mortgageBuyoutRegistrationDone', type: 'mortgage-buyout-registration' },
+  ],
+  business_account: [
+    { field: 'businessAccountOpenDone', type: 'business-account-open' },
+    { field: 'businessAccountFundCreditedDone', type: 'business-account-fund-credited' },
+  ],
+  current_account: [
+    { field: 'currentAccountOpenDone', type: 'current-account-open' },
+    { field: 'currentAccountSalaryCreditedDone', type: 'current-account-salary-credited' },
+  ],
+  savings_account: [
+    { field: 'savingsAccountOpenDone', type: 'savings-account-open' },
+    { field: 'savingsFundCreditedDone', type: 'savings-fund-credited' },
+  ],
 };
 
 // Per-loanType milestone flow, matching the confirmed business rules:
@@ -59,6 +103,34 @@ export const LOAN_MILESTONES = {
 // - business_loan (or unset loanType): no milestone buttons, Approve/Reject only.
 export function getLoanActions(row) {
   if (row.status !== 'approved') return { buttons: [], canDisburse: false };
+
+  // Account leads use accountType as their flow discriminator, the same
+  // role loanType plays for loans — checked first since accountType is
+  // only ever set on productType==='account' leads.
+  if (row.accountType) {
+    switch (row.accountType) {
+      case 'business_account': {
+        const buttons = [];
+        if (!row.businessAccountOpenDone) buttons.push({ type: 'business-account-open', label: 'Account Open' });
+        if (!row.businessAccountFundCreditedDone) buttons.push({ type: 'business-account-fund-credited', label: 'Fund Credited' });
+        return { buttons, canDisburse: buttons.length === 0 };
+      }
+      case 'current_account': {
+        const buttons = [];
+        if (!row.currentAccountOpenDone) buttons.push({ type: 'current-account-open', label: 'Account Open' });
+        if (!row.currentAccountSalaryCreditedDone) buttons.push({ type: 'current-account-salary-credited', label: 'Salary Credited' });
+        return { buttons, canDisburse: buttons.length === 0 };
+      }
+      case 'savings_account': {
+        if (!row.savingsAccountOpenDone) return { buttons: [{ type: 'savings-account-open', label: 'Account Open' }], canDisburse: false };
+        if (!row.savingsFundCreditedDone) return { buttons: [{ type: 'savings-fund-credited', label: 'Fund Credited' }], canDisburse: false };
+        return { buttons: [], canDisburse: true };
+      }
+      default:
+        return { buttons: [], canDisburse: false };
+    }
+  }
+
   switch (row.loanType) {
     case 'pdc':
       return row.pdcChqDone
@@ -101,6 +173,29 @@ export function getLoanActions(row) {
       if (!row.posPdcDone) buttons.push({ type: 'pos-pdc', label: 'PDC' });
       if (!row.posDdaDone) buttons.push({ type: 'pos-dda', label: 'DDA' });
       return { buttons, canDisburse: buttons.length === 0 };
+    }
+    case 'pos_loan':
+      return row.posLoanAccountOpenDone
+        ? { buttons: [], canDisburse: true }
+        : { buttons: [{ type: 'pos-loan-account-open', label: 'Account Open' }], canDisburse: false };
+    case 'auto_loan':
+      return row.carLoanRegistrationDone
+        ? { buttons: [], canDisburse: true }
+        : { buttons: [{ type: 'car-loan-registration', label: 'Car Registration' }], canDisburse: false };
+    case 'mortgage_new': {
+      if (!row.mortgageNewDocsDone) return { buttons: [{ type: 'mortgage-new-docs', label: 'Property Mortgage Docs' }], canDisburse: false };
+      if (!row.mortgageNewEvaluationDone) return { buttons: [{ type: 'mortgage-new-evaluation', label: 'Evaluation' }], canDisburse: false };
+      if (!row.mortgageNewRegistrationDone) return { buttons: [{ type: 'mortgage-new-registration', label: 'Property Registration' }], canDisburse: false };
+      return { buttons: [], canDisburse: true };
+    }
+    case 'mortgage_buyout': {
+      if (!row.mortgageBuyoutDocsDone) return { buttons: [{ type: 'mortgage-buyout-docs', label: 'Property Mortgage Docs' }], canDisburse: false };
+      if (!row.mortgageBuyoutEvaluationDone) return { buttons: [{ type: 'mortgage-buyout-evaluation', label: 'Evaluation' }], canDisburse: false };
+      if (!row.mortgageBuyoutLlDone) return { buttons: [{ type: 'mortgage-buyout-ll', label: 'LL' }], canDisburse: false };
+      if (!row.mortgageBuyoutMcDone) return { buttons: [{ type: 'mortgage-buyout-mc', label: 'MC' }], canDisburse: false };
+      if (!row.mortgageBuyoutClDone) return { buttons: [{ type: 'mortgage-buyout-cl', label: 'CL' }], canDisburse: false };
+      if (!row.mortgageBuyoutRegistrationDone) return { buttons: [{ type: 'mortgage-buyout-registration', label: 'Property Registration' }], canDisburse: false };
+      return { buttons: [], canDisburse: true };
     }
     default:
       return { buttons: [], canDisburse: false };

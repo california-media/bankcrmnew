@@ -102,6 +102,7 @@ async function getAgentLedger(agentId) {
     .populate('agency', 'name email')
     .populate('cardProduct', 'name cardType')
     .populate('loanProduct', 'name loanCategory')
+    .populate('accountProduct', 'name accountCategory')
     .sort({ updatedAt: -1 });
 
   const sumBy = (s) =>

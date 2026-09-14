@@ -151,7 +151,9 @@ exports.create = async (req, res) => {
       const adminIds = await getAdminIds();
       const productName = populated.productType === 'credit_card'
         ? (populated.cardProduct?.name || 'Card')
-        : (populated.loanProduct?.name || 'Loan');
+        : populated.productType === 'account'
+          ? (populated.accountProduct?.name || 'Account')
+          : (populated.loanProduct?.name || 'Loan');
       await createAndEmit(
         [...adminIds, String(populated.agency?._id || populated.agency)],
         {
@@ -238,6 +240,7 @@ exports.listMine = async (req, res) => {
       .populate('agency', 'name email')
       .populate('cardProduct', 'name cardType commissionBrackets')
       .populate('loanProduct', 'name loanCategory commissionBrackets')
+      .populate('accountProduct', 'name accountCategory commissionBrackets')
       .populate('employeeStatus', 'label color')
       .populate('consentStatus', 'label color')
       .populate('consentStatusHistory.consentStatus', 'label color')
@@ -317,6 +320,7 @@ exports.listForAgency = async (req, res) => {
       .populate('consentStatus', 'label color')
       .populate('cardProduct', 'name cardType commissionBrackets')
       .populate('loanProduct', 'name loanCategory commissionBrackets')
+      .populate('accountProduct', 'name accountCategory commissionBrackets')
       .populate('consentStatusHistory.consentStatus', 'label color')
       .populate('consentStatusHistory.changedBy', 'name email')
       .sort({ updatedAt: -1 });
@@ -342,6 +346,7 @@ exports.listAll = async (req, res) => {
       .populate('consentStatus', 'label color')
       .populate('cardProduct', 'name cardType commissionBrackets')
       .populate('loanProduct', 'name loanCategory commissionBrackets')
+      .populate('accountProduct', 'name accountCategory commissionBrackets')
       .populate('consentStatusHistory.consentStatus', 'label color')
       .populate('consentStatusHistory.changedBy', 'name email')
       .sort({ updatedAt: -1 });
@@ -1803,6 +1808,7 @@ exports.completeReferral = async (req, res) => {
       .populate('bank', 'name')
       .populate('cardProduct', 'name commissionBrackets clawbackDays')
       .populate('loanProduct', 'name')
+      .populate('accountProduct', 'name')
       .populate('agent', 'name email')
       .populate('agency', 'name email')
       .populate('employeeStatus', 'label color')
@@ -1927,6 +1933,7 @@ exports.getOne = async (req, res) => {
       .populate('agent', 'name email phone')
       .populate({ path: 'cardProduct', select: 'name cardType commissionBrackets cashbackCategories cardImage benefits feesEligibility', populate: { path: 'cashbackCategories.category', select: 'name' } })
       .populate('loanProduct', 'name loanCategory commissionBrackets benefits feesEligibility minSalary maxLoanAmount maxTenure interestRateRange')
+      .populate('accountProduct', 'name accountCategory commissionBrackets benefits feesEligibility')
       .populate('employeeStatus', 'label color')
       .populate('consentStatus', 'label color')
       .populate('assignedEmployee', 'name email')
@@ -2086,6 +2093,7 @@ exports.listAssigned = async (req, res) => {
       .populate('assignedSalesEmployee', 'name email employeeType')
       .populate('cardProduct', 'name cardType')
       .populate('loanProduct', 'name loanCategory')
+      .populate('accountProduct', 'name accountCategory')
       .populate('employeeStatus', 'label color')
       .populate('consentStatus', 'label color')
       .populate('consentStatusHistory.consentStatus', 'label color')

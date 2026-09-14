@@ -22,6 +22,7 @@ const STATUSES = [
 const PRODUCTS = [
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'loan', label: 'Loan' },
+  { value: 'account', label: 'Account' },
 ];
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
@@ -148,10 +149,12 @@ function AdminLeads() {
   }, [leads, search, statusFilter, productFilter, bankFilter, dateRange, milestoneFilter, leadsTab]);
 
   const renderProduct = (row) => {
-    const name = row.productType === 'credit_card' ? row.cardProduct?.name : row.loanProduct?.name;
+    const name = row.productType === 'credit_card' ? row.cardProduct?.name : row.productType === 'account' ? row.accountProduct?.name : row.loanProduct?.name;
     const sub = row.productType === 'credit_card'
       ? (row.cardProduct?.cardType === 'premium' ? 'Premium' : 'Regular')
-      : (row.loanProduct?.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal');
+      : row.productType === 'account'
+        ? (row.accountProduct?.accountCategory === 'business' ? 'Business' : row.accountProduct?.accountCategory === 'savings' ? 'Savings' : 'Current')
+        : (row.loanProduct?.loanCategory === 'mortgage' ? 'Mortgage' : row.loanProduct?.loanCategory === 'business' ? 'Business' : 'Personal');
     if (!name) return PRODUCTS.find((p) => p.value === row.productType)?.label || row.productType;
     return (
       <Tooltip title={name}>
@@ -213,8 +216,8 @@ function AdminLeads() {
       title: <ColHead>Product</ColHead>,
       width: 110,
       render: (_, row) => {
-        const name = row.productType === 'credit_card' ? row.cardProduct?.name : row.loanProduct?.name;
-        const fallback = row.productType === 'credit_card' ? 'Credit Card' : 'Loan';
+        const name = row.productType === 'credit_card' ? row.cardProduct?.name : row.productType === 'account' ? row.accountProduct?.name : row.loanProduct?.name;
+        const fallback = row.productType === 'credit_card' ? 'Credit Card' : row.productType === 'account' ? 'Account' : 'Loan';
         return (
           <Tooltip title={name || fallback}>
             <span style={{ fontSize: 12, color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
@@ -456,7 +459,7 @@ function AdminLeads() {
         <Row gutter={[14, 14]}>
           {filtered.map((row) => {
             const statusMeta = STATUSES.find((x) => x.value === row.status);
-            const productName = row.productType === 'credit_card' ? (row.cardProduct?.name || 'Credit Card') : (row.loanProduct?.name || 'Loan');
+            const productName = row.productType === 'credit_card' ? (row.cardProduct?.name || 'Credit Card') : row.productType === 'account' ? (row.accountProduct?.name || 'Account') : (row.loanProduct?.name || 'Loan');
             return (
               <Col key={row._id} xs={24} sm={12} lg={8} xl={6}>
                 <Card

@@ -15,6 +15,7 @@ exports.getPending = async (req, res) => {
       .populate('bank', 'name')
       .populate('cardProduct', 'name cardType')
       .populate('loanProduct', 'name loanCategory')
+      .populate('accountProduct', 'name accountCategory')
       .populate('agent', 'name email')
       .sort({ createdAt: -1 });
     res.json(leads);

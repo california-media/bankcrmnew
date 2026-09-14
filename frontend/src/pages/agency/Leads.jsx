@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, DatePicker, Row, Col, Space, message, Modal, Form, InputNumber, Descriptions, Tabs, Upload, Grid } from 'antd';
+import { Table, Tag, Typography, Button, Input, Select, DatePicker, Row, Col, Space, message, Modal, Form, InputNumber, Descriptions, Tabs, Upload, Grid, Popconfirm, Popover } from 'antd';
 import { SearchOutlined, EditOutlined, UserAddOutlined, TableOutlined, AppstoreOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 
 const { useBreakpoint } = Grid;
@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import exportLeadsToExcel from '../../utils/exportLeadsExcel';
 import downloadLeadImportTemplate from '../../utils/importLeadsTemplate';
+import { ACTION_LABELS, getLoanActions, LOAN_MILESTONES } from '../../utils/loanActions';
 
 const STATUSES = [
   { value: 'submitted', label: 'New Lead', color: 'blue' },
@@ -21,6 +22,7 @@ const STATUSES = [
 const PRODUCTS = [
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'loan', label: 'Loan' },
+  { value: 'account', label: 'Account' },
 ];
 
 const TERMINAL_STATUSES  = ['disbursed', 'rejected'];
@@ -86,7 +88,9 @@ const buildWhatsAppUrl = (row) => {
   const bank = row.bank?.name || 'the bank';
   const product = row.productType === 'credit_card'
     ? (row.cardProduct?.name || 'Credit Card')
-    : (row.loanProduct?.name || 'Loan');
+    : row.productType === 'account'
+      ? (row.accountProduct?.name || 'Account')
+      : (row.loanProduct?.name || 'Loan');
   const amountPart = row.productType === 'loan' && row.loanAmount
     ? ` of ${aed(row.loanAmount)}`
     : '';
@@ -186,6 +190,41 @@ function AgencyLeads() {
     }
   };
 
+  const bulkUpdateStatus = async (status, label, eligibleFrom) => {
+    const eligibleIds = selectedRowKeys.filter((id) => {
+      const lead = leads.find((l) => l._id === id);
+      return lead && eligibleFrom.includes(lead.status);
+    });
+    const skipped = selectedRowKeys.length - eligibleIds.length;
+    if (!eligibleIds.length) {
+      message.warning(`No selected lead(s) can be ${label.toLowerCase()}`);
+      return;
+    }
+    const results = await Promise.allSettled(
+      eligibleIds.map((id) => api.patch(`/leads/${id}/status`, { status }))
+    );
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    message.success(
+      `${succeeded} lead(s) marked ${label}`
+      + (failed ? `, ${failed} failed` : '')
+      + (skipped ? `, ${skipped} skipped (not eligible)` : '')
+    );
+    setSelectedRowKeys([]);
+    load();
+  };
+
+  const bulkMilestoneAction = async (type, label) => {
+    const results = await Promise.allSettled(
+      selectedRowKeys.map((id) => api.patch(`/leads/${id}/${type}`, {}))
+    );
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    message.success(`${succeeded} lead(s) marked ${label}` + (failed ? `, ${failed} failed` : ''));
+    setSelectedRowKeys([]);
+    load();
+  };
+
   const updateEmpStatus = async (leadId, employeeStatusId) => {
     try {
       const { data } = await api.patch(`/leads/${leadId}/employee-status`, { employeeStatusId: employeeStatusId || null });
@@ -249,7 +288,7 @@ function AgencyLeads() {
     try {
       const { note } = actionForm.getFieldsValue();
       await api.patch(`/leads/${actionModal.leadId}/${actionModal.type}`, { note: note || undefined });
-      message.success(actionModal.type === 'cpv' ? 'CPV marked done' : actionModal.type === 'spend' ? 'Spend marked done' : 'Activated marked done');
+      message.success(`${ACTION_LABELS[actionModal.type] || 'Action'} marked done`);
       setActionModal({ open: false, leadId: null, type: null });
       load();
     } catch (err) {
@@ -329,7 +368,7 @@ function AgencyLeads() {
       return (
         <div>
           <Typography.Text ellipsis={{ tooltip: name }} style={{ fontWeight: 600, fontSize: 11, display: 'block', maxWidth: 90 }}>{name}</Typography.Text>
-          <span style={{ fontSize: 10, color: '#94a3b8' }}>{row.loanProduct.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal'}</span>
+          <span style={{ fontSize: 10, color: '#94a3b8' }}>{row.loanProduct.loanCategory === 'mortgage' ? 'Mortgage' : row.loanProduct.loanCategory === 'business' ? 'Business' : 'Personal'}</span>
         </div>
       );
     }
@@ -379,18 +418,35 @@ function AgencyLeads() {
       width: 140,
       render: (_, row) => {
         const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
+        const pill = (done, label) => done
+          ? <span key={label} style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>{label} ✓</span>
+          : <span key={label} style={{ fontSize: 9, fontWeight: 700, color: '#dc2626', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>{label} ✗</span>;
+        const loanMilestones = LOAN_MILESTONES[row.loanType] || [];
+        const loanDoneCount = loanMilestones.filter((m) => row[m.field]).length;
         const badges = (
           (row.status === 'approved' || row.status === 'disbursed') ? (
             <div style={{ display: 'flex', gap: 3, marginTop: 3, flexWrap: 'nowrap' }}>
-              {row.cpvDone
-                ? <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>CPV ✓</span>
-                : <span style={{ fontSize: 9, fontWeight: 700, color: '#dc2626', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>CPV ✗</span>}
-              {row.activateDone
-                ? <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Activated ✓</span>
-                : <span style={{ fontSize: 9, fontWeight: 700, color: '#dc2626', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Activated ✗</span>}
-              {row.bank?.hasSpend && (row.spendDone
-                ? <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Spend ✓</span>
-                : <span style={{ fontSize: 9, fontWeight: 700, color: '#dc2626', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Spend ✗</span>)}
+              {row.productType === 'credit_card' ? (
+                <>
+                  {pill(row.cpvDone, 'CPV')}
+                  {pill(row.activateDone, 'Activated')}
+                  {row.bank?.hasSpend && pill(row.spendDone, 'Spend')}
+                </>
+              ) : loanMilestones.length > 0 ? (
+                <Popover
+                  content={<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{loanMilestones.map((m) => pill(row[m.field], ACTION_LABELS[m.type]))}</div>}
+                  trigger="hover"
+                >
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap', borderRadius: 999, padding: '0 5px', cursor: 'default',
+                    color: loanDoneCount === loanMilestones.length ? '#15803d' : '#b45309',
+                    background: loanDoneCount === loanMilestones.length ? '#dcfce7' : '#fef3c7',
+                    border: `1px solid ${loanDoneCount === loanMilestones.length ? '#86efac' : '#fde68a'}`,
+                  }}>
+                    {loanDoneCount}/{loanMilestones.length} milestones
+                  </span>
+                </Popover>
+              ) : null}
             </div>
           ) : null
         );
@@ -491,17 +547,25 @@ function AgencyLeads() {
         const canReject   = REJECTABLE_FROM.includes(row.status);
         const canEditLoan = row.productType === 'loan' && LOAN_EDITABLE_FROM.includes(row.status);
         const canApprove  = ['submitted', 'under_review', 'assigned'].includes(row.status);
-        const canCpv      = row.status === 'approved' && !row.cpvDone;
-        const canActivate = row.status === 'approved' && !row.activateDone;
-        const canSpend    = row.status === 'approved' && row.bank?.hasSpend && !row.spendDone;
-        const canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
-        if (!canApprove && !canCpv && !canActivate && !canSpend && !canDisburse && !canEditLoan && !canReject) return null;
+        let milestoneButtons = [];
+        let canDisburse = false;
+        if (row.productType === 'credit_card') {
+          if (row.status === 'approved' && !row.cpvDone) milestoneButtons.push({ type: 'cpv', label: 'CPV' });
+          if (row.status === 'approved' && !row.activateDone) milestoneButtons.push({ type: 'activate', label: 'Activated' });
+          if (row.status === 'approved' && row.bank?.hasSpend && !row.spendDone) milestoneButtons.push({ type: 'spend', label: 'Spend' });
+          canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
+        } else if (row.productType === 'loan') {
+          const loanActions = getLoanActions(row);
+          milestoneButtons = loanActions.buttons;
+          canDisburse = loanActions.canDisburse;
+        }
+        if (!canApprove && !milestoneButtons.length && !canDisburse && !canEditLoan && !canReject) return null;
         return (
           <Space size={4} wrap onClick={(e) => e.stopPropagation()}>
             {canApprove && <Button size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>}
-            {canCpv && <Button size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV</Button>}
-            {canActivate && <Button size="small" onClick={() => openActionModal(row._id, 'activate')}>Activated</Button>}
-            {canSpend && <Button size="small" onClick={() => openActionModal(row._id, 'spend')}>Spend</Button>}
+            {milestoneButtons.map((b) => (
+              <Button key={b.type} size="small" onClick={() => openActionModal(row._id, b.type)}>{b.label}</Button>
+            ))}
             {canDisburse && <Button size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>}
             {canEditLoan && <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />}
             {canReject && <Button size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>}
@@ -510,6 +574,18 @@ function AgencyLeads() {
       },
     },
   ];
+
+  const selectedLeads = leads.filter((l) => selectedRowKeys.includes(l._id));
+  const canBulkApprove = selectedLeads.length > 0 && selectedLeads.every((l) => ['submitted', 'under_review', 'assigned'].includes(l.status));
+  const canBulkReject = selectedLeads.length > 0 && selectedLeads.every((l) => REJECTABLE_FROM.includes(l.status));
+  const canBulkCpv = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && !l.cpvDone);
+  const canBulkActivate = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && !l.activateDone);
+  const canBulkSpend = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && l.bank?.hasSpend && !l.spendDone);
+  const canBulkDisburse = selectedLeads.length > 0 && selectedLeads.every((l) => {
+    if (l.productType === 'credit_card') return l.status === 'approved' && l.cpvDone && l.activateDone;
+    if (l.productType === 'loan') return getLoanActions(l).canDisburse;
+    return false;
+  });
 
   return (
     <>
@@ -628,11 +704,65 @@ function AgencyLeads() {
         )}
       </div>
 
-      {selectedRowKeys.length > 0 && (
+      {selectedRowKeys.length > 0 && leadsTab !== 'rejected' && (
         <div style={{ marginBottom: 12 }}>
-          <Button type="primary" icon={<UserAddOutlined />} onClick={() => { bulkAssignForm.resetFields(); setBulkAssignOpen(true); }}>
-            Assign {selectedRowKeys.length} lead(s) to Employee
-          </Button>
+          <Space wrap>
+            <Button type="primary" icon={<UserAddOutlined />} onClick={() => { bulkAssignForm.resetFields(); setBulkAssignOpen(true); }}>
+              Assign {selectedRowKeys.length} lead(s) to Employee
+            </Button>
+            {canBulkApprove && (
+              <Popconfirm
+                title={`Approve ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkUpdateStatus('approved', 'Approved', ['submitted', 'under_review', 'assigned'])}
+              >
+                <Button type="primary" style={{ background: '#16a34a', borderColor: '#16a34a' }}>
+                  Approve {selectedRowKeys.length} lead(s)
+                </Button>
+              </Popconfirm>
+            )}
+            {canBulkReject && (
+              <Popconfirm
+                title={`Reject ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkUpdateStatus('rejected', 'Rejected', REJECTABLE_FROM)}
+              >
+                <Button danger>Reject {selectedRowKeys.length} lead(s)</Button>
+              </Popconfirm>
+            )}
+            {canBulkCpv && (
+              <Popconfirm
+                title={`Mark CPV done for ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkMilestoneAction('cpv', 'CPV Done')}
+              >
+                <Button>CPV {selectedRowKeys.length} lead(s)</Button>
+              </Popconfirm>
+            )}
+            {canBulkActivate && (
+              <Popconfirm
+                title={`Mark Activated for ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkMilestoneAction('activate', 'Activated')}
+              >
+                <Button>Activate {selectedRowKeys.length} lead(s)</Button>
+              </Popconfirm>
+            )}
+            {canBulkSpend && (
+              <Popconfirm
+                title={`Mark Spend done for ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkMilestoneAction('spend', 'Spend Done')}
+              >
+                <Button>Spend {selectedRowKeys.length} lead(s)</Button>
+              </Popconfirm>
+            )}
+            {canBulkDisburse && (
+              <Popconfirm
+                title={`Disburse ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkUpdateStatus('disbursed', 'Disbursed', ['approved'])}
+              >
+                <Button type="primary" style={{ background: '#7e22ce', borderColor: '#7e22ce' }}>
+                  Disburse {selectedRowKeys.length} lead(s)
+                </Button>
+              </Popconfirm>
+            )}
+          </Space>
         </div>
       )}
 
@@ -736,20 +866,28 @@ function AgencyLeads() {
                       const canReject   = REJECTABLE_FROM.includes(row.status);
                       const canEditLoan = row.productType === 'loan' && LOAN_EDITABLE_FROM.includes(row.status);
                       const canApprove  = ['submitted', 'under_review', 'assigned'].includes(row.status);
-                      const canCpv      = row.status === 'approved' && !row.cpvDone;
-                      const canActivate = row.status === 'approved' && !row.activateDone;
-                      const canSpend    = row.status === 'approved' && row.bank?.hasSpend && !row.spendDone;
-                      const canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
-                      const hasActions  = canApprove || canCpv || canActivate || canSpend || canDisburse || canEditLoan || canReject;
+                      let milestoneButtons = [];
+                      let canDisburse = false;
+                      if (row.productType === 'credit_card') {
+                        if (row.status === 'approved' && !row.cpvDone) milestoneButtons.push({ type: 'cpv', label: 'CPV' });
+                        if (row.status === 'approved' && !row.activateDone) milestoneButtons.push({ type: 'activate', label: 'Activate' });
+                        if (row.status === 'approved' && row.bank?.hasSpend && !row.spendDone) milestoneButtons.push({ type: 'spend', label: 'Spend' });
+                        canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
+                      } else if (row.productType === 'loan') {
+                        const loanActions = getLoanActions(row);
+                        milestoneButtons = loanActions.buttons;
+                        canDisburse = loanActions.canDisburse;
+                      }
+                      const hasActions  = canApprove || milestoneButtons.length > 0 || canDisburse || canEditLoan || canReject;
                       return (
                         <div style={{ borderTop: '1px solid #f0f0f8', paddingTop: 8, marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <span style={{ fontSize: 11, color: '#94a3b8' }}>{relTime(row.updatedAt || row.createdAt)}</span>
                           {hasActions && (
                             <Space size={4} onClick={(e) => e.stopPropagation()}>
                               {canApprove && <Button size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>}
-                              {canCpv && <Button size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV</Button>}
-                              {canActivate && <Button size="small" onClick={() => openActionModal(row._id, 'activate')}>Activate</Button>}
-                              {canSpend && <Button size="small" onClick={() => openActionModal(row._id, 'spend')}>Spend</Button>}
+                              {milestoneButtons.map((b) => (
+                                <Button key={b.type} size="small" onClick={() => openActionModal(row._id, b.type)}>{b.label}</Button>
+                              ))}
                               {canDisburse && <Button size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>}
                               {canEditLoan && <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />}
                               {canReject && <Button size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>}
@@ -807,9 +945,9 @@ function AgencyLeads() {
         </Form>
       </Modal>
 
-      {/* CPV / Activate modal */}
+      {/* CPV / Activate / loan milestone modal */}
       <Modal
-        title={actionModal.type === 'cpv' ? 'Mark CPV Done' : actionModal.type === 'spend' ? 'Mark Spend Done' : 'Mark Activated Done'}
+        title={`Mark ${ACTION_LABELS[actionModal.type] || ''} Done`}
         open={actionModal.open}
         onCancel={() => setActionModal({ open: false, leadId: null, type: null })}
         onOk={confirmAction}

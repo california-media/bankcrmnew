@@ -19,6 +19,7 @@ const STATUSES = [
 const PRODUCTS = [
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'loan', label: 'Loan' },
+  { value: 'account', label: 'Account' },
 ];
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;

@@ -8,7 +8,9 @@ const productName = (lead) =>
     ? lead.cardProduct?.name || ''
     : lead.productType === 'loan'
       ? lead.loanProduct?.name || ''
-      : '';
+      : lead.productType === 'account'
+        ? lead.accountProduct?.name || ''
+        : '';
 
 export default function exportLeadsToExcel(leads, { includeAgency = false } = {}) {
   const rows = (leads || []).map((lead) => {

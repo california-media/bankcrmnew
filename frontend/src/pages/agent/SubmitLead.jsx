@@ -532,9 +532,13 @@ function SubmitLead() {
                               { value: 'pos_loan_non_bank', label: 'POS Loan / Non Bank' },
                             ]
                           : [
-                              { value: 'new_stl_loan', label: 'New STL Loan' },
-                              { value: 'buyout',       label: 'Buyout' },
-                              { value: 'pdc',          label: 'PDC' },
+                              { value: 'new_stl_loan',     label: 'New STL Loan' },
+                              { value: 'buyout',           label: 'Buyout' },
+                              { value: 'pdc',              label: 'PDC' },
+                              { value: 'auto_loan',        label: 'Auto Loan' },
+                              { value: 'mortgage_new',     label: 'Mortgage Loan (New)' },
+                              { value: 'mortgage_buyout',  label: 'Mortgage Loan (Buyout)' },
+                              { value: 'pos_loan',         label: 'POS Loan' },
                             ]
                       } />
                     </Form.Item>

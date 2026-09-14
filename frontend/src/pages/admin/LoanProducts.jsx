@@ -20,6 +20,7 @@ const LOAN_CATEGORIES = [
   { value: 'fresh',     label: 'Fresh Loan' },
   { value: 'pdc',       label: 'PDC Loans' },
   { value: 'stl',       label: 'STL Loan' },
+  { value: 'pos_loan',  label: 'POS Loan' },
 ];
 
 const CATEGORY_COLOR = {
@@ -32,6 +33,7 @@ const CATEGORY_COLOR = {
   fresh:     'lime',
   pdc:       'geekblue',
   stl:       'orange',
+  pos_loan:  'magenta',
 };
 
 function LoanProducts() {
@@ -66,7 +68,14 @@ function LoanProducts() {
 
   useEffect(() => { load(); }, []);
 
-  const openCreate = () => { setEditing(null); form.resetFields(); setBenefitsHtml(''); setFeesHtml(''); setOpen(true); };
+  const openCreate = () => {
+    setEditing(null);
+    form.resetFields();
+    form.setFieldsValue({ isActive: true, agentVisible: true, websiteVisible: true });
+    setBenefitsHtml('');
+    setFeesHtml('');
+    setOpen(true);
+  };
   const openEdit = (l) => {
     setEditing(l);
     form.setFieldsValue({
@@ -75,6 +84,8 @@ function LoanProducts() {
       bank: l.bank?._id,
       agency: l.agency?._id,
       isActive: l.isActive,
+      agentVisible: l.agentVisible !== false,
+      websiteVisible: l.websiteVisible !== false,
       commissionBrackets: l.commissionBrackets || [],
       interestRateRange: l.interestRateRange,
       rateMin: l.rateMin ?? null,
@@ -142,6 +153,24 @@ function LoanProducts() {
     }
   };
 
+  const toggleAgentVisible = async (row) => {
+    try {
+      await api.put(`/loan-products/${row._id}`, { agentVisible: row.agentVisible === false });
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const toggleWebsiteVisible = async (row) => {
+    try {
+      await api.put(`/loan-products/${row._id}`, { websiteVisible: row.websiteVisible === false });
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
   const bankOptions = banks.map((b) => ({ value: b._id, label: b.name }));
   const agencyOptions = agencies.map((a) => ({ value: a._id, label: a.name || a.email }));
 
@@ -182,6 +211,30 @@ function LoanProducts() {
           checkedChildren="Active"
           unCheckedChildren="Inactive"
           onChange={() => toggleActive(row)}
+        />
+      ),
+    },
+    {
+      title: 'Agent Visible',
+      dataIndex: 'agentVisible',
+      render: (v, row) => (
+        <Switch
+          checked={v !== false}
+          checkedChildren="Visible"
+          unCheckedChildren="Hidden"
+          onChange={() => toggleAgentVisible(row)}
+        />
+      ),
+    },
+    {
+      title: 'Website Visible',
+      dataIndex: 'websiteVisible',
+      render: (v, row) => (
+        <Switch
+          checked={v !== false}
+          checkedChildren="Visible"
+          unCheckedChildren="Hidden"
+          onChange={() => toggleWebsiteVisible(row)}
         />
       ),
     },
@@ -451,8 +504,20 @@ function LoanProducts() {
               </Form.Item>
             </Col>
             <Col span={5}>
-              <Form.Item name="isActive" label="Product Active" valuePropName="checked" initialValue={true}>
+              <Form.Item name="isActive" label="Product Active" valuePropName="checked">
                 <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={6}>
+              <Form.Item name="agentVisible" label="Visible in Agent Panel" valuePropName="checked">
+                <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="websiteVisible" label="Visible in Website" valuePropName="checked">
+                <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
               </Form.Item>
             </Col>
           </Row>

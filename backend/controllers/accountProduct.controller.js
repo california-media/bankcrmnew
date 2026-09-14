@@ -21,6 +21,7 @@ exports.create = async (req, res) => {
       name, accountCategory, bank, agency, commissionBrackets,
       isActive, agentVisible, websiteVisible,
       minBalance, monthlyFee, interestRate, keyNotes, tags,
+      type, digitalOnboarding, multiCurrency, salaryTransferRequired, freeTransactions, fallBelowFee, payoutFrequency,
       benefits, feesEligibility, redirectUrl, redirectActive,
     } = req.body;
     if (!name || !accountCategory || !bank) {
@@ -36,6 +37,7 @@ exports.create = async (req, res) => {
       benefits: benefits || '', feesEligibility: feesEligibility || '',
       isActive, agentVisible, websiteVisible,
       minBalance, monthlyFee, interestRate, keyNotes, tags: tags || [],
+      type, digitalOnboarding, multiCurrency, salaryTransferRequired, freeTransactions, fallBelowFee, payoutFrequency,
       redirectUrl: redirectUrl || '', redirectActive: !!redirectActive,
     });
     const populated = await account.populate(POPULATE);
@@ -51,6 +53,7 @@ exports.update = async (req, res) => {
       name, accountCategory, bank, agency, commissionBrackets,
       isActive, agentVisible, websiteVisible,
       minBalance, monthlyFee, interestRate, keyNotes, tags,
+      type, digitalOnboarding, multiCurrency, salaryTransferRequired, freeTransactions, fallBelowFee, payoutFrequency,
       benefits, feesEligibility, redirectUrl, redirectActive,
     } = req.body;
     const update = {};
@@ -69,6 +72,13 @@ exports.update = async (req, res) => {
     if (minBalance !== undefined) update.minBalance = minBalance;
     if (monthlyFee !== undefined) update.monthlyFee = monthlyFee;
     if (interestRate !== undefined) update.interestRate = interestRate;
+    if (type !== undefined) update.type = type;
+    if (digitalOnboarding !== undefined) update.digitalOnboarding = digitalOnboarding;
+    if (multiCurrency !== undefined) update.multiCurrency = multiCurrency;
+    if (salaryTransferRequired !== undefined) update.salaryTransferRequired = salaryTransferRequired;
+    if (freeTransactions !== undefined) update.freeTransactions = freeTransactions;
+    if (fallBelowFee !== undefined) update.fallBelowFee = fallBelowFee;
+    if (payoutFrequency !== undefined) update.payoutFrequency = payoutFrequency;
     if (keyNotes !== undefined) update.keyNotes = keyNotes;
     if (tags !== undefined) update.tags = tags;
     if (benefits !== undefined) update.benefits = benefits;

@@ -340,7 +340,7 @@ exports.getPublicLoanProducts = async (req, res) => {
   try {
     const loans = await LoanProduct.find({ isActive: true, websiteVisible: { $ne: false } })
       .populate({ path: 'bank', select: 'name code logo isActive' })
-      .select('name loanCategory commissionBrackets bank benefits feesEligibility interestRateRange minSalary maxLoanAmount maxTenure keyNotes rateMin rateMax rateType rateBasis salaryTransferRequired tags processingFee earlySettlement lateFee maxAmountNote maxAmountNum disclosedNote source sourceLabel tenureMaxMonths loanType redirectUrl redirectActive')
+      .select('name loanCategory commissionBrackets bank benefits feesEligibility interestRateRange minSalary maxLoanAmount maxTenure keyNotes rateMin rateMax rateType rateBasis salaryTransferRequired tags processingFee earlySettlement lateFee maxAmountNote maxAmountNum disclosedNote source sourceLabel tenureMaxMonths loanType minTurnover collateralRequired minPosHistoryMonths redirectUrl redirectActive')
       .lean();
     res.json(loans.filter(l => l.bank?.isActive !== false));
   } catch (err) {
@@ -352,7 +352,7 @@ exports.getPublicAccountProducts = async (req, res) => {
   try {
     const accounts = await AccountProduct.find({ isActive: true, websiteVisible: { $ne: false } })
       .populate({ path: 'bank', select: 'name code logo isActive' })
-      .select('name accountCategory commissionBrackets bank benefits feesEligibility minBalance monthlyFee interestRate keyNotes tags redirectUrl redirectActive')
+      .select('name accountCategory commissionBrackets bank benefits feesEligibility minBalance monthlyFee interestRate keyNotes tags type digitalOnboarding multiCurrency salaryTransferRequired freeTransactions fallBelowFee payoutFrequency redirectUrl redirectActive')
       .lean();
     res.json(accounts.filter(a => a.bank?.isActive !== false));
   } catch (err) {

@@ -44,6 +44,9 @@ const loanProductSchema = new mongoose.Schema(
     sourceLabel: { type: String, trim: true },
     tenureMaxMonths: { type: Number },
     loanType: { type: String, enum: ['Islamic', 'Conventional'], trim: true },
+    minTurnover: { type: Number },
+    collateralRequired: { type: Boolean, default: false },
+    minPosHistoryMonths: { type: Number },
   },
   { timestamps: true }
 );

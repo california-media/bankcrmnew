@@ -17,7 +17,7 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name, loanCategory, bank, agency, commissionBrackets, isActive, agentVisible, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes } = req.body;
+    const { name, loanCategory, bank, agency, commissionBrackets, isActive, agentVisible, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths } = req.body;
     if (!name || !loanCategory || !bank) {
       return res.status(400).json({ message: 'name, loanCategory, and bank are required' });
     }
@@ -27,7 +27,7 @@ exports.create = async (req, res) => {
     }
 
     const { benefits, feesEligibility, redirectUrl, redirectActive } = req.body;
-    const loan = await LoanProduct.create({ name, loanCategory, bank, agency: agency || undefined, commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, agentVisible, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive });
+    const loan = await LoanProduct.create({ name, loanCategory, bank, agency: agency || undefined, commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, agentVisible, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive });
     const populated = await loan.populate(POPULATE);
     res.status(201).json(populated);
   } catch (err) {
@@ -51,12 +51,15 @@ exports.update = async (req, res) => {
     if (isActive !== undefined) update.isActive = isActive;
     if (agentVisible !== undefined) update.agentVisible = agentVisible;
     if (websiteVisible !== undefined) update.websiteVisible = websiteVisible;
-    const { interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes } = req.body;
+    const { interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths } = req.body;
     if (interestRateRange !== undefined) update.interestRateRange = interestRateRange;
     if (minSalary !== undefined) update.minSalary = minSalary;
     if (maxLoanAmount !== undefined) update.maxLoanAmount = maxLoanAmount;
     if (maxTenure !== undefined) update.maxTenure = maxTenure;
     if (keyNotes !== undefined) update.keyNotes = keyNotes;
+    if (minTurnover !== undefined) update.minTurnover = minTurnover;
+    if (collateralRequired !== undefined) update.collateralRequired = collateralRequired;
+    if (minPosHistoryMonths !== undefined) update.minPosHistoryMonths = minPosHistoryMonths;
     const { benefits, feesEligibility } = req.body;
     if (benefits !== undefined) update.benefits = benefits;
     if (feesEligibility !== undefined) update.feesEligibility = feesEligibility;

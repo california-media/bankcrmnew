@@ -3,6 +3,7 @@ const Bank = require('../models/Bank');
 const User = require('../models/User');
 const CardProduct = require('../models/CardProduct');
 const LoanProduct = require('../models/LoanProduct');
+const AccountProduct = require('../models/AccountProduct');
 const EmployeeStatus = require('../models/EmployeeStatus');
 const AgencyPayout = require('../models/AgencyPayout');
 const commissionService = require('../services/commission.service');
@@ -23,6 +24,7 @@ const POPULATE_FIELDS = [
   { path: 'agent', select: 'name email' },
   { path: 'cardProduct', select: 'name cardType commissionBrackets cashbackCategories cardImage benefits feesEligibility', populate: { path: 'cashbackCategories.category', select: 'name' } },
   { path: 'loanProduct', select: 'name loanCategory commissionBrackets benefits feesEligibility minSalary maxLoanAmount maxTenure interestRateRange' },
+  { path: 'accountProduct', select: 'name accountCategory commissionBrackets benefits feesEligibility' },
   { path: 'employeeStatus', select: 'label color' },
   { path: 'consentStatus',  select: 'label color' },
   { path: 'loanStatus',     select: 'label color' },
@@ -37,7 +39,7 @@ const POPULATE_FIELDS = [
  */
 exports.create = async (req, res) => {
   try {
-    const { customerName, phone, productType, cardProduct, loanProduct, loanAmount, loanType, customerSalary, notes, email, visaType, nationality, city, companyName, jobTitle, yearsOfExperience, referenceNo } = req.body;
+    const { customerName, phone, productType, cardProduct, loanProduct, loanAmount, loanType, accountProduct, accountType, customerSalary, notes, email, visaType, nationality, city, companyName, jobTitle, yearsOfExperience, referenceNo } = req.body;
     if (!customerName || !phone || !productType) {
       return res.status(400).json({ message: 'customerName, phone, and productType are required' });
     }
@@ -72,8 +74,20 @@ exports.create = async (req, res) => {
         agencyId = req.user.agency;
       }
       if (!agencyId) return res.status(400).json({ message: 'This loan product has no agency assigned. Ask an admin to edit the product and select an agency.' });
+    } else if (productType === 'account') {
+      if (!accountProduct) return res.status(400).json({ message: 'accountProduct is required for account leads' });
+      const account = await AccountProduct.findById(accountProduct).populate('agency', 'isActive role');
+      if (!account) return res.status(400).json({ message: 'Invalid account product' });
+      if (!account.isActive) return res.status(400).json({ message: 'This account product is not active' });
+      bankId = account.bank;
+      if (account.agency && account.agency.role === 'agency' && account.agency.isActive) {
+        agencyId = account.agency._id;
+      } else {
+        agencyId = req.user.agency;
+      }
+      if (!agencyId) return res.status(400).json({ message: 'This account product has no agency assigned. Ask an admin to edit the product and select an agency.' });
     } else {
-      return res.status(400).json({ message: 'productType must be credit_card or loan' });
+      return res.status(400).json({ message: 'productType must be credit_card, loan, or account' });
     }
 
     const leadData = {
@@ -97,6 +111,7 @@ exports.create = async (req, res) => {
     if (yearsOfExperience != null) leadData.yearsOfExperience = yearsOfExperience;
     if (productType === 'credit_card') leadData.cardProduct = cardProduct;
     if (productType === 'loan') { leadData.loanProduct = loanProduct; leadData.loanAmount = loanAmount; if (loanType) leadData.loanType = loanType; }
+    if (productType === 'account') { leadData.accountProduct = accountProduct; if (accountType) leadData.accountType = accountType; }
 
     // Pre-calculate expected commissions from product brackets at creation time
     const { receivable, payable } = await commissionService.resolveCommissions({
@@ -104,6 +119,7 @@ exports.create = async (req, res) => {
       cardProduct,
       loanProduct,
       loanAmount,
+      accountProduct,
       customerSalary,
     });
     leadData.grossCommission = receivable;

@@ -3,6 +3,7 @@ const VolumeBonus = require('../models/VolumeBonus');
 const Lead = require('../models/Lead');
 const CardProduct = require('../models/CardProduct');
 const LoanProduct = require('../models/LoanProduct');
+const AccountProduct = require('../models/AccountProduct');
 
 async function resolveCommissionAmount({ agency, productType, bank }) {
   if (!agency || !bank) return 0;
@@ -34,6 +35,14 @@ async function resolveCommissions(lead) {
     const card = await CardProduct.findById(lead.cardProduct);
     if (!card) return { receivable: 0, payable: 0 };
     const bracket = findBracket(card.commissionBrackets, lead.customerSalary);
+    return bracket
+      ? { receivable: bracket.receivable, payable: bracket.payable }
+      : { receivable: 0, payable: 0 };
+  }
+  if (lead.productType === 'account' && lead.accountProduct) {
+    const account = await AccountProduct.findById(lead.accountProduct);
+    if (!account) return { receivable: 0, payable: 0 };
+    const bracket = findBracket(account.commissionBrackets, lead.customerSalary);
     return bracket
       ? { receivable: bracket.receivable, payable: bracket.payable }
       : { receivable: 0, payable: 0 };

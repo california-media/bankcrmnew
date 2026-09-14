@@ -15,7 +15,9 @@ import AdminLeads from './pages/admin/Leads';
 import AdminAgents from './pages/admin/Agents';
 import AgentDetail from './pages/admin/AgentDetail';
 import CardProducts from './pages/admin/CardProducts';
+import FeaturedProducts from './pages/admin/FeaturedProducts';
 import LoanProducts from './pages/admin/LoanProducts';
+import AccountProducts from './pages/admin/AccountProducts';
 import AdminBanks from './pages/admin/Banks';
 import AgentDashboard from './pages/agent/Dashboard';
 import SubmitLead from './pages/agent/SubmitLead';
@@ -47,6 +49,7 @@ import AdminBlog from './pages/admin/Blog';
 import LegalPages from './pages/admin/LegalPages';
 import AdminReports from './pages/admin/Reports';
 import AgencyReports from './pages/agency/Reports';
+import AgentReports from './pages/agent/Reports';
 import VerifyEmail from './pages/VerifyEmail';
 
 const theme = {
@@ -107,7 +110,9 @@ function App() {
           <Route path="agents" element={<AdminAgents />} />
           <Route path="agents/:id" element={<AgentDetail />} />
           <Route path="card-products" element={<CardProducts />} />
+          <Route path="featured-products" element={<FeaturedProducts />} />
           <Route path="loan-products" element={<LoanProducts />} />
+          <Route path="account-products" element={<AccountProducts />} />
           <Route path="banks" element={<AdminBanks />} />
           <Route path="payouts" element={<Payouts />} />
           <Route path="receive" element={<Receive />} />
@@ -121,7 +126,8 @@ function App() {
           <Route path="notices" element={<AdminNotices />} />
           <Route path="blog" element={<AdminBlog />} />
           <Route path="legal-pages" element={<LegalPages />} />
-          <Route path="reports" element={<AdminReports />} />
+          <Route path="reports" element={<AdminReports initialTab="performance" />} />
+          <Route path="margin-report" element={<AdminReports initialTab="margin" />} />
         </Route>
 
         <Route
@@ -138,6 +144,7 @@ function App() {
           <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="commissions" element={<Commissions />} />
           <Route path="products" element={<AgentProducts />} />
+          <Route path="reports" element={<AgentReports />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="settings" element={<Profile />} />

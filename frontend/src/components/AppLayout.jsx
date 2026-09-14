@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Layout, Menu, Avatar, Dropdown, Typography, Badge, Popover, Button, Space, theme, ConfigProvider, Grid } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Typography, Badge, Popover, Button, Space, theme, ConfigProvider, Grid, Modal, Form, Input, message } from 'antd';
 import {
   DashboardOutlined, BankOutlined, TeamOutlined, FileAddOutlined,
   UnorderedListOutlined, LogoutOutlined, UserOutlined, DollarOutlined,
@@ -8,11 +8,11 @@ import {
   BellOutlined, PlusCircleOutlined, CheckCircleOutlined, MenuOutlined,
   UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined, WalletOutlined,
   SettingOutlined, MailOutlined, NotificationOutlined, ReadOutlined, FileProtectOutlined,
-  BarChartOutlined,
+  BarChartOutlined, StarOutlined, RiseOutlined, LockOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../store/slices/authSlice';
+import { logout, updateProfile } from '../store/slices/authSlice';
 import { NotificationsProvider, useNotificationsContext } from '../contexts/NotificationsContext';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -49,6 +49,8 @@ const menusByRole = {
     { key: '/admin/banks',             icon: <BankOutlined />,         label: <Link to="/admin/banks">Banks</Link> },
     { key: '/admin/card-products',     icon: <CreditCardOutlined />,   label: <Link to="/admin/card-products">Card Products</Link> },
     { key: '/admin/loan-products',     icon: <FundOutlined />,         label: <Link to="/admin/loan-products">Loan Products</Link> },
+    { key: '/admin/account-products',  icon: <BankOutlined />,         label: <Link to="/admin/account-products">Account Products</Link> },
+    { key: '/admin/featured-products', icon: <StarOutlined />,         label: <Link to="/admin/featured-products">Featured Products</Link> },
     { key: '/admin/payouts',           icon: <DollarOutlined />,       label: <Link to="/admin/payouts">Payouts</Link> },
     { key: '/admin/receive',           icon: <InboxOutlined />,        label: <Link to="/admin/receive">Receive</Link> },
     { key: '/admin/employee-statuses', icon: <UnorderedListOutlined />,label: <Link to="/admin/employee-statuses">Lead Status</Link> },
@@ -60,7 +62,10 @@ const menusByRole = {
     { key: '/admin/notices',           icon: <NotificationOutlined />, label: <Link to="/admin/notices">Notices</Link> },
     { key: '/admin/blog',              icon: <ReadOutlined />,         label: <Link to="/admin/blog">Blog Posts</Link> },
     { key: '/admin/legal-pages',       icon: <FileProtectOutlined />,  label: <Link to="/admin/legal-pages">Legal Pages</Link> },
-    { key: '/admin/reports',            icon: <BarChartOutlined />,     label: <Link to="/admin/reports">Reports</Link> },
+    { key: '/admin/reports-group',      icon: <BarChartOutlined />,     label: 'Reports', children: [
+      { key: '/admin/reports',          icon: <BarChartOutlined />,     label: <Link to="/admin/reports">Performance Report</Link> },
+      { key: '/admin/margin-report',    icon: <RiseOutlined />,         label: <Link to="/admin/margin-report">Margin Report</Link> },
+    ] },
   ],
   agent: [
     { key: '/agent',                  icon: <DashboardOutlined />,    label: <Link to="/agent">Dashboard</Link> },
@@ -68,6 +73,7 @@ const menusByRole = {
     { key: '/agent/leads/new',        icon: <FileAddOutlined />,      label: <Link to="/agent/leads/new">New Lead</Link> },
     { key: '/agent/commissions',      icon: <DollarOutlined />,       label: <Link to="/agent/commissions">Payouts</Link> },
     { key: '/agent/products',         icon: <AppstoreOutlined />,     label: <Link to="/agent/products">Products</Link> },
+    { key: '/agent/reports',          icon: <BarChartOutlined />,     label: <Link to="/agent/reports">Reports</Link> },
     { key: '/agent/notifications',    icon: <BellOutlined />,         label: <Link to="/agent/notifications">Notifications</Link> },
     { key: '/agent/settings',         icon: <SettingOutlined />,      label: <Link to="/agent/settings">Settings</Link> },
   ],
@@ -156,6 +162,9 @@ function AppLayoutInner() {
   const isMobile  = !screens.lg;
 
   const [collapsed, setCollapsed] = useState(false);
+  const [pwdModalOpen, setPwdModalOpen] = useState(false);
+  const [savingPwd, setSavingPwd] = useState(false);
+  const [pwdForm] = Form.useForm();
 
   const baseItems = menusByRole[user.role] || [];
   const items = user.role === 'agency' && user.canViewPayouts
@@ -164,8 +173,24 @@ function AppLayoutInner() {
   const roleColor = ROLE_COLORS[user.role] || '#1e40af';
 
   const onMenuAction = ({ key }) => {
-    if (key === 'logout')  { dispatch(logout()); navigate('/login'); }
-    if (key === 'profile') navigate(`/${user.role}/profile`);
+    if (key === 'logout')           { dispatch(logout()); navigate('/login'); }
+    if (key === 'profile')          navigate(`/${user.role}/profile`);
+    if (key === 'change-password')  { pwdForm.resetFields(); setPwdModalOpen(true); }
+  };
+
+  const savePassword = async () => {
+    const values = await pwdForm.validateFields();
+    if (values.newPassword !== values.confirmPassword) { message.error('Passwords do not match'); return; }
+    setSavingPwd(true);
+    try {
+      await dispatch(updateProfile({ newPassword: values.newPassword })).unwrap();
+      message.success('Password changed');
+      setPwdModalOpen(false);
+    } catch (err) {
+      message.error(err || 'Password change failed');
+    } finally {
+      setSavingPwd(false);
+    }
   };
 
   const closeSiderOnMobile = () => {
@@ -266,6 +291,7 @@ function AppLayoutInner() {
               theme="light"
               mode="inline"
               selectedKeys={[location.pathname]}
+              defaultOpenKeys={items.filter(i => i.children?.some(c => c.key === location.pathname)).map(i => i.key)}
               items={items}
               style={{ borderInlineEnd: 0, background: 'transparent', fontWeight: 400 }}
               onSelect={closeSiderOnMobile}
@@ -364,6 +390,7 @@ function AppLayoutInner() {
 
             <Dropdown menu={{ items: [
               { key: 'profile', icon: <UserOutlined />, label: 'My Profile' },
+              { key: 'change-password', icon: <LockOutlined />, label: 'Change Password' },
               { type: 'divider' },
               { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', danger: true },
             ], onClick: onMenuAction }}>
@@ -398,6 +425,31 @@ function AppLayoutInner() {
           </div>
         </Content>
       </Layout>
+
+      <Modal
+        open={pwdModalOpen}
+        onCancel={() => setPwdModalOpen(false)}
+        footer={null}
+        centered
+        width={400}
+        title={<span><LockOutlined style={{ marginRight: 8, color: '#7C3AED' }} />Change Password</span>}
+        destroyOnClose
+      >
+        <Form form={pwdForm} layout="vertical">
+          <Form.Item name="newPassword" label="New Password" rules={[{ required: true, min: 6, message: 'At least 6 characters' }]}>
+            <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="New password" />
+          </Form.Item>
+          <Form.Item name="confirmPassword" label="Confirm New Password" rules={[{ required: true, message: 'Confirm your new password' }]}>
+            <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="Repeat new password" />
+          </Form.Item>
+          <Button
+            type="primary" loading={savingPwd} onClick={savePassword} icon={<LockOutlined />} block
+            style={{ background: 'linear-gradient(90deg,#7C3AED,#0EA5E9)', border: 'none', fontWeight: 700, height: 42, borderRadius: 8, boxShadow: '0 4px 14px rgba(124,58,237,0.35)' }}
+          >
+            Update Password
+          </Button>
+        </Form>
+      </Modal>
     </Layout>
   );
 }

@@ -64,10 +64,26 @@ const VISA_OPTIONS = [
   { value: 'other',      label: 'Other' },
 ];
 
-// LoanProduct.loanCategory is a 9-value enum; 'business' maps to the Business
+// LoanProduct.loanCategory is a 10-value enum; 'business' maps to the Business
 // Loan bucket, everything else (personal/mortgage/investor/auto_loan/buyout/
-// fresh/pdc/stl) is grouped under Personal Loan for this agent-facing filter.
+// fresh/pdc/stl/pos_loan) is grouped under Personal Loan for this agent-facing filter.
 const loanGroupOf = (loanCategory) => (loanCategory === 'business' ? 'business' : 'personal');
+
+// Some loanCategory values map to exactly one Loan Type (the process-flow
+// field) — no real choice for the agent, so it's set automatically instead of
+// shown as a dropdown. 'mortgage' maps to two, since the same mortgage
+// product can serve either a fresh purchase or a buyout/refinance — that's a
+// genuine choice, so it stays a visible dropdown. Categories not listed here
+// (personal/business/investor/buyout/fresh/pdc/stl) fall back to the
+// original group-based lists below.
+const LOAN_TYPE_OPTIONS_BY_CATEGORY = {
+  auto_loan: [{ value: 'auto_loan', label: 'Auto Loan' }],
+  pos_loan: [{ value: 'pos_loan', label: 'POS Loan' }],
+  mortgage: [
+    { value: 'mortgage_new', label: 'Mortgage Loan (New)' },
+    { value: 'mortgage_buyout', label: 'Mortgage Loan (Buyout)' },
+  ],
+};
 
 const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
 
@@ -234,6 +250,16 @@ function SubmitLead() {
     const loan = loanProducts.find((l) => l._id === id) || null;
     setSelectedLoan(loan);
     autoSelectMinBracket(loan?.commissionBrackets);
+    // Auto-loan/POS-loan products have exactly one valid Loan Type — set it
+    // directly instead of asking the agent to pick from a 1-item dropdown.
+    // Everything else (including mortgage's genuine New/Buyout choice)
+    // resets so the agent picks explicitly via the rendered dropdown.
+    const fixed = loan ? LOAN_TYPE_OPTIONS_BY_CATEGORY[loan.loanCategory] : null;
+    if (fixed && fixed.length === 1) {
+      form.setFieldValue('loanType', fixed[0].value);
+    } else {
+      form.resetFields(['loanType']);
+    }
   };
 
   const onAccountSelect = (id) => {
@@ -508,7 +534,7 @@ function SubmitLead() {
                   {selectedLoan && (
                     <div style={{ background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', padding: '8px 12px', marginBottom: 10, display: 'flex', gap: 16 }}>
                       <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Bank</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.bank?.name}</div></div>
-                      <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Category</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : selectedLoan.loanCategory === 'business' ? 'Business' : 'Personal'}</div></div>
+                      <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Category</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : selectedLoan.loanCategory === 'business' ? 'Business' : selectedLoan.loanCategory === 'auto_loan' ? 'Auto Loan' : selectedLoan.loanCategory === 'pos_loan' ? 'POS Loan' : 'Personal'}</div></div>
                     </div>
                   )}
                   {selectedLoan && activeBrackets.length > 0 && (
@@ -522,27 +548,33 @@ function SubmitLead() {
                       <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>{selectedBracket.payable}% of loan</span>
                     </div>
                   )}
-                  {selectedLoanGroup && (
-                    <Form.Item name="loanType" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Type <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select loan type' }]} style={{ marginBottom: 10 }}>
-                      <Select size="middle" placeholder="Select loan type" options={
-                        selectedLoanGroup === 'business'
-                          ? [
-                              { value: 'sme_new_loan',      label: 'SME New Loan' },
-                              { value: 'sme_buyout_loan',   label: 'SME Buyout Loan' },
-                              { value: 'pos_loan_non_bank', label: 'POS Loan / Non Bank' },
-                            ]
-                          : [
-                              { value: 'new_stl_loan',     label: 'New STL Loan' },
-                              { value: 'buyout',           label: 'Buyout' },
-                              { value: 'pdc',              label: 'PDC' },
-                              { value: 'auto_loan',        label: 'Auto Loan' },
-                              { value: 'mortgage_new',     label: 'Mortgage Loan (New)' },
-                              { value: 'mortgage_buyout',  label: 'Mortgage Loan (Buyout)' },
-                              { value: 'pos_loan',         label: 'POS Loan' },
-                            ]
-                      } />
-                    </Form.Item>
-                  )}
+                  {selectedLoan && (() => {
+                    // Only categories with a genuine choice (currently just
+                    // 'mortgage', New vs Buyout) render a dropdown here —
+                    // single-option categories (auto_loan/pos_loan) were
+                    // already set automatically in onLoanSelect, and every
+                    // other category falls back to its original group list.
+                    const fixed = LOAN_TYPE_OPTIONS_BY_CATEGORY[selectedLoan.loanCategory];
+                    if (fixed && fixed.length === 1) return null;
+                    const options = fixed || (
+                      selectedLoanGroup === 'business'
+                        ? [
+                            { value: 'sme_new_loan',      label: 'SME New Loan' },
+                            { value: 'sme_buyout_loan',   label: 'SME Buyout Loan' },
+                            { value: 'pos_loan_non_bank', label: 'POS Loan / Non Bank' },
+                          ]
+                        : [
+                            { value: 'new_stl_loan', label: 'New STL Loan' },
+                            { value: 'buyout',       label: 'Buyout' },
+                            { value: 'pdc',          label: 'PDC' },
+                          ]
+                    );
+                    return (
+                      <Form.Item name="loanType" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Type <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Select loan type' }]} style={{ marginBottom: 10 }}>
+                        <Select size="middle" placeholder="Select loan type" options={options} />
+                      </Form.Item>
+                    );
+                  })()}
                   <Form.Item name="loanAmount" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Loan Amount (AED) <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Loan amount required' }]} style={{ marginBottom: 4 }}>
                     <InputNumber size="middle" min={1} step={1000} style={{ width: '100%', borderRadius: 8 }} placeholder="e.g. 100000" />
                   </Form.Item>

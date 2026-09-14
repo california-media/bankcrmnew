@@ -4,13 +4,96 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MySilah — 183 cards. One tied to you.</title>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-RBBQLTFE0R"></script>
+  <!-- Cookie consent — gates Google Analytics until the visitor accepts -->
+  <style>
+    #cc-banner{position:fixed;left:20px;right:20px;bottom:20px;z-index:99999;max-width:760px;margin:0 auto;
+      background:#0B0F1E;color:#fff;border-radius:16px;padding:26px 30px;box-shadow:0 16px 48px rgba(0,0,0,0.4);
+      border:1px solid rgba(255,255,255,0.08);
+      font-family:-apple-system,BlinkMacSystemFont,'Inter',system-ui,sans-serif;display:flex;flex-wrap:wrap;gap:20px;align-items:center;}
+    #cc-banner .cc-text{flex:1 1 300px;}
+    #cc-banner h3{margin:0 0 6px;font-size:17px;font-weight:700;color:#fff;}
+    #cc-banner p{margin:0;font-size:14px;line-height:1.6;color:#CBD0DC;}
+    #cc-banner a{color:#8FD3FF;text-decoration:underline;}
+    #cc-banner .cc-actions{display:flex;gap:10px;flex-shrink:0;}
+    #cc-banner button{border:none;cursor:pointer;border-radius:999px;padding:12px 26px;font-size:14px;font-weight:700;font-family:inherit;}
+    #cc-banner .cc-accept{background:linear-gradient(135deg,#7C3AED,#2F6EFF);color:#fff;}
+    #cc-banner .cc-reject{background:transparent;color:#E5E7EB;border:1px solid rgba(255,255,255,0.3);}
+    #cc-reopen{position:fixed;left:20px;bottom:20px;z-index:99998;background:#0B0F1E;color:#fff;border:none;
+      border-radius:999px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,0.3);
+      font-family:-apple-system,BlinkMacSystemFont,'Inter',system-ui,sans-serif;display:none;}
+  </style>
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-RBBQLTFE0R');
+  (function(){
+    var CONSENT_KEY = 'mysilah_cookie_consent';
+    var GA_ID = 'G-RBBQLTFE0R';
+
+    function loadGA(){
+      if (window.__gaLoaded) return;
+      window.__gaLoaded = true;
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function(){ dataLayer.push(arguments); };
+      gtag('consent', 'default', {
+        ad_storage: 'denied', ad_user_data: 'denied', ad_personalization: 'denied', analytics_storage: 'denied'
+      });
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_ID;
+      document.head.appendChild(s);
+      gtag('js', new Date());
+      gtag('consent', 'update', {
+        ad_storage: 'granted', ad_user_data: 'granted', ad_personalization: 'granted', analytics_storage: 'granted'
+      });
+      gtag('config', GA_ID);
+    }
+
+    function getConsent(){ try { return localStorage.getItem(CONSENT_KEY); } catch(e){ return null; } }
+    function setConsent(v){ try { localStorage.setItem(CONSENT_KEY, v); } catch(e){} }
+
+    function showReopener(){
+      var btn = document.getElementById('cc-reopen');
+      if (!btn){
+        btn = document.createElement('button');
+        btn.id = 'cc-reopen';
+        btn.type = 'button';
+        btn.textContent = '🍪 Cookie settings';
+        document.body.appendChild(btn);
+        btn.addEventListener('click', function(){ btn.style.display = 'none'; showBanner(); });
+      }
+      btn.style.display = 'block';
+    }
+
+    function hideReopener(){
+      var btn = document.getElementById('cc-reopen');
+      if (btn) btn.style.display = 'none';
+    }
+
+    function showBanner(){
+      hideReopener();
+      var wrap = document.createElement('div');
+      wrap.id = 'cc-banner';
+      wrap.innerHTML =
+        '<div class="cc-text"><h3>🍪 We use cookies</h3>' +
+        '<p>We use cookies for analytics (Google Analytics) to understand how visitors use MySilah. No personal data is sold. See our <a href="cookie-policy.html">Cookie Policy</a>.</p></div>' +
+        '<div class="cc-actions">' +
+          '<button class="cc-reject" type="button">Reject</button>' +
+          '<button class="cc-accept" type="button">Accept</button>' +
+        '</div>';
+      document.body.appendChild(wrap);
+      wrap.querySelector('.cc-accept').addEventListener('click', function(){
+        setConsent('accepted'); loadGA(); wrap.remove();
+      });
+      wrap.querySelector('.cc-reject').addEventListener('click', function(){
+        setConsent('rejected'); wrap.remove(); showReopener();
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+      var consent = getConsent();
+      if (consent === 'accepted'){ loadGA(); }
+      else if (consent === 'rejected'){ showReopener(); }
+      else { showBanner(); }
+    });
+  })();
   </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />

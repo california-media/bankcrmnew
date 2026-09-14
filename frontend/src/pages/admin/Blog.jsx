@@ -58,6 +58,7 @@ export default function AdminBlog() {
   const [editors,          setEditors]         = useState([]);
   const [editorForm]                           = Form.useForm();
   const [editorSaving,     setEditorSaving]    = useState(false);
+  const [editingEditorId,  setEditingEditorId] = useState(null);
 
   const fetchEditors = async () => {
     try { const { data } = await api.get('/admin/blog-editors'); setEditors(data); } catch {}
@@ -471,7 +472,7 @@ export default function AdminBlog() {
       <Modal
         title={<span><TeamOutlined /> Blog Editors</span>}
         open={editorModalOpen}
-        onCancel={() => { setEditorModalOpen(false); editorForm.resetFields(); }}
+        onCancel={() => { setEditorModalOpen(false); editorForm.resetFields(); setEditingEditorId(null); }}
         footer={null}
         width={520}
         destroyOnClose
@@ -482,9 +483,17 @@ export default function AdminBlog() {
           onFinish={async (values) => {
             setEditorSaving(true);
             try {
-              await api.post('/admin/blog-editors', values);
-              message.success('Blog editor created');
+              if (editingEditorId) {
+                const payload = { name: values.name, email: values.email };
+                if (values.password) payload.password = values.password;
+                await api.put(`/admin/blog-editors/${editingEditorId}`, payload);
+                message.success('Blog editor updated');
+              } else {
+                await api.post('/admin/blog-editors', values);
+                message.success('Blog editor created');
+              }
               editorForm.resetFields();
+              setEditingEditorId(null);
               fetchEditors();
             } catch (err) {
               message.error(err.response?.data?.message || 'Failed');
@@ -500,10 +509,22 @@ export default function AdminBlog() {
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]} style={{ marginBottom: 10 }}>
             <Input placeholder="editor@company.ae" />
           </Form.Item>
-          <Form.Item name="password" label="Password" rules={[{ required: true, min: 6, message: 'Min 6 characters' }]} style={{ marginBottom: 14 }}>
-            <Input.Password placeholder="Temporary password" />
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={editingEditorId ? [{ min: 6, message: 'Min 6 characters' }] : [{ required: true, min: 6, message: 'Min 6 characters' }]}
+            style={{ marginBottom: 14 }}
+          >
+            <Input.Password placeholder={editingEditorId ? 'Leave blank to keep current password' : 'Temporary password'} />
           </Form.Item>
-          <Button type="primary" htmlType="submit" loading={editorSaving} block>Create Blog Editor</Button>
+          <Space.Compact block>
+            <Button type="primary" htmlType="submit" loading={editorSaving} block>
+              {editingEditorId ? 'Update Blog Editor' : 'Create Blog Editor'}
+            </Button>
+            {editingEditorId && (
+              <Button onClick={() => { editorForm.resetFields(); setEditingEditorId(null); }}>Cancel</Button>
+            )}
+          </Space.Compact>
         </Form>
 
         {editors.length > 0 && (
@@ -515,16 +536,27 @@ export default function AdminBlog() {
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{e.name}</div>
                   <div style={{ fontSize: 12, color: '#64748b' }}>{e.email}</div>
                 </div>
-                <Popconfirm
-                  title="Remove this blog editor?"
-                  onConfirm={async () => {
-                    try { await api.delete(`/admin/blog-editors/${e._id}`); fetchEditors(); message.success('Removed'); }
-                    catch { message.error('Failed'); }
-                  }}
-                  okText="Remove" okButtonProps={{ danger: true }}
-                >
-                  <Button size="small" danger type="text" icon={<DeleteOutlined />} />
-                </Popconfirm>
+                <Space size={4}>
+                  <Button
+                    size="small"
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => {
+                      setEditingEditorId(e._id);
+                      editorForm.setFieldsValue({ name: e.name, email: e.email, password: undefined });
+                    }}
+                  />
+                  <Popconfirm
+                    title="Remove this blog editor?"
+                    onConfirm={async () => {
+                      try { await api.delete(`/admin/blog-editors/${e._id}`); fetchEditors(); message.success('Removed'); }
+                      catch { message.error('Failed'); }
+                    }}
+                    okText="Remove" okButtonProps={{ danger: true }}
+                  >
+                    <Button size="small" danger type="text" icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </Space>
               </div>
             ))}
           </div>

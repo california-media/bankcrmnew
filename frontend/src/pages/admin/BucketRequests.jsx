@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Table, Tag, Typography, Button, Modal, Input, Form, Space, message, Tabs,
+  Table, Tag, Typography, Button, Modal, Input, Form, Space, message, Tabs, Select,
 } from 'antd';
 import {
-  CheckOutlined, CloseOutlined, WalletOutlined, PaperClipOutlined,
+  CheckOutlined, CloseOutlined, WalletOutlined, PaperClipOutlined, DownloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import * as XLSX from 'xlsx';
 import api from '../../api/client';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
@@ -22,6 +23,7 @@ export default function BucketRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState('pending');
+  const [filterAgency, setFilterAgency] = useState(null);
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectTarget, setRejectTarget] = useState(null);
@@ -40,7 +42,43 @@ export default function BucketRequests() {
     }
   };
 
-  useEffect(() => { load(tab); }, [tab]);
+  useEffect(() => { setFilterAgency(null); load(tab); }, [tab]);
+
+  const agencyOptions = useMemo(() =>
+    [...new Map(requests.filter(r => r.agency?._id).map(r => [String(r.agency._id), r.agency])).values()]
+      .map(a => ({ value: String(a._id), label: a.name || a.email }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [requests]
+  );
+
+  const displayed = useMemo(() =>
+    filterAgency ? requests.filter(r => String(r.agency?._id) === filterAgency) : requests,
+    [requests, filterAgency]
+  );
+
+  const exportExcel = () => {
+    const cols = ['Date', 'Agency', 'Email', 'Amount', 'Note', 'Reviewed At'];
+    const tot = displayed.reduce((s, r) => s + (r.amount || 0), 0);
+    const aoa = [
+      ['Approved Bucket Requests'],
+      [],
+      cols,
+      ...displayed.map(r => [
+        r.createdAt ? dayjs(r.createdAt).format('DD MMM YYYY, HH:mm') : '',
+        r.agency?.name || '',
+        r.agency?.email || '',
+        r.amount || 0,
+        r.note || '',
+        r.reviewedAt ? dayjs(r.reviewedAt).format('DD MMM YYYY, HH:mm') : '',
+      ]),
+      ['TOTAL', '', '', tot, '', ''],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: cols.length - 1 } }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Approved Requests');
+    XLSX.writeFile(wb, `approved-bucket-requests-${dayjs().format('YYYY-MM-DD')}.xlsx`);
+  };
 
   const approve = async (id) => {
     setActioning(id);
@@ -176,6 +214,9 @@ export default function BucketRequests() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Bucket Requests</h2>
         <div style={{ display: 'flex', gap: 8 }}>
+          {tab === 'approved' && (
+            <Button icon={<DownloadOutlined />} onClick={exportExcel} disabled={!displayed.length}>Export Excel</Button>
+          )}
         </div>
       </div>
       <Tabs
@@ -188,12 +229,27 @@ export default function BucketRequests() {
         ]}
       />
 
+      {tab === 'approved' && (
+        <div style={{ marginBottom: 12 }}>
+          <Select
+            showSearch
+            allowClear
+            placeholder="All Agencies"
+            options={agencyOptions}
+            value={filterAgency}
+            onChange={setFilterAgency}
+            style={{ width: 220 }}
+            filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+          />
+        </div>
+      )}
+
       <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
         <Table
           size="small"
           rowKey="_id"
           loading={loading}
-          dataSource={requests}
+          dataSource={displayed}
           columns={columns}
           scroll={{ x: 800 }}
           pagination={{ pageSize: 20, showSizeChanger: false }}

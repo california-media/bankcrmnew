@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Table, Tag, Typography, Button, Input, Tabs, Space, message, Popconfirm, Row, Col, Card, Modal, Form,
+  Table, Tag, Typography, Button, Input, Select, Tabs, Space, message, Popconfirm, Row, Col, Card, Modal, Form, Alert,
 } from 'antd';
 import {
-  SearchOutlined, InboxOutlined, ClockCircleOutlined, CheckCircleOutlined, BarChartOutlined, FileOutlined,
+  SearchOutlined, InboxOutlined, ClockCircleOutlined, CheckCircleOutlined, BarChartOutlined, FileOutlined, DownloadOutlined, WalletOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
+import * as XLSX from 'xlsx';
 import api from '../../api/client';
+
+const TAB_LABELS = { pending: 'Awaiting Receipt', receipt: 'Receipt Submitted', confirmed: 'Marked Received' };
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
@@ -20,6 +24,8 @@ export default function Receive() {
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('pending');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [filterAgency, setFilterAgency] = useState(null);
+  const [agencies, setAgencies] = useState([]);
 
   const [noteModal, setNoteModal] = useState(false);
   const [noteTarget, setNoteTarget] = useState(null); // array of IDs or null = all
@@ -35,7 +41,10 @@ export default function Receive() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.get('/agencies').then((res) => setAgencies(res.data)).catch(() => {});
+  }, []);
 
   const markReceived = async (leadIds, note) => {
     setSaving(true);
@@ -61,20 +70,32 @@ export default function Receive() {
     setNoteModal(true);
   };
 
+  const agencyOptions = useMemo(() =>
+    [...new Map(leads.filter((l) => l.agency?._id).map((l) => [String(l.agency._id), l.agency])).values()]
+      .map((a) => ({ value: String(a._id), label: a.name || a.email }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [leads],
+  );
+
+  const scopedLeads = useMemo(
+    () => filterAgency ? leads.filter((l) => String(l.agency?._id) === filterAgency) : leads,
+    [leads, filterAgency],
+  );
+
   // Tab 1: disbursed, agency hasn't submitted payment yet
   const pendingLeads = useMemo(
-    () => leads.filter((l) => l.agencyPaymentStatus === 'pending'),
-    [leads],
+    () => scopedLeads.filter((l) => l.agencyPaymentStatus === 'pending'),
+    [scopedLeads],
   );
   // Tab 2: agency submitted payment, admin hasn't confirmed yet
   const receiptLeads = useMemo(
-    () => leads.filter((l) => l.agencyPaymentStatus === 'agency_paid'),
-    [leads],
+    () => scopedLeads.filter((l) => l.agencyPaymentStatus === 'agency_paid'),
+    [scopedLeads],
   );
   // Tab 3: admin confirmed received
   const confirmedLeads = useMemo(
-    () => leads.filter((l) => l.agencyPaymentStatus === 'received'),
-    [leads],
+    () => scopedLeads.filter((l) => l.agencyPaymentStatus === 'received'),
+    [scopedLeads],
   );
 
   const stats = useMemo(() => ({
@@ -85,6 +106,13 @@ export default function Receive() {
     confirmedCount: confirmedLeads.length,
     confirmedAmount:confirmedLeads.reduce((s, l) => s + (l.grossCommission || 0), 0),
   }), [pendingLeads, receiptLeads, confirmedLeads]);
+
+  const bucketTotal = useMemo(() => {
+    const visibleAgencyIds = new Set(agencyOptions.map((o) => o.value));
+    const relevant = agencies.filter((a) => visibleAgencyIds.has(String(a._id)));
+    const scoped = filterAgency ? relevant.filter((a) => String(a._id) === filterAgency) : relevant;
+    return scoped.reduce((s, a) => s + (a.bucketBalance || 0), 0);
+  }, [agencies, agencyOptions, filterAgency]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -104,6 +132,36 @@ export default function Receive() {
     () => selectedRowKeys.filter((id) => receiptLeads.some((l) => l._id === id)),
     [selectedRowKeys, receiptLeads],
   );
+
+  const exportExcel = () => {
+    const cols = ['Lead ID', 'Client', 'Phone', 'Agency', 'Bank', 'Gross Commission'];
+    if (tab === 'receipt') cols.push('Receipt Ref', 'Receipt Date');
+    if (tab === 'confirmed') cols.push('Confirmed Date', 'Note');
+    const tot = filtered.reduce((s, l) => s + (l.grossCommission || 0), 0);
+    const totalRow = new Array(cols.length).fill('');
+    totalRow[0] = 'TOTAL';
+    totalRow[5] = tot;
+    const aoa = [
+      [`Receive — ${TAB_LABELS[tab]}`],
+      [],
+      cols,
+      ...filtered.map((l) => {
+        const row = [
+          l.leadNumber || '', l.customerName || '', l.phone || '',
+          l.agency?.name || l.agency?.email || '', l.bank?.name || '', l.grossCommission || 0,
+        ];
+        if (tab === 'receipt') row.push(l.disbursementReceipt || '', l.disbursementReceiptAt ? dayjs(l.disbursementReceiptAt).format('DD MMM YYYY') : '');
+        if (tab === 'confirmed') row.push(l.agencyPaymentReceivedAt ? dayjs(l.agencyPaymentReceivedAt).format('DD MMM YYYY') : '', l.agencyPaymentNote || '');
+        return row;
+      }),
+      totalRow,
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: cols.length - 1 } }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Receive');
+    XLSX.writeFile(wb, `receive-${tab}-${dayjs().format('YYYY-MM-DD')}.xlsx`);
+  };
 
   const baseColumns = [
     {
@@ -221,11 +279,6 @@ export default function Receive() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Receive</h2>
         <div style={{ display: 'flex', gap: 8 }}>
-          {tab === 'receipt' && selectedReceipt.length > 0 && (
-            <Button type="primary" icon={<InboxOutlined />} onClick={() => openNoteModal(selectedReceipt)}>
-              Mark Received ({selectedReceipt.length} selected)
-            </Button>
-          )}
           {tab === 'receipt' && stats.receiptCount > 0 && (
             <Popconfirm
               title={`Mark all ${stats.receiptCount} receipt(s) as confirmed received?`}
@@ -245,8 +298,9 @@ export default function Receive() {
           { color: '#f59e0b', icon: <ClockCircleOutlined />, label: 'AWAITING RECEIPT', value: aed(stats.pendingAmount), sub: `${stats.pendingCount} lead${stats.pendingCount !== 1 ? 's' : ''} — no agency receipt yet` },
           { color: '#2563eb', icon: <InboxOutlined />, label: 'RECEIPT SUBMITTED', value: aed(stats.receiptAmount), sub: `${stats.receiptCount} lead${stats.receiptCount !== 1 ? 's' : ''} — awaiting confirmation` },
           { color: '#16a34a', icon: <CheckCircleOutlined />, label: 'CONFIRMED RECEIVED', value: aed(stats.confirmedAmount), sub: `${stats.confirmedCount} payment${stats.confirmedCount !== 1 ? 's' : ''} confirmed` },
+          { color: '#7C3AED', icon: <WalletOutlined />, label: 'BUCKET BALANCE', value: aed(bucketTotal), sub: filterAgency ? 'Selected agency’s spendable balance' : 'Spendable balance across listed agencies' },
         ].map((s) => (
-          <Col xs={24} sm={8} key={s.label}>
+          <Col xs={24} sm={12} lg={6} key={s.label}>
             <div
               style={{
                 borderRadius: 14, border: '1px solid #edf0f7', borderTop: `3px solid ${s.color}`,
@@ -275,17 +329,46 @@ export default function Receive() {
           items={tabItems}
           style={{ marginBottom: 0 }}
         />
-        <Space style={{ marginBottom: 16 }}>
-          <Input
-            allowClear
-            placeholder="Search client, lead ID, or agency..."
-            prefix={<SearchOutlined />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: 300 }}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <Space>
+            <Input
+              allowClear
+              placeholder="Search client, lead ID, or agency..."
+              prefix={<SearchOutlined />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: 300 }}
+            />
+            <Select
+              showSearch
+              allowClear
+              placeholder="All Agencies"
+              options={agencyOptions}
+              value={filterAgency}
+              onChange={setFilterAgency}
+              style={{ width: 200 }}
+              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+            />
+            <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
+          </Space>
+          {tab === 'confirmed' && (
+            <Button icon={<DownloadOutlined />} onClick={exportExcel} disabled={!filtered.length}>Export Excel</Button>
+          )}
+        </div>
+        {tab === 'receipt' && selectedReceipt.length > 0 && (
+          <Alert
+            style={{ marginBottom: 16, borderRadius: 8 }}
+            type="warning"
+            message={
+              <Space size={24}>
+                <span>{selectedReceipt.length} lead(s) selected</span>
+                <Button type="primary" size="small" onClick={() => openNoteModal(selectedReceipt)}>
+                  Mark Received
+                </Button>
+              </Space>
+            }
           />
-          <Typography.Text type="secondary">{filtered.length} records</Typography.Text>
-        </Space>
+        )}
         <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
           <Table
             size="small"

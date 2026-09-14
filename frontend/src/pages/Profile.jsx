@@ -6,7 +6,7 @@ import {
 } from 'antd';
 import {
   UserOutlined, MailOutlined, PhoneOutlined, CalendarOutlined,
-  CopyOutlined, CheckOutlined, LockOutlined, EditOutlined, SaveOutlined,
+  CopyOutlined, CheckOutlined, EditOutlined, SaveOutlined,
   CloseOutlined, BankOutlined, IdcardOutlined, LinkOutlined,
   DeleteOutlined, WarningOutlined,
 } from '@ant-design/icons';
@@ -59,7 +59,6 @@ export default function Profile() {
   const [editing, setEditing]         = useState(false);
   const [editingBank, setEditingBank] = useState(false);
   const [savingInfo, setSavingInfo]   = useState(false);
-  const [savingPwd, setSavingPwd]     = useState(false);
   const [savingBank, setSavingBank]   = useState(false);
   const [copied, setCopied]           = useState(false);
   const [copiedLink, setCopiedLink]   = useState(false);
@@ -67,7 +66,6 @@ export default function Profile() {
   const [deleting, setDeleting]       = useState(false);
 
   const [infoForm]    = Form.useForm();
-  const [pwdForm]     = Form.useForm();
   const [bankForm]    = Form.useForm();
   const [deleteForm]  = Form.useForm();
 
@@ -103,21 +101,6 @@ export default function Profile() {
       message.error(err || 'Update failed');
     } finally {
       setSavingInfo(false);
-    }
-  };
-
-  const savePassword = async () => {
-    const values = await pwdForm.validateFields();
-    if (values.newPassword !== values.confirmPassword) { message.error('Passwords do not match'); return; }
-    setSavingPwd(true);
-    try {
-      await dispatch(updateProfile({ newPassword: values.newPassword })).unwrap();
-      message.success('Password changed');
-      pwdForm.resetFields();
-    } catch (err) {
-      message.error(err || 'Password change failed');
-    } finally {
-      setSavingPwd(false);
     }
   };
 
@@ -237,7 +220,7 @@ export default function Profile() {
           <Section>
             <SectionHeader
               title="Profile Information"
-              action={!editing && <Button size="small" icon={<EditOutlined />} type="text" onClick={startEdit} style={{ color: '#7C3AED' }}>Edit</Button>}
+              action={!editing && role !== 'agent' && <Button size="small" icon={<EditOutlined />} type="text" onClick={startEdit} style={{ color: '#7C3AED' }}>Edit</Button>}
             />
             {editing ? (
               <div style={{ padding: 20 }}>
@@ -370,27 +353,6 @@ export default function Profile() {
               <InfoRow icon={<CalendarOutlined />} label="Member Since" value={new Date(profile.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'long', year: 'numeric' })} />
             </Section>
           )}
-
-          {/* Change password */}
-          <Section>
-            <SectionHeader title={<span><LockOutlined style={{ marginRight: 6, color: '#7C3AED' }} />Change Password</span>} />
-            <div style={{ padding: 20 }}>
-              <Form form={pwdForm} layout="vertical">
-                <Form.Item name="newPassword" label="New Password" rules={[{ required: true, min: 6, message: 'At least 6 characters' }]}>
-                  <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="New password" />
-                </Form.Item>
-                <Form.Item name="confirmPassword" label="Confirm New Password" rules={[{ required: true, message: 'Confirm your new password' }]}>
-                  <Input.Password prefix={<LockOutlined style={{ color: '#94a3b8' }} />} placeholder="Repeat new password" />
-                </Form.Item>
-                <Button
-                  type="primary" loading={savingPwd} onClick={savePassword} icon={<LockOutlined />} block
-                  style={{ background: 'linear-gradient(90deg,#7C3AED,#0EA5E9)', border: 'none', fontWeight: 700, height: 42, borderRadius: 8, boxShadow: '0 4px 14px rgba(124,58,237,0.35)' }}
-                >
-                  Update Password
-                </Button>
-              </Form>
-            </div>
-          </Section>
 
           {/* Delete Account — agents only */}
           {role === 'agent' && (

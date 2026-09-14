@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Typography, DatePicker, Select, Button, Card, Row, Col, Statistic, Grid, Tag, Tabs } from 'antd';
+import { Table, Typography, DatePicker, Select, Button, Card, Row, Col, Statistic, Grid, Tag, Tabs, Input } from 'antd';
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
@@ -25,12 +25,13 @@ const STATUS_TAG = {
 };
 const PRODUCT_LABELS = { credit_card: 'Credit Card', loan: 'Loan' };
 const PIE_COLORS = ['#7C3AED', '#0EA5E9'];
+const aed = v => `AED ${Number(v || 0).toLocaleString()}`;
 
-function AdminReports() {
+function AdminReports({ initialTab = 'overview' }) {
   const screens = useBreakpoint();
   const isMobile = !screens.md;
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [labelStatuses, setLabelStatuses] = useState([]);
@@ -40,6 +41,7 @@ function AdminReports() {
   const [filterBank, setFilterBank] = useState(null);
   const [filterAgency, setFilterAgency] = useState(null);
   const [filterAgent,  setFilterAgent]  = useState(null);
+  const [marginSearch, setMarginSearch] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -61,9 +63,10 @@ function AdminReports() {
   const filtered = useMemo(() => {
     let r = leads;
     if (dateRange[0] && dateRange[1]) {
+      const dateField = initialTab === 'margin' ? 'commissionPaidAt' : 'createdAt';
       r = r.filter(l => {
-        const d = dayjs(l.createdAt);
-        return !d.isBefore(dateRange[0].startOf('day')) && !d.isAfter(dateRange[1].endOf('day'));
+        const d = dayjs(l[dateField]);
+        return d.isValid() && !d.isBefore(dateRange[0].startOf('day')) && !d.isAfter(dateRange[1].endOf('day'));
       });
     }
     if (filterStage) r = r.filter(l => String(l.employeeStatus?._id) === filterStage);
@@ -72,7 +75,7 @@ function AdminReports() {
     if (filterAgency) r = r.filter(l => String(l.agency?._id) === filterAgency);
     if (filterAgent)  r = r.filter(l => String(l.agent?._id)  === filterAgent);
     return r;
-  }, [leads, dateRange, filterStage, filterProduct, filterBank, filterAgency, filterAgent]);
+  }, [leads, dateRange, filterStage, filterProduct, filterBank, filterAgency, filterAgent, initialTab]);
 
   const kpi = useMemo(() => {
     const total = filtered.length;
@@ -116,6 +119,63 @@ function AdminReports() {
     filtered.forEach(l => { if (l.bank?.name) map[l.bank.name] = (map[l.bank.name] || 0) + 1; });
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, count]) => ({ name, count }));
   }, [filtered]);
+
+  const paidLeads = useMemo(() => filtered.filter(l => l.commissionStatus === 'paid'), [filtered]);
+
+  const marginKpi = useMemo(() => {
+    const paid = paidLeads.reduce((s, l) => s + (l.commission || 0), 0);
+    const received = paidLeads.reduce((s, l) => s + (l.grossCommission || 0), 0);
+    return { paid, received, margin: received - paid };
+  }, [paidLeads]);
+
+  const marginByAgency = useMemo(() => {
+    const map = {};
+    paidLeads.forEach(l => {
+      const name = l.agency?.name || l.agency?.email || '—';
+      map[name] = (map[name] || 0) + ((l.grossCommission || 0) - (l.commission || 0));
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, profit]) => ({ name, profit }));
+  }, [paidLeads]);
+
+  const marginByMonth = useMemo(() => {
+    const map = {};
+    for (let i = 11; i >= 0; i--) map[dayjs().subtract(i, 'month').format('MMM YY')] = 0;
+    paidLeads.forEach(l => {
+      const key = dayjs(l.commissionPaidAt || l.createdAt).format('MMM YY');
+      if (key in map) map[key] += (l.grossCommission || 0) - (l.commission || 0);
+    });
+    return Object.entries(map).map(([name, profit]) => ({ name, profit }));
+  }, [paidLeads]);
+
+  const marginSplit = useMemo(() => [
+    { name: 'Paid to Agent', value: marginKpi.paid },
+    { name: 'Profit', value: marginKpi.margin },
+  ], [marginKpi]);
+
+  const topBanksByProfit = useMemo(() => {
+    const map = {};
+    paidLeads.forEach(l => {
+      if (!l.bank?.name) return;
+      map[l.bank.name] = (map[l.bank.name] || 0) + ((l.grossCommission || 0) - (l.commission || 0));
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, profit]) => ({ name, profit }));
+  }, [paidLeads]);
+
+  const marginTableData = useMemo(() => paidLeads.map(l => ({
+    key: l._id,
+    leadNumber: l.leadNumber,
+    customerName: l.customerName,
+    agentName: l.agent?.name || l.agent?.email || '—',
+    agencyName: l.agency?.name || l.agency?.email || '—',
+    paidDate: l.commissionPaidAt,
+    paid: l.commission || 0,
+    received: l.grossCommission || 0,
+    profit: (l.grossCommission || 0) - (l.commission || 0),
+  })).filter(r => {
+    const q = marginSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (r.leadNumber || '').toLowerCase().includes(q) || (r.customerName || '').toLowerCase().includes(q);
+  }), [paidLeads, marginSearch]);
 
   const bankOptions = useMemo(() =>
     [...new Map(leads.filter(l => l.bank?._id).map(l => [String(l.bank._id), l.bank])).values()]
@@ -177,6 +237,30 @@ function AdminReports() {
     XLSX.writeFile(wb, `performance-report-${from}-to-${to}.xlsx`);
   };
 
+  const exportMarginExcel = () => {
+    const hasRange = dateRange[0] && dateRange[1];
+    const from = dateRange[0] ? dateRange[0].format('DD-MM-YYYY') : '';
+    const to   = dateRange[1] ? dateRange[1].format('DD-MM-YYYY') : '';
+    const cols = ['Lead ID', 'Customer', 'Agent', 'Agency', 'Paid Date', 'Paid', 'Received', 'Profit'];
+    const tot = marginTableData.reduce((a, r) => ({ paid: a.paid + r.paid, received: a.received + r.received, profit: a.profit + r.profit }), { paid: 0, received: 0, profit: 0 });
+    const aoa = [
+      [hasRange ? `Margin Report: ${from} to ${to}` : 'Margin Report — All Time'],
+      [],
+      cols,
+      ...marginTableData.map(r => [
+        r.leadNumber || '', r.customerName || '', r.agentName, r.agencyName,
+        r.paidDate ? dayjs(r.paidDate).format('DD MMM YYYY') : '',
+        r.paid, r.received, r.profit,
+      ]),
+      ['TOTAL', '', '', '', '', tot.paid, tot.received, tot.profit],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: cols.length - 1 } }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Margin');
+    XLSX.writeFile(wb, hasRange ? `margin-report-${from}-to-${to}.xlsx` : `margin-report-${dayjs().format('YYYY-MM-DD')}.xlsx`);
+  };
+
   const exportExcel = () => {
     const rows = filtered.map(l => ({
       'Ref #': l.leadNumber || '',
@@ -210,6 +294,7 @@ function AdminReports() {
     setFilterBank(null);
     setFilterAgency(null);
     setFilterAgent(null);
+    setMarginSearch('');
   };
 
   const columns = [
@@ -247,12 +332,20 @@ function AdminReports() {
   ];
 
   const kpiConfig = [
-    { title: 'Total Leads',              value: kpi.total,       color: '#7C3AED' },
-    { title: 'WIP (Work in Process)',    value: kpi.wip,         color: '#f97316' },
-    { title: 'Approved',                 value: kpi.approved,    color: '#22c55e' },
-    { title: 'Disbursed',                value: kpi.disbursed,   color: '#a855f7' },
-    { title: 'Rejected',                 value: kpi.rejected,    color: '#ef4444' },
-    { title: 'Conversion %',             value: `${kpi.conversion}%`, color: '#0ea5e9' },
+    ...(initialTab === 'margin' ? [
+      { title: 'Total Paid',     value: aed(marginKpi.paid),     color: '#f97316' },
+      { title: 'Total Received', value: aed(marginKpi.received), color: '#0ea5e9' },
+      { title: 'Total Margin',   value: aed(marginKpi.margin),   color: '#22c55e' },
+    ] : [
+      { title: 'Total Leads',              value: kpi.total,       color: '#7C3AED' },
+      { title: 'WIP (Work in Process)',    value: kpi.wip,         color: '#f97316' },
+      { title: 'Approved',                 value: kpi.approved,    color: '#22c55e' },
+      { title: 'Disbursed',                value: kpi.disbursed,   color: '#a855f7' },
+      { title: 'Rejected',                 value: kpi.rejected,    color: '#ef4444' },
+    ]),
+    initialTab === 'margin'
+      ? { title: 'Profit %', value: `${marginKpi.received ? ((marginKpi.margin * 100) / marginKpi.received).toFixed(1) : '0.0'}%`, color: '#0ea5e9' }
+      : { title: 'Conversion %', value: `${kpi.conversion}%`, color: '#0ea5e9' },
   ];
 
   return (
@@ -269,23 +362,37 @@ function AdminReports() {
         {activeTab === 'performance' && (
           <Button type="primary" icon={<DownloadOutlined />} onClick={exportPerfExcel} disabled={!perfData.length}>Export Excel</Button>
         )}
+        {activeTab === 'margin' && (
+          <Button type="primary" icon={<DownloadOutlined />} onClick={exportMarginExcel} disabled={!marginTableData.length}>Export Excel</Button>
+        )}
       </div>
 
       <Card size="small" style={{ marginBottom: 20, borderRadius: 12 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+          {initialTab === 'margin' && (
+            <Input
+              allowClear
+              placeholder="Search Lead ID / Customer"
+              value={marginSearch}
+              onChange={e => setMarginSearch(e.target.value)}
+              style={{ width: 220 }}
+            />
+          )}
           <DatePicker.RangePicker
             value={dateRange}
             onChange={v => setDateRange(v || [null, null])}
             style={{ flex: isMobile ? '1 1 100%' : undefined }}
           />
-          <Select
-            allowClear
-            placeholder="All Stages"
-            options={labelStatuses.map(s => ({ value: String(s._id), label: s.label }))}
-            value={filterStage}
-            onChange={setFilterStage}
-            style={{ minWidth: 160 }}
-          />
+          {initialTab !== 'margin' && (
+            <Select
+              allowClear
+              placeholder="All Stages"
+              options={labelStatuses.map(s => ({ value: String(s._id), label: s.label }))}
+              value={filterStage}
+              onChange={setFilterStage}
+              style={{ minWidth: 160 }}
+            />
+          )}
           <Select
             placeholder="All Products"
             options={Object.entries(PRODUCT_LABELS).map(([v, l]) => ({ value: v, label: l }))}
@@ -332,7 +439,10 @@ function AdminReports() {
         activeKey={activeTab}
         onChange={setActiveTab}
         style={{ marginBottom: 0 }}
-        items={[
+        items={initialTab === 'margin' ? [
+          { key: 'overview', label: 'Overview' },
+          { key: 'margin', label: 'Margin Report' },
+        ] : [
           { key: 'overview', label: 'Overview' },
           { key: 'performance', label: 'Performance Report' },
         ]}
@@ -353,6 +463,84 @@ function AdminReports() {
         ))}
       </div>
 
+      {initialTab === 'margin' ? (
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        <Col xs={24} lg={12}>
+          <Card title="Profit by Agency" size="small" style={{ borderRadius: 12 }}>
+            {marginByAgency.length ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={marginByAgency} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={v => aed(v)} />
+                  <Bar dataKey="profit" radius={[4, 4, 0, 0]} fill="#22c55e" name="Profit" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                No data
+              </div>
+            )}
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={12}>
+          <Card title="Profit Over Time (12 months)" size="small" style={{ borderRadius: 12 }}>
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={marginByMonth} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={v => aed(v)} />
+                <Line type="monotone" dataKey="profit" stroke="#7C3AED" strokeWidth={2} dot={{ r: 3 }} name="Profit" />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Card title="Paid vs Profit Split" size="small" style={{ borderRadius: 12 }}>
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie
+                  data={marginSplit}
+                  cx="50%" cy="50%"
+                  innerRadius={55} outerRadius={85}
+                  dataKey="value"
+                  label={({ name, percent }) => percent > 0 ? `${name} ${(percent * 100).toFixed(0)}%` : ''}
+                  labelLine={false}
+                >
+                  {marginSplit.map((_, i) => <Cell key={i} fill={PIE_COLORS[i]} />)}
+                </Pie>
+                <Tooltip formatter={v => aed(v)} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Card title="Top Banks by Profit" size="small" style={{ borderRadius: 12 }}>
+            {topBanksByProfit.length ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={topBanksByProfit} layout="vertical" margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} />
+                  <Tooltip formatter={v => aed(v)} />
+                  <Bar dataKey="profit" fill="#7C3AED" radius={[0, 4, 4, 0]} name="Profit" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                No data
+              </div>
+            )}
+          </Card>
+        </Col>
+      </Row>
+      ) : (
       <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
         <Col xs={24} lg={12}>
           <Card title="Leads by Stage" size="small" style={{ borderRadius: 12 }}>
@@ -427,6 +615,7 @@ function AdminReports() {
           </Card>
         </Col>
       </Row>
+      )}
 
       </>}
 
@@ -473,6 +662,52 @@ function AdminReports() {
             ]}
           />
         </Card>
+      </>}
+
+      {activeTab === 'margin' && <>
+      <div style={{ margin: '16px 0 16px', color: '#64748b', fontSize: 13 }}>
+        {dateRange[0] && dateRange[1]
+          ? `Margin Report: ${dateRange[0].format('DD-MM-YYYY')} to ${dateRange[1].format('DD-MM-YYYY')}`
+          : 'Margin Report — all time (select date range to filter)'}
+      </div>
+      <Card size="small" style={{ borderRadius: 12 }}>
+        <Table
+          rowKey="key"
+          size="small"
+          loading={loading}
+          dataSource={marginTableData}
+          scroll={{ x: 900 }}
+          pagination={{ defaultPageSize: 50, pageSizeOptions: [10, 20, 50, 100], showSizeChanger: true, showTotal: t => `${t} rows` }}
+          summary={rows => {
+            const tot = k => rows.reduce((s, r) => s + r[k], 0);
+            return (
+              <Table.Summary.Row style={{ fontWeight: 700, background: '#f8fafc' }}>
+                <Table.Summary.Cell index={0} colSpan={5}>Total</Table.Summary.Cell>
+                <Table.Summary.Cell index={5} align="right">{aed(tot('paid'))}</Table.Summary.Cell>
+                <Table.Summary.Cell index={6} align="right">{aed(tot('received'))}</Table.Summary.Cell>
+                <Table.Summary.Cell index={7} align="right">{aed(tot('profit'))}</Table.Summary.Cell>
+              </Table.Summary.Row>
+            );
+          }}
+          columns={[
+            { title: 'Lead ID', dataIndex: 'leadNumber', render: v => <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{v || '—'}</span> },
+            { title: 'Customer', dataIndex: 'customerName' },
+            { title: 'Agent', dataIndex: 'agentName', sorter: (a, b) => a.agentName.localeCompare(b.agentName) },
+            { title: 'Agency', dataIndex: 'agencyName', sorter: (a, b) => a.agencyName.localeCompare(b.agencyName) },
+            {
+              title: 'Paid Date', dataIndex: 'paidDate',
+              render: v => v ? dayjs(v).format('DD MMM YYYY') : '—',
+              sorter: (a, b) => new Date(a.paidDate) - new Date(b.paidDate),
+            },
+            { title: 'Paid', dataIndex: 'paid', align: 'right', sorter: (a, b) => a.paid - b.paid, render: v => aed(v) },
+            { title: 'Received', dataIndex: 'received', align: 'right', sorter: (a, b) => a.received - b.received, render: v => aed(v) },
+            {
+              title: 'Profit', dataIndex: 'profit', align: 'right', sorter: (a, b) => a.profit - b.profit,
+              render: v => <span style={{ fontWeight: 600, color: '#22c55e' }}>{aed(v)}</span>,
+            },
+          ]}
+        />
+      </Card>
       </>}
     </>
   );

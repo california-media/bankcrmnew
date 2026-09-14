@@ -156,6 +156,12 @@ const authSlice = createSlice({
       state.otpError = null;
       state.phoneVerifyToken = null;
     },
+    resetRegistrationPending(state) {
+      state.registrationPending = false;
+    },
+    setOtpError(state, action) {
+      state.otpError = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -239,5 +245,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError, resetOtp } = authSlice.actions;
+export const { logout, clearError, resetOtp, resetRegistrationPending, setOtpError } = authSlice.actions;
 export default authSlice.reducer;

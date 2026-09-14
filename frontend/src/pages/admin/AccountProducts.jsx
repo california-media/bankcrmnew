@@ -95,7 +95,7 @@ function AccountProducts() {
     const values = await form.validateFields();
     try {
       const strVal = values.salaryTransferRequired;
-      values.salaryTransferRequired = strVal === 'yes' ? true : strVal === 'no' ? false : strVal === 'varies' ? null : undefined;
+      values.salaryTransferRequired = strVal === 'yes' ? true : strVal === 'no' ? false : null;
       const payload = { ...values, benefits: benefitsHtml, feesEligibility: feesHtml };
       if (editing) {
         await api.put(`/account-products/${editing._id}`, payload);

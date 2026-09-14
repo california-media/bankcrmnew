@@ -3,16 +3,16 @@ import { Form, Input, Button, Alert, Checkbox } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerAgent, clearError, sendOtp, verifyOtp, resetOtp } from '../store/slices/authSlice';
+import { registerAgent, clearError, sendOtp, verifyOtp, resetOtp, resetRegistrationPending, setOtpError } from '../store/slices/authSlice';
 import { validateUAELocalPhone, toFullUAEPhone } from '../utils/validatePhone';
 
-const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') ;
 
 const UAE_PASS_ERROR_MESSAGES = {
-  invalid_state:    'Something went wrong during the login, please try again later!',
-  token_failed:     'Something went wrong during the login, please try again later!',
-  userinfo_failed:  'Something went wrong during the login, please try again later!',
-  server_error:     'Something went wrong during the login, please try again later!',
+  invalid_state:    'Something went wrong during the login, please try again later!1',
+  token_failed:     'Something went wrong during the login, please try again later!2',
+  userinfo_failed:  'Something went wrong during the login, please try again later!3',
+  server_error:     'Something went wrong during the login, please try again later!4',
   invalid_request:  'User cancelled the login.',
   login_required:   'User cancelled the login.',
   access_denied:    'User cancelled the login.',
@@ -51,6 +51,8 @@ function Register() {
 
   useEffect(() => () => dispatch(resetOtp()), [dispatch]);
 
+  useEffect(() => () => dispatch(resetRegistrationPending()), [dispatch]);
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -71,10 +73,14 @@ function Register() {
       } catch { /* ignore */ }
     }
     const errCode = searchParams.get('uaepass_error');
-    if (errCode) setUaepassError(UAE_PASS_ERROR_MESSAGES[errCode] || 'UAE Pass authentication failed.');
+    if (errCode) setUaepassError(UAE_PASS_ERROR_MESSAGES[errCode] || 'User cancelled the login');
   }, [searchParams]);
 
   const onFinish = (values) => {
+    if (otpStatus !== 'verified') {
+      dispatch(setOtpError('Please verify your phone number before creating an account'));
+      return;
+    }
     const payload = {
       name:       values.name,
       email:      values.email,
@@ -100,8 +106,16 @@ function Register() {
     dispatch(sendOtp({ phone }));
   };
 
+  const handleChangeNumber = () => {
+    dispatch(resetOtp());
+    setOtpDigits(['', '', '', '', '', '']);
+    setResendTimer(60);
+    setCanResend(false);
+  };
+
   const handleResendOtp = () => {
     const phone = toFullUAEPhone(form.getFieldValue('phone'));
+    setOtpDigits(['', '', '', '', '', '']);
     setResendTimer(60);
     setCanResend(false);
     dispatch(sendOtp({ phone }));
@@ -197,7 +211,7 @@ function Register() {
           <Form.Item name="_uaepassPrefill" hidden><Input /></Form.Item>
 
           <Form.Item name="name"  rules={[{ required:true, message:'Name required' }]}            style={itemStyle}>
-            <Input placeholder="Full Name *" style={inputStyle} />
+            <Input placeholder="Full Name * (as per Emirates Id)" style={inputStyle} />
           </Form.Item>
           <Form.Item name="email" rules={[{ required:true, type:'email', message:'Valid email required' }]} style={itemStyle}>
             <Input placeholder="Email *" style={inputStyle} />
@@ -215,17 +229,18 @@ function Register() {
               suffix={
                 otpStatus === 'verified' ? (
                   <span style={{ color: '#16A34A', fontSize: 12, fontWeight: 600 }}>Verified ✓</span>
-                ) : (
+                ) : (otpStatus === 'idle' || otpStatus === 'sending') ? (
                   <Button
                     type="link"
-                    size="small"
+                    // size="small"
+                    
                     onClick={handleSendOtp}
                     loading={otpStatus === 'sending'}
-                    style={{ padding: 0 }}
+                    style={{ padding: 0, fontSize: 12, fontWeight: 600, color: '#7C3AED' }}
                   >
-                    Send OTP
+                   <img src ="whatsapp-icon.png" width={20}/> Send OTP
                   </Button>
-                )
+                ) : null
               }
             />
           </Form.Item>
@@ -249,12 +264,12 @@ function Register() {
                   type="primary"
                   onClick={handleVerifyOtp}
                   loading={otpStatus === 'verifying'}
-                  disabled={otpDigits.some((d) => !d)}
+                  disabled={otpDigits.some((d) => !d) || otpStatus === 'sending'}
                 >
                   Verify
                 </Button>
               </div>
-              <div style={{ fontSize: 12, color: '#6B7186' }}>
+              <div style={{ fontSize: 12, color: '#6B7186', display: 'flex', gap: 12, alignItems: 'center' }}>
                 {canResend ? (
                   <Button type="link" size="small" onClick={handleResendOtp} style={{ padding: 0 }}>
                     Resend OTP
@@ -262,14 +277,17 @@ function Register() {
                 ) : (
                   `Resend OTP in ${resendTimer}s`
                 )}
+                <Button type="link" size="small" onClick={handleChangeNumber} style={{ padding: 0 }}>
+                  Change number
+                </Button>
               </div>
             </div>
           )}
           <Form.Item name="password" rules={[{ required:true, min:6, message:'Min 6 characters' }]} style={itemStyle}>
             <Input.Password placeholder="Password *" style={inputStyle} />
           </Form.Item>
-          <Form.Item name="emiratesId" style={itemStyle}>
-            <Input placeholder="Emirates ID (optional) — 784-XXXX-XXXXXXX-X" style={inputStyle} />
+          <Form.Item name="emiratesId" rules={[{ required: true, message: 'Emirates ID is required' }]} style={itemStyle}>
+            <Input placeholder="Emirates ID * — 784-XXXX-XXXXXXX-X" style={inputStyle} />
           </Form.Item>
 
           <Form.Item
@@ -284,7 +302,7 @@ function Register() {
 
           <Button
             type="primary" htmlType="submit" loading={status === 'loading'}
-            disabled={otpStatus !== 'verified'} block size="large"
+            block size="large"
             style={{
               borderRadius:999, height:48, fontSize:15, fontWeight:600,
               background:'linear-gradient(90deg,#7C3AED,#8B5CF6 50%,#0EA5E9)',
@@ -305,28 +323,56 @@ function Register() {
               </div>
 
               {/* UAE PASS button */}
+              <style>{`
+                .uaepass-btn {
+                  width: 100%; min-width: 300px; min-height: 44px; height: 44px;
+                  margin: 5px 0;
+                  display: flex; align-items: center; justify-content: center; gap: 5px;
+                  padding: 10px 30px;
+                  background: #fff; border: 1.5px solid #E8E8EE; border-radius: 999px;
+                  cursor: pointer; font-size: 19px; font-weight: 600; color: #0B0F1E;
+                  box-shadow: 0 1px 4px rgba(11,15,30,0.05);
+                  transition: border-color 0.18s, box-shadow 0.18s, background-color 0.18s;
+                  border-color:black;
+                }
+                .uaepass-btn:hover:not(:disabled) {
+                  border-color: #059669;
+                  box-shadow: 0 0 0 3px rgba(5,150,105,0.12);
+                }
+                .uaepass-btn:focus-visible {
+                  outline: none;
+                  border-color: #059669;
+                  box-shadow: 0 0 0 3px rgba(5,150,105,0.18);
+                }
+                .uaepass-btn:active:not(:disabled) {
+                  background: #F3F4F6;
+                  border-color: #D1D5DB;
+                }
+                .uaepass-btn:disabled {
+                  opacity: 0.5;
+                  cursor: not-allowed;
+                  box-shadow: none;
+                }
+              `}</style>
+              <div style={{ display:'flex', justifyContent:'center', }}>
               <button
                 type="button" onClick={handleUaePass}
-                style={{
-                  width:'100%', height:48,
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-                  background:'#fff', border:'1.5px solid #E8E8EE', borderRadius:999,
-                  cursor:'pointer', fontSize:14.5, fontWeight:600, color:'#0B0F1E',
-                  boxShadow:'0 1px 4px rgba(11,15,30,0.05)',
-                  transition:'border-color 0.18s, box-shadow 0.18s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor='#7C3AED'; e.currentTarget.style.boxShadow='0 0 0 3px rgba(124,58,237,0.10)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor='#E8E8EE'; e.currentTarget.style.boxShadow='0 1px 4px rgba(11,15,30,0.05)'; }}
+                className="uaepass-btn"
+                style={{marginTop:2}}
               >
                 <img
                   src="/uae-logo.png"
                   alt="UAE PASS" style={{ height:28, width:'auto', objectFit:'contain' }}
                 />
-                Sign in with UAE PASS
+                Sign up with UAE PASS
               </button>
-              <p style={{ textAlign:'center', fontSize:11.5, color:'#9AA0B4', margin:'4px 0 0' }}>
-                Instant verification using your Emirates ID
-              </p>
+              </div>
+              <div style={{ display:'flex', justifyContent:'center', marginTop:5 }}>
+                <p style={{ textAlign:'center', fontSize:15, color:'#78849E', margin:'2px 0 0 50px', minWidth:300, textAlign:'center', fontFamily:"sf-pro-medium" }}>
+                  {/* Instant verification using your Emirates ID */}
+                  A single trusted digital identity for all citizens, residents, and visitors.
+                </p>
+              </div>
             </>
           )}
         </Form>

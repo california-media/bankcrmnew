@@ -450,7 +450,7 @@ export default function ReferralForm() {
                       {selectedLoan && (
                         <div style={{ background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', padding: '8px 12px', marginBottom: 8, display: 'flex', gap: 16 }}>
                           <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Bank</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.bank?.name}</div></div>
-                          <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Category</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal'}</div></div>
+                          <div><div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 1 }}>Category</div><div style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b' }}>{selectedLoan.loanCategory === 'mortgage' ? 'Mortgage' : selectedLoan.loanCategory === 'business' ? 'Business' : 'Personal'}</div></div>
                         </div>
                       )}
                       <Form.Item name="loanAmount" label="Amount (AED)" rules={[{ required: true, message: 'Required' }]} style={MB}>

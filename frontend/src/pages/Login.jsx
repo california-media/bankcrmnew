@@ -79,7 +79,7 @@ function Login() {
 
   useEffect(() => {
     const errCode = searchParams.get('uaepass_error');
-    if (errCode) setUaepassError(UAE_PASS_ERROR_MESSAGES[errCode] || 'UAE Pass authentication failed.');
+    if (errCode) setUaepassError(UAE_PASS_ERROR_MESSAGES[errCode] || 'User cancelled the login');
   }, [searchParams]);
 
   // Auto-rotate
@@ -155,24 +155,47 @@ function Login() {
                 Continue to dashboard →
               </Button>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 5px' }}>
                 <div style={{ flex: 1, height: 1, background: '#E8E8EE' }} />
                 <span style={{ fontSize: 12, color: '#9AA0B4', whiteSpace: 'nowrap' }}>or sign in with</span>
                 <div style={{ flex: 1, height: 1, background: '#E8E8EE' }} />
               </div>
 
+              <style>{`
+                .uaepass-btn {
+                  width: 100%; min-width: 300px; min-height: 44px; height: 44px;
+                  margin: 5px 0;
+                  display: flex; align-items: center; justify-content: center; gap: 5px;
+                  padding: 10px 30px;
+                  background: #fff; border: 1.5px solid #E8E8EE; border-radius: 999px;
+                  cursor: pointer; font-size: 19px; font-weight: 600; color: #0B0F1E;
+                  box-shadow: 0 1px 4px rgba(11,15,30,0.05);
+                  transition: border-color 0.18s, box-shadow 0.18s, background-color 0.18s;
+                  border-color:black;
+                }
+                .uaepass-btn:hover:not(:disabled) {
+                  border-color: #059669;
+                  box-shadow: 0 0 0 3px rgba(5,150,105,0.12);
+                }
+                .uaepass-btn:focus-visible {
+                  outline: none;
+                  border-color: #059669;
+                  box-shadow: 0 0 0 3px rgba(5,150,105,0.18);
+                }
+                .uaepass-btn:active:not(:disabled) {
+                  background: #F3F4F6;
+                  border-color: #D1D5DB;
+                }
+                .uaepass-btn:disabled {
+                  opacity: 0.5;
+                  cursor: not-allowed;
+                  box-shadow: none;
+                }
+              `}</style>
+              <div style={{ display:'flex', justifyContent:'center' }}>
               <button
                 type="button" onClick={handleUaePass}
-                style={{
-                  width: '100%', height: 48,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  background: '#fff', border: '1.5px solid #E8E8EE', borderRadius: 999,
-                  cursor: 'pointer', fontSize: 14.5, fontWeight: 600, color: '#0B0F1E',
-                  boxShadow: '0 1px 4px rgba(11,15,30,0.05)',
-                  transition: 'border-color 0.18s, box-shadow 0.18s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#7C3AED'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(124,58,237,0.10)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#E8E8EE'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(11,15,30,0.05)'; }}
+                className="uaepass-btn"
               >
                 <img
                   src="/uae-logo.png"
@@ -180,13 +203,21 @@ function Login() {
                 />
                 Sign in with UAE PASS
               </button>
+              
+              </div>
+               <div style={{ display:'flex', justifyContent:'center', marginTop:5 }}>
+                <p style={{ textAlign:'center', fontSize:15, color:'#78849E', margin:'5px 0 0', minWidth:300, textAlign:'center', fontFamily:"sf-pro-medium" }}>
+                  {/* Instant verification using your Emirates ID */}
+                  A single trusted digital identity for all citizens, residents, and visitors.
+                </p>
+              </div>
             </Form>
           </div>
 
           <p style={{ fontSize: 12, color: '#9AA0B4', textAlign: 'center', margin: '16px 0 0', lineHeight: 1.6 }}>
             New agent?{' '}
             <Link to="/register" style={{ color: '#7C3AED', fontWeight: 500 }}>Create an account</Link>
-            {' '}· By signing in you agree to MySilah's Terms.
+            {' '}· By signing in you agree to MySilah's <a href="https://mysilah.ae/terms.html" target='_blank'>Terms</a> and <a href="https://mysilah.ae/privacy-policy.html" target='_blank'> Privacy Policy</a>.
           </p>
         </div>
       </div>

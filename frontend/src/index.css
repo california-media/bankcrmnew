@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'sf-pro-medium';
+  src: url('./fonts/FontsFree-Net-SFProText-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+
 html, body, #root {
   margin: 0;
   padding: 0;
@@ -8,6 +15,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #fdfeff;
 }
+
 
 .ant-table-tbody > tr > td {
   border-bottom-color: #e2e8f0 !important;

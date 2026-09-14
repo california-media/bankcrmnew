@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Table, Tag, Typography, Button, Input, Tabs, Space, message, Popconfirm,
-  Row, Col, Card, Modal, Form, InputNumber, Divider,
+  Row, Col, Card, Modal, Form, InputNumber, Divider, Alert,
 } from 'antd';
 import {
-  SearchOutlined, DollarOutlined, CheckCircleOutlined, LockOutlined, InfoCircleOutlined,
+  SearchOutlined, DollarOutlined, CheckCircleOutlined, LockOutlined, InfoCircleOutlined, WalletOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
@@ -12,7 +12,7 @@ import api from '../../api/client';
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const COMM_COLORS = { payable: 'cyan', pending: 'gold', paid: 'green', none: 'default' };
-const COMM_LABELS = { payable: 'Payout Ready for Agent', pending: 'Pending', paid: 'Paid', none: '—' };
+const COMM_LABELS = { payable: 'Payout Ready for Agent', pending: 'Awaiting Receipt', paid: 'Paid', none: '—' };
 
 export default function Payouts() {
   const navigate = useNavigate();
@@ -26,9 +26,10 @@ export default function Payouts() {
   const [tab, setTab] = useState('payable');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [selectedHoldKeys, setSelectedHoldKeys] = useState([]);
+  const [agencies, setAgencies] = useState([]);
 
   // Pay modal state
-  const [payModal, setPayModal] = useState({ open: false, ids: null }); // ids=null means all payable
+  const [payModal, setPayModal] = useState({ open: false, ids: null, mode: 'cash' }); // ids=null means all payable; mode: 'cash' | 'bucket'
   const [holdPct, setHoldPct] = useState(10);
 
   const load = async () => {
@@ -40,6 +41,8 @@ export default function Payouts() {
       setLoading(false);
     }
   };
+
+  const loadAgencies = () => api.get('/agencies').then((res) => setAgencies(res.data)).catch(() => {});
 
   const loadHolds = async () => {
     setHoldsLoading(true);
@@ -53,23 +56,27 @@ export default function Payouts() {
     }
   };
 
-  useEffect(() => { load(); loadHolds(); }, []);
+  useEffect(() => { load(); loadHolds(); loadAgencies(); }, []);
 
-  const openPayModal = (ids) => {
+  const openPayModal = (ids, mode = 'cash') => {
     setHoldPct(10);
-    setPayModal({ open: true, ids });
+    setPayModal({ open: true, ids, mode });
   };
 
   const confirmPay = async () => {
     setPaying(true);
     try {
+      const endpoint = payModal.mode === 'bucket-full' ? '/leads/pay-from-bucket-full'
+        : payModal.mode === 'bucket' ? '/leads/pay-from-bucket-agent'
+        : '/leads/bulk-mark-paid';
       const body = payModal.ids ? { leadIds: payModal.ids, holdPct } : { holdPct };
-      const { data } = await api.post('/leads/bulk-mark-paid', body);
+      const { data } = await api.post(endpoint, body);
       message.success(`${data.count} payout(s) sent`);
       setSelectedRowKeys([]);
-      setPayModal({ open: false, ids: null });
+      setPayModal({ open: false, ids: null, mode: 'cash' });
       load();
       loadHolds();
+      if (payModal.mode === 'bucket' || payModal.mode === 'bucket-full') loadAgencies();
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed');
     } finally {
@@ -104,17 +111,29 @@ export default function Payouts() {
     }
   };
 
+  const payableLeads = useMemo(() => leads.filter((l) => l.commissionStatus === 'payable'), [leads]);
+
+  // Disbursed leads the agency hasn't paid admin for yet, but still eligible
+  // for a bucket-funded "full settlement" payout to the agent.
+  const eligiblePendingLeads = useMemo(
+    () => leads.filter((l) =>
+      l.status === 'disbursed' &&
+      l.agencyPaymentStatus === 'pending' &&
+      ['pending', 'none'].includes(l.commissionStatus) &&
+      (l.commission || 0) > 0
+    ),
+    [leads],
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return leads.filter((l) => {
-      if (tab === 'payable' && l.commissionStatus !== 'payable') return false;
+    const base = tab === 'payable' ? [...payableLeads, ...eligiblePendingLeads] : leads;
+    return base.filter((l) => {
       if (tab === 'paid' && l.commissionStatus !== 'paid') return false;
       if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [leads, search, tab]);
-
-  const payableLeads = useMemo(() => leads.filter((l) => l.commissionStatus === 'payable'), [leads]);
+  }, [leads, payableLeads, eligiblePendingLeads, search, tab]);
 
   const stats = useMemo(() => ({
     payable: payableLeads.length,
@@ -132,16 +151,42 @@ export default function Payouts() {
     [selectedRowKeys, payableLeads],
   );
 
+  const selectedPayableLeads = useMemo(
+    () => payableLeads.filter((l) => selectedRowKeys.includes(l._id)),
+    [selectedRowKeys, payableLeads],
+  );
+  const selectedPayableAgencyIds = useMemo(
+    () => [...new Set(selectedPayableLeads.map((l) => String(l.agency?._id)))],
+    [selectedPayableLeads],
+  );
+
+  const selectedPendingEligibleLeads = useMemo(
+    () => eligiblePendingLeads.filter((l) => selectedRowKeys.includes(l._id)),
+    [selectedRowKeys, eligiblePendingLeads],
+  );
+  const selectedPendingEligibleAgencyIds = useMemo(
+    () => [...new Set(selectedPendingEligibleLeads.map((l) => String(l.agency?._id)))],
+    [selectedPendingEligibleLeads],
+  );
+
   // For the pay modal preview
   const modalLeads = useMemo(() => {
     if (!payModal.open) return [];
-    return payModal.ids ? payableLeads.filter((l) => payModal.ids.includes(l._id)) : payableLeads;
-  }, [payModal, payableLeads]);
+    const pool = payModal.mode === 'bucket-full' ? eligiblePendingLeads : payableLeads;
+    return payModal.ids ? pool.filter((l) => payModal.ids.includes(l._id)) : pool;
+  }, [payModal, payableLeads, eligiblePendingLeads]);
 
   const modalCardLeads = modalLeads.filter((l) => l.productType === 'credit_card');
   const modalTotal = modalLeads.reduce((s, l) => s + (l.commission || 0), 0);
+  const modalGrossTotal = modalLeads.reduce((s, l) => s + (l.grossCommission || 0), 0);
+  const modalAgency = (payModal.mode === 'bucket' || payModal.mode === 'bucket-full') && modalLeads.length
+    ? agencies.find((a) => String(a._id) === String(modalLeads[0].agency?._id))
+    : null;
   const holdAmount = holdPct > 0 ? Math.round(modalCardLeads.reduce((s, l) => s + (l.commission || 0), 0) * holdPct / 100) : 0;
   const netPayout = modalTotal - holdAmount;
+  const bucketRequired = payModal.mode === 'bucket-full' ? modalGrossTotal : netPayout;
+  const insufficientBucket = (payModal.mode === 'bucket' || payModal.mode === 'bucket-full')
+    && modalAgency && (modalAgency.bucketBalance || 0) < bucketRequired;
 
   const paidRows = useMemo(() => {
     const src = leads.filter((l) => {
@@ -347,18 +392,6 @@ export default function Payouts() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Payouts</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {selectedPayable.length > 0 && (
-            <Button type="primary" icon={<DollarOutlined />} onClick={() => openPayModal(selectedPayable)}>
-              Pay Selected ({selectedPayable.length})
-            </Button>
-          )}
-          {stats.payable > 0 && (
-            <Button icon={<DollarOutlined />} onClick={() => openPayModal(null)}>
-              Pay All Ready ({stats.payable})
-            </Button>
-          )}
-        </div>
       </div>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -397,17 +430,80 @@ export default function Payouts() {
           style={{ marginBottom: 0 }}
         />
         {tab !== 'holds' && (
-          <Space style={{ marginBottom: 16 }}>
-            <Input
-              allowClear
-              placeholder="Search client or lead ID..."
-              prefix={<SearchOutlined />}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ width: 280 }}
-            />
-            <Typography.Text type="secondary">{tab === 'paid' ? paidRows.length : filtered.length} records</Typography.Text>
-          </Space>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+            <Space>
+              <Input
+                allowClear
+                placeholder="Search client or lead ID..."
+                prefix={<SearchOutlined />}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ width: 280 }}
+              />
+              <Typography.Text type="secondary">{tab === 'paid' ? paidRows.length : filtered.length} records</Typography.Text>
+            </Space>
+            {tab === 'payable' && stats.payable > 0 && (
+              <Button icon={<DollarOutlined />} onClick={() => openPayModal(null)}>
+                Pay All Ready ({stats.payable})
+              </Button>
+            )}
+          </div>
+        )}
+
+        {tab === 'payable' && selectedPayableLeads.length > 0 && selectedPendingEligibleLeads.length === 0 && (
+          <Alert
+            style={{ marginBottom: 16, borderRadius: 8 }}
+            type="warning"
+            message={
+              <Space size={24} wrap>
+                <span>{selectedPayableLeads.length} lead(s) selected</span>
+                <span style={{ fontWeight: 700 }}>
+                  Total: {aed(selectedPayableLeads.reduce((s, l) => s + (l.commission || 0), 0))}
+                </span>
+                <Button type="primary" size="small" icon={<DollarOutlined />} onClick={() => openPayModal(selectedPayable, 'cash')}>
+                  Pay Selected
+                </Button>
+                {selectedPayableAgencyIds.length === 1 && (
+                  <Button size="small" icon={<WalletOutlined />} onClick={() => openPayModal(selectedPayable, 'bucket')}>
+                    Pay from Bucket
+                  </Button>
+                )}
+                {selectedPayableAgencyIds.length > 1 && (
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>Select leads from one agency to pay from bucket</Typography.Text>
+                )}
+              </Space>
+            }
+          />
+        )}
+        {tab === 'payable' && selectedPendingEligibleLeads.length > 0 && selectedPayableLeads.length === 0 && (
+          <Alert
+            style={{ marginBottom: 16, borderRadius: 8 }}
+            type="warning"
+            message={
+              <Space size={24} wrap>
+                <span>{selectedPendingEligibleLeads.length} lead(s) selected</span>
+                {selectedPendingEligibleAgencyIds.length === 1 ? (
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<WalletOutlined />}
+                    onClick={() => openPayModal(selectedPendingEligibleLeads.map((l) => l._id), 'bucket-full')}
+                  >
+                    Pay from Bucket — Full Settlement
+                  </Button>
+                ) : (
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>Select leads from one agency for a full-settlement bucket payout</Typography.Text>
+                )}
+              </Space>
+            }
+          />
+        )}
+        {tab === 'payable' && selectedPayableLeads.length > 0 && selectedPendingEligibleLeads.length > 0 && (
+          <Alert
+            style={{ marginBottom: 16, borderRadius: 8 }}
+            type="warning"
+            message='Select only "Payout Ready" or only "Awaiting Receipt" leads at a time'
+          />
         )}
         {tab === 'holds' ? (
           <>
@@ -471,7 +567,7 @@ export default function Payouts() {
               columns={tab === 'paid' ? adminPaidColumns : columns}
               rowSelection={
                 tab === 'payable'
-                  ? { selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (row) => ({ disabled: row.commissionStatus !== 'payable' }) }
+                  ? { selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (row) => ({ disabled: !['payable', 'pending', 'none'].includes(row.commissionStatus) }) }
                   : undefined
               }
             />
@@ -481,9 +577,13 @@ export default function Payouts() {
 
       {/* Pay Modal */}
       <Modal
-        title="Confirm Payout"
+        title={
+          payModal.mode === 'bucket-full' ? 'Confirm Full Settlement from Bucket'
+          : payModal.mode === 'bucket' ? 'Confirm Payout from Bucket'
+          : 'Confirm Payout'
+        }
         open={payModal.open}
-        onCancel={() => setPayModal({ open: false, ids: null })}
+        onCancel={() => setPayModal({ open: false, ids: null, mode: 'cash' })}
         onOk={confirmPay}
         okText="Confirm & Pay"
         confirmLoading={paying}
@@ -500,13 +600,33 @@ export default function Payouts() {
             <Typography.Text type="secondary">Total commission</Typography.Text>
             <Typography.Text strong>{aed(modalTotal)}</Typography.Text>
           </div>
+          {payModal.mode === 'bucket-full' && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Typography.Text type="secondary">Gross commission (deducted from bucket)</Typography.Text>
+              <Typography.Text strong>{aed(modalGrossTotal)}</Typography.Text>
+            </div>
+          )}
           {modalCardLeads.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <Typography.Text type="secondary">Credit card leads</Typography.Text>
               <Typography.Text>{modalCardLeads.length}</Typography.Text>
             </div>
           )}
+          {(payModal.mode === 'bucket' || payModal.mode === 'bucket-full') && modalAgency && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+              <Typography.Text type="secondary">{modalAgency.name || modalAgency.email}'s bucket balance</Typography.Text>
+              <Typography.Text strong style={{ color: insufficientBucket ? '#ef4444' : '#16a34a' }}>
+                {aed(modalAgency.bucketBalance)}
+              </Typography.Text>
+            </div>
+          )}
         </div>
+
+        {insufficientBucket && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: '#b91c1c' }}>
+            Balance exceeded — available {aed(modalAgency.bucketBalance)}, required {aed(bucketRequired)}. Confirming will take this agency's bucket balance negative.
+          </div>
+        )}
 
         {modalCardLeads.length > 0 && (
           <>
@@ -545,6 +665,8 @@ export default function Payouts() {
           {holdPct > 0
             ? `Agent receives ${aed(netPayout)}. ${aed(holdAmount)} held until clawback period expires.`
             : 'Full commission will be paid to agents.'}
+          {payModal.mode === 'bucket' && ' Funded from the agency\'s bucket balance.'}
+          {payModal.mode === 'bucket-full' && ' The agency never paid for these leads — the full gross commission is deducted from their bucket balance to settle both the agency\'s debt and this agent payout.'}
         </div>
       </Modal>
     </>

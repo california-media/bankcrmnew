@@ -140,6 +140,7 @@ function CardProducts() {
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
+    form.setFieldsValue({ isActive: true, agentVisible: true, websiteVisible: true });
     setFileList([]);
     setBenefitsHtml('');
     setFeesHtml('');
@@ -155,6 +156,8 @@ function CardProducts() {
       bank: c.bank?._id,
       agency: c.agency?._id,
       isActive: c.isActive,
+      agentVisible: c.agentVisible !== false,
+      websiteVisible: c.websiteVisible !== false,
       clawbackMonths: c.clawbackMonths || 0,
       clawbackDays: c.clawbackDays ?? 30,
       commissionBrackets: c.commissionBrackets || [],
@@ -201,6 +204,8 @@ function CardProducts() {
       fd.append('feesEligibility', feesHtml);
       fd.append('keyFeatures', keyFeaturesHtml);
       fd.append('isActive', values.isActive !== false ? 'true' : 'false');
+      fd.append('agentVisible', values.agentVisible !== false ? 'true' : 'false');
+      fd.append('websiteVisible', values.websiteVisible !== false ? 'true' : 'false');
       fd.append('rate', values.rate || '');
       fd.append('redirectUrl', values.redirectUrl || '');
       fd.append('redirectActive', values.redirectActive ? 'true' : 'false');
@@ -236,6 +241,28 @@ function CardProducts() {
     try {
       const fd = new FormData();
       fd.append('isActive', row.isActive ? 'false' : 'true');
+      await api.put(`/card-products/${row._id}`, fd);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const toggleAgentVisible = async (row) => {
+    try {
+      const fd = new FormData();
+      fd.append('agentVisible', row.agentVisible !== false ? 'false' : 'true');
+      await api.put(`/card-products/${row._id}`, fd);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const toggleWebsiteVisible = async (row) => {
+    try {
+      const fd = new FormData();
+      fd.append('websiteVisible', row.websiteVisible !== false ? 'false' : 'true');
       await api.put(`/card-products/${row._id}`, fd);
       load();
     } catch (err) {
@@ -292,6 +319,30 @@ function CardProducts() {
           checkedChildren="Active"
           unCheckedChildren="Inactive"
           onChange={() => toggleActive(row)}
+        />
+      ),
+    },
+    {
+      title: 'Agent Visible',
+      dataIndex: 'agentVisible',
+      render: (v, row) => (
+        <Switch
+          checked={v !== false}
+          checkedChildren="Visible"
+          unCheckedChildren="Hidden"
+          onChange={() => toggleAgentVisible(row)}
+        />
+      ),
+    },
+    {
+      title: 'Website Visible',
+      dataIndex: 'websiteVisible',
+      render: (v, row) => (
+        <Switch
+          checked={v !== false}
+          checkedChildren="Visible"
+          unCheckedChildren="Hidden"
+          onChange={() => toggleWebsiteVisible(row)}
         />
       ),
     },
@@ -506,6 +557,14 @@ function CardProducts() {
                         { value: 'free_tnc', label: 'Free*(T&C)' },
                       ]} />
                     </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'annualFeeAmount']}
+                      label="Annual Fee (AED)"
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber min={0} step={50} placeholder="e.g. 315" style={{ width: 130 }} />
+                    </Form.Item>
                     <MinusCircleOutlined
                       onClick={() => remove(name)}
                       style={{ color: '#ff4d4f', marginTop: 28, cursor: 'pointer' }}
@@ -647,11 +706,25 @@ function CardProducts() {
               </Form.Item>
             </Col>
             <Col span={4}>
-              <Form.Item name="isActive" label="Product Active" valuePropName="checked" initialValue={true}>
+              <Form.Item name="isActive" label="Product Active" valuePropName="checked">
                 <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
               </Form.Item>
             </Col>
           </Row>
+          <Row gutter={16}>
+            
+             <Col span={6}>
+              <Form.Item name="agentVisible" label="Visible in Agent Panel" valuePropName="checked">
+                <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="websiteVisible" label="Visible in Website" valuePropName="checked">
+                <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
+              </Form.Item>
+            </Col>
+          </Row>
+       
 
           <Divider orientation="left" style={{ fontSize: 13 }}>Product Content</Divider>
           <Tabs

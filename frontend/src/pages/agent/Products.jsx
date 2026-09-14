@@ -118,15 +118,6 @@ function ProductCard({ product, onClick }) {
               />
             </div>
           )}
-          {product.productType === 'credit_card' && product.cashbackCategories?.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-              {product.cashbackCategories.map((c) => (
-                <span key={c.category?._id || c._id || c} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe' }}>
-                  {c.category?.name || c.name}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       )}
     </Card>
@@ -146,8 +137,8 @@ function Products() {
     setLoading(true);
     Promise.all([api.get('/card-products'), api.get('/loan-products')])
       .then(([cardsRes, loansRes]) => {
-        setCards(cardsRes.data.filter((c) => c.isActive).map((c) => ({ ...c, productType: 'credit_card' })));
-        setLoans(loansRes.data.filter((l) => l.isActive).map((l) => ({ ...l, productType: 'loan' })));
+        setCards(cardsRes.data.filter((c) => c.isActive && c.agentVisible !== false).map((c) => ({ ...c, productType: 'credit_card' })));
+        setLoans(loansRes.data.filter((l) => l.isActive && l.agentVisible !== false).map((l) => ({ ...l, productType: 'loan' })));
       })
       .catch(() => message.error('Failed to load products'))
       .finally(() => setLoading(false));

@@ -72,6 +72,7 @@ app.use('/api/admin',             require('./routes/admin.routes'));
 app.use('/api/card-products',     require('./routes/cardProduct.routes'));
 app.use('/api/card-categories',   require('./routes/cardCategory.routes'));
 app.use('/api/loan-products',     require('./routes/loanProduct.routes'));
+app.use('/api/account-products',  require('./routes/accountProduct.routes'));
 app.use('/api/employees',         require('./routes/employee.routes'));
 app.use('/api/employee-statuses', require('./routes/employeeStatus.routes'));
 app.use('/api/agency-payouts',    require('./routes/agencyPayout.routes'));

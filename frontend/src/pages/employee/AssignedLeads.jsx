@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Space, Card, Row, Col, Modal, Form, Grid } from 'antd';
-import { SearchOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
+import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Space, Card, Row, Col, Modal, Form, Grid, Popover, InputNumber, Descriptions } from 'antd';
+import { SearchOutlined, TableOutlined, AppstoreOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../../api/client';
+import { ACTION_LABELS, LOAN_MILESTONES, getLoanActions } from '../../utils/loanActions';
 
 const STATUSES = [
   { value: 'submitted', label: 'Submitted', color: 'blue' },
@@ -15,6 +16,8 @@ const STATUSES = [
 ];
 
 const PRODUCT_LABELS = { credit_card: 'Credit Card', loan: 'Loan' };
+
+const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
 
 const STATUS_PILL = {
   submitted:    { bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6', text: '#1d4ed8', label: 'SUBMITTED' },
@@ -117,6 +120,10 @@ function AssignedLeads() {
   const [statusNoteForm] = Form.useForm();
   const [statusSaving, setStatusSaving] = useState(false);
 
+  const [loanEditOpen, setLoanEditOpen] = useState(false);
+  const [loanEditLead, setLoanEditLead] = useState(null);
+  const [loanForm] = Form.useForm();
+
   const load = async () => {
     setLoading(true);
     try {
@@ -196,6 +203,57 @@ function AssignedLeads() {
     }
   };
 
+  const openLoanEdit = (lead) => {
+    setLoanEditLead(lead);
+    loanForm.setFieldsValue({ loanAmount: lead.loanAmount });
+    setLoanEditOpen(true);
+  };
+
+  const saveLoanAmount = async () => {
+    const { loanAmount } = await loanForm.validateFields();
+    try {
+      const { data } = await api.patch(`/leads/${loanEditLead._id}/loan-amount`, { loanAmount });
+      setLeads((prev) => prev.map((l) => (l._id === loanEditLead._id ? data : l)));
+      message.success('Loan amount updated');
+      setLoanEditOpen(false);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  // Same status-progression rules the agency view uses (frontend/src/pages/agency/Leads.jsx):
+  // credit-card leads go CPV/Activate/Spend -> Disburse, loan leads go through
+  // getLoanActions()'s per-loanType milestone chain -> Disburse. CPV is a
+  // credit-card-only step, so it's skipped entirely for loan leads.
+  const buildActions = (row) => {
+    const s = row.status;
+    const isLoan = row.productType === 'loan';
+    // Account leads (business_account/current_account/savings_account) run
+    // through the same getLoanActions()-driven milestone chain as loans, so
+    // the milestone gate covers both product types; loan-amount editing
+    // stays loan-only since accounts have no loanAmount field.
+    const hasMilestones = isLoan || row.productType === 'account';
+    const loanActions = hasMilestones ? getLoanActions(row) : { buttons: [], canDisburse: false };
+    const btns = [];
+    if (showCpv && !hasMilestones && s === 'approved' && !row.cpvDone)
+      btns.push({ key: 'cpv', label: 'CPV Done', onClick: () => openActionModal(row._id, 'cpv') });
+    if (showSales) {
+      if (['submitted', 'under_review', 'assigned'].includes(s))
+        btns.push({ key: 'approve', label: 'Approve', type: 'primary', onClick: () => openStatusModal(row._id, 'approved', 'Approved') });
+      if (hasMilestones) {
+        loanActions.buttons.forEach((b) => btns.push({ key: b.type, label: b.label, onClick: () => openActionModal(row._id, b.type) }));
+        if (loanActions.canDisburse) btns.push({ key: 'disburse', label: 'Disburse', onClick: () => openStatusModal(row._id, 'disbursed', 'Disbursed') });
+        if (isLoan && LOAN_EDITABLE_FROM.includes(s)) btns.push({ key: 'edit-loan', icon: <EditOutlined />, onClick: () => openLoanEdit(row) });
+      } else {
+        if (s === 'approved' && !row.activateDone) btns.push({ key: 'activate', label: 'Activated', onClick: () => openActionModal(row._id, 'activate') });
+        if (s === 'approved' && row.cpvDone && row.activateDone) btns.push({ key: 'disburse', label: 'Disburse', onClick: () => openStatusModal(row._id, 'disbursed', 'Disbursed') });
+      }
+      if (['submitted', 'under_review', 'assigned'].includes(s))
+        btns.push({ key: 'reject', label: 'Reject', danger: true, onClick: () => openStatusModal(row._id, 'rejected', 'Rejected') });
+    }
+    return btns;
+  };
+
   const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected').length;
   const rejectedCount = leads.filter(l => l.status === 'rejected').length;
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
@@ -251,15 +309,39 @@ function AssignedLeads() {
       width: 120,
       render: (_, row) => {
         const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
+        const pill = (done, label) => done
+          ? <span key={label} style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>{label} ✓</span>
+          : <span key={label} style={{ fontSize: 9, fontWeight: 700, color: '#dc2626', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>{label} ✗</span>;
+        const loanMilestones = LOAN_MILESTONES[row.accountType || row.loanType] || [];
+        const loanDoneCount = loanMilestones.filter((m) => row[m.field]).length;
         const badges = (
-          (row.cpvDone || row.activateDone) ? (
+          (row.status === 'approved' || row.status === 'disbursed') ? (
             <div style={{ display: 'flex', gap: 3, marginTop: 3, flexWrap: 'nowrap' }}>
-              {row.cpvDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>CPV ✓</span>}
-              {row.activateDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Activated ✓</span>}
+              {row.productType === 'credit_card' ? (
+                <>
+                  {pill(row.cpvDone, 'CPV')}
+                  {pill(row.activateDone, 'Activated')}
+                  {row.bank?.hasSpend && pill(row.spendDone, 'Spend')}
+                </>
+              ) : loanMilestones.length > 0 ? (
+                <Popover
+                  content={<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{loanMilestones.map((m) => pill(row[m.field], ACTION_LABELS[m.type]))}</div>}
+                  trigger="hover"
+                >
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap', borderRadius: 999, padding: '0 5px', cursor: 'default',
+                    color: loanDoneCount === loanMilestones.length ? '#15803d' : '#b45309',
+                    background: loanDoneCount === loanMilestones.length ? '#dcfce7' : '#fef3c7',
+                    border: `1px solid ${loanDoneCount === loanMilestones.length ? '#86efac' : '#fde68a'}`,
+                  }}>
+                    {loanDoneCount}/{loanMilestones.length} milestones
+                  </span>
+                </Popover>
+              ) : null}
             </div>
           ) : null
         );
-        if (['approved', 'disbursed'].includes(row.status)) return <div><StatusPill status={row.status} />{badges}</div>;
+        if (['approved', 'disbursed', 'rejected'].includes(row.status)) return <div><StatusPill status={row.status} />{badges}</div>;
         if (row.employeeStatus) {
           const c = COLOR_MAP[row.employeeStatus.color] || '#94a3b8';
           return (
@@ -308,22 +390,15 @@ function AssignedLeads() {
       title: <ColHead>Actions</ColHead>,
       width: 240,
       render: (_, row) => {
-        const s = row.status;
-        const btns = [];
-        if (showCpv && s === 'approved' && !row.cpvDone)
-          btns.push(<Button key="cpv" size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV Done</Button>);
-        if (showSales) {
-          if (['submitted', 'under_review', 'assigned'].includes(s))
-            btns.push(<Button key="approve" size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>);
-          if (s === 'approved' && !row.activateDone)
-            btns.push(<Button key="activate" size="small" onClick={() => openActionModal(row._id, 'activate')}>Activated</Button>);
-          if (s === 'approved' && row.cpvDone && row.activateDone)
-            btns.push(<Button key="disburse" size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>);
-          if (['submitted', 'under_review', 'assigned', 'approved'].includes(s))
-            btns.push(<Button key="reject" size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>);
-        }
+        const btns = buildActions(row);
         if (!btns.length) return null;
-        return <Space size={4} wrap onClick={(e) => e.stopPropagation()}>{btns}</Space>;
+        return (
+          <Space size={4} wrap onClick={(e) => e.stopPropagation()}>
+            {btns.map((b) => (
+              <Button key={b.key} size="small" type={b.type} danger={b.danger} icon={b.icon} onClick={b.onClick}>{b.label}</Button>
+            ))}
+          </Space>
+        );
       },
     },
   ];
@@ -404,22 +479,15 @@ function AssignedLeads() {
                     )}
                   </div>
                   {(() => {
-                    const s = row.status;
-                    const btns = [];
-                    if (showCpv && s === 'approved' && !row.cpvDone)
-                      btns.push(<Button key="cpv" size="small" onClick={() => openActionModal(row._id, 'cpv')}>CPV Done</Button>);
-                    if (showSales) {
-                      if (['submitted', 'under_review', 'assigned'].includes(s))
-                        btns.push(<Button key="approve" size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>);
-                      if (s === 'approved' && !row.activateDone)
-                        btns.push(<Button key="activate" size="small" onClick={() => openActionModal(row._id, 'activate')}>Activated</Button>);
-                      if (s === 'approved' && row.cpvDone && row.activateDone)
-                        btns.push(<Button key="disburse" size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>);
-                      if (['submitted', 'under_review', 'assigned', 'approved'].includes(s))
-                        btns.push(<Button key="reject" size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>);
-                    }
+                    const btns = buildActions(row);
                     if (!btns.length) return null;
-                    return <Space size={4} wrap onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>{btns}</Space>;
+                    return (
+                      <Space size={4} wrap onClick={(e) => e.stopPropagation()} style={{ marginTop: 8 }}>
+                        {btns.map((b) => (
+                          <Button key={b.key} size="small" type={b.type} danger={b.danger} icon={b.icon} onClick={b.onClick}>{b.label}</Button>
+                        ))}
+                      </Space>
+                    );
                   })()}
                 </div>
               </Card>
@@ -432,7 +500,7 @@ function AssignedLeads() {
       )}
 
       <Modal
-        title={actionModal.type === 'cpv' ? 'Mark CPV Done' : 'Mark Activated Done'}
+        title={`Mark ${ACTION_LABELS[actionModal.type] || ''} Done`}
         open={actionModal.open}
         onCancel={() => setActionModal({ open: false, leadId: null, type: null })}
         onOk={confirmAction}
@@ -459,6 +527,27 @@ function AssignedLeads() {
         <Form form={statusNoteForm} layout="vertical">
           <Form.Item name="note" label="Note (optional)">
             <Input.TextArea rows={3} placeholder="Add a note for this stage update..." />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="Edit Loan Amount"
+        open={loanEditOpen}
+        onCancel={() => setLoanEditOpen(false)}
+        onOk={saveLoanAmount}
+        okText="Save"
+        destroyOnClose
+      >
+        {loanEditLead && (
+          <Descriptions size="small" style={{ marginBottom: 16 }}>
+            <Descriptions.Item label="Client">{loanEditLead.customerName}</Descriptions.Item>
+            <Descriptions.Item label="Product">{loanEditLead.loanProduct?.name}</Descriptions.Item>
+          </Descriptions>
+        )}
+        <Form form={loanForm} layout="vertical">
+          <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount is required' }]}>
+            <InputNumber min={1} step={1000} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

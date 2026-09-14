@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import api from '../../api/client';
 import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
+import { ACTION_LABELS, LOAN_MILESTONES, getLoanActions } from '../../utils/loanActions';
 
 const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
 
@@ -207,8 +208,8 @@ export default function LeadDetail() {
     if (role === 'agent') {
       Promise.all([api.get('/card-products'), api.get('/loan-products')])
         .then(([cardsRes, loansRes]) => {
-          setCardProducts(cardsRes.data.filter((c) => c.isActive && c.bank?.isActive !== false));
-          setLoanProducts(loansRes.data.filter((l) => l.isActive && l.bank?.isActive !== false));
+          setCardProducts(cardsRes.data.filter((c) => c.isActive && c.agentVisible !== false && c.bank?.isActive !== false));
+          setLoanProducts(loansRes.data.filter((l) => l.isActive && l.agentVisible !== false && l.bank?.isActive !== false));
         })
         .catch(() => {});
     }
@@ -273,7 +274,7 @@ export default function LeadDetail() {
       const { note } = actionForm.getFieldsValue();
       const { data } = await api.patch(`/leads/${id}/${actionModal.type}`, { note: note || undefined });
       setLead(data);
-      message.success(actionModal.type === 'cpv' ? 'CPV marked done' : actionModal.type === 'spend' ? 'Spend marked done' : 'Activated marked done');
+      message.success(`${ACTION_LABELS[actionModal.type] || 'Action'} marked done`);
       setActionModal({ open: false, type: null });
     } catch (err) {
       message.error(err.response?.data?.message || 'Action failed');
@@ -435,6 +436,14 @@ export default function LeadDetail() {
   const statusMeta = statusMap[lead.status] || { color: 'default', label: lead.status };
   const isLoan = lead.productType === 'loan';
   const product = isLoan ? lead.loanProduct : lead.cardProduct;
+  // Account leads (business_account/current_account/savings_account) run the
+  // same getLoanActions()-driven milestone chain as loans, so this flag
+  // gates milestone buttons/pills for both product types; isLoan itself is
+  // left alone for the loan-only display fields below (loanProduct, loanAmount, etc).
+  const hasMilestones = isLoan || lead.productType === 'account';
+  const loanActions = hasMilestones ? getLoanActions(lead) : { buttons: [], canDisburse: false };
+  const loanMilestones = LOAN_MILESTONES[lead.accountType || lead.loanType] || [];
+  const loanDoneTypes = loanMilestones.filter((m) => lead[m.field]).map((m) => m.type);
 
   // Find the bracket that matches the customer's salary (mirrors backend findBracket logic)
   const matchedCardBracket = (() => {
@@ -822,27 +831,38 @@ export default function LeadDetail() {
                   )}
                 </div>
               )}
-              {(lead.cpvDone || lead.activateDone || lead.spendDone) && (
+              {!hasMilestones && (lead.cpvDone || lead.activateDone || lead.spendDone) && (
                 <Space style={{ marginBottom: 10, flexWrap: 'wrap' }}>
                   {lead.cpvDone && <Tag color="green" style={{ margin: 0 }}>CPV ✓</Tag>}
                   {lead.activateDone && <Tag color="green" style={{ margin: 0 }}>Activated ✓</Tag>}
                   {lead.spendDone && <Tag color="green" style={{ margin: 0 }}>Spend ✓</Tag>}
                 </Space>
               )}
+              {hasMilestones && loanDoneTypes.length > 0 && (
+                <Space style={{ marginBottom: 10, flexWrap: 'wrap' }}>
+                  {loanDoneTypes.map((t) => <Tag key={t} color="green" style={{ margin: 0 }}>{ACTION_LABELS[t]} ✓</Tag>)}
+                </Space>
+              )}
               <Space direction="vertical" size={6} style={{ width: '100%' }}>
                 {['submitted', 'under_review', 'assigned'].includes(lead.status) && (
                   <Button block size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>Approve</Button>
                 )}
-                {lead.status === 'approved' && !lead.cpvDone && (
+                {!hasMilestones && lead.status === 'approved' && !lead.cpvDone && (
                   <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'cpv' }); }}>CPV</Button>
                 )}
-                {lead.status === 'approved' && !lead.activateDone && (
+                {!hasMilestones && lead.status === 'approved' && !lead.activateDone && (
                   <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'activate' }); }}>Activated</Button>
                 )}
-                {lead.status === 'approved' && lead.bank?.hasSpend && !lead.spendDone && (
+                {!hasMilestones && lead.status === 'approved' && lead.bank?.hasSpend && !lead.spendDone && (
                   <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'spend' }); }}>Spend</Button>
                 )}
-                {lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
+                {!hasMilestones && lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
+                  <Button block size="small" onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
+                )}
+                {hasMilestones && loanActions.buttons.map((b) => (
+                  <Button key={b.type} block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: b.type }); }}>{b.label}</Button>
+                ))}
+                {hasMilestones && loanActions.canDisburse && (
                   <Button block size="small" onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
                 )}
                 {isLoan && LOAN_EDITABLE_FROM.includes(lead.status) && (
@@ -885,41 +905,59 @@ export default function LeadDetail() {
             return (
               <Card size="small" title={sectionLabel('Actions')} style={cardStyle} styles={{ body: cardBodyStyle }}>
                 <Space direction="vertical" size={6} style={{ width: '100%' }}>
-                  {(lead.cpvDone || lead.activateDone) && (
+                  {!hasMilestones && (lead.cpvDone || lead.activateDone) && (
                     <Space style={{ flexWrap: 'wrap' }}>
                       {lead.cpvDone && <Tag color="green" style={{ margin: 0 }}>CPV ✓</Tag>}
                       {lead.activateDone && <Tag color="green" style={{ margin: 0 }}>Activated ✓</Tag>}
                     </Space>
                   )}
-                  {et === 'cpv' && lead.status === 'approved' && !lead.cpvDone && (
+                  {hasMilestones && loanDoneTypes.length > 0 && (
+                    <Space style={{ flexWrap: 'wrap' }}>
+                      {loanDoneTypes.map((t) => <Tag key={t} color="green" style={{ margin: 0 }}>{ACTION_LABELS[t]} ✓</Tag>)}
+                    </Space>
+                  )}
+                  {et === 'cpv' && !hasMilestones && lead.status === 'approved' && !lead.cpvDone && (
                     <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'cpv' }); }}>Mark CPV Done</Button>
                   )}
                   {et === 'sales' && ['submitted', 'under_review', 'assigned'].includes(lead.status) && (
                     <Button block size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>Approve</Button>
                   )}
-                  {et === 'sales' && lead.status === 'approved' && !lead.activateDone && (
+                  {et === 'sales' && !hasMilestones && lead.status === 'approved' && !lead.activateDone && (
                     <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'activate' }); }}>Mark Activated</Button>
                   )}
-                  {et === 'sales' && lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
+                  {et === 'sales' && !hasMilestones && lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
                     <Button block size="small" style={{ background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }} icon={<DollarOutlined />} onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
                   )}
-                  {et === 'sales' && ['submitted', 'under_review', 'assigned', 'approved'].includes(lead.status) && (
+                  {et === 'sales' && hasMilestones && loanActions.buttons.map((b) => (
+                    <Button key={b.type} block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: b.type }); }}>{b.label}</Button>
+                  ))}
+                  {et === 'sales' && hasMilestones && loanActions.canDisburse && (
+                    <Button block size="small" style={{ background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }} icon={<DollarOutlined />} onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
+                  )}
+                  {et === 'sales' && isLoan && LOAN_EDITABLE_FROM.includes(lead.status) && (
+                    <Button block size="small" icon={<EditOutlined />} onClick={() => { loanForm.setFieldsValue({ loanAmount: lead.loanAmount }); setLoanOpen(true); }}>Edit Loan Amount</Button>
+                  )}
+                  {et === 'sales' && REJECTABLE_FROM.includes(lead.status) && (
                     <Button block size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal('rejected', 'Rejected')}>Reject</Button>
                   )}
+                  {/* Status Label — hidden per request, keep code for later restore
                   <div style={{ marginTop: 4 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Status Label</div>
                     <Select placeholder="Set status..." value={lead.employeeStatus?._id || lead.employeeStatus || undefined} loading={empStatusSaving} onChange={(val) => updateEmpStatus(val || null)} size="small" style={{ width: '100%' }} options={labelStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
                   </div>
+                  */}
                   <div style={{ marginTop: 4 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Consent</div>
                     <Select placeholder="Set consent..." value={lead.consentStatus?._id || lead.consentStatus || undefined} loading={consentStatusSaving} onChange={(val) => updateConsentStatus(val || null)} size="small" style={{ width: '100%' }} options={consentStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
                   </div>
+                  {/* Loan Status — hidden per request, keep code for later restore
                   {isLoan && loanStatuses.length > 0 && (
                     <div style={{ marginTop: 4 }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Loan Status</div>
                       <Select allowClear placeholder="Set loan stage..." value={lead.loanStatus?._id || lead.loanStatus || undefined} loading={loanStatusSaving} onChange={(val) => updateLoanStatus(val || null)} size="small" style={{ width: '100%' }} options={loanStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
                     </div>
                   )}
+                  */}
                 </Space>
               </Card>
             );
@@ -985,7 +1023,7 @@ export default function LeadDetail() {
                   <> · {({ regular: 'Regular', premium: 'Premium', rewards_lifestyle: 'Rewards & Lifestyle', travel: 'Travel', ecommerce: 'E-Commerce', legacy: 'Legacy' })[lead.cardProduct.cardType] || lead.cardProduct.cardType}</>
                 )}
                 {isLoan && lead.loanProduct?.loanCategory && (
-                  <> · {lead.loanProduct.loanCategory === 'mortgage' ? 'Mortgage' : 'Personal Loan'}</>
+                  <> · {lead.loanProduct.loanCategory === 'mortgage' ? 'Mortgage' : lead.loanProduct.loanCategory === 'business' ? 'Business Loan' : 'Personal Loan'}</>
                 )}
               </div>
               {['approved', 'disbursed'].includes(lead.status) && (
@@ -1042,7 +1080,7 @@ export default function LeadDetail() {
               {isLoan && (lead.loanAmount > 0 || lead.loanType) && (
                 <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {lead.loanAmount > 0 && <InfoItem label="Loan Amount" value={aed(lead.loanAmount)} />}
-                  {lead.loanType && <InfoItem label="Loan Type" value={{ new_stl_loan: 'New STL Loan', buyout: 'Buyout', pdc: 'PDC', business_loan: 'Business Loan' }[lead.loanType] || lead.loanType} />}
+                  {lead.loanType && <InfoItem label="Loan Type" value={{ new_stl_loan: 'New STL Loan', buyout: 'Buyout', pdc: 'PDC', business_loan: 'Business Loan', sme_new_loan: 'SME New Loan', sme_buyout_loan: 'SME Buyout Loan', pos_loan_non_bank: 'POS Loan / Non Bank' }[lead.loanType] || lead.loanType} />}
                   {lead.loanProduct?.maxLoanAmount > 0 && <InfoItem label="Max Loan" value={aed(lead.loanProduct.maxLoanAmount)} />}
                 </div>
               )}
@@ -1126,7 +1164,7 @@ export default function LeadDetail() {
       </Modal>
 
       {/* CPV / Activate modal */}
-      <Modal title={actionModal.type === 'cpv' ? 'Mark CPV Done' : 'Mark Activated Done'} open={actionModal.open} onCancel={() => setActionModal({ open: false, type: null })} onOk={confirmAction} okText="Confirm" confirmLoading={actionSaving} destroyOnClose>
+      <Modal title={`Mark ${ACTION_LABELS[actionModal.type] || ''} Done`} open={actionModal.open} onCancel={() => setActionModal({ open: false, type: null })} onOk={confirmAction} okText="Confirm" confirmLoading={actionSaving} destroyOnClose>
         <Form form={actionForm} layout="vertical">
           <Form.Item name="note" label="Note (optional)">
             <Input.TextArea rows={3} placeholder="Add a note..." />
@@ -1210,10 +1248,13 @@ export default function LeadDetail() {
               </Form.Item>
               <Form.Item name="loanType" label="Loan Type">
                 <Select placeholder="Select type" allowClear options={[
-                  { value: 'new_stl_loan',  label: 'New STL Loan' },
-                  { value: 'buyout',        label: 'Buyout' },
-                  { value: 'pdc',           label: 'PDC' },
-                  { value: 'business_loan', label: 'Business Loan' },
+                  { value: 'new_stl_loan',      label: 'New STL Loan' },
+                  { value: 'buyout',            label: 'Buyout' },
+                  { value: 'pdc',               label: 'PDC' },
+                  { value: 'business_loan',     label: 'Business Loan' },
+                  { value: 'sme_new_loan',      label: 'SME New Loan' },
+                  { value: 'sme_buyout_loan',   label: 'SME Buyout Loan' },
+                  { value: 'pos_loan_non_bank', label: 'POS Loan / Non Bank' },
                 ]} />
               </Form.Item>
             </>

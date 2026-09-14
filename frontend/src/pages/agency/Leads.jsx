@@ -421,7 +421,7 @@ function AgencyLeads() {
         const pill = (done, label) => done
           ? <span key={label} style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>{label} ✓</span>
           : <span key={label} style={{ fontSize: 9, fontWeight: 700, color: '#dc2626', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>{label} ✗</span>;
-        const loanMilestones = LOAN_MILESTONES[row.loanType] || [];
+        const loanMilestones = LOAN_MILESTONES[row.accountType || row.loanType] || [];
         const loanDoneCount = loanMilestones.filter((m) => row[m.field]).length;
         const badges = (
           (row.status === 'approved' || row.status === 'disbursed') ? (
@@ -554,7 +554,7 @@ function AgencyLeads() {
           if (row.status === 'approved' && !row.activateDone) milestoneButtons.push({ type: 'activate', label: 'Activated' });
           if (row.status === 'approved' && row.bank?.hasSpend && !row.spendDone) milestoneButtons.push({ type: 'spend', label: 'Spend' });
           canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
-        } else if (row.productType === 'loan') {
+        } else if (row.productType === 'loan' || row.productType === 'account') {
           const loanActions = getLoanActions(row);
           milestoneButtons = loanActions.buttons;
           canDisburse = loanActions.canDisburse;
@@ -583,7 +583,7 @@ function AgencyLeads() {
   const canBulkSpend = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && l.bank?.hasSpend && !l.spendDone);
   const canBulkDisburse = selectedLeads.length > 0 && selectedLeads.every((l) => {
     if (l.productType === 'credit_card') return l.status === 'approved' && l.cpvDone && l.activateDone;
-    if (l.productType === 'loan') return getLoanActions(l).canDisburse;
+    if (l.productType === 'loan' || l.productType === 'account') return getLoanActions(l).canDisburse;
     return false;
   });
 
@@ -873,7 +873,7 @@ function AgencyLeads() {
                         if (row.status === 'approved' && !row.activateDone) milestoneButtons.push({ type: 'activate', label: 'Activate' });
                         if (row.status === 'approved' && row.bank?.hasSpend && !row.spendDone) milestoneButtons.push({ type: 'spend', label: 'Spend' });
                         canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
-                      } else if (row.productType === 'loan') {
+                      } else if (row.productType === 'loan' || row.productType === 'account') {
                         const loanActions = getLoanActions(row);
                         milestoneButtons = loanActions.buttons;
                         canDisburse = loanActions.canDisburse;

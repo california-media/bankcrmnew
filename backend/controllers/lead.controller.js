@@ -1077,6 +1077,61 @@ exports.updatePosDda = async (req, res) => {
   }
 };
 
+// Shared factory for simple boolean-milestone endpoints (find lead by
+// ownership -> set the done/note fields -> log statusHistory -> notify).
+// Existing hand-written handlers above (updateBuyoutAccountOpen etc.) are
+// untouched; this only avoids repeating the same block for new milestones.
+function makeMilestoneHandler({ doneField, noteField, statusLabel, notifTitle, notifVerb }) {
+  return async (req, res) => {
+    try {
+      let lead;
+      if (req.user.role === 'employee') {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      } else {
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+      }
+      if (!lead) return res.status(404).json({ message: 'Lead not found' });
+      lead[doneField] = true;
+      const note = req.body.note ? String(req.body.note).trim() : undefined;
+      if (note) lead[noteField] = note;
+      lead.statusHistory.push({ status: statusLabel, note, changedBy: req.user._id, changedAt: new Date() });
+      await lead.save();
+      const populated = await lead.populate(POPULATE_FIELDS);
+      try {
+        const adminIds = await getAdminIds();
+        const recipients = [...adminIds, String(populated.agent?._id || populated.agent)];
+        await createAndEmit(
+          recipients,
+          { type: statusLabel, title: notifTitle, body: `${lead.customerName} — ${notifVerb}`, lead: lead._id },
+          req.user._id,
+        );
+      } catch (_) {}
+      res.json(populated);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  };
+}
+
+exports.updatePosLoanAccountOpen = makeMilestoneHandler({ doneField: 'posLoanAccountOpenDone', noteField: 'posLoanAccountOpenNote', statusLabel: 'pos_loan_account_open_done', notifTitle: 'Account Open Completed', notifVerb: 'Account Open completed' });
+exports.updateCarLoanRegistration = makeMilestoneHandler({ doneField: 'carLoanRegistrationDone', noteField: 'carLoanRegistrationNote', statusLabel: 'car_loan_registration_done', notifTitle: 'Car Registration Completed', notifVerb: 'Car Registration completed' });
+exports.updateMortgageNewDocs = makeMilestoneHandler({ doneField: 'mortgageNewDocsDone', noteField: 'mortgageNewDocsNote', statusLabel: 'mortgage_new_docs_done', notifTitle: 'Property Mortgage Docs Completed', notifVerb: 'Property Mortgage Docs completed' });
+exports.updateMortgageNewEvaluation = makeMilestoneHandler({ doneField: 'mortgageNewEvaluationDone', noteField: 'mortgageNewEvaluationNote', statusLabel: 'mortgage_new_evaluation_done', notifTitle: 'Evaluation Completed', notifVerb: 'Evaluation completed' });
+exports.updateMortgageNewRegistration = makeMilestoneHandler({ doneField: 'mortgageNewRegistrationDone', noteField: 'mortgageNewRegistrationNote', statusLabel: 'mortgage_new_registration_done', notifTitle: 'Property Registration Completed', notifVerb: 'Property Registration completed' });
+exports.updateMortgageBuyoutDocs = makeMilestoneHandler({ doneField: 'mortgageBuyoutDocsDone', noteField: 'mortgageBuyoutDocsNote', statusLabel: 'mortgage_buyout_docs_done', notifTitle: 'Property Mortgage Docs Completed', notifVerb: 'Property Mortgage Docs completed' });
+exports.updateMortgageBuyoutEvaluation = makeMilestoneHandler({ doneField: 'mortgageBuyoutEvaluationDone', noteField: 'mortgageBuyoutEvaluationNote', statusLabel: 'mortgage_buyout_evaluation_done', notifTitle: 'Evaluation Completed', notifVerb: 'Evaluation completed' });
+exports.updateMortgageBuyoutLl = makeMilestoneHandler({ doneField: 'mortgageBuyoutLlDone', noteField: 'mortgageBuyoutLlNote', statusLabel: 'mortgage_buyout_ll_done', notifTitle: 'LL Completed', notifVerb: 'LL completed' });
+exports.updateMortgageBuyoutMc = makeMilestoneHandler({ doneField: 'mortgageBuyoutMcDone', noteField: 'mortgageBuyoutMcNote', statusLabel: 'mortgage_buyout_mc_done', notifTitle: 'MC Completed', notifVerb: 'MC completed' });
+exports.updateMortgageBuyoutCl = makeMilestoneHandler({ doneField: 'mortgageBuyoutClDone', noteField: 'mortgageBuyoutClNote', statusLabel: 'mortgage_buyout_cl_done', notifTitle: 'CL Completed', notifVerb: 'CL completed' });
+exports.updateMortgageBuyoutRegistration = makeMilestoneHandler({ doneField: 'mortgageBuyoutRegistrationDone', noteField: 'mortgageBuyoutRegistrationNote', statusLabel: 'mortgage_buyout_registration_done', notifTitle: 'Property Registration Completed', notifVerb: 'Property Registration completed' });
+exports.updateBusinessAccountOpen = makeMilestoneHandler({ doneField: 'businessAccountOpenDone', noteField: 'businessAccountOpenNote', statusLabel: 'business_account_open_done', notifTitle: 'Account Open Completed', notifVerb: 'Account Open completed' });
+exports.updateBusinessAccountFundCredited = makeMilestoneHandler({ doneField: 'businessAccountFundCreditedDone', noteField: 'businessAccountFundCreditedNote', statusLabel: 'business_account_fund_credited_done', notifTitle: 'Fund Credited Completed', notifVerb: 'Fund Credited completed' });
+exports.updateCurrentAccountOpen = makeMilestoneHandler({ doneField: 'currentAccountOpenDone', noteField: 'currentAccountOpenNote', statusLabel: 'current_account_open_done', notifTitle: 'Account Open Completed', notifVerb: 'Account Open completed' });
+exports.updateCurrentAccountSalaryCredited = makeMilestoneHandler({ doneField: 'currentAccountSalaryCreditedDone', noteField: 'currentAccountSalaryCreditedNote', statusLabel: 'current_account_salary_credited_done', notifTitle: 'Salary Credited Completed', notifVerb: 'Salary Credited completed' });
+exports.updateSavingsAccountOpen = makeMilestoneHandler({ doneField: 'savingsAccountOpenDone', noteField: 'savingsAccountOpenNote', statusLabel: 'savings_account_open_done', notifTitle: 'Account Open Completed', notifVerb: 'Account Open completed' });
+exports.updateSavingsFundCredited = makeMilestoneHandler({ doneField: 'savingsFundCreditedDone', noteField: 'savingsFundCreditedNote', statusLabel: 'savings_fund_credited_done', notifTitle: 'Fund Credited Completed', notifVerb: 'Fund Credited completed' });
+
 /**
  * PATCH /api/leads/:id/agent-commission  (admin)
  * Admin sets how much commission the agent receives.

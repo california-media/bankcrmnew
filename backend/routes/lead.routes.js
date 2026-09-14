@@ -55,6 +55,23 @@ router.patch('/:id/sme-buyout-mc', requireRole('agency', 'employee'), ctrl.updat
 router.patch('/:id/sme-buyout-cl', requireRole('agency', 'employee'), ctrl.updateSmeBuyoutCl);
 router.patch('/:id/pos-pdc', requireRole('agency', 'employee'), ctrl.updatePosPdc);
 router.patch('/:id/pos-dda', requireRole('agency', 'employee'), ctrl.updatePosDda);
+router.patch('/:id/pos-loan-account-open', requireRole('agency', 'employee'), ctrl.updatePosLoanAccountOpen);
+router.patch('/:id/car-loan-registration', requireRole('agency', 'employee'), ctrl.updateCarLoanRegistration);
+router.patch('/:id/mortgage-new-docs', requireRole('agency', 'employee'), ctrl.updateMortgageNewDocs);
+router.patch('/:id/mortgage-new-evaluation', requireRole('agency', 'employee'), ctrl.updateMortgageNewEvaluation);
+router.patch('/:id/mortgage-new-registration', requireRole('agency', 'employee'), ctrl.updateMortgageNewRegistration);
+router.patch('/:id/mortgage-buyout-docs', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutDocs);
+router.patch('/:id/mortgage-buyout-evaluation', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutEvaluation);
+router.patch('/:id/mortgage-buyout-ll', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutLl);
+router.patch('/:id/mortgage-buyout-mc', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutMc);
+router.patch('/:id/mortgage-buyout-cl', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutCl);
+router.patch('/:id/mortgage-buyout-registration', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutRegistration);
+router.patch('/:id/business-account-open', requireRole('agency', 'employee'), ctrl.updateBusinessAccountOpen);
+router.patch('/:id/business-account-fund-credited', requireRole('agency', 'employee'), ctrl.updateBusinessAccountFundCredited);
+router.patch('/:id/current-account-open', requireRole('agency', 'employee'), ctrl.updateCurrentAccountOpen);
+router.patch('/:id/current-account-salary-credited', requireRole('agency', 'employee'), ctrl.updateCurrentAccountSalaryCredited);
+router.patch('/:id/savings-account-open', requireRole('agency', 'employee'), ctrl.updateSavingsAccountOpen);
+router.patch('/:id/savings-fund-credited', requireRole('agency', 'employee'), ctrl.updateSavingsFundCredited);
 router.patch('/:id/receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.addDisbursementReceipt);
 router.patch('/:id/assign-employee', requireRole('agency'), ctrl.assignEmployee);
 

@@ -74,6 +74,13 @@ function AccountProducts() {
       minBalance: a.minBalance ?? null,
       monthlyFee: a.monthlyFee || '',
       interestRate: a.interestRate || '',
+      type: a.type || undefined,
+      digitalOnboarding: a.digitalOnboarding || false,
+      multiCurrency: a.multiCurrency || false,
+      salaryTransferRequired: a.salaryTransferRequired === true ? 'yes' : a.salaryTransferRequired === false ? 'no' : 'varies',
+      freeTransactions: a.freeTransactions || '',
+      fallBelowFee: a.fallBelowFee || '',
+      payoutFrequency: a.payoutFrequency || '',
       keyNotes: a.keyNotes,
       tags: a.tags || [],
       redirectUrl: a.redirectUrl || '',
@@ -87,6 +94,8 @@ function AccountProducts() {
   const onSubmit = async () => {
     const values = await form.validateFields();
     try {
+      const strVal = values.salaryTransferRequired;
+      values.salaryTransferRequired = strVal === 'yes' ? true : strVal === 'no' ? false : strVal === 'varies' ? null : undefined;
       const payload = { ...values, benefits: benefitsHtml, feesEligibility: feesHtml };
       if (editing) {
         await api.put(`/account-products/${editing._id}`, payload);
@@ -300,6 +309,45 @@ function AccountProducts() {
             <Col span={8}>
               <Form.Item name="interestRate" label="Interest Rate">
                 <Input placeholder="e.g. up to 3.5% p.a. (savings)" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={6}>
+              <Form.Item name="type" label="Type">
+                <Select allowClear options={[{ value: 'Conventional', label: 'Conventional' }, { value: 'Islamic', label: 'Islamic' }]} />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="digitalOnboarding" label="Digital Onboarding" valuePropName="checked" style={{ marginTop: 4 }}>
+                <Switch checkedChildren="Yes" unCheckedChildren="No" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="multiCurrency" label="Multi-Currency" valuePropName="checked" style={{ marginTop: 4 }}>
+                <Switch checkedChildren="Yes" unCheckedChildren="No" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item name="salaryTransferRequired" label="Salary Transfer">
+                <Select options={[{ value: 'yes', label: 'Required' }, { value: 'no', label: 'Not Required' }, { value: 'varies', label: 'Varies' }]} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={8}>
+              <Form.Item name="freeTransactions" label="Free Transactions">
+                <Input placeholder="e.g. 2 free withdrawals/month" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="fallBelowFee" label="Fee If Below Minimum">
+                <Input placeholder="e.g. AED 25/month" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="payoutFrequency" label="Payout Frequency">
+                <Input placeholder="e.g. Monthly" />
               </Form.Item>
             </Col>
           </Row>

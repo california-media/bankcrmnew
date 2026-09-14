@@ -96,6 +96,9 @@ function LoanProducts() {
       tenureMaxMonths: l.tenureMaxMonths ?? null,
       minSalary: l.minSalary ?? null,
       maxAmountNum: l.maxAmountNum ?? null,
+      minTurnover: l.minTurnover ?? null,
+      collateralRequired: l.collateralRequired || false,
+      minPosHistoryMonths: l.minPosHistoryMonths ?? null,
       maxAmountNote: l.maxAmountNote || '',
       salaryTransferRequired: l.salaryTransferRequired === true ? 'yes' : l.salaryTransferRequired === false ? 'no' : 'varies',
       tags: l.tags || [],
@@ -379,6 +382,23 @@ function LoanProducts() {
             <Col span={8}>
               <Form.Item name="maxAmountNum" label="Max Amount (AED)">
                 <InputNumber min={0} step={100000} style={{ width: '100%' }} placeholder="4000000" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={8}>
+              <Form.Item name="minTurnover" label="Min Business Turnover (AED)">
+                <InputNumber min={0} step={50000} style={{ width: '100%' }} placeholder="500000" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="minPosHistoryMonths" label="Min POS History (months)">
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="6" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="collateralRequired" label="Collateral Required" valuePropName="checked" style={{ marginTop: 4 }}>
+                <Switch checkedChildren="Required" unCheckedChildren="Not Required" />
               </Form.Item>
             </Col>
           </Row>

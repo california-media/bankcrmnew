@@ -20,7 +20,7 @@ exports.create = async (req, res) => {
     const {
       name, accountCategory, bank, agency, commissionBrackets,
       isActive, agentVisible, websiteVisible,
-      minBalance, monthlyFee, interestRate, keyNotes, tags,
+      minBalance, monthlyFee, interestRate, rateMin, rateMax, keyNotes, tags,
       type, digitalOnboarding, multiCurrency, salaryTransferRequired, freeTransactions, fallBelowFee, payoutFrequency,
       benefits, feesEligibility, redirectUrl, redirectActive,
     } = req.body;
@@ -36,7 +36,7 @@ exports.create = async (req, res) => {
       commissionBrackets: commissionBrackets || [],
       benefits: benefits || '', feesEligibility: feesEligibility || '',
       isActive, agentVisible, websiteVisible,
-      minBalance, monthlyFee, interestRate, keyNotes, tags: tags || [],
+      minBalance, monthlyFee, interestRate, rateMin, rateMax, keyNotes, tags: tags || [],
       type, digitalOnboarding, multiCurrency, salaryTransferRequired, freeTransactions, fallBelowFee, payoutFrequency,
       redirectUrl: redirectUrl || '', redirectActive: !!redirectActive,
     });
@@ -52,7 +52,7 @@ exports.update = async (req, res) => {
     const {
       name, accountCategory, bank, agency, commissionBrackets,
       isActive, agentVisible, websiteVisible,
-      minBalance, monthlyFee, interestRate, keyNotes, tags,
+      minBalance, monthlyFee, interestRate, rateMin, rateMax, keyNotes, tags,
       type, digitalOnboarding, multiCurrency, salaryTransferRequired, freeTransactions, fallBelowFee, payoutFrequency,
       benefits, feesEligibility, redirectUrl, redirectActive,
     } = req.body;
@@ -72,6 +72,8 @@ exports.update = async (req, res) => {
     if (minBalance !== undefined) update.minBalance = minBalance;
     if (monthlyFee !== undefined) update.monthlyFee = monthlyFee;
     if (interestRate !== undefined) update.interestRate = interestRate;
+    if (rateMin !== undefined) update.rateMin = rateMin;
+    if (rateMax !== undefined) update.rateMax = rateMax;
     if (type !== undefined) update.type = type;
     if (digitalOnboarding !== undefined) update.digitalOnboarding = digitalOnboarding;
     if (multiCurrency !== undefined) update.multiCurrency = multiCurrency;

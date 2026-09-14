@@ -26,6 +26,8 @@ const accountProductSchema = new mongoose.Schema(
     minBalance: { type: Number },
     monthlyFee: { type: String, trim: true },
     interestRate: { type: String, trim: true },
+    rateMin: { type: Number },
+    rateMax: { type: Number },
     type: { type: String, enum: ['Islamic', 'Conventional'], trim: true },
     digitalOnboarding: { type: Boolean, default: false },
     multiCurrency: { type: Boolean, default: false },

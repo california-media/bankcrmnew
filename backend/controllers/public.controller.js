@@ -352,7 +352,7 @@ exports.getPublicAccountProducts = async (req, res) => {
   try {
     const accounts = await AccountProduct.find({ isActive: true, websiteVisible: { $ne: false } })
       .populate({ path: 'bank', select: 'name code logo isActive' })
-      .select('name accountCategory commissionBrackets bank benefits feesEligibility minBalance monthlyFee interestRate keyNotes tags type digitalOnboarding multiCurrency salaryTransferRequired freeTransactions fallBelowFee payoutFrequency redirectUrl redirectActive')
+      .select('name accountCategory commissionBrackets bank benefits feesEligibility minBalance monthlyFee interestRate rateMin rateMax keyNotes tags type digitalOnboarding multiCurrency salaryTransferRequired freeTransactions fallBelowFee payoutFrequency redirectUrl redirectActive')
       .lean();
     res.json(accounts.filter(a => a.bank?.isActive !== false));
   } catch (err) {

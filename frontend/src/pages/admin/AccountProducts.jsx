@@ -74,6 +74,8 @@ function AccountProducts() {
       minBalance: a.minBalance ?? null,
       monthlyFee: a.monthlyFee || '',
       interestRate: a.interestRate || '',
+      rateMin: a.rateMin ?? null,
+      rateMax: a.rateMax ?? null,
       type: a.type || undefined,
       digitalOnboarding: a.digitalOnboarding || false,
       multiCurrency: a.multiCurrency || false,
@@ -307,8 +309,20 @@ function AccountProducts() {
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item name="interestRate" label="Interest Rate">
+              <Form.Item name="interestRate" label="Interest Rate (display text)">
                 <Input placeholder="e.g. up to 3.5% p.a. (savings)" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={12}>
+            <Col span={8}>
+              <Form.Item name="rateMin" label="Rate Min (%)">
+                <InputNumber min={0} max={100} step={0.01} precision={2} style={{ width: '100%' }} placeholder="2.00" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item name="rateMax" label="Rate Max (%)">
+                <InputNumber min={0} max={100} step={0.01} precision={2} style={{ width: '100%' }} placeholder="3.50" />
               </Form.Item>
             </Col>
           </Row>

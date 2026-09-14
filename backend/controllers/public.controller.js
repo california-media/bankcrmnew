@@ -291,6 +291,8 @@ exports.submitWebLoanApply = async (req, res) => {
       grossCommission: 0,
       commission: 0,
     };
+    const ALLOWED_LOAN_TYPES = Lead.schema.path('loanType').enumValues;
+    if (loanType && ALLOWED_LOAN_TYPES.includes(loanType)) leadData.loanType = loanType;
 
     const agencyDoc = await User.findOneAndUpdate(
       { role: 'agency', isDefaultAgency: true, isActive: true },
@@ -311,8 +313,6 @@ exports.submitWebLoanApply = async (req, res) => {
       if (loan?.bank) leadData.bank = loan.bank;
       if (loan?.redirectActive && loan?.redirectUrl) loanRedirectUrl = loan.redirectUrl;
     }
-
-    if (loanType) leadData.loanType = loanType;
 
     if (loanRedirectUrl) {
       const confirmedConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: 'Confirmed' }).select('_id').lean();
@@ -379,7 +379,8 @@ exports.submitWebAccountApply = async (req, res) => {
       grossCommission: 0,
       commission: 0,
     };
-    if (accountType) leadData.accountType = accountType;
+    const ALLOWED_ACCOUNT_TYPES = Lead.schema.path('accountType').enumValues;
+    if (accountType && ALLOWED_ACCOUNT_TYPES.includes(accountType)) leadData.accountType = accountType;
 
     const agencyDoc = await User.findOneAndUpdate(
       { role: 'agency', isDefaultAgency: true, isActive: true },

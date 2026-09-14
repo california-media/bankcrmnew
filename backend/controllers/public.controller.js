@@ -4,6 +4,7 @@ const Bank              = require('../models/Bank');
 const CardProduct       = require('../models/CardProduct');
 const LoanProduct       = require('../models/LoanProduct');
 const FeaturedProduct   = require('../models/FeaturedProduct');
+const AccountProduct    = require('../models/AccountProduct');
 const EmployeeStatus    = require('../models/EmployeeStatus');
 const commissionService = require('../services/commission.service');
 const waba              = require('../services/waba.service');
@@ -271,7 +272,7 @@ exports.submitWebApply = async (req, res) => {
 
 exports.submitWebLoanApply = async (req, res) => {
   try {
-    const { customerName, phone, email, salary, loanAmount, employmentStatus, loanProductId } = req.body;
+    const { customerName, phone, email, salary, loanAmount, employmentStatus, loanProductId, loanType } = req.body;
     if (!customerName || !phone) return res.status(400).json({ message: 'Name and phone are required' });
     if (!email) return res.status(400).json({ message: 'Email is required' });
 
@@ -311,6 +312,8 @@ exports.submitWebLoanApply = async (req, res) => {
       if (loan?.redirectActive && loan?.redirectUrl) loanRedirectUrl = loan.redirectUrl;
     }
 
+    if (loanType) leadData.loanType = loanType;
+
     if (loanRedirectUrl) {
       const confirmedConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: 'Confirmed' }).select('_id').lean();
       if (confirmedConsent) leadData.consentStatus = confirmedConsent._id;
@@ -340,6 +343,81 @@ exports.getPublicLoanProducts = async (req, res) => {
       .select('name loanCategory commissionBrackets bank benefits feesEligibility interestRateRange minSalary maxLoanAmount maxTenure keyNotes rateMin rateMax rateType rateBasis salaryTransferRequired tags processingFee earlySettlement lateFee maxAmountNote maxAmountNum disclosedNote source sourceLabel tenureMaxMonths loanType redirectUrl redirectActive')
       .lean();
     res.json(loans.filter(l => l.bank?.isActive !== false));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getPublicAccountProducts = async (req, res) => {
+  try {
+    const accounts = await AccountProduct.find({ isActive: true, websiteVisible: { $ne: false } })
+      .populate({ path: 'bank', select: 'name code logo isActive' })
+      .select('name accountCategory commissionBrackets bank benefits feesEligibility minBalance monthlyFee interestRate keyNotes tags redirectUrl redirectActive')
+      .lean();
+    res.json(accounts.filter(a => a.bank?.isActive !== false));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.submitWebAccountApply = async (req, res) => {
+  try {
+    const { customerName, phone, email, salary, accountType, accountProductId } = req.body;
+    if (!customerName || !phone) return res.status(400).json({ message: 'Name and phone are required' });
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    const leadData = {
+      customerName: customerName.trim(),
+      phone: phone.trim(),
+      email: email.trim(),
+      customerSalary: salary ? Number(salary) : undefined,
+      productType: 'account',
+      isReferral: false,
+      source: 'web_apply',
+      status: 'submitted',
+      commissionStatus: 'none',
+      grossCommission: 0,
+      commission: 0,
+    };
+    if (accountType) leadData.accountType = accountType;
+
+    const agencyDoc = await User.findOneAndUpdate(
+      { role: 'agency', isDefaultAgency: true, isActive: true },
+      { $inc: { leadCount: 1 } },
+      { new: true, select: '_id leadCount' }
+    );
+    if (agencyDoc) {
+      leadData.agency = agencyDoc._id;
+      const shortId = String(agencyDoc._id).slice(-6).toUpperCase();
+      const seq = String(agencyDoc.leadCount).padStart(4, '0');
+      leadData.leadNumber = `LD-${shortId}-${seq}`;
+    }
+
+    let accountRedirectUrl = null;
+    if (accountProductId) {
+      leadData.accountProduct = accountProductId;
+      const account = await AccountProduct.findById(accountProductId).select('bank redirectUrl redirectActive').lean();
+      if (account?.bank) leadData.bank = account.bank;
+      if (account?.redirectActive && account?.redirectUrl) accountRedirectUrl = account.redirectUrl;
+    }
+
+    if (accountRedirectUrl) {
+      const confirmedConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: 'Confirmed' }).select('_id').lean();
+      if (confirmedConsent) leadData.consentStatus = confirmedConsent._id;
+    } else {
+      const sentConsent = await EmployeeStatus.findOne({ label: /^sent$/i, statusType: 'whatsapp_consent', isActive: true }).select('_id').lean();
+      if (sentConsent) leadData.consentStatus = sentConsent._id;
+    }
+
+    const lead = await Lead.create(leadData);
+
+    if (!accountRedirectUrl) {
+      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName })
+        .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
+        .catch(() => {});
+    }
+
+    res.status(201).json({ message: 'Application submitted successfully', redirectUrl: accountRedirectUrl });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

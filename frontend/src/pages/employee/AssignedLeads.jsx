@@ -248,7 +248,7 @@ function AssignedLeads() {
         if (s === 'approved' && !row.activateDone) btns.push({ key: 'activate', label: 'Activated', onClick: () => openActionModal(row._id, 'activate') });
         if (s === 'approved' && row.cpvDone && row.activateDone) btns.push({ key: 'disburse', label: 'Disburse', onClick: () => openStatusModal(row._id, 'disbursed', 'Disbursed') });
       }
-      if (['submitted', 'under_review', 'assigned'].includes(s))
+      if (['submitted', 'under_review', 'assigned', 'approved'].includes(s))
         btns.push({ key: 'reject', label: 'Reject', danger: true, onClick: () => openStatusModal(row._id, 'rejected', 'Rejected') });
     }
     return btns;

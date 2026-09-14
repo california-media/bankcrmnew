@@ -63,7 +63,7 @@ const COMM_LABELS = { paid: 'Paid', payable: 'Payout Ready', pending: 'Pending',
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 const pct = (n) => `${Number(n || 0)}%`;
 
-const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned'];
+const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned', 'approved'];
 const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';

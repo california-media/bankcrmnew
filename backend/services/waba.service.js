@@ -5,6 +5,10 @@ const WABA_API_URL  = process.env.WABA_API_URL  || 'https://nf6fp9tcn6.execute-a
 const WABA_API_KEY  = process.env.WABA_API_KEY  || '';
 const TEMPLATE_NAME = process.env.WABA_TEMPLATE || 'consent_message';
 const YES_BUTTON    = process.env.WABA_YES_BUTTON || 'YES';
+// Where Voycell POSTs the customer's reply back to us. Must be a publicly
+// reachable URL — Voycell (a cloud service) can never reach localhost, so
+// this only actually works from the deployed backend.
+const WABA_CALLBACK_URL = process.env.WABA_CALLBACK_URL || 'https://api.mysilah.ae/api/webhooks/waba-consent';
 
 function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
@@ -17,10 +21,19 @@ function sendConsentMessage({ phone, externalLeadId, customerName }) {
     const normalized = normalizePhone(phone);
     if (!normalized) return resolve({ skipped: true, reason: 'no phone' });
 
+    // NOTE: this deployed endpoint's own validation error names
+    // `externalLeadId` as the required field (confirmed live) — it does
+    // NOT match the `bankLeadId` naming documented in Voycell's own
+    // integration plan for /api/external/consent/send. That plan describes
+    // a different (or newer) contract than what's actually live here.
+    // Only the CALLBACK direction (Voycell -> our webhook) is confirmed to
+    // use `bankLeadId` — see webhook.controller.js.
     const payload = JSON.stringify({
       phone: normalized,
+      name: customerName || undefined,
       externalLeadId: String(externalLeadId),
       templateName: TEMPLATE_NAME,
+      callbackUrl: WABA_CALLBACK_URL,
       yesButtonText: YES_BUTTON,
       params: {
         body: [customerName || 'Customer'],

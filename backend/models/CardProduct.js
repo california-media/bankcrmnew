@@ -17,6 +17,10 @@ const cardProductSchema = new mongoose.Schema(
     cardType: { type: String, enum: ['regular', 'premium', 'rewards_lifestyle', 'travel', 'ecommerce', 'legacy'], required: true },
     bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    // Product Admin: "assign to agency products and banks". Empty/absent =
+    // visible to every agency (today's default, unchanged) — only agencies
+    // listed here can see the product once it's non-empty.
+    assignedAgencies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     commissionBrackets: { type: [bracketSchema], default: [] },
     cashbackCategories: {
       type: [{
@@ -45,6 +49,10 @@ const cardProductSchema = new mongoose.Schema(
     clawbackDays:   { type: Number, default: 30, min: 0 },
     isActive:       { type: Boolean, default: true },
     agentVisible:   { type: Boolean, default: true },
+    // Per-product WhatsApp consent toggle — client wants each product
+    // individually switchable (e.g. a bank's cards on, its loans off).
+    // Defaults true so nothing already relying on consent sending changes.
+    sendConsent:    { type: Boolean, default: true },
     websiteVisible: { type: Boolean, default: true },
     cardImage:      { type: String, trim: true },
     redirectUrl:    { type: String, trim: true },

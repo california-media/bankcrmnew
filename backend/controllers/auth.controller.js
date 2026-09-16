@@ -29,6 +29,10 @@ const sanitize = (user) => ({
   referralCode: user.referralCode,
   employeeType: user.employeeType,
   canViewPayouts: user.canViewPayouts,
+  adminScope: user.adminScope,
+  // Employee-only: the parent agency's name, so a Coordinator/Account
+  // Access (or CPV/Sales) sidebar can show which agency they belong to.
+  agencyName: user.agency?.name || undefined,
 });
 
 const sanitizeFull = (user) => ({
@@ -51,7 +55,7 @@ const sanitizeFull = (user) => ({
 });
 
 const safeUser = async (id) =>
-  User.findById(id).select('-password -inviteToken -inviteTokenExpires');
+  User.findById(id).select('-password -inviteToken -inviteTokenExpires').populate('agency', 'name email');
 
 /**
  * POST /api/auth/register-agent  (public)

@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const ctrl = require('../controllers/agencyPayout.controller');
-const { protect, requireRole } = require('../middleware/auth.middleware');
+const { protect, requireRole, allowEmployeeTypes } = require('../middleware/auth.middleware');
 const upload = require('../middleware/upload.middleware');
 
 router.use(protect);
@@ -10,8 +10,9 @@ router.get('/admin/bucket-requests', requireRole('admin'), ctrl.adminGetBucketRe
 router.patch('/admin/bucket-requests/:id/approve', requireRole('admin'), ctrl.approveBucketRequest);
 router.patch('/admin/bucket-requests/:id/reject', requireRole('admin'), ctrl.rejectBucketRequest);
 
-// Agency only
-router.use(requireRole('agency'));
+// Agency (or its Account Access employee) — Agency Coordinator deliberately
+// excluded, matching "all access except payment" for that role.
+router.use(allowEmployeeTypes('account'));
 router.get('/pending', ctrl.getPending);
 router.get('/history', ctrl.getHistory);
 router.get('/bucket', ctrl.getBucket);

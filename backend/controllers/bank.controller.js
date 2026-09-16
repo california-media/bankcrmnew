@@ -1,11 +1,31 @@
 const Bank = require('../models/Bank');
 const { getFilename, deleteFromS3 } = require('../middleware/upload.middleware');
+const { resolveAgencyId } = require('../middleware/auth.middleware');
 
 const deleteLogo = (filename) => deleteFromS3('bank-logos', filename);
+
+const parseAgencies = (raw) => {
+  if (raw === undefined) return undefined;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim()) {
+    try { return JSON.parse(raw); } catch { return raw ? [raw] : []; }
+  }
+  return [];
+};
 
 exports.list = async (req, res) => {
   try {
     const filter = req.user.role === 'admin' ? {} : { isActive: true };
+    // Product Admin's per-agency assignment — empty/absent assignedAgencies
+    // stays visible to everyone (unchanged default); admin always sees all.
+    if (req.user.role !== 'admin') {
+      const agencyId = req.user.role === 'employee' ? resolveAgencyId(req.user) : (req.user.role === 'agency' ? req.user._id : req.user.agency);
+      filter.$or = [
+        { assignedAgencies: { $exists: false } },
+        { assignedAgencies: { $size: 0 } },
+        ...(agencyId ? [{ assignedAgencies: agencyId }] : []),
+      ];
+    }
     const banks = await Bank.find(filter).sort({ name: 1 });
     res.json(banks);
   } catch (err) {
@@ -25,6 +45,7 @@ exports.create = async (req, res) => {
       name, code, description,
       hasSpend: hasSpend === 'true' || hasSpend === true,
       logo: req.file ? getFilename(req.file) : undefined,
+      assignedAgencies: parseAgencies(req.body.assignedAgencies) || [],
     });
     res.status(201).json(bank);
   } catch (err) {
@@ -41,6 +62,8 @@ exports.update = async (req, res) => {
     if (description !== undefined) update.description = description;
     if (isActive !== undefined) update.isActive = isActive;
     if (hasSpend !== undefined) update.hasSpend = hasSpend === 'true' || hasSpend === true;
+    const parsedAgencies = parseAgencies(req.body.assignedAgencies);
+    if (parsedAgencies !== undefined) update.assignedAgencies = parsedAgencies;
 
     if (req.file) {
       const existing = await Bank.findById(req.params.id, 'logo');

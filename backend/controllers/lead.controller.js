@@ -6,6 +6,8 @@ const LoanProduct = require('../models/LoanProduct');
 const AccountProduct = require('../models/AccountProduct');
 const EmployeeStatus = require('../models/EmployeeStatus');
 const AgencyPayout = require('../models/AgencyPayout');
+const LeadDeletionLog = require('../models/LeadDeletionLog');
+const { resolveAgencyId } = require('../middleware/auth.middleware');
 const commissionService = require('../services/commission.service');
 const { createAndEmit, getAdminIds, formatStatus } = require('../utils/notify');
 const waba = require('../services/waba.service');
@@ -47,13 +49,19 @@ exports.create = async (req, res) => {
       return res.status(400).json({ message: 'Invalid UAE mobile number. Must be 12 digits starting with 9715 (e.g. 971501234567 or 0501234567)' });
     }
 
-    let bankId, agencyId;
+    let bankId, agencyId, loanCategory;
+    // Per-product WhatsApp consent toggle — admin can turn this off for
+    // specific products (e.g. a bank's loans) while leaving it on for
+    // others (e.g. that same bank's cards). Defaults true (send) unless the
+    // product explicitly has it set to false.
+    let sendConsentFlag = true;
 
     if (productType === 'credit_card') {
       if (!cardProduct) return res.status(400).json({ message: 'cardProduct is required for credit card leads' });
       const card = await CardProduct.findById(cardProduct).populate('agency', 'isActive role');
       if (!card) return res.status(400).json({ message: 'Invalid card product' });
       if (!card.isActive) return res.status(400).json({ message: 'This card product is not active' });
+      sendConsentFlag = card.sendConsent !== false;
       bankId = card.bank;
       if (card.agency && card.agency.role === 'agency' && card.agency.isActive) {
         agencyId = card.agency._id;
@@ -67,7 +75,9 @@ exports.create = async (req, res) => {
       const loan = await LoanProduct.findById(loanProduct).populate('agency', 'isActive role');
       if (!loan) return res.status(400).json({ message: 'Invalid loan product' });
       if (!loan.isActive) return res.status(400).json({ message: 'This loan product is not active' });
+      sendConsentFlag = loan.sendConsent !== false;
       bankId = loan.bank;
+      loanCategory = loan.loanCategory;
       if (loan.agency && loan.agency.role === 'agency' && loan.agency.isActive) {
         agencyId = loan.agency._id;
       } else {
@@ -79,6 +89,7 @@ exports.create = async (req, res) => {
       const account = await AccountProduct.findById(accountProduct).populate('agency', 'isActive role');
       if (!account) return res.status(400).json({ message: 'Invalid account product' });
       if (!account.isActive) return res.status(400).json({ message: 'This account product is not active' });
+      sendConsentFlag = account.sendConsent !== false;
       bankId = account.bank;
       if (account.agency && account.agency.role === 'agency' && account.agency.isActive) {
         agencyId = account.agency._id;
@@ -110,7 +121,15 @@ exports.create = async (req, res) => {
     if (jobTitle) leadData.jobTitle = jobTitle.trim();
     if (yearsOfExperience != null) leadData.yearsOfExperience = yearsOfExperience;
     if (productType === 'credit_card') leadData.cardProduct = cardProduct;
-    if (productType === 'loan') { leadData.loanProduct = loanProduct; leadData.loanAmount = loanAmount; if (loanType) leadData.loanType = loanType; }
+    if (productType === 'loan') {
+      leadData.loanProduct = loanProduct;
+      leadData.loanAmount = loanAmount;
+      // loanType is the process-flow field the milestone UI switches on. It's
+      // usually sent by the frontend, but for categories with exactly one
+      // valid loanType (pos_loan/auto_loan) fall back to the product's own
+      // loanCategory so a missed/blank value never leaves the field null.
+      leadData.loanType = loanType || (['pos_loan', 'auto_loan'].includes(loanCategory) ? loanCategory : null);
+    }
     if (productType === 'account') { leadData.accountProduct = accountProduct; if (accountType) leadData.accountType = accountType; }
 
     // Pre-calculate expected commissions from product brackets at creation time
@@ -136,16 +155,25 @@ exports.create = async (req, res) => {
 
     const newLeadStatus = await EmployeeStatus.findOne({ label: /^new lead$/i, statusType: 'lead_label', isActive: true });
     if (newLeadStatus) leadData.employeeStatus = newLeadStatus._id;
-    const sentConsent = await EmployeeStatus.findOne({ label: /^sent$/i, statusType: 'whatsapp_consent', isActive: true });
-    if (sentConsent) leadData.consentStatus = sentConsent._id;
+    // Only tag as "Sent" when we're actually about to send — otherwise the
+    // lead would show a Sent consent status despite no message going out.
+    if (sendConsentFlag) {
+      const sentConsent = await EmployeeStatus.findOne({ label: /^sent$/i, statusType: 'whatsapp_consent', isActive: true });
+      if (sentConsent) leadData.consentStatus = sentConsent._id;
+    }
 
     const lead = await Lead.create(leadData);
     const populated = await lead.populate(POPULATE_FIELDS);
 
-    // Send WhatsApp consent message — fire and forget, never block lead creation
-    waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName })
-      .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
-      .catch(() => {});
+    // Send WhatsApp consent message — fire and forget, never block lead creation.
+    // Skipped entirely if the chosen product has consent sending turned off.
+    if (sendConsentFlag) {
+      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName })
+        .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
+        .catch(() => {});
+    } else {
+      console.log(`[WABA] Skipped for lead ${lead.leadNumber || lead._id} — sendConsent disabled on the selected product`);
+    }
 
     try {
       const adminIds = await getAdminIds();
@@ -310,7 +338,7 @@ exports.stats = async (req, res) => {
  */
 exports.listForAgency = async (req, res) => {
   try {
-    const leads = await Lead.find({ agency: req.user._id, status: { $ne: 'draft' } })
+    const leads = await Lead.find({ agency: resolveAgencyId(req.user), status: { $ne: 'draft' } })
       .populate('bank', 'name code hasSpend')
       .populate('agent', 'name email')
       .populate('assignedEmployee', 'name email')
@@ -324,6 +352,25 @@ exports.listForAgency = async (req, res) => {
       .populate('consentStatusHistory.consentStatus', 'label color')
       .populate('consentStatusHistory.changedBy', 'name email')
       .sort({ updatedAt: -1 });
+
+    // Agency Coordinator ("all access except agent payment") must not see
+    // agent commission figures — matches the same fields already hidden
+    // from any employee on the single-lead getOne endpoint below.
+    if (req.user.role === 'employee' && req.user.employeeType === 'coordinator') {
+      const redacted = leads.map((l) => {
+        const out = l.toObject();
+        delete out.commission;
+        delete out.grossCommission;
+        delete out.commissionStatus;
+        delete out.commissionPaidAt;
+        delete out.payoutHistory;
+        delete out.agentCommissionType;
+        delete out.agentCommissionValue;
+        return out;
+      });
+      return res.json(redacted);
+    }
+
     res.json(leads);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -393,13 +440,22 @@ exports.updateStatus = async (req, res) => {
       }
     }
     if (req.user.role === 'employee') {
-      const empId = String(req.user._id);
-      const isAssigned =
-        String(lead.assignedEmployee || '') === empId ||
-        String(lead.assignedCpvEmployee || '') === empId ||
-        String(lead.assignedSalesEmployee || '') === empId;
-      if (!isAssigned) {
-        return res.status(403).json({ message: 'This lead is not assigned to you' });
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, not scoped to leads
+        // personally assigned to them — same "all access except payment"
+        // rule as everywhere else Coordinator shows up.
+        if (!lead.agency || String(lead.agency) !== String(req.user.agency)) {
+          return res.status(403).json({ message: 'This lead does not belong to your agency' });
+        }
+      } else {
+        const empId = String(req.user._id);
+        const isAssigned =
+          String(lead.assignedEmployee || '') === empId ||
+          String(lead.assignedCpvEmployee || '') === empId ||
+          String(lead.assignedSalesEmployee || '') === empId;
+        if (!isAssigned) {
+          return res.status(403).json({ message: 'This lead is not assigned to you' });
+        }
       }
     }
 
@@ -465,8 +521,13 @@ exports.updateLoanAmount = async (req, res) => {
     }
 
     let lead;
-    if (req.user.role === 'agency') {
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'agency') {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    } else if (req.user.employeeType === 'coordinator') {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
     } else {
       const empId = req.user._id;
       lead = await Lead.findOne({
@@ -508,9 +569,17 @@ exports.updateLoanAmount = async (req, res) => {
 exports.updateCpv = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -546,9 +615,17 @@ exports.updateCpv = async (req, res) => {
 exports.updateActivate = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -584,9 +661,17 @@ exports.updateActivate = async (req, res) => {
 exports.updateSpend = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -615,9 +700,17 @@ exports.updateSpend = async (req, res) => {
 exports.updatePdcChq = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -646,9 +739,17 @@ exports.updatePdcChq = async (req, res) => {
 exports.updateFreshAccountOpen = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -677,9 +778,17 @@ exports.updateFreshAccountOpen = async (req, res) => {
 exports.updateFreshStl = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -708,9 +817,17 @@ exports.updateFreshStl = async (req, res) => {
 exports.updateBuyoutAccountOpen = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -739,9 +856,17 @@ exports.updateBuyoutAccountOpen = async (req, res) => {
 exports.updateBuyoutLlReceived = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -770,9 +895,17 @@ exports.updateBuyoutLlReceived = async (req, res) => {
 exports.updateBuyoutMcSubmitted = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -801,9 +934,17 @@ exports.updateBuyoutMcSubmitted = async (req, res) => {
 exports.updateBuyoutClReceived = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -832,9 +973,17 @@ exports.updateBuyoutClReceived = async (req, res) => {
 exports.updateBuyoutStl = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -863,9 +1012,17 @@ exports.updateBuyoutStl = async (req, res) => {
 exports.updateSmeAccountOpen = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -894,9 +1051,17 @@ exports.updateSmeAccountOpen = async (req, res) => {
 exports.updateSmeBuyoutAccountOpen = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -925,9 +1090,17 @@ exports.updateSmeBuyoutAccountOpen = async (req, res) => {
 exports.updateSmeBuyoutLl = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -956,9 +1129,17 @@ exports.updateSmeBuyoutLl = async (req, res) => {
 exports.updateSmeBuyoutMc = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -987,9 +1168,17 @@ exports.updateSmeBuyoutMc = async (req, res) => {
 exports.updateSmeBuyoutCl = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -1018,9 +1207,17 @@ exports.updateSmeBuyoutCl = async (req, res) => {
 exports.updatePosPdc = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -1049,9 +1246,17 @@ exports.updatePosPdc = async (req, res) => {
 exports.updatePosDda = async (req, res) => {
   try {
     let lead;
-    if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'employee') {
+      if (req.user.employeeType === 'coordinator') {
+        // Agency Coordinator acts agency-wide, same as everywhere else.
+        lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+      } else {
+        const empId = req.user._id;
+        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      }
     } else {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
     }
@@ -1085,9 +1290,16 @@ function makeMilestoneHandler({ doneField, noteField, statusLabel, notifTitle, n
   return async (req, res) => {
     try {
       let lead;
-      if (req.user.role === 'employee') {
-        const empId = req.user._id;
-        lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+      if (req.user.role === 'admin') {
+        // Admin has full access — not scoped to a single agency's own leads.
+        lead = await Lead.findOne({ _id: req.params.id });
+      } else if (req.user.role === 'employee') {
+        if (req.user.employeeType === 'coordinator') {
+          lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
+        } else {
+          const empId = req.user._id;
+          lead = await Lead.findOne({ _id: req.params.id, $or: [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }] });
+        }
       } else {
         lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
       }
@@ -1821,7 +2033,9 @@ exports.completeReferral = async (req, res) => {
     } else {
       lead.loanProduct = loanProduct;
       if (loanAmount) lead.loanAmount = loanAmount;
-      if (loanType) lead.loanType = loanType;
+      // Same fallback as exports.create — cover the categories with exactly
+      // one valid loanType so completing a referral never leaves it null.
+      lead.loanType = loanType || (['pos_loan', 'auto_loan'].includes(productDoc.loanCategory) ? productDoc.loanCategory : null);
     }
     // Agent's bracket selection determines which commission tier applies — always honour it
     if (customerSalary != null) lead.customerSalary = customerSalary;
@@ -1919,8 +2133,12 @@ exports.updateRemarks = async (req, res) => {
     const filter = { _id: req.params.id };
     if (req.user.role === 'agency') filter.agency = req.user._id;
     if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      filter.$or = [{ assignedEmployee: empId }, { assignedSalesEmployee: empId }];
+      if (req.user.employeeType === 'coordinator') {
+        filter.agency = req.user.agency;
+      } else {
+        const empId = req.user._id;
+        filter.$or = [{ assignedEmployee: empId }, { assignedSalesEmployee: empId }];
+      }
     }
     const lead = await Lead.findOne(filter);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
@@ -1975,12 +2193,19 @@ exports.getOne = async (req, res) => {
     if (req.user.role === 'agent') filter.agent = req.user._id;
     if (req.user.role === 'agency') filter.agency = req.user._id;
     if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      filter.$or = [
-        { assignedEmployee: empId },
-        { assignedCpvEmployee: empId },
-        { assignedSalesEmployee: empId },
-      ];
+      // Coordinator and Account Access both need to open any lead in their
+      // agency to view it (reports/payout review) — neither is scoped to
+      // leads personally assigned to them like plain CPV/Sales are.
+      if (['coordinator', 'account'].includes(req.user.employeeType)) {
+        filter.agency = req.user.agency;
+      } else {
+        const empId = req.user._id;
+        filter.$or = [
+          { assignedEmployee: empId },
+          { assignedCpvEmployee: empId },
+          { assignedSalesEmployee: empId },
+        ];
+      }
     }
     const lead = await Lead.findOne(filter)
       .populate('bank', 'name code hasSpend')
@@ -2001,11 +2226,17 @@ exports.getOne = async (req, res) => {
       .populate('consentStatusHistory.consentStatus', 'label color');
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     const out = lead.toObject();
-    if (req.user.role === 'employee') {
+    // Account Access's whole job is payment figures, so it's exempt here —
+    // every other employee type (cpv/sales/coordinator) gets commission
+    // hidden, matching the same fields redacted on the list endpoint above.
+    if (req.user.role === 'employee' && req.user.employeeType !== 'account') {
       delete out.commission;
       delete out.grossCommission;
       delete out.commissionStatus;
       delete out.commissionPaidAt;
+      delete out.payoutHistory;
+      delete out.agentCommissionType;
+      delete out.agentCommissionValue;
     }
     res.json(out);
   } catch (err) {
@@ -2021,12 +2252,13 @@ exports.getOne = async (req, res) => {
 exports.assignEmployee = async (req, res) => {
   try {
     const { employeeId, type } = req.body; // type: 'cpv' | 'sales' | undefined (legacy)
+    const agencyId = resolveAgencyId(req.user);
 
-    const lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    const lead = await Lead.findOne({ _id: req.params.id, agency: agencyId });
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
 
     if (employeeId) {
-      const employee = await User.findOne({ _id: employeeId, role: 'employee', agency: req.user._id });
+      const employee = await User.findOne({ _id: employeeId, role: 'employee', agency: agencyId });
       if (!employee) return res.status(404).json({ message: 'Employee not found or does not belong to your agency' });
     }
 
@@ -2084,13 +2316,14 @@ exports.bulkAssignEmployee = async (req, res) => {
     if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
       return res.status(400).json({ message: 'leadIds array is required' });
     }
+    const agencyId = resolveAgencyId(req.user);
 
     if (employeeId) {
-      const employee = await User.findOne({ _id: employeeId, role: 'employee', agency: req.user._id });
+      const employee = await User.findOne({ _id: employeeId, role: 'employee', agency: agencyId });
       if (!employee) return res.status(404).json({ message: 'Employee not found or does not belong to your agency' });
     }
 
-    const leads = await Lead.find({ _id: { $in: leadIds }, agency: req.user._id });
+    const leads = await Lead.find({ _id: { $in: leadIds }, agency: agencyId });
     await Promise.all(leads.map(async (lead) => {
       if (type === 'cpv') {
         lead.assignedCpvEmployee = employeeId || undefined;
@@ -2188,8 +2421,12 @@ exports.addNote = async (req, res) => {
     if (req.user.role === 'agent')  filter.agent  = req.user._id;
     if (req.user.role === 'agency') filter.agency = req.user._id;
     if (req.user.role === 'employee') {
-      const empId = req.user._id;
-      filter.$or = [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }];
+      if (req.user.employeeType === 'coordinator') {
+        filter.agency = req.user.agency;
+      } else {
+        const empId = req.user._id;
+        filter.$or = [{ assignedEmployee: empId }, { assignedCpvEmployee: empId }, { assignedSalesEmployee: empId }];
+      }
     }
 
     const lead = await Lead.findOne(filter);
@@ -2237,6 +2474,27 @@ exports.adminDeleteLead = async (req, res) => {
   try {
     const lead = await Lead.findById(req.params.id);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    // Once real money has moved for this lead — agent paid, or agency has
+    // paid/settled with the platform — deleting it would silently erase that
+    // history from every report that sums the Lead collection (Margin
+    // Report, P&L, dashboards). Block it; the lead can still be rejected
+    // or left as-is, just not hard-deleted.
+    if (lead.commissionStatus === 'paid' || ['agency_paid', 'received'].includes(lead.agencyPaymentStatus)) {
+      return res.status(400).json({ message: 'This lead already has a payment recorded and cannot be deleted.' });
+    }
+
+    await LeadDeletionLog.create({
+      leadId: lead._id,
+      leadNumber: lead.leadNumber,
+      customerName: lead.customerName,
+      status: lead.status,
+      commissionStatus: lead.commissionStatus,
+      agencyPaymentStatus: lead.agencyPaymentStatus,
+      commission: lead.commission,
+      deletedBy: req.user._id,
+    });
+
     await lead.deleteOne();
     res.json({ ok: true });
   } catch (err) {

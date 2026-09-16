@@ -9,10 +9,21 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, trim: true },
     role: { type: String, enum: ['admin', 'agency', 'agent', 'employee', 'blog_editor'], required: true },
 
+    // Admin-only: narrows which sidebar menu a scoped admin account sees.
+    // null/undefined = full/Super Admin (today's default, unrestricted).
+    // Phase 1 (current): sidebar visibility only — every admin account still
+    // has full backend access regardless of this tag. Phase 2 (later) will
+    // add real backend enforcement keyed off this same field.
+    adminScope: { type: String, enum: ['coordinator', 'product', 'leads', 'finance', null], default: null },
+
     // Employee-only: link back to the agency that created this employee
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     employeeId: { type: String, unique: true, sparse: true },
-    employeeType: { type: String, enum: ['cpv', 'sales'] },
+    // 'coordinator'/'account' are agency-wide scoped employees (see
+    // middleware/auth.middleware.js's allowEmployeeTypes/resolveAgencyId) —
+    // unlike cpv/sales they see the whole agency's data, not just leads
+    // assigned to them personally.
+    employeeType: { type: String, enum: ['cpv', 'sales', 'coordinator', 'account'] },
 
     // Agent-only
     holdPct: { type: Number, default: 0, min: 0, max: 100 },

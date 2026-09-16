@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { resolveAgencyId } = require('../middleware/auth.middleware');
 
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const genEmployeeId = async () => {
@@ -33,7 +34,7 @@ exports.create = async (req, res) => {
       email,
       password,
       role: 'employee',
-      agency: req.user._id,
+      agency: resolveAgencyId(req.user),
       isActive: true,
       employeeId,
       ...(employeeType && { employeeType }),
@@ -54,7 +55,7 @@ exports.create = async (req, res) => {
  */
 exports.list = async (req, res) => {
   try {
-    const employees = await User.find({ agency: req.user._id, role: 'employee' })
+    const employees = await User.find({ agency: resolveAgencyId(req.user), role: 'employee' })
       .select('-password')
       .sort({ createdAt: -1 });
     res.json(employees);
@@ -72,7 +73,7 @@ exports.toggleActive = async (req, res) => {
     const employee = await User.findOne({
       _id: req.params.id,
       role: 'employee',
-      agency: req.user._id,
+      agency: resolveAgencyId(req.user),
     });
     if (!employee) {
       return res.status(404).json({ message: 'Employee not found' });
@@ -96,7 +97,7 @@ exports.toggleActive = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const { name, email, employeeType } = req.body;
-    const employee = await User.findOne({ _id: req.params.id, role: 'employee', agency: req.user._id });
+    const employee = await User.findOne({ _id: req.params.id, role: 'employee', agency: resolveAgencyId(req.user) });
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
     if (name) employee.name = name.trim();
@@ -126,7 +127,7 @@ exports.updatePassword = async (req, res) => {
     if (!password || String(password).trim().length < 6) {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
-    const employee = await User.findOne({ _id: req.params.id, role: 'employee', agency: req.user._id });
+    const employee = await User.findOne({ _id: req.params.id, role: 'employee', agency: resolveAgencyId(req.user) });
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
     employee.password = password;
@@ -143,7 +144,7 @@ exports.updatePassword = async (req, res) => {
  */
 exports.remove = async (req, res) => {
   try {
-    const employee = await User.findOne({ _id: req.params.id, role: 'employee', agency: req.user._id });
+    const employee = await User.findOne({ _id: req.params.id, role: 'employee', agency: resolveAgencyId(req.user) });
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     await employee.deleteOne();
     res.json({ ok: true });

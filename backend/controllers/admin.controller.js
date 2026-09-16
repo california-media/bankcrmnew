@@ -241,6 +241,27 @@ exports.updateAgent = async (req, res) => {
 };
 
 /**
+ * PATCH /api/admin/agents/:id/reset-password  (admin)
+ * Body: { password }
+ */
+exports.resetAgentPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || String(password).trim().length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+    const agent = await User.findOne({ _id: req.params.id, role: 'agent' });
+    if (!agent) return res.status(404).json({ message: 'Agent not found' });
+
+    agent.password = password;
+    await agent.save();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * PATCH /api/admin/agents/:id/toggle-active  (admin)
  */
 exports.toggleAgentActive = async (req, res) => {
@@ -375,6 +396,268 @@ exports.updateBlogEditor = async (req, res) => {
 exports.deleteBlogEditor = async (req, res) => {
   try {
     await User.findOneAndDelete({ _id: req.params.id, role: 'blog_editor' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const ADMIN_SCOPES = ['coordinator', 'product', 'leads', 'finance'];
+const sanitizeAdminUser = (u) => ({ _id: u._id, name: u.name, email: u.email, role: u.role, adminScope: u.adminScope, isActive: u.isActive, createdAt: u.createdAt });
+
+/**
+ * POST /api/admin/admins  (admin)
+ * Create a scoped admin account (Coordinator/Product/Leads/Finance).
+ * Body: { name, email, password, adminScope }
+ * adminScope must be one of ADMIN_SCOPES — this endpoint never creates
+ * another unscoped (Super Admin-equivalent) account.
+ */
+exports.createAdminUser = async (req, res) => {
+  try {
+    const { name, email, password, adminScope } = req.body;
+    if (!name || !email || !password || !adminScope)
+      return res.status(400).json({ message: 'name, email, password, and adminScope are required' });
+    if (!ADMIN_SCOPES.includes(adminScope))
+      return res.status(400).json({ message: `adminScope must be one of: ${ADMIN_SCOPES.join(', ')}` });
+    const exists = await User.findOne({ email: email.toLowerCase() });
+    if (exists) return res.status(409).json({ message: 'Email already registered' });
+    const admin = await User.create({
+      name, email: email.toLowerCase(), password,
+      role: 'admin', adminScope, isActive: true,
+    });
+    res.status(201).json(sanitizeAdminUser(admin));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * GET /api/admin/admins  (admin)
+ * Lists scoped admin accounts only — the unscoped Super Admin account(s)
+ * are not listed or manageable here.
+ */
+exports.listAdminUsers = async (req, res) => {
+  try {
+    const admins = await User.find({ role: 'admin', adminScope: { $in: ADMIN_SCOPES } })
+      .select('name email adminScope isActive createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(admins);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/admin/admins/:id  (admin)
+ * Body: { name?, email?, adminScope? }
+ * Scoped to adminScope-tagged accounts only — cannot target an unscoped
+ * (Super Admin) account through this endpoint.
+ */
+exports.updateAdminUser = async (req, res) => {
+  try {
+    const { name, email, adminScope } = req.body;
+    const admin = await User.findOne({ _id: req.params.id, role: 'admin', adminScope: { $in: ADMIN_SCOPES } });
+    if (!admin) return res.status(404).json({ message: 'Scoped admin account not found' });
+
+    if (email && email.toLowerCase() !== admin.email) {
+      const conflict = await User.findOne({ email: email.toLowerCase(), _id: { $ne: admin._id } });
+      if (conflict) return res.status(409).json({ message: 'Email already in use' });
+      admin.email = email.toLowerCase();
+    }
+    if (name) admin.name = name;
+    if (adminScope) {
+      if (!ADMIN_SCOPES.includes(adminScope))
+        return res.status(400).json({ message: `adminScope must be one of: ${ADMIN_SCOPES.join(', ')}` });
+      admin.adminScope = adminScope;
+    }
+    await admin.save();
+    res.json(sanitizeAdminUser(admin));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/admin/admins/:id/toggle-active  (admin)
+ */
+exports.toggleAdminUserActive = async (req, res) => {
+  try {
+    const admin = await User.findOne({ _id: req.params.id, role: 'admin', adminScope: { $in: ADMIN_SCOPES } });
+    if (!admin) return res.status(404).json({ message: 'Scoped admin account not found' });
+    admin.isActive = !admin.isActive;
+    await admin.save();
+    res.json(sanitizeAdminUser(admin));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/admin/admins/:id/reset-password  (admin)
+ * Body: { password }
+ */
+exports.resetAdminUserPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || String(password).trim().length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+    const admin = await User.findOne({ _id: req.params.id, role: 'admin', adminScope: { $in: ADMIN_SCOPES } });
+    if (!admin) return res.status(404).json({ message: 'Scoped admin account not found' });
+    admin.password = password;
+    await admin.save();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * DELETE /api/admin/admins/:id  (admin)
+ * Scoped accounts only — an unscoped (Super Admin) account can never be
+ * deleted through this endpoint, satisfying "cannot delete Super Admin
+ * accounts" even before Phase 2's full backend enforcement lands.
+ */
+exports.deleteAdminUser = async (req, res) => {
+  try {
+    const deleted = await User.findOneAndDelete({ _id: req.params.id, role: 'admin', adminScope: { $in: ADMIN_SCOPES } });
+    if (!deleted) return res.status(404).json({ message: 'Scoped admin account not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ── Agency Coordinator / Account Access (admin can also create these) ──────
+// Same idea as the scoped admin accounts above, but for an agency's
+// Coordinator/Account Access employees — admin picks which agency the
+// account belongs to. Deliberately scoped to just these two employeeTypes:
+// plain CPV/Sales staff stay the agency's own business (via /api/employees),
+// not something admin manages.
+const AGENCY_EMPLOYEE_TYPES = ['coordinator', 'account'];
+const sanitizeAgencyEmployee = (u) => ({
+  _id: u._id, name: u.name, email: u.email, role: u.role, employeeType: u.employeeType,
+  agency: u.agency, isActive: u.isActive, createdAt: u.createdAt,
+});
+
+/**
+ * POST /api/admin/agency-employees  (admin)
+ * Body: { name, email, password, employeeType, agency }
+ * employeeType must be 'coordinator' or 'account'; agency must be an
+ * existing agency's user id.
+ */
+exports.createAgencyEmployee = async (req, res) => {
+  try {
+    const { name, email, password, employeeType, agency } = req.body;
+    if (!name || !email || !password || !employeeType || !agency)
+      return res.status(400).json({ message: 'name, email, password, employeeType, and agency are required' });
+    if (!AGENCY_EMPLOYEE_TYPES.includes(employeeType))
+      return res.status(400).json({ message: `employeeType must be one of: ${AGENCY_EMPLOYEE_TYPES.join(', ')}` });
+    const agencyDoc = await User.findOne({ _id: agency, role: 'agency' });
+    if (!agencyDoc) return res.status(404).json({ message: 'Agency not found' });
+    const exists = await User.findOne({ email: email.toLowerCase() });
+    if (exists) return res.status(409).json({ message: 'Email already registered' });
+
+    const employee = await User.create({
+      name, email: email.toLowerCase(), password,
+      role: 'employee', employeeType, agency: agencyDoc._id, isActive: true,
+    });
+    res.status(201).json(sanitizeAgencyEmployee(employee));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * GET /api/admin/agency-employees  (admin)
+ * Optional ?agency=<id> to filter to one agency.
+ */
+exports.listAgencyEmployees = async (req, res) => {
+  try {
+    const filter = { role: 'employee', employeeType: { $in: AGENCY_EMPLOYEE_TYPES } };
+    if (req.query.agency) filter.agency = req.query.agency;
+    const employees = await User.find(filter)
+      .select('name email employeeType agency isActive createdAt')
+      .populate('agency', 'name email')
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(employees);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/admin/agency-employees/:id  (admin)
+ * Body: { name?, email?, employeeType? }
+ */
+exports.updateAgencyEmployee = async (req, res) => {
+  try {
+    const { name, email, employeeType } = req.body;
+    const employee = await User.findOne({ _id: req.params.id, role: 'employee', employeeType: { $in: AGENCY_EMPLOYEE_TYPES } });
+    if (!employee) return res.status(404).json({ message: 'Agency employee not found' });
+
+    if (email && email.toLowerCase() !== employee.email) {
+      const conflict = await User.findOne({ email: email.toLowerCase(), _id: { $ne: employee._id } });
+      if (conflict) return res.status(409).json({ message: 'Email already in use' });
+      employee.email = email.toLowerCase();
+    }
+    if (name) employee.name = name;
+    if (employeeType) {
+      if (!AGENCY_EMPLOYEE_TYPES.includes(employeeType))
+        return res.status(400).json({ message: `employeeType must be one of: ${AGENCY_EMPLOYEE_TYPES.join(', ')}` });
+      employee.employeeType = employeeType;
+    }
+    await employee.save();
+    res.json(sanitizeAgencyEmployee(employee));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/admin/agency-employees/:id/toggle-active  (admin)
+ */
+exports.toggleAgencyEmployeeActive = async (req, res) => {
+  try {
+    const employee = await User.findOne({ _id: req.params.id, role: 'employee', employeeType: { $in: AGENCY_EMPLOYEE_TYPES } });
+    if (!employee) return res.status(404).json({ message: 'Agency employee not found' });
+    employee.isActive = !employee.isActive;
+    await employee.save();
+    res.json(sanitizeAgencyEmployee(employee));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/admin/agency-employees/:id/reset-password  (admin)
+ * Body: { password }
+ */
+exports.resetAgencyEmployeePassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || String(password).trim().length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+    const employee = await User.findOne({ _id: req.params.id, role: 'employee', employeeType: { $in: AGENCY_EMPLOYEE_TYPES } });
+    if (!employee) return res.status(404).json({ message: 'Agency employee not found' });
+    employee.password = password;
+    await employee.save();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * DELETE /api/admin/agency-employees/:id  (admin)
+ */
+exports.deleteAgencyEmployee = async (req, res) => {
+  try {
+    const deleted = await User.findOneAndDelete({ _id: req.params.id, role: 'employee', employeeType: { $in: AGENCY_EMPLOYEE_TYPES } });
+    if (!deleted) return res.status(404).json({ message: 'Agency employee not found' });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });

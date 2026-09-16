@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const ctrl = require('../controllers/lead.controller');
-const { protect, requireRole } = require('../middleware/auth.middleware');
+const { protect, requireRole, allowEmployeeTypes } = require('../middleware/auth.middleware');
 const upload = require('../middleware/upload.middleware');
 
 router.use(protect);
@@ -26,54 +26,54 @@ router.post('/:id/send-to-agency', requireRole('agent', 'admin'), ctrl.sendToAge
 // Employee
 router.get('/assigned', requireRole('employee'), ctrl.listAssigned);
 router.patch('/:id/employee-status', requireRole('employee', 'agency'), require('../controllers/employeeStatus.controller').setOnLead);
-router.patch('/:id/consent-status',  requireRole('employee', 'agency'), require('../controllers/employeeStatus.controller').setConsentOnLead);
+router.patch('/:id/consent-status',  requireRole('employee', 'agency', 'admin'), require('../controllers/employeeStatus.controller').setConsentOnLead);
 router.patch('/:id/loan-status',     requireRole('admin', 'employee', 'agency'), require('../controllers/employeeStatus.controller').setLoanStatusOnLead);
 
 // Admin + Agency — bulk import from Excel
 router.post('/import', requireRole('admin', 'agency'), upload.leadImportFile.single('file'), ctrl.importLeads);
 
 // Agency
-router.get('/agency', requireRole('agency'), ctrl.listForAgency);
-router.post('/bulk-assign-employee', requireRole('agency'), ctrl.bulkAssignEmployee);
+router.get('/agency', allowEmployeeTypes('coordinator', 'account'), ctrl.listForAgency);
+router.post('/bulk-assign-employee', allowEmployeeTypes('coordinator'), ctrl.bulkAssignEmployee);
 router.post('/bulk-receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.bulkAddReceipt);
-router.patch('/:id/loan-amount', requireRole('agency', 'employee'), ctrl.updateLoanAmount);
-router.patch('/:id/cpv', requireRole('agency', 'employee'), ctrl.updateCpv);
-router.patch('/:id/activate', requireRole('agency', 'employee'), ctrl.updateActivate);
-router.patch('/:id/spend', requireRole('agency', 'employee'), ctrl.updateSpend);
-router.patch('/:id/pdc-chq', requireRole('agency', 'employee'), ctrl.updatePdcChq);
-router.patch('/:id/fresh-account-open', requireRole('agency', 'employee'), ctrl.updateFreshAccountOpen);
-router.patch('/:id/fresh-stl', requireRole('agency', 'employee'), ctrl.updateFreshStl);
-router.patch('/:id/buyout-account-open', requireRole('agency', 'employee'), ctrl.updateBuyoutAccountOpen);
-router.patch('/:id/buyout-ll-received', requireRole('agency', 'employee'), ctrl.updateBuyoutLlReceived);
-router.patch('/:id/buyout-mc-submitted', requireRole('agency', 'employee'), ctrl.updateBuyoutMcSubmitted);
-router.patch('/:id/buyout-cl-received', requireRole('agency', 'employee'), ctrl.updateBuyoutClReceived);
-router.patch('/:id/buyout-stl', requireRole('agency', 'employee'), ctrl.updateBuyoutStl);
-router.patch('/:id/sme-account-open', requireRole('agency', 'employee'), ctrl.updateSmeAccountOpen);
-router.patch('/:id/sme-buyout-account-open', requireRole('agency', 'employee'), ctrl.updateSmeBuyoutAccountOpen);
-router.patch('/:id/sme-buyout-ll', requireRole('agency', 'employee'), ctrl.updateSmeBuyoutLl);
-router.patch('/:id/sme-buyout-mc', requireRole('agency', 'employee'), ctrl.updateSmeBuyoutMc);
-router.patch('/:id/sme-buyout-cl', requireRole('agency', 'employee'), ctrl.updateSmeBuyoutCl);
-router.patch('/:id/pos-pdc', requireRole('agency', 'employee'), ctrl.updatePosPdc);
-router.patch('/:id/pos-dda', requireRole('agency', 'employee'), ctrl.updatePosDda);
-router.patch('/:id/pos-loan-account-open', requireRole('agency', 'employee'), ctrl.updatePosLoanAccountOpen);
-router.patch('/:id/car-loan-registration', requireRole('agency', 'employee'), ctrl.updateCarLoanRegistration);
-router.patch('/:id/mortgage-new-docs', requireRole('agency', 'employee'), ctrl.updateMortgageNewDocs);
-router.patch('/:id/mortgage-new-evaluation', requireRole('agency', 'employee'), ctrl.updateMortgageNewEvaluation);
-router.patch('/:id/mortgage-new-registration', requireRole('agency', 'employee'), ctrl.updateMortgageNewRegistration);
-router.patch('/:id/mortgage-buyout-docs', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutDocs);
-router.patch('/:id/mortgage-buyout-evaluation', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutEvaluation);
-router.patch('/:id/mortgage-buyout-ll', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutLl);
-router.patch('/:id/mortgage-buyout-mc', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutMc);
-router.patch('/:id/mortgage-buyout-cl', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutCl);
-router.patch('/:id/mortgage-buyout-registration', requireRole('agency', 'employee'), ctrl.updateMortgageBuyoutRegistration);
-router.patch('/:id/business-account-open', requireRole('agency', 'employee'), ctrl.updateBusinessAccountOpen);
-router.patch('/:id/business-account-fund-credited', requireRole('agency', 'employee'), ctrl.updateBusinessAccountFundCredited);
-router.patch('/:id/current-account-open', requireRole('agency', 'employee'), ctrl.updateCurrentAccountOpen);
-router.patch('/:id/current-account-salary-credited', requireRole('agency', 'employee'), ctrl.updateCurrentAccountSalaryCredited);
-router.patch('/:id/savings-account-open', requireRole('agency', 'employee'), ctrl.updateSavingsAccountOpen);
-router.patch('/:id/savings-fund-credited', requireRole('agency', 'employee'), ctrl.updateSavingsFundCredited);
+router.patch('/:id/loan-amount', requireRole('agency', 'employee', 'admin'), ctrl.updateLoanAmount);
+router.patch('/:id/cpv', requireRole('agency', 'employee', 'admin'), ctrl.updateCpv);
+router.patch('/:id/activate', requireRole('agency', 'employee', 'admin'), ctrl.updateActivate);
+router.patch('/:id/spend', requireRole('agency', 'employee', 'admin'), ctrl.updateSpend);
+router.patch('/:id/pdc-chq', requireRole('agency', 'employee', 'admin'), ctrl.updatePdcChq);
+router.patch('/:id/fresh-account-open', requireRole('agency', 'employee', 'admin'), ctrl.updateFreshAccountOpen);
+router.patch('/:id/fresh-stl', requireRole('agency', 'employee', 'admin'), ctrl.updateFreshStl);
+router.patch('/:id/buyout-account-open', requireRole('agency', 'employee', 'admin'), ctrl.updateBuyoutAccountOpen);
+router.patch('/:id/buyout-ll-received', requireRole('agency', 'employee', 'admin'), ctrl.updateBuyoutLlReceived);
+router.patch('/:id/buyout-mc-submitted', requireRole('agency', 'employee', 'admin'), ctrl.updateBuyoutMcSubmitted);
+router.patch('/:id/buyout-cl-received', requireRole('agency', 'employee', 'admin'), ctrl.updateBuyoutClReceived);
+router.patch('/:id/buyout-stl', requireRole('agency', 'employee', 'admin'), ctrl.updateBuyoutStl);
+router.patch('/:id/sme-account-open', requireRole('agency', 'employee', 'admin'), ctrl.updateSmeAccountOpen);
+router.patch('/:id/sme-buyout-account-open', requireRole('agency', 'employee', 'admin'), ctrl.updateSmeBuyoutAccountOpen);
+router.patch('/:id/sme-buyout-ll', requireRole('agency', 'employee', 'admin'), ctrl.updateSmeBuyoutLl);
+router.patch('/:id/sme-buyout-mc', requireRole('agency', 'employee', 'admin'), ctrl.updateSmeBuyoutMc);
+router.patch('/:id/sme-buyout-cl', requireRole('agency', 'employee', 'admin'), ctrl.updateSmeBuyoutCl);
+router.patch('/:id/pos-pdc', requireRole('agency', 'employee', 'admin'), ctrl.updatePosPdc);
+router.patch('/:id/pos-dda', requireRole('agency', 'employee', 'admin'), ctrl.updatePosDda);
+router.patch('/:id/pos-loan-account-open', requireRole('agency', 'employee', 'admin'), ctrl.updatePosLoanAccountOpen);
+router.patch('/:id/car-loan-registration', requireRole('agency', 'employee', 'admin'), ctrl.updateCarLoanRegistration);
+router.patch('/:id/mortgage-new-docs', requireRole('agency', 'employee', 'admin'), ctrl.updateMortgageNewDocs);
+router.patch('/:id/mortgage-new-evaluation', requireRole('agency', 'employee', 'admin'), ctrl.updateMortgageNewEvaluation);
+router.patch('/:id/mortgage-new-registration', requireRole('agency', 'employee', 'admin'), ctrl.updateMortgageNewRegistration);
+router.patch('/:id/mortgage-buyout-docs', requireRole('agency', 'employee', 'admin'), ctrl.updateMortgageBuyoutDocs);
+router.patch('/:id/mortgage-buyout-evaluation', requireRole('agency', 'employee', 'admin'), ctrl.updateMortgageBuyoutEvaluation);
+router.patch('/:id/mortgage-buyout-ll', requireRole('agency', 'employee', 'admin'), ctrl.updateMortgageBuyoutLl);
+router.patch('/:id/mortgage-buyout-mc', requireRole('agency', 'employee', 'admin'), ctrl.updateMortgageBuyoutMc);
+router.patch('/:id/mortgage-buyout-cl', requireRole('agency', 'employee', 'admin'), ctrl.updateMortgageBuyoutCl);
+router.patch('/:id/mortgage-buyout-registration', requireRole('agency', 'employee', 'admin'), ctrl.updateMortgageBuyoutRegistration);
+router.patch('/:id/business-account-open', requireRole('agency', 'employee', 'admin'), ctrl.updateBusinessAccountOpen);
+router.patch('/:id/business-account-fund-credited', requireRole('agency', 'employee', 'admin'), ctrl.updateBusinessAccountFundCredited);
+router.patch('/:id/current-account-open', requireRole('agency', 'employee', 'admin'), ctrl.updateCurrentAccountOpen);
+router.patch('/:id/current-account-salary-credited', requireRole('agency', 'employee', 'admin'), ctrl.updateCurrentAccountSalaryCredited);
+router.patch('/:id/savings-account-open', requireRole('agency', 'employee', 'admin'), ctrl.updateSavingsAccountOpen);
+router.patch('/:id/savings-fund-credited', requireRole('agency', 'employee', 'admin'), ctrl.updateSavingsFundCredited);
 router.patch('/:id/receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.addDisbursementReceipt);
-router.patch('/:id/assign-employee', requireRole('agency'), ctrl.assignEmployee);
+router.patch('/:id/assign-employee', allowEmployeeTypes('coordinator'), ctrl.assignEmployee);
 
 // Admin
 router.get('/', requireRole('admin'), ctrl.listAll);

@@ -1,5 +1,6 @@
 const LoanProduct = require('../models/LoanProduct');
 const User = require('../models/User');
+const { resolveAgencyId } = require('../middleware/auth.middleware');
 
 const POPULATE = [
   { path: 'bank', select: 'name code isActive logo' },
@@ -8,7 +9,18 @@ const POPULATE = [
 
 exports.list = async (req, res) => {
   try {
-    const loans = await LoanProduct.find().populate(POPULATE).sort({ name: 1 });
+    const filter = {};
+    // Product Admin's per-agency assignment — empty/absent assignedAgencies
+    // stays visible to everyone (unchanged default); admin always sees all.
+    if (req.user.role !== 'admin') {
+      const agencyId = req.user.role === 'employee' ? resolveAgencyId(req.user) : (req.user.role === 'agency' ? req.user._id : req.user.agency);
+      filter.$or = [
+        { assignedAgencies: { $exists: false } },
+        { assignedAgencies: { $size: 0 } },
+        ...(agencyId ? [{ assignedAgencies: agencyId }] : []),
+      ];
+    }
+    const loans = await LoanProduct.find(filter).populate(POPULATE).sort({ name: 1 });
     res.json(loans);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -17,7 +29,7 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name, loanCategory, bank, agency, commissionBrackets, isActive, agentVisible, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths } = req.body;
+    const { name, loanCategory, bank, agency, assignedAgencies, commissionBrackets, isActive, agentVisible, sendConsent, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths } = req.body;
     if (!name || !loanCategory || !bank) {
       return res.status(400).json({ message: 'name, loanCategory, and bank are required' });
     }
@@ -27,7 +39,7 @@ exports.create = async (req, res) => {
     }
 
     const { benefits, feesEligibility, redirectUrl, redirectActive } = req.body;
-    const loan = await LoanProduct.create({ name, loanCategory, bank, agency: agency || undefined, commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, agentVisible, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive });
+    const loan = await LoanProduct.create({ name, loanCategory, bank, agency: agency || undefined, assignedAgencies: assignedAgencies || [], commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, agentVisible, sendConsent, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive });
     const populated = await loan.populate(POPULATE);
     res.status(201).json(populated);
   } catch (err) {
@@ -37,7 +49,7 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, loanCategory, bank, agency, commissionBrackets, isActive, agentVisible, websiteVisible } = req.body;
+    const { name, loanCategory, bank, agency, assignedAgencies, commissionBrackets, isActive, agentVisible, sendConsent, websiteVisible } = req.body;
     const update = {};
     if (name !== undefined) update.name = name;
     if (loanCategory !== undefined) update.loanCategory = loanCategory;
@@ -47,9 +59,11 @@ exports.update = async (req, res) => {
       if (!agencyUser) return res.status(400).json({ message: 'Invalid agency' });
       update.agency = agency;
     }
+    if (assignedAgencies !== undefined) update.assignedAgencies = assignedAgencies;
     if (commissionBrackets !== undefined) update.commissionBrackets = commissionBrackets;
     if (isActive !== undefined) update.isActive = isActive;
     if (agentVisible !== undefined) update.agentVisible = agentVisible;
+    if (sendConsent !== undefined) update.sendConsent = sendConsent;
     if (websiteVisible !== undefined) update.websiteVisible = websiteVisible;
     const { interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths } = req.body;
     if (interestRateRange !== undefined) update.interestRateRange = interestRateRange;

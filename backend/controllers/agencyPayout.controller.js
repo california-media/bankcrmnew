@@ -4,11 +4,12 @@ const BucketRequest = require('../models/BucketRequest');
 const User = require('../models/User');
 const { createAndEmit, getAdminIds } = require('../utils/notify');
 const { getFilename } = require('../middleware/upload.middleware');
+const { resolveAgencyId } = require('../middleware/auth.middleware');
 
 exports.getPending = async (req, res) => {
   try {
     const leads = await Lead.find({
-      agency: req.user._id,
+      agency: resolveAgencyId(req.user),
       status: 'disbursed',
       agencyPaymentStatus: { $in: ['pending', 'agency_paid'] },
     })
@@ -26,7 +27,7 @@ exports.getPending = async (req, res) => {
 
 exports.getHistory = async (req, res) => {
   try {
-    const payouts = await AgencyPayout.find({ agency: req.user._id })
+    const payouts = await AgencyPayout.find({ agency: resolveAgencyId(req.user) })
       .populate('leads', 'leadNumber customerName grossCommission')
       .sort({ createdAt: -1 });
     res.json(payouts);
@@ -37,7 +38,7 @@ exports.getHistory = async (req, res) => {
 
 exports.getBucket = async (req, res) => {
   try {
-    const agency = await User.findById(req.user._id).select('bucketBalance');
+    const agency = await User.findById(resolveAgencyId(req.user)).select('bucketBalance');
     res.json({ bucketBalance: agency.bucketBalance || 0 });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -52,14 +53,14 @@ exports.addToWallet = async (req, res) => {
       return res.status(400).json({ message: 'Valid amount required' });
 
     const request = await BucketRequest.create({
-      agency: req.user._id,
+      agency: resolveAgencyId(req.user),
       amount: Number(amount),
       note: note || undefined,
       receiptFile,
     });
 
     try {
-      const agency = await User.findById(req.user._id).select('name email');
+      const agency = await User.findById(resolveAgencyId(req.user)).select('name email');
       const adminIds = await getAdminIds();
       await createAndEmit(
         adminIds,
@@ -80,7 +81,7 @@ exports.addToWallet = async (req, res) => {
 
 exports.getMyBucketRequests = async (req, res) => {
   try {
-    const requests = await BucketRequest.find({ agency: req.user._id })
+    const requests = await BucketRequest.find({ agency: resolveAgencyId(req.user) })
       .sort({ createdAt: -1 });
     res.json(requests);
   } catch (err) {
@@ -178,9 +179,10 @@ exports.submitPayout = async (req, res) => {
     if (Number(amountPaid) < 0)
       return res.status(400).json({ message: 'Valid amount required' });
 
+    const agencyId = resolveAgencyId(req.user);
     const leads = await Lead.find({
       _id: { $in: leadIds },
-      agency: req.user._id,
+      agency: agencyId,
       agencyPaymentStatus: { $in: ['pending', 'agency_paid'] },
     });
 
@@ -189,7 +191,7 @@ exports.submitPayout = async (req, res) => {
 
     const totalSelected = leads.reduce((sum, l) => sum + (l.grossCommission || 0), 0);
 
-    const agency = await User.findById(req.user._id);
+    const agency = await User.findById(agencyId);
     const bucketAvailable = agency.bucketBalance || 0;
     const bucketUsed = Math.min(Number(bucketUsedAmount) || 0, bucketAvailable);
     const effectiveTotal = Number(amountPaid) + bucketUsed;
@@ -227,7 +229,7 @@ exports.submitPayout = async (req, res) => {
     await agency.save();
 
     const payout = await AgencyPayout.create({
-      agency: req.user._id,
+      agency: agencyId,
       leads: leadIds,
       totalSelected,
       amountPaid: Number(amountPaid),

@@ -92,6 +92,8 @@ exports.setOnLead = async (req, res) => {
     let lead;
     if (req.user.role === 'agency') {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    } else if (req.user.employeeType === 'coordinator') {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
     } else {
       const empId = req.user._id;
       lead = await Lead.findOne({
@@ -155,8 +157,13 @@ exports.setConsentOnLead = async (req, res) => {
     const { consentStatusId } = req.body;
 
     let lead;
-    if (req.user.role === 'agency') {
+    if (req.user.role === 'admin') {
+      // Admin has full access — not scoped to a single agency's own leads.
+      lead = await Lead.findOne({ _id: req.params.id });
+    } else if (req.user.role === 'agency') {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    } else if (req.user.employeeType === 'coordinator') {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
     } else {
       const empId = req.user._id;
       lead = await Lead.findOne({
@@ -216,6 +223,8 @@ exports.setLoanStatusOnLead = async (req, res) => {
       lead = await Lead.findById(req.params.id);
     } else if (role === 'agency') {
       lead = await Lead.findOne({ _id: req.params.id, agency: req.user._id });
+    } else if (req.user.employeeType === 'coordinator') {
+      lead = await Lead.findOne({ _id: req.params.id, agency: req.user.agency });
     } else {
       const empId = req.user._id;
       lead = await Lead.findOne({

@@ -1,14 +1,17 @@
 const router = require('express').Router();
 const ctrl = require('../controllers/employee.controller');
-const { protect, requireRole } = require('../middleware/auth.middleware');
+const { protect, allowEmployeeTypes } = require('../middleware/auth.middleware');
 
 router.use(protect);
 
-router.post('/', requireRole('agency'), ctrl.create);
-router.get('/', requireRole('agency'), ctrl.list);
-router.patch('/:id/toggle', requireRole('agency'), ctrl.toggleActive);
-router.patch('/:id/password', requireRole('agency'), ctrl.updatePassword);
-router.patch('/:id', requireRole('agency'), ctrl.update);
-router.delete('/:id', requireRole('agency'), ctrl.remove);
+// Agency Coordinator ("all access except payment") manages employees the
+// same as the agency owner — Account Access does not, matching its
+// payment/reports-only scope.
+router.post('/', allowEmployeeTypes('coordinator'), ctrl.create);
+router.get('/', allowEmployeeTypes('coordinator'), ctrl.list);
+router.patch('/:id/toggle', allowEmployeeTypes('coordinator'), ctrl.toggleActive);
+router.patch('/:id/password', allowEmployeeTypes('coordinator'), ctrl.updatePassword);
+router.patch('/:id', allowEmployeeTypes('coordinator'), ctrl.update);
+router.delete('/:id', allowEmployeeTypes('coordinator'), ctrl.remove);
 
 module.exports = router;

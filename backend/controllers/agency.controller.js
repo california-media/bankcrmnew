@@ -91,6 +91,27 @@ exports.update = async (req, res) => {
 };
 
 /**
+ * PATCH /api/agencies/:id/reset-password  (admin)
+ * Body: { password }
+ */
+exports.resetPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || String(password).trim().length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+    const agency = await User.findOne({ _id: req.params.id, role: 'agency' });
+    if (!agency) return res.status(404).json({ message: 'Agency not found' });
+
+    agency.password = password;
+    await agency.save();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * PATCH /api/agencies/:id/toggle-active  (admin)
  */
 exports.toggleActive = async (req, res) => {

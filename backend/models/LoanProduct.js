@@ -15,11 +15,19 @@ const loanProductSchema = new mongoose.Schema(
     loanCategory: { type: String, enum: ['personal', 'mortgage', 'investor', 'business', 'auto_loan', 'buyout', 'fresh', 'pdc', 'stl', 'pos_loan'], required: true },
     bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    // Product Admin: "assign to agency products and banks". Empty/absent =
+    // visible to every agency (today's default, unchanged) — only agencies
+    // listed here can see the product once it's non-empty.
+    assignedAgencies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     commissionBrackets: { type: [bracketSchema], default: [] },
     benefits: { type: String, default: '' },
     feesEligibility: { type: String, default: '' },
     isActive:       { type: Boolean, default: true },
     agentVisible:   { type: Boolean, default: true },
+    // Per-product WhatsApp consent toggle — client wants each product
+    // individually switchable (e.g. a bank's cards on, its loans off).
+    // Defaults true so nothing already relying on consent sending changes.
+    sendConsent:    { type: Boolean, default: true },
     websiteVisible: { type: Boolean, default: true },
     redirectUrl:    { type: String, trim: true },
     redirectActive: { type: Boolean, default: false },

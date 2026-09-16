@@ -8,6 +8,7 @@ router.post('/', ctrl.create);
 router.get('/', ctrl.list);
 router.patch('/:id', ctrl.update);
 router.patch('/:id/toggle-active',   ctrl.toggleActive);
+router.patch('/:id/reset-password',  ctrl.resetPassword);
 router.patch('/:id/toggle-payouts',  ctrl.togglePayouts);
 router.patch('/:id/toggle-default',  ctrl.toggleDefault);
 router.delete('/:id', ctrl.remove);

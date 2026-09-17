@@ -6,7 +6,7 @@ const upload = require('../middleware/upload.middleware');
 router.use(protect);
 
 // All authenticated users can read (agents need it for lead creation)
-router.get('/', requireRole('admin', 'agent', 'agency'), ctrl.list);
+router.get('/', requireRole('admin', 'agent', 'agency', 'employee'), ctrl.list);
 
 // Admin only for write
 router.post('/auto-tag-cashback', requireRole('admin'), ctrl.autoTagCashback);

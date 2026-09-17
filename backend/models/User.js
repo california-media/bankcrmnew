@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String },
     phone: { type: String, trim: true },
     role: { type: String, enum: ['admin', 'agency', 'agent', 'employee', 'blog_editor'], required: true },
+    avatar: { type: String, default: null },
 
     // Admin-only: narrows which sidebar menu a scoped admin account sees.
     // null/undefined = full/Super Admin (today's default, unrestricted).

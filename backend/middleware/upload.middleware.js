@@ -64,6 +64,7 @@ module.exports.blogImages         = makeUpload('blog-images',          ['jpeg', 
 module.exports.blogCategoryImages = makeUpload('blog-category-images', ['jpeg', 'jpg', 'png', 'webp', 'avif']);
 module.exports.leadDocuments      = makeUpload('lead-documents',       ['jpeg', 'jpg', 'png', 'pdf']);
 module.exports.featuredProductImages = makeUpload('featured-products', ['jpeg', 'jpg', 'png', 'webp', 'avif']);
+module.exports.avatars            = makeUpload('avatars',              ['jpeg', 'jpg', 'png', 'webp']);
 
 // In-memory upload for the leads bulk-import spreadsheet — parsed immediately, never persisted to S3.
 module.exports.leadImportFile = multer({

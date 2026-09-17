@@ -6,7 +6,7 @@ const notificationSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: [
-        'lead_created', 'lead_assigned', 'status_changed', 'employee_status_updated', 'note_added', 'commission_payable', 'cpv_done', 'activate_done', 'agency_payout_submitted', 'commission_paid',
+        'lead_created', 'lead_assigned', 'status_changed', 'employee_status_updated', 'note_added', 'commission_payable', 'cpv_done', 'activate_done', 'agency_payout_submitted', 'commission_paid', 'product_changed',
         // Milestone completions from lead.controller.js's makeMilestoneHandler factory
         'pos_loan_account_open_done', 'car_loan_registration_done',
         'mortgage_new_docs_done', 'mortgage_new_evaluation_done', 'mortgage_new_registration_done',

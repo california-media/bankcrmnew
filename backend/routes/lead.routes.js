@@ -37,6 +37,7 @@ router.get('/agency', allowEmployeeTypes('coordinator', 'account'), ctrl.listFor
 router.post('/bulk-assign-employee', allowEmployeeTypes('coordinator'), ctrl.bulkAssignEmployee);
 router.post('/bulk-receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.bulkAddReceipt);
 router.patch('/:id/loan-amount', requireRole('agency', 'employee', 'admin'), ctrl.updateLoanAmount);
+router.patch('/:id/product', requireRole('agency', 'employee', 'admin'), ctrl.updateProduct);
 router.patch('/:id/cpv', requireRole('agency', 'employee', 'admin'), ctrl.updateCpv);
 router.patch('/:id/activate', requireRole('agency', 'employee', 'admin'), ctrl.updateActivate);
 router.patch('/:id/spend', requireRole('agency', 'employee', 'admin'), ctrl.updateSpend);

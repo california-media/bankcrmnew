@@ -5,6 +5,7 @@ const PhoneOtp = require('../models/PhoneOtp');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
 const { sendPasswordResetEmail, sendEmailVerification } = require('../utils/email');
 const { sendWhatsAppOtp } = require('../services/whatsappOtp.service');
+const { deleteFromS3, getFilename } = require('../middleware/upload.middleware');
 
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 const OTP_EXPIRY_MS = 10 * 60 * 1000;
@@ -26,6 +27,7 @@ const sanitize = (user) => ({
   email: user.email,
   phone: user.phone,
   role: user.role,
+  avatar: user.avatar,
   referralCode: user.referralCode,
   employeeType: user.employeeType,
   canViewPayouts: user.canViewPayouts,
@@ -41,6 +43,7 @@ const sanitizeFull = (user) => ({
   email: user.email,
   phone: user.phone,
   role: user.role,
+  avatar: user.avatar,
   referralCode: user.referralCode,
   leadCount: user.leadCount,
   isActive: user.isActive,
@@ -368,6 +371,11 @@ exports.updateProfile = async (req, res) => {
     if (name !== undefined && name.trim()) user.name = name.trim();
     if (phone !== undefined) user.phone = phone.trim();
     if (emiratesId !== undefined) user.emiratesId = emiratesId.trim() || null;
+
+    if (req.file) {
+      if (user.avatar) deleteFromS3('avatars', user.avatar);
+      user.avatar = getFilename(req.file);
+    }
 
     if (bankDetails && typeof bankDetails === 'object' && user.role === 'agent') {
       const bd = bankDetails;

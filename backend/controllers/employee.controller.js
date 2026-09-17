@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const { resolveAgencyId } = require('../middleware/auth.middleware');
+const { deleteFromS3, getFilename } = require('../middleware/upload.middleware');
 
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const genEmployeeId = async () => {
@@ -38,6 +39,7 @@ exports.create = async (req, res) => {
       isActive: true,
       employeeId,
       ...(employeeType && { employeeType }),
+      ...(req.file && { avatar: getFilename(req.file) }),
     });
 
     // Return sanitized user (no password)
@@ -107,6 +109,10 @@ exports.update = async (req, res) => {
       employee.email = email.toLowerCase().trim();
     }
     if (employeeType !== undefined) employee.employeeType = employeeType;
+    if (req.file) {
+      if (employee.avatar) deleteFromS3('avatars', employee.avatar);
+      employee.avatar = getFilename(req.file);
+    }
     await employee.save();
 
     const sanitized = employee.toObject();

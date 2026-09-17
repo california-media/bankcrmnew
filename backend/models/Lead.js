@@ -185,6 +185,17 @@ const leadSchema = new mongoose.Schema(
         _id: false,
       },
     ],
+    productHistory: [
+      {
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        changedAt: { type: Date, default: Date.now },
+        fromBankName: { type: String },
+        fromProductName: { type: String },
+        toBankName: { type: String },
+        toProductName: { type: String },
+        _id: false,
+      },
+    ],
     consentStatusHistory: [
       {
         consentStatus: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeStatus' },

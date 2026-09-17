@@ -563,6 +563,98 @@ exports.updateLoanAmount = async (req, res) => {
 };
 
 /**
+ * PATCH /api/leads/:id/product  (agency/employee/admin)
+ * Change the product (and/or bank) on an already-submitted lead, within
+ * the same category (card/loan/account), and recompute payout.
+ * Body: { bank, productId }
+ */
+exports.updateProduct = async (req, res) => {
+  try {
+    const { bank, productId } = req.body;
+    if (!bank || !productId) {
+      return res.status(400).json({ message: 'bank and productId are required' });
+    }
+
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    let allowed = false;
+    if (req.user.role === 'admin') {
+      allowed = [null, 'coordinator', 'leads'].includes(req.user.adminScope);
+    } else if (req.user.role === 'agency') {
+      allowed = String(lead.agency) === String(req.user._id);
+    } else if (req.user.role === 'employee' && req.user.employeeType === 'coordinator') {
+      allowed = String(lead.agency) === String(resolveAgencyId(req.user));
+    } else if (req.user.role === 'employee' && req.user.employeeType === 'sales') {
+      allowed = String(lead.assignedSalesEmployee) === String(req.user._id);
+    }
+    if (!allowed) return res.status(403).json({ message: 'Forbidden' });
+
+    const preLockStatuses = ['submitted', 'under_review', 'assigned', 'approved'];
+    if (!preLockStatuses.includes(lead.status)) {
+      return res.status(400).json({ message: 'Product can only be changed before disbursement' });
+    }
+
+    const productField = { credit_card: 'cardProduct', loan: 'loanProduct', account: 'accountProduct' }[lead.productType];
+    const ProductModel = { credit_card: CardProduct, loan: LoanProduct, account: AccountProduct }[lead.productType];
+    if (!productField || !ProductModel) {
+      return res.status(400).json({ message: 'This lead has no product category to change' });
+    }
+
+    const newProduct = await ProductModel.findById(productId);
+    if (!newProduct) return res.status(404).json({ message: 'Product not found' });
+    if (newProduct.assignedAgencies?.length && !newProduct.assignedAgencies.some((a) => String(a) === String(lead.agency))) {
+      return res.status(400).json({ message: 'This product is not available to your agency' });
+    }
+
+    const newBank = await Bank.findById(bank);
+    if (!newBank) return res.status(404).json({ message: 'Bank not found' });
+    if (String(newProduct.bank) !== String(newBank._id)) {
+      return res.status(400).json({ message: 'Selected product does not belong to the selected bank' });
+    }
+
+    const oldBank = await Bank.findById(lead.bank).select('name');
+    const oldProduct = await ProductModel.findById(lead[productField]).select('name');
+
+    lead.productHistory.push({
+      changedBy: req.user._id,
+      fromBankName: oldBank?.name || '',
+      fromProductName: oldProduct?.name || '',
+      toBankName: newBank.name,
+      toProductName: newProduct.name,
+    });
+
+    lead.bank = newBank._id;
+    lead[productField] = newProduct._id;
+
+    const { receivable, payable } = await commissionService.resolveCommissions(lead);
+    lead.grossCommission = receivable;
+    lead.commission = payable;
+
+    await lead.save();
+
+    const populated = await lead.populate([...POPULATE_FIELDS, { path: 'productHistory.changedBy', select: 'name email' }]);
+
+    try {
+      await createAndEmit(
+        [String(populated.agent?._id || populated.agent)],
+        {
+          type: 'product_changed',
+          title: 'Product Changed',
+          body: `${lead.customerName} — ${oldProduct?.name || 'product'} → ${newProduct.name}`,
+          lead: lead._id,
+        },
+        req.user._id,
+      );
+    } catch (_) {}
+
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * PATCH /api/leads/:id/cpv  (agency)
  * Mark CPV (Credit Profile Verification) done with optional note.
  */
@@ -2221,6 +2313,7 @@ exports.getOne = async (req, res) => {
       .populate('assignedSalesEmployee', 'name email employeeType')
       .populate('payoutHistory.sentBy', 'name email')
       .populate('statusHistory.changedBy', 'name email')
+      .populate('productHistory.changedBy', 'name email')
       .populate('leadNotes.author', 'name email employeeId')
       .populate('consentStatusHistory.changedBy', 'name email role')
       .populate('consentStatusHistory.consentStatus', 'label color');

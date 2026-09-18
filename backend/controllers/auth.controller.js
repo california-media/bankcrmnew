@@ -375,6 +375,9 @@ exports.updateProfile = async (req, res) => {
     if (req.file) {
       if (user.avatar) deleteFromS3('avatars', user.avatar);
       user.avatar = getFilename(req.file);
+    } else if (req.body.removeAvatar === 'true') {
+      if (user.avatar) deleteFromS3('avatars', user.avatar);
+      user.avatar = null;
     }
 
     if (bankDetails && typeof bankDetails === 'object' && user.role === 'agent') {

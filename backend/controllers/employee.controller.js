@@ -112,6 +112,9 @@ exports.update = async (req, res) => {
     if (req.file) {
       if (employee.avatar) deleteFromS3('avatars', employee.avatar);
       employee.avatar = getFilename(req.file);
+    } else if (req.body.removeAvatar === 'true') {
+      if (employee.avatar) deleteFromS3('avatars', employee.avatar);
+      employee.avatar = null;
     }
     await employee.save();
 

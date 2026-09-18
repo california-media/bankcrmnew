@@ -19,25 +19,32 @@ exports.wabaConsent = async (req, res) => {
       return res.status(400).json({ ok: false, message: 'bankLeadId required' });
     }
 
-    if (String(consent).toLowerCase() !== 'yes') {
+    const normalizedConsent = String(consent).toLowerCase();
+    // Voycell sends consent="no" both for an explicit "No" button click and
+    // for a customer replying STOP (case-insensitive on Voycell's side) —
+    // either way it lands here as "no" and gets recorded as declined.
+    const statusPattern = normalizedConsent === 'yes' ? /confirm/i
+      : normalizedConsent === 'no' ? /declin/i
+      : null;
+
+    if (!statusPattern) {
       console.log(`[WABA webhook] consent="${consent}" — no action taken`);
-      return res.json({ ok: true, message: 'consent not yes — no action taken' });
+      return res.json({ ok: true, message: 'consent not yes/no — no action taken' });
     }
 
-    console.log(`[WABA webhook] consent=yes for bankLeadId=${leadRef}`);
+    console.log(`[WABA webhook] consent=${normalizedConsent} for bankLeadId=${leadRef}`);
 
-    // Find confirmed whatsapp_consent status — match label containing "confirm"
-    const confirmedStatus = await EmployeeStatus.findOne({
+    const targetStatus = await EmployeeStatus.findOne({
       statusType: 'whatsapp_consent',
-      label: { $regex: /confirm/i },
+      label: { $regex: statusPattern },
     }).lean();
 
-    if (!confirmedStatus) {
-      console.error('[WABA webhook] No "confirmed" whatsapp_consent status in EmployeeStatus — add one in admin panel');
-      return res.status(500).json({ ok: false, message: 'Confirmed consent status not configured' });
+    if (!targetStatus) {
+      console.error(`[WABA webhook] No whatsapp_consent status matching ${statusPattern} in EmployeeStatus — add one in admin panel`);
+      return res.status(500).json({ ok: false, message: 'Matching consent status not configured' });
     }
 
-    console.log(`[WABA webhook] Found confirmed status: "${confirmedStatus.label}" (${confirmedStatus._id})`);
+    console.log(`[WABA webhook] Found status: "${targetStatus.label}" (${targetStatus._id})`);
 
     // Try leadNumber first, then _id as fallback (sent when leadNumber was null at creation)
     let lead = await Lead.findOne({ leadNumber: leadRef });
@@ -52,11 +59,11 @@ exports.wabaConsent = async (req, res) => {
     }
 
     console.log(`[WABA webhook] Found lead: ${lead._id} — updating consentStatus`);
-    lead.consentStatus = confirmedStatus._id;
+    lead.consentStatus = targetStatus._id;
     await lead.save();
 
-    console.log(`[WABA webhook] ✓ Lead ${leadRef} consentStatus → "${confirmedStatus.label}"`);
-    res.json({ ok: true, leadId: lead._id, consentStatus: confirmedStatus.label });
+    console.log(`[WABA webhook] ✓ Lead ${leadRef} consentStatus → "${targetStatus.label}"`);
+    res.json({ ok: true, leadId: lead._id, consentStatus: targetStatus.label });
   } catch (err) {
     console.error('[WABA webhook] ERROR:', err.message);
     res.status(500).json({ ok: false, message: err.message });

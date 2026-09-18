@@ -168,7 +168,7 @@ exports.create = async (req, res) => {
     // Send WhatsApp consent message — fire and forget, never block lead creation.
     // Skipped entirely if the chosen product has consent sending turned off.
     if (sendConsentFlag) {
-      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName })
+      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName, productType: lead.productType })
         .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
         .catch(() => {});
     } else {

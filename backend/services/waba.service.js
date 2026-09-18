@@ -14,12 +14,16 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
-function sendConsentMessage({ phone, externalLeadId, customerName }) {
+const PRODUCT_LABELS = { credit_card: 'Credit Card', loan: 'Loan', account: 'Bank Account' };
+
+function sendConsentMessage({ phone, externalLeadId, customerName, productType }) {
   return new Promise((resolve) => {
     if (!WABA_API_KEY) return resolve({ skipped: true, reason: 'WABA_API_KEY not set' });
 
     const normalized = normalizePhone(phone);
     if (!normalized) return resolve({ skipped: true, reason: 'no phone' });
+
+    const productLabel = PRODUCT_LABELS[productType];
 
     // NOTE: this deployed endpoint's own validation error names
     // `externalLeadId` as the required field (confirmed live) — it does
@@ -36,7 +40,13 @@ function sendConsentMessage({ phone, externalLeadId, customerName }) {
       callbackUrl: WABA_CALLBACK_URL,
       yesButtonText: YES_BUTTON,
       params: {
-        body: [customerName || 'Customer'],
+        // Second value only added once a product type is known — keeps this
+        // call safe to ship before the WhatsApp template itself has a
+        // second {{}} placeholder approved. Once it does, this always
+        // sends two values (every lead has a productType).
+        body: productLabel
+          ? [customerName || 'Customer', productLabel]
+          : [customerName || 'Customer'],
       },
     });
 
@@ -53,7 +63,7 @@ function sendConsentMessage({ phone, externalLeadId, customerName }) {
       },
     };
 
-    console.log(`[WABA] Sending consent to phone=${normalized} externalLeadId=${externalLeadId} customer="${customerName || 'Customer'}"`);
+    console.log(`[WABA] Sending consent to phone=${normalized} externalLeadId=${externalLeadId} customer="${customerName || 'Customer'}" product="${productLabel || 'n/a'}"`);
 
     const lib = url.protocol === 'https:' ? https : http;
     const req = lib.request(options, (res) => {

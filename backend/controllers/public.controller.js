@@ -171,7 +171,7 @@ exports.submitReferral = async (req, res) => {
     }
 
     if (!redirectUrl && productSendConsent) {
-      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName })
+      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName, productType: lead.productType })
         .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
         .catch(() => {});
     }
@@ -271,7 +271,7 @@ exports.submitWebApply = async (req, res) => {
     const lead = await Lead.create(leadData);
 
     if (!redirectUrl && productSendConsent) {
-      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName })
+      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName, productType: lead.productType })
         .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
         .catch(() => {});
     }
@@ -344,7 +344,7 @@ exports.submitWebLoanApply = async (req, res) => {
     const lead = await Lead.create(leadData);
 
     if (!loanRedirectUrl && productSendConsent) {
-      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName })
+      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName, productType: lead.productType })
         .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
         .catch(() => {});
     }
@@ -434,7 +434,7 @@ exports.submitWebAccountApply = async (req, res) => {
     const lead = await Lead.create(leadData);
 
     if (!accountRedirectUrl && productSendConsent) {
-      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName })
+      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName, productType: lead.productType })
         .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
         .catch(() => {});
     }

@@ -16,6 +16,7 @@ import AdminAgents from './pages/admin/Agents';
 import AgentDetail from './pages/admin/AgentDetail';
 import CardProducts from './pages/admin/CardProducts';
 import FeaturedProducts from './pages/admin/FeaturedProducts';
+import AdminResources from './pages/admin/Resources';
 import LoanProducts from './pages/admin/LoanProducts';
 import AccountProducts from './pages/admin/AccountProducts';
 import AdminBanks from './pages/admin/Banks';
@@ -111,6 +112,7 @@ function App() {
           <Route path="agents/:id" element={<AgentDetail />} />
           <Route path="card-products" element={<CardProducts />} />
           <Route path="featured-products" element={<FeaturedProducts />} />
+          <Route path="resources" element={<AdminResources />} />
           <Route path="loan-products" element={<LoanProducts />} />
           <Route path="account-products" element={<AccountProducts />} />
           <Route path="banks" element={<AdminBanks />} />

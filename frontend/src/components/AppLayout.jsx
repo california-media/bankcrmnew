@@ -8,7 +8,7 @@ import {
   BellOutlined, PlusCircleOutlined, CheckCircleOutlined, MenuOutlined,
   UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined, WalletOutlined,
   SettingOutlined, MailOutlined, NotificationOutlined, ReadOutlined, FileProtectOutlined,
-  BarChartOutlined, StarOutlined, RiseOutlined, LockOutlined,
+  BarChartOutlined, StarOutlined, RiseOutlined, LockOutlined, FolderOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -51,6 +51,7 @@ const menusByRole = {
     { key: '/admin/loan-products',     icon: <FundOutlined />,         label: <Link to="/admin/loan-products">Loan Products</Link> },
     { key: '/admin/account-products',  icon: <BankOutlined />,         label: <Link to="/admin/account-products">Account Products</Link> },
     { key: '/admin/featured-products', icon: <StarOutlined />,         label: <Link to="/admin/featured-products">Featured Products</Link> },
+    { key: '/admin/resources',         icon: <FolderOutlined />,       label: <Link to="/admin/resources">Resources</Link> },
     { key: '/admin/payouts',           icon: <DollarOutlined />,       label: <Link to="/admin/payouts">Payouts</Link> },
     { key: '/admin/receive',           icon: <InboxOutlined />,        label: <Link to="/admin/receive">Receive</Link> },
     { key: '/admin/employee-statuses', icon: <UnorderedListOutlined />,label: <Link to="/admin/employee-statuses">Lead Status</Link> },

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Row, Col, Card, Typography, Select, Empty, Skeleton, Tag, Button } from 'antd';
+import { Row, Col, Card, Typography, Select, Empty, Skeleton, Tag, Button, message } from 'antd';
 import { FilePdfOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
@@ -54,6 +54,7 @@ function Resources() {
     setLoading(true);
     api.get('/resources')
       .then((res) => setResources(res.data))
+      .catch(() => message.error('Failed to load resources'))
       .finally(() => setLoading(false));
   }, []);
 

@@ -77,6 +77,7 @@ const menusByRole = {
     { key: '/agent/reports',          icon: <BarChartOutlined />,     label: <Link to="/agent/reports">Reports</Link> },
     { key: '/agent/notifications',    icon: <BellOutlined />,         label: <Link to="/agent/notifications">Notifications</Link> },
     { key: '/agent/settings',         icon: <SettingOutlined />,      label: <Link to="/agent/settings">Settings</Link> },
+    { key: '/agent/resources',        icon: <FolderOutlined />,       label: <Link to="/agent/resources">Resources</Link> },
   ],
   agency: [
     { key: '/agency',                 icon: <DashboardOutlined />,    label: <Link to="/agency">Dashboard</Link> },

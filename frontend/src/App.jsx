@@ -26,6 +26,7 @@ import MyLeads from './pages/agent/MyLeads';
 import Commissions from './pages/agent/Commissions';
 import AgentProducts from './pages/agent/Products';
 import AgentSettings from './pages/agent/Settings';
+import AgentResources from './pages/agent/Resources';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyLeads from './pages/agency/Leads';
 import AgencyEmployees from './pages/agency/Employees';
@@ -150,6 +151,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="settings" element={<Profile />} />
+          <Route path="resources" element={<AgentResources />} />
         </Route>
 
         <Route

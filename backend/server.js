@@ -87,6 +87,7 @@ app.use('/api/featured-products', require('./routes/featuredProduct.routes'));
 app.use('/api/credit-notes',      require('./routes/creditNote.routes'));
 app.use('/api/invoices',          require('./routes/invoice.routes'));
 app.use('/api/promotions',        require('./routes/promotion.routes'));
+app.use('/api/resources',         require('./routes/resource.routes'));
 
 app.use((err, req, res, _next) => {
   console.error(err);

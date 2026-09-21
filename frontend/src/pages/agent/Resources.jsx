@@ -38,7 +38,7 @@ function ResourceCard({ resource }) {
       )}
       <div style={{ display: 'flex', gap: 8 }}>
         <Button size="small" icon={<EyeOutlined />} href={url} target="_blank" rel="noreferrer" style={{ flex: 1 }}>View</Button>
-        <Button size="small" icon={<DownloadOutlined />} href={url} download style={{ flex: 1 }}>Download</Button>
+        <Button size="small" icon={<DownloadOutlined />} href={url} download target="_blank" rel="noreferrer" style={{ flex: 1 }}>Download</Button>
       </div>
     </Card>
   );

@@ -34,6 +34,8 @@ function Resources() {
       setResources(resRes.data);
       setBanks(banksRes.data);
       setAgencies(agenciesRes.data);
+    } catch {
+      message.error('Failed to load resources');
     } finally {
       setLoading(false);
     }
@@ -81,7 +83,7 @@ function Resources() {
       const fd = new FormData();
       fd.append('title', values.title);
       fd.append('description', values.description || '');
-      if (values.bank) fd.append('bank', values.bank);
+      fd.append('bank', values.bank || '');
       fd.append('type', values.type);
       fd.append('assignedAgencies', JSON.stringify(values.assignedAgencies || []));
       fd.append('isActive', values.isActive !== false ? 'true' : 'false');

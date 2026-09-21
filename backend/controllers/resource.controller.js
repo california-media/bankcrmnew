@@ -83,9 +83,10 @@ exports.update = async (req, res) => {
     if (req.body.assignedAgencies !== undefined) update.assignedAgencies = parseJsonField(req.body.assignedAgencies);
     if (req.body.isActive !== undefined) update.isActive = req.body.isActive !== 'false' && req.body.isActive !== false;
 
+    let oldFile = null;
     if (req.file) {
       const existing = await Resource.findById(req.params.id, 'file');
-      if (existing?.file) deleteResourceFile(existing.file);
+      oldFile = existing?.file || null;
       update.file = getFilename(req.file);
       update.fileType = fileTypeFor(req.file);
     }
@@ -96,6 +97,7 @@ exports.update = async (req, res) => {
       if (req.file) deleteResourceFile(getFilename(req.file));
       return res.status(404).json({ message: 'Resource not found' });
     }
+    if (oldFile) deleteResourceFile(oldFile);
     res.json(resource);
   } catch (err) {
     if (req.file) deleteResourceFile(getFilename(req.file));

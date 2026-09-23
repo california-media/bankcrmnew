@@ -1,5 +1,6 @@
 const PromotionTier = require('../models/PromotionTier');
 const PromotionAward = require('../models/PromotionAward');
+const PartnerResource = require('../models/PartnerResource');
 const Lead = require('../models/Lead');
 const User = require('../models/User');
 
@@ -293,6 +294,60 @@ exports.monthlyCounts = async (req, res) => {
 
     res.json({ month, rows: Object.values(byAgent).sort((a, b) => b.total - a.total) });
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ---- Partner resources (training video + guideline docs) ----
+
+// Admin sees every resource; every other role sees only active ones.
+exports.listResources = async (req, res) => {
+  try {
+    const filter = req.user.role === 'admin' ? {} : { isActive: true };
+    const resources = await PartnerResource.find(filter).sort({ createdAt: -1 });
+    res.json(resources);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.createResource = async (req, res) => {
+  try {
+    const { title, description, videoLink, docsLink } = req.body;
+    if (!title) return res.status(400).json({ message: 'title is required' });
+    const resource = await PartnerResource.create({ title, description, videoLink, docsLink });
+    res.status(201).json(resource);
+  } catch (err) {
+    if (err.name === 'ValidationError') return res.status(400).json({ message: err.message });
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateResource = async (req, res) => {
+  try {
+    const { title, description, videoLink, docsLink, isActive } = req.body;
+    const update = {};
+    if (title !== undefined) update.title = title;
+    if (description !== undefined) update.description = description;
+    if (videoLink !== undefined) update.videoLink = videoLink;
+    if (docsLink !== undefined) update.docsLink = docsLink;
+    if (isActive !== undefined) update.isActive = isActive;
+    const resource = await PartnerResource.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!resource) return res.status(404).json({ message: 'Resource not found' });
+    res.json(resource);
+  } catch (err) {
+    if (err.name === 'ValidationError' || err.name === 'CastError') return res.status(400).json({ message: err.message });
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.deleteResource = async (req, res) => {
+  try {
+    const resource = await PartnerResource.findByIdAndDelete(req.params.id);
+    if (!resource) return res.status(404).json({ message: 'Resource not found' });
+    res.json({ message: 'Resource deleted' });
+  } catch (err) {
+    if (err.name === 'CastError') return res.status(404).json({ message: 'Resource not found' });
     res.status(500).json({ message: err.message });
   }
 };

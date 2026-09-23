@@ -62,6 +62,7 @@ exports.create = async (req, res) => {
     const clawbackDays = req.body.clawbackDays ? Number(req.body.clawbackDays) : 0;
     const redirectUrl    = req.body.redirectUrl || '';
     const redirectActive = req.body.redirectActive === 'true' || req.body.redirectActive === true;
+    const referralVisible = req.body.referralVisible === 'true' || req.body.referralVisible === true;
     const rate           = req.body.rate || '';
     const card = await CardProduct.create({
       name,
@@ -85,6 +86,7 @@ exports.create = async (req, res) => {
       cardImage: req.file ? getFilename(req.file) : undefined,
       redirectUrl,
       redirectActive,
+      referralVisible,
     });
     const populated = await card.populate(POPULATE);
     res.status(201).json(populated);
@@ -132,6 +134,7 @@ exports.update = async (req, res) => {
     if (websiteVisible !== undefined) update.websiteVisible = websiteVisible !== 'false' && websiteVisible !== false;
     if (req.body.redirectUrl !== undefined) update.redirectUrl = req.body.redirectUrl || '';
     if (req.body.redirectActive !== undefined) update.redirectActive = req.body.redirectActive === 'true' || req.body.redirectActive === true;
+    if (req.body.referralVisible !== undefined) update.referralVisible = req.body.referralVisible === 'true' || req.body.referralVisible === true;
     if (req.body.rate !== undefined) update.rate = req.body.rate || '';
 
     if (req.file) {

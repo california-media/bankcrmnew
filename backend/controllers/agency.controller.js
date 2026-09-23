@@ -10,6 +10,7 @@ const sanitizeAgency = (a) => ({
   isActive: a.isActive,
   canViewPayouts: a.canViewPayouts,
   isDefaultAgency: a.isDefaultAgency,
+  agencyCommissionModel: a.agencyCommissionModel,
   createdAt: a.createdAt,
 });
 
@@ -75,13 +76,19 @@ exports.update = async (req, res) => {
     const agency = await User.findOne({ _id: req.params.id, role: 'agency' });
     if (!agency) return res.status(404).json({ message: 'Agency not found' });
 
-    const { name, email } = req.body;
+    const { name, email, agencyCommissionModel } = req.body;
     if (name !== undefined) agency.name = name;
     if (email) {
       const lower = email.toLowerCase();
       const conflict = await User.findOne({ email: lower, _id: { $ne: agency._id } });
       if (conflict) return res.status(409).json({ message: 'Email already in use' });
       agency.email = lower;
+    }
+    if (agencyCommissionModel !== undefined) {
+      if (!['wholesale', 'referral'].includes(agencyCommissionModel)) {
+        return res.status(400).json({ message: 'agencyCommissionModel must be wholesale or referral' });
+      }
+      agency.agencyCommissionModel = agencyCommissionModel;
     }
     await agency.save();
     res.json({ agency: sanitizeAgency(agency) });

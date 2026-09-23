@@ -72,6 +72,15 @@ const leadSchema = new mongoose.Schema(
     assignedEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     assignedCpvEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     assignedSalesEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    // Locked at approval/disbursement exactly like grossCommission/commission —
+    // the extra AED the submitting agent's tagging agency earns, if any.
+    agencyOverrideAmount: { type: Number, default: 0 },
+    agencyOverrideAgency: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    // Payout lifecycle for the agency override amount — separate from
+    // commissionStatus (the agent's own payout), since MySilah pays these
+    // out independently. Mirrors commissionStatus's none/pending/paid states.
+    agencyOverrideStatus: { type: String, enum: ['none', 'pending', 'paid'], default: 'none' },
+    agencyOverridePaidAt: { type: Date },
     engagementStatus: { type: String, enum: ENGAGEMENT_STATUSES, default: 'new_lead' },
     employeeStatus: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeStatus' },
     consentStatus:  { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeStatus' },
@@ -229,5 +238,40 @@ const leadSchema = new mongoose.Schema(
 leadSchema.statics.STATUSES = LEAD_STATUSES;
 leadSchema.statics.COMMISSION_STATUSES = COMMISSION_STATUSES;
 leadSchema.statics.ENGAGEMENT_STATUSES = ENGAGEMENT_STATUSES;
+
+// Auto-route to a tagged sales/cpv employee exactly once, at the moment a
+// lead's status transitions into 'submitted' (isModified('status') is only
+// true on that transition, not on later unrelated saves — so this never
+// retroactively assigns an already-submitted lead just because someone
+// edited an unrelated field later). Never overwrites an existing manual
+// assignment. Leaves fields untouched (lead stays unassigned) when no
+// employee is tagged for that bank.
+// Async pre-hooks take no `next` — Mongoose runs it as a promise and never
+// passes a callback, so calling one here would throw "next is not a function".
+leadSchema.pre('save', async function () {
+  try {
+    if (
+      this.isModified('status') &&
+      this.status === 'submitted' &&
+      !this.assignedSalesEmployee &&
+      !this.assignedCpvEmployee &&
+      this.agency &&
+      this.bank &&
+      !this.$locals.skipAutoRoute
+    ) {
+      const { computeAutoAssignment } = require('../services/leadRouting.service');
+      const assignment = await computeAutoAssignment(this.agency, this.bank);
+      if (assignment.assignedSalesEmployee) this.assignedSalesEmployee = assignment.assignedSalesEmployee;
+      if (assignment.assignedCpvEmployee) this.assignedCpvEmployee = assignment.assignedCpvEmployee;
+      if (assignment.assignedSalesEmployee || assignment.assignedCpvEmployee) {
+        this.statusHistory.push({ status: 'submitted', note: 'Auto-assigned based on bank tag', changedAt: new Date() });
+      }
+    }
+  } catch (err) {
+    // Auto-routing must never block a lead from saving — log and leave the
+    // lead unassigned (falls back to manual coordinator assignment).
+    console.error('[leadRouting] auto-assign failed:', err.message);
+  }
+});
 
 module.exports = mongoose.model('Lead', leadSchema);

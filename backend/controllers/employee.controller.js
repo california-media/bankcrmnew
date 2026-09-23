@@ -19,7 +19,7 @@ const genEmployeeId = async () => {
  */
 exports.create = async (req, res) => {
   try {
-    const { name, email, password, employeeType } = req.body;
+    const { name, email, password, employeeType, assignedBanks } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'name, email, and password are required' });
     }
@@ -39,6 +39,7 @@ exports.create = async (req, res) => {
       isActive: true,
       employeeId,
       ...(employeeType && { employeeType }),
+      ...(assignedBanks !== undefined && { assignedBanks: [].concat(assignedBanks).filter(Boolean) }),
       ...(req.file && { avatar: getFilename(req.file) }),
     });
 
@@ -98,7 +99,7 @@ exports.toggleActive = async (req, res) => {
  */
 exports.update = async (req, res) => {
   try {
-    const { name, email, employeeType } = req.body;
+    const { name, email, employeeType, assignedBanks } = req.body;
     const employee = await User.findOne({ _id: req.params.id, role: 'employee', agency: resolveAgencyId(req.user) });
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
@@ -109,6 +110,7 @@ exports.update = async (req, res) => {
       employee.email = email.toLowerCase().trim();
     }
     if (employeeType !== undefined) employee.employeeType = employeeType;
+    if (assignedBanks !== undefined) employee.assignedBanks = [].concat(assignedBanks).filter(Boolean);
     if (req.file) {
       if (employee.avatar) deleteFromS3('avatars', employee.avatar);
       employee.avatar = getFilename(req.file);

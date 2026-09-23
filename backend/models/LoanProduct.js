@@ -5,6 +5,7 @@ const bracketSchema = new mongoose.Schema(
     minimumSalary: { type: Number, required: true, min: 0 },
     receivable: { type: Number, required: true, min: 0 },
     payable: { type: Number, required: true, min: 0 },
+    agencyOverride: { type: Number, min: 0, default: 0 }, // extra AED paid to the agent's tagging agency on disbursal — always a flat AED amount, NOT a percentage (unlike receivable/payable on this model, which ARE percentages of loanAmount)
   },
   { _id: false }
 );
@@ -31,6 +32,10 @@ const loanProductSchema = new mongoose.Schema(
     websiteVisible: { type: Boolean, default: true },
     redirectUrl:    { type: String, trim: true },
     redirectActive: { type: Boolean, default: false },
+    // Independent from redirectActive — controls whether this product is
+    // offered as a pickable option on the public /ref/:code referral form,
+    // not whether a submitted lead redirects to the bank.
+    referralVisible: { type: Boolean, default: false },
     interestRateRange: { type: String, trim: true },
     minSalary: { type: Number },
     maxLoanAmount: { type: String, trim: true },

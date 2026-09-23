@@ -6,14 +6,14 @@ const upload = require('../middleware/upload.middleware');
 router.use(protect);
 
 // Agent
-router.post('/', requireRole('agent'), ctrl.create);
+router.post('/', requireRole('agent', 'agency'), ctrl.create);
 router.get('/mine', requireRole('agent'), ctrl.listMine);
 router.get('/stats', requireRole('agent'), ctrl.stats);
 router.get('/ledger', requireRole('agent'), ctrl.myLedger);
 router.delete('/:id', requireRole('agent'), ctrl.removeDraft);
 router.patch('/:id/engagement-status', requireRole('agent'), ctrl.updateEngagementStatus);
 router.patch('/:id/complete-referral', requireRole('agent'), ctrl.completeReferral);
-router.patch('/:id/reference-no', requireRole('agent'), ctrl.updateReferenceNo);
+router.patch('/:id/reference-no', requireRole('agent', 'agency', 'employee'), ctrl.updateReferenceNo);
 router.patch('/:id/remarks', requireRole('admin', 'agency', 'employee'), ctrl.updateRemarks);
 router.post('/:id/documents', requireRole('agent', 'admin', 'agency'), upload.leadDocuments.array('documents', 5), ctrl.addDocuments);
 
@@ -21,7 +21,7 @@ router.post('/:id/documents', requireRole('agent', 'admin', 'agency'), upload.le
 router.post('/:id/notes', requireRole('admin', 'agency', 'agent', 'employee'), ctrl.addNote);
 
 // Agent + admin
-router.post('/:id/send-to-agency', requireRole('agent', 'admin'), ctrl.sendToAgency);
+router.post('/:id/send-to-agency', requireRole('agent', 'agency', 'admin'), ctrl.sendToAgency);
 
 // Employee
 router.get('/assigned', requireRole('employee'), ctrl.listAssigned);
@@ -86,6 +86,7 @@ router.post('/bulk-mark-received', requireRole('admin'), ctrl.bulkMarkReceived);
 router.post('/admin-pay-from-bucket', requireRole('admin'), ctrl.adminPayFromBucket);
 router.post('/bulk-release-holds', requireRole('admin'), ctrl.bulkReleaseHolds);
 router.post('/:id/mark-paid', requireRole('admin'), ctrl.markCommissionPaid);
+router.post('/:id/mark-agency-override-paid', requireRole('admin'), ctrl.markAgencyOverridePaid);
 router.post('/:id/release-hold', requireRole('admin'), ctrl.releaseHold);
 router.patch('/:id/agent-commission', requireRole('admin'), ctrl.setAgentCommission);
 router.delete('/:id/notes/:noteId', requireRole('admin'), ctrl.deleteNote);

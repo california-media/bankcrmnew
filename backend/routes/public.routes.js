@@ -7,6 +7,7 @@ router.get('/card-categories', require('../controllers/cardCategory.controller')
 router.get('/ref/:code', ctrl.getRefInfo);
 router.post('/ref/:code/draft', ctrl.draftReferral);
 router.post('/ref/:code/submit', ctrl.submitReferral);
+router.get('/track-status', ctrl.trackStatus);
 router.post('/apply', ctrl.submitWebApply);
 router.post('/loan-apply', ctrl.submitWebLoanApply);
 router.post('/account-apply', ctrl.submitWebAccountApply);

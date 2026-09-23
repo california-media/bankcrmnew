@@ -7,6 +7,8 @@ const bankSchema = new mongoose.Schema(
     description: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
     hasSpend: { type: Boolean, default: false },
+    hasCpv: { type: Boolean, default: true },
+    hasActivation: { type: Boolean, default: true },
     logo: { type: String },
     // Product Admin: "assign to agency products and banks". Empty/absent =
     // visible to every agency (today's default, unchanged) — only agencies

@@ -13,6 +13,7 @@ const sanitizeAgent = (user) => ({
   isActive: user.isActive,
   createdAt: user.createdAt,
   bankDetails: user.bankDetails,
+  agency: user.agency,
 });
 
 /**
@@ -24,6 +25,7 @@ exports.listAgents = async (req, res) => {
     const agents = await User.find({ role: 'agent' })
       .select('-password -inviteToken -inviteTokenExpires')
       .populate('referredBy', 'name email referralCode')
+      .populate('agency', 'name email')
       .sort({ createdAt: -1 });
 
     const ids = agents.map((a) => a._id);
@@ -214,10 +216,19 @@ exports.updateAgent = async (req, res) => {
     const agent = await User.findOne({ _id: req.params.id, role: 'agent' });
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
 
-    const { name, email, phone, holdPct, bankDetails } = req.body;
+    const { name, email, phone, holdPct, bankDetails, agency } = req.body;
     if (name !== undefined) agent.name = name;
     if (phone !== undefined) agent.phone = phone;
     if (holdPct !== undefined) agent.holdPct = Math.min(100, Math.max(0, Number(holdPct) || 0));
+    if (agency !== undefined) {
+      if (agency === null || agency === '') {
+        agent.agency = undefined;
+      } else {
+        const targetAgency = await User.findOne({ _id: agency, role: 'agency' });
+        if (!targetAgency) return res.status(400).json({ message: 'Target agency not found' });
+        agent.agency = targetAgency._id;
+      }
+    }
     if (email) {
       const lower = email.toLowerCase();
       const conflict = await User.findOne({ email: lower, _id: { $ne: agent._id } });

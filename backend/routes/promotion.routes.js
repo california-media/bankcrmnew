@@ -21,4 +21,11 @@ router.put('/awards/:id/status', requireRole('admin'), ctrl.updateAwardStatus);
 // informational, has no bearing on lifetime tier eligibility.
 router.get('/monthly-counts', requireRole('admin'), ctrl.monthlyCounts);
 
+// Partner Guide: training video + guideline doc links. Any authed role can
+// list (admin sees inactive too); only admin manages.
+router.get('/resources', ctrl.listResources);
+router.post('/resources', requireRole('admin'), ctrl.createResource);
+router.put('/resources/:id', requireRole('admin'), ctrl.updateResource);
+router.delete('/resources/:id', requireRole('admin'), ctrl.deleteResource);
+
 module.exports = router;

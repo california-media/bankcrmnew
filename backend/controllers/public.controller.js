@@ -160,7 +160,11 @@ exports.submitReferral = async (req, res) => {
         const seq = String(agentDoc.leadCount).padStart(4, '0');
         leadData.leadNumber = `LD-${agentShortId}-${seq}`;
       }
-      lead = await Lead.findByIdAndUpdate(req.body.leadId, { $set: leadData }, { new: true });
+      lead = await Lead.findById(req.body.leadId);
+      if (lead) {
+        Object.assign(lead, leadData);
+        await lead.save();
+      }
     }
     if (!lead) {
       const agentDoc = await User.findByIdAndUpdate(agent._id, { $inc: { leadCount: 1 } }, { new: true, select: 'leadCount' });
@@ -182,9 +186,188 @@ exports.submitReferral = async (req, res) => {
   }
 };
 
+// Ordered milestone checklist per loanType/accountType — mirrors
+// frontend/src/utils/loanActions.js LOAN_MILESTONES/ACTION_LABELS exactly.
+// Keep the two in sync if that file's flows change.
+const LOAN_MILESTONES = {
+  pdc: [{ field: 'pdcChqDone', label: 'PDC Chq' }],
+  new_stl_loan: [
+    { field: 'freshAccountOpenDone', label: 'Account Open' },
+    { field: 'freshStlDone', label: 'STL' },
+  ],
+  buyout: [
+    { field: 'buyoutAccountOpenDone', label: 'Account Open' },
+    { field: 'buyoutLlReceivedDone', label: 'LL Received' },
+    { field: 'buyoutMcSubmittedDone', label: 'MC Submitted' },
+    { field: 'buyoutClReceivedDone', label: 'CL Received' },
+    { field: 'buyoutStlDone', label: 'STL' },
+  ],
+  sme_new_loan: [{ field: 'smeAccountOpenDone', label: 'Account Open' }],
+  sme_buyout_loan: [
+    { field: 'smeBuyoutAccountOpenDone', label: 'Account Open' },
+    { field: 'smeBuyoutLlDone', label: 'LL' },
+    { field: 'smeBuyoutMcDone', label: 'MC' },
+    { field: 'smeBuyoutClDone', label: 'CL' },
+  ],
+  pos_loan_non_bank: [
+    { field: 'posPdcDone', label: 'PDC' },
+    { field: 'posDdaDone', label: 'DDA' },
+  ],
+  pos_loan: [{ field: 'posLoanAccountOpenDone', label: 'Account Open' }],
+  auto_loan: [{ field: 'carLoanRegistrationDone', label: 'Car Registration' }],
+  mortgage_new: [
+    { field: 'mortgageNewDocsDone', label: 'Property Mortgage Docs' },
+    { field: 'mortgageNewEvaluationDone', label: 'Evaluation' },
+    { field: 'mortgageNewRegistrationDone', label: 'Property Registration' },
+  ],
+  mortgage_buyout: [
+    { field: 'mortgageBuyoutDocsDone', label: 'Property Mortgage Docs' },
+    { field: 'mortgageBuyoutEvaluationDone', label: 'Evaluation' },
+    { field: 'mortgageBuyoutLlDone', label: 'LL' },
+    { field: 'mortgageBuyoutMcDone', label: 'MC' },
+    { field: 'mortgageBuyoutClDone', label: 'CL' },
+    { field: 'mortgageBuyoutRegistrationDone', label: 'Property Registration' },
+  ],
+};
+
+const ACCOUNT_MILESTONES = {
+  business_account: [
+    { field: 'businessAccountOpenDone', label: 'Account Open' },
+    { field: 'businessAccountFundCreditedDone', label: 'Fund Credited' },
+  ],
+  current_account: [
+    { field: 'currentAccountOpenDone', label: 'Account Open' },
+    { field: 'currentAccountSalaryCreditedDone', label: 'Salary Credited' },
+  ],
+  savings_account: [
+    { field: 'savingsAccountOpenDone', label: 'Account Open' },
+    { field: 'savingsFundCreditedDone', label: 'Fund Credited' },
+  ],
+};
+
+// credit_card has no fixed chain — CPV/Activation/Spend are each independently
+// toggled on/off per bank (Bank.hasCpv/hasActivation/hasSpend), same gating
+// LeadDetail.jsx uses to decide which of the three buttons to even show.
+function getActions(lead) {
+  // Milestones only apply once a lead is approved — before that, CPV/
+  // activation/disbursal haven't started, so hide the steps entirely
+  // instead of showing them all as pending.
+  if (!['approved', 'disbursed'].includes(lead.status)) return [];
+  const disbursedStep = { label: 'Disbursed', done: lead.status === 'disbursed' };
+  if (lead.productType === 'credit_card') {
+    const steps = [];
+    if (lead.bank?.hasCpv !== false) steps.push({ label: 'CPV', done: !!lead.cpvDone });
+    if (lead.bank?.hasActivation !== false) steps.push({ label: 'Activated', done: !!lead.activateDone });
+    if (lead.bank?.hasSpend) steps.push({ label: 'Spend', done: !!lead.spendDone });
+    steps.push(disbursedStep);
+    return steps;
+  }
+  const config = lead.accountType ? ACCOUNT_MILESTONES[lead.accountType] : LOAN_MILESTONES[lead.loanType];
+  if (!config) return [disbursedStep];
+  return [...config.map(({ field, label }) => ({ label, done: !!lead[field] })), disbursedStep];
+}
+
+// Bare-minimum per-IP throttle — this route is unauthenticated and its
+// leadNumber format (LD-<6 hex>-<4 digit seq>) is guessable, and there's no
+// app-wide rate limiter yet. In-memory only (per process, resets on deploy);
+// good enough to blunt casual enumeration without adding a new dependency.
+const trackStatusHits = new Map();
+const TRACK_STATUS_WINDOW_MS = 5 * 60 * 1000;
+const TRACK_STATUS_MAX_HITS = 12;
+function isRateLimited(ip) {
+  const now = Date.now();
+  const hits = (trackStatusHits.get(ip) || []).filter((t) => now - t < TRACK_STATUS_WINDOW_MS);
+  hits.push(now);
+  trackStatusHits.set(ip, hits);
+  return hits.length > TRACK_STATUS_MAX_HITS;
+}
+
+const MILESTONE_FIELDS = [
+  'cpvDone', 'activateDone', 'spendDone',
+  ...Object.values(LOAN_MILESTONES).flat().map((s) => s.field),
+  ...Object.values(ACCOUNT_MILESTONES).flat().map((s) => s.field),
+].join(' ');
+
+/**
+ * GET /api/public/track-status?leadNumber=...&firstName=...
+ * No-login status lookup — matched on leadNumber + the customer's first
+ * name so a bare leadNumber guess can't be used to pull someone else's data.
+ * Only non-sensitive fields are returned: no PII beyond the first name
+ * already used to authenticate the lookup, no commission/payout data, no
+ * internal notes or employee assignments — see the neverExpose list this
+ * was reviewed against.
+ */
+exports.trackStatus = async (req, res) => {
+  try {
+    if (isRateLimited(req.ip)) {
+      return res.status(429).json({ message: 'Too many attempts. Please try again later.' });
+    }
+
+    const { leadNumber, firstName } = req.query;
+    if (!leadNumber || !firstName) {
+      return res.status(400).json({ message: 'Reference number and first name are required' });
+    }
+
+    const lead = await Lead.findOne({ leadNumber: leadNumber.trim().toUpperCase() })
+      .select(`leadNumber customerName status productType loanType accountType loanAmount
+                bank cardProduct loanProduct accountProduct statusHistory createdAt updatedAt
+                ${MILESTONE_FIELDS}`)
+      .populate('bank', 'name hasCpv hasActivation hasSpend')
+      .populate('cardProduct', 'name cardType')
+      .populate('loanProduct', 'name')
+      .populate('accountProduct', 'name')
+      .lean();
+
+    const firstNameMatches = lead?.customerName?.trim().split(/\s+/)[0]?.toLowerCase() === firstName.trim().toLowerCase();
+    if (!lead || !firstNameMatches) {
+      return res.status(404).json({ message: 'No application found matching that reference number and first name' });
+    }
+
+    // statusHistory also logs milestone-action events (e.g. 'cpv_done',
+    // 'buyout_stl_done') under the same `status` key — those aren't lead
+    // lifecycle states and duplicate what `actions` already shows, so the
+    // public timeline keeps only genuine status transitions.
+    const history = (lead.statusHistory || [])
+      .filter((h) => Lead.STATUSES.includes(h.status))
+      .map((h) => ({ status: h.status, changedAt: h.changedAt }));
+
+    res.json({
+      leadNumber: lead.leadNumber,
+      customerName: lead.customerName,
+      status: lead.status,
+      productType: lead.productType,
+      loanType: lead.loanType || undefined,
+      accountType: lead.accountType || undefined,
+      bankName: lead.bank?.name,
+      productName: lead.cardProduct?.name || lead.loanProduct?.name || lead.accountProduct?.name,
+      cardType: lead.cardProduct?.cardType || undefined,
+      loanAmount: lead.productType === 'loan' ? lead.loanAmount : undefined,
+      submittedAt: lead.createdAt,
+      updatedAt: lead.updatedAt,
+      actions: getActions(lead),
+      history,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// `?referralOnly=1` (used only by the /ref/:code referral form) narrows to
+// referralVisible products/banks; every other existing caller is unaffected
+// since the flag defaults off.
 exports.getPublicBanks = async (req, res) => {
   try {
-    const banks = await Bank.find({ isActive: true }).select('name').sort('name').lean();
+    const filter = { isActive: true };
+    if (req.query.referralOnly) {
+      // referralVisible is independent from websiteVisible on purpose — a
+      // product hidden from the marketing website can still be shown here.
+      const [cardBankIds, loanBankIds] = await Promise.all([
+        CardProduct.distinct('bank', { isActive: true, referralVisible: true }),
+        LoanProduct.distinct('bank', { isActive: true, referralVisible: true }),
+      ]);
+      filter._id = { $in: [...cardBankIds, ...loanBankIds] };
+    }
+    const banks = await Bank.find(filter).select('name').sort('name').lean();
     res.json(banks);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -193,10 +376,15 @@ exports.getPublicBanks = async (req, res) => {
 
 exports.getPublicCardProducts = async (req, res) => {
   try {
-    const cards = await CardProduct.find({ isActive: true, websiteVisible: { $ne: false } })
+    // referralOnly bypasses websiteVisible on purpose — referral-form
+    // visibility is independent from marketing-website visibility.
+    const filter = req.query.referralOnly
+      ? { isActive: true, referralVisible: true }
+      : { isActive: true, websiteVisible: { $ne: false } };
+    const cards = await CardProduct.find(filter)
       .populate({ path: 'bank', select: 'name isActive' })
       .populate({ path: 'cashbackCategories.category', select: 'name' })
-      .select('name cardType cardImage commissionBrackets bank benefits feesEligibility keyFeatures cashbackCategories rewardBadges redirectUrl redirectActive rate kfsUrl tncUrl')
+      .select('name cardType cardImage commissionBrackets bank benefits feesEligibility keyFeatures cashbackCategories rewardBadges redirectUrl redirectActive referralVisible rate kfsUrl tncUrl')
       .lean();
     res.json(cards.filter(c => c.bank?.isActive !== false));
   } catch (err) {
@@ -357,9 +545,14 @@ exports.submitWebLoanApply = async (req, res) => {
 
 exports.getPublicLoanProducts = async (req, res) => {
   try {
-    const loans = await LoanProduct.find({ isActive: true, websiteVisible: { $ne: false } })
+    // referralOnly bypasses websiteVisible on purpose — referral-form
+    // visibility is independent from marketing-website visibility.
+    const filter = req.query.referralOnly
+      ? { isActive: true, referralVisible: true }
+      : { isActive: true, websiteVisible: { $ne: false } };
+    const loans = await LoanProduct.find(filter)
       .populate({ path: 'bank', select: 'name code logo isActive' })
-      .select('name loanCategory commissionBrackets bank benefits feesEligibility interestRateRange minSalary maxLoanAmount maxTenure keyNotes rateMin rateMax rateType rateBasis salaryTransferRequired tags processingFee earlySettlement lateFee maxAmountNote maxAmountNum disclosedNote source sourceLabel tenureMaxMonths loanType minTurnover collateralRequired minPosHistoryMonths redirectUrl redirectActive')
+      .select('name loanCategory commissionBrackets bank benefits feesEligibility interestRateRange minSalary maxLoanAmount maxTenure keyNotes rateMin rateMax rateType rateBasis salaryTransferRequired tags processingFee earlySettlement lateFee maxAmountNote maxAmountNum disclosedNote source sourceLabel tenureMaxMonths loanType minTurnover collateralRequired minPosHistoryMonths redirectUrl redirectActive referralVisible')
       .lean();
     res.json(loans.filter(l => l.bank?.isActive !== false));
   } catch (err) {

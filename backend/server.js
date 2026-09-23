@@ -74,6 +74,7 @@ app.use('/api/card-categories',   require('./routes/cardCategory.routes'));
 app.use('/api/loan-products',     require('./routes/loanProduct.routes'));
 app.use('/api/account-products',  require('./routes/accountProduct.routes'));
 app.use('/api/employees',         require('./routes/employee.routes'));
+app.use('/api/agents-managed',    require('./routes/agent.routes'));
 app.use('/api/employee-statuses', require('./routes/employeeStatus.routes'));
 app.use('/api/agency-payouts',    require('./routes/agencyPayout.routes'));
 app.use('/api/notifications',     require('./routes/notification.routes'));
@@ -86,6 +87,7 @@ app.use('/api/legal',             require('./routes/legalPage.routes'));
 app.use('/api/featured-products', require('./routes/featuredProduct.routes'));
 app.use('/api/credit-notes',      require('./routes/creditNote.routes'));
 app.use('/api/invoices',          require('./routes/invoice.routes'));
+app.use('/api/company-settings',  require('./routes/companySettings.routes'));
 app.use('/api/promotions',        require('./routes/promotion.routes'));
 app.use('/api/resources',         require('./routes/resource.routes'));
 

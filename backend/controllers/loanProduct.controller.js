@@ -38,8 +38,8 @@ exports.create = async (req, res) => {
       if (!agencyUser) return res.status(400).json({ message: 'Invalid agency' });
     }
 
-    const { benefits, feesEligibility, redirectUrl, redirectActive } = req.body;
-    const loan = await LoanProduct.create({ name, loanCategory, bank, agency: agency || undefined, assignedAgencies: assignedAgencies || [], commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, agentVisible, sendConsent, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive });
+    const { benefits, feesEligibility, redirectUrl, redirectActive, referralVisible } = req.body;
+    const loan = await LoanProduct.create({ name, loanCategory, bank, agency: agency || undefined, assignedAgencies: assignedAgencies || [], commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, agentVisible, sendConsent, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive, referralVisible: !!referralVisible });
     const populated = await loan.populate(POPULATE);
     res.status(201).json(populated);
   } catch (err) {
@@ -77,9 +77,10 @@ exports.update = async (req, res) => {
     const { benefits, feesEligibility } = req.body;
     if (benefits !== undefined) update.benefits = benefits;
     if (feesEligibility !== undefined) update.feesEligibility = feesEligibility;
-    const { redirectUrl, redirectActive } = req.body;
+    const { redirectUrl, redirectActive, referralVisible } = req.body;
     if (redirectUrl !== undefined) update.redirectUrl = redirectUrl || '';
     if (redirectActive !== undefined) update.redirectActive = !!redirectActive;
+    if (referralVisible !== undefined) update.referralVisible = !!referralVisible;
 
     const loan = await LoanProduct.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true })
       .populate(POPULATE);

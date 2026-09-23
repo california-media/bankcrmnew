@@ -5,6 +5,7 @@ const bracketSchema = new mongoose.Schema(
     minimumSalary: { type: Number, required: true, min: 0 },
     receivable: { type: Number, required: true, min: 0 },
     payable: { type: Number, required: true, min: 0 },
+    agencyOverride: { type: Number, min: 0, default: 0 }, // extra AED paid to the agent's tagging agency on disbursal
     feeType: { type: String, enum: ['free', 'paid', 'free_tnc'], default: 'free' },
     annualFeeAmount: { type: Number, min: 0, default: null },
   },
@@ -57,6 +58,10 @@ const cardProductSchema = new mongoose.Schema(
     cardImage:      { type: String, trim: true },
     redirectUrl:    { type: String, trim: true },
     redirectActive: { type: Boolean, default: false },
+    // Independent from redirectActive — controls whether this product is
+    // offered as a pickable option on the public /ref/:code referral form,
+    // not whether a submitted lead redirects to the bank.
+    referralVisible: { type: Boolean, default: false },
     kfsUrl:         { type: String, trim: true, default: '' },
     tncUrl:         { type: String, trim: true, default: '' },
   },

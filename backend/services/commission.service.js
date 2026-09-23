@@ -4,6 +4,7 @@ const Lead = require('../models/Lead');
 const CardProduct = require('../models/CardProduct');
 const LoanProduct = require('../models/LoanProduct');
 const AccountProduct = require('../models/AccountProduct');
+const User = require('../models/User');
 
 async function resolveCommissionAmount({ agency, productType, bank }) {
   if (!agency || !bank) return 0;
@@ -25,6 +26,29 @@ function findBracket(brackets, salary) {
   return eligible.length ? eligible[eligible.length - 1] : sorted[0];
 }
 
+// Resolves how the submitter of this lead affects payout, gated by the
+// tagging/submitting agency's agencyCommissionModel so 'wholesale' agencies
+// (today's existing invoice/bucket flow) are completely unaffected:
+// - overrideAgency: set only when a plain agent (via User.agency) is tagged
+//   to a 'referral'-model agency — that agency earns the per-product
+//   agencyOverride on top of the agent's own payout.
+// - selfReferral: true only when the lead's own submitter IS a 'referral'-
+//   model agency (submitting its own lead directly) — that agency earns the
+//   full receivable amount instead of the bracket's agent-facing payable.
+async function resolveSubmitterContext(lead) {
+  if (!lead.agent) return { overrideAgency: null, selfReferral: false };
+  const submitter = await User.findById(lead.agent).select('role agency agencyCommissionModel').lean();
+  if (!submitter) return { overrideAgency: null, selfReferral: false };
+  if (submitter.role === 'agency') {
+    return { overrideAgency: null, selfReferral: submitter.agencyCommissionModel === 'referral' };
+  }
+  if (submitter.role === 'agent' && submitter.agency) {
+    const agencyDoc = await User.findById(submitter.agency).select('agencyCommissionModel').lean();
+    return { overrideAgency: agencyDoc?.agencyCommissionModel === 'referral' ? submitter.agency : null, selfReferral: false };
+  }
+  return { overrideAgency: null, selfReferral: false };
+}
+
 /**
  * Resolve both receivable (gross/admin) and payable (agent) commissions
  * from the current product brackets at call time. Used to lock values at
@@ -33,28 +57,44 @@ function findBracket(brackets, salary) {
 async function resolveCommissions(lead) {
   if (lead.productType === 'credit_card' && lead.cardProduct) {
     const card = await CardProduct.findById(lead.cardProduct);
-    if (!card) return { receivable: 0, payable: 0 };
+    if (!card) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
     const bracket = findBracket(card.commissionBrackets, lead.customerSalary);
-    return bracket
-      ? { receivable: bracket.receivable, payable: bracket.payable }
-      : { receivable: 0, payable: 0 };
+    if (!bracket) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
+    const { overrideAgency, selfReferral } = await resolveSubmitterContext(lead);
+    // No tagging agency to pay it to -> the amount itself must be 0, not
+    // just the recipient null, so a locked lead never shows a nonzero
+    // override with nobody to receive it.
+    return {
+      receivable: bracket.receivable,
+      payable: selfReferral ? bracket.receivable : bracket.payable,
+      agencyOverride: overrideAgency ? (bracket.agencyOverride || 0) : 0,
+      agencyOverrideAgency: overrideAgency,
+    };
   }
   if (lead.productType === 'account' && lead.accountProduct) {
     const account = await AccountProduct.findById(lead.accountProduct);
-    if (!account) return { receivable: 0, payable: 0 };
+    if (!account) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
     const bracket = findBracket(account.commissionBrackets, lead.customerSalary);
-    return bracket
-      ? { receivable: bracket.receivable, payable: bracket.payable }
-      : { receivable: 0, payable: 0 };
+    if (!bracket) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
+    const { overrideAgency, selfReferral } = await resolveSubmitterContext(lead);
+    return {
+      receivable: bracket.receivable,
+      payable: selfReferral ? bracket.receivable : bracket.payable,
+      agencyOverride: overrideAgency ? (bracket.agencyOverride || 0) : 0,
+      agencyOverrideAgency: overrideAgency,
+    };
   }
   if (lead.productType === 'loan' && lead.loanProduct) {
     const loan = await LoanProduct.findById(lead.loanProduct);
-    if (!loan || !lead.loanAmount) return { receivable: 0, payable: 0 };
+    if (!loan || !lead.loanAmount) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
     const bracket = findBracket(loan.commissionBrackets, lead.customerSalary);
-    if (!bracket) return { receivable: 0, payable: 0 };
+    if (!bracket) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
+    const { overrideAgency, selfReferral } = await resolveSubmitterContext(lead);
     return {
       receivable: (lead.loanAmount * bracket.receivable) / 100,
-      payable: (lead.loanAmount * bracket.payable) / 100,
+      payable: (lead.loanAmount * (selfReferral ? bracket.receivable : bracket.payable)) / 100,
+      agencyOverride: overrideAgency ? (bracket.agencyOverride || 0) : 0,
+      agencyOverrideAgency: overrideAgency,
     };
   }
   const amount = await resolveCommissionAmount({
@@ -62,7 +102,7 @@ async function resolveCommissions(lead) {
     productType: lead.productType,
     bank: lead.bank,
   });
-  return { receivable: amount, payable: 0 };
+  return { receivable: amount, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
 }
 
 async function resolveGrossCommission(lead) {
@@ -75,23 +115,37 @@ async function recalcOnStatusChange(lead) {
     // Lock both gross and agent commission at approval time so figures are
     // visible in admin Payouts immediately. Disbursement re-locks them in
     // case loan amount changed between approval and disbursal.
-    const { receivable, payable } = await resolveCommissions(lead);
+    const { receivable, payable, agencyOverride, agencyOverrideAgency } = await resolveCommissions(lead);
     lead.grossCommission = receivable;
     lead.commission = payable;
+    lead.agencyOverrideAmount = agencyOverride;
+    lead.agencyOverrideAgency = agencyOverrideAgency;
     if (lead.commissionStatus === 'none' || lead.commissionStatus === 'paid') {
       lead.commissionStatus = 'pending';
+    }
+    if (agencyOverride > 0) {
+      if (lead.agencyOverrideStatus === 'none' || lead.agencyOverrideStatus === 'paid') {
+        lead.agencyOverrideStatus = 'pending';
+      }
+    } else {
+      lead.agencyOverrideStatus = 'none';
     }
   } else if (lead.status === 'disbursed') {
     // Re-lock both values at disbursement (loan amount may have changed).
     // Do NOT flip commissionStatus to payable here — that happens when
     // admin marks gross commission as received from the agency.
-    const { receivable, payable } = await resolveCommissions(lead);
+    const { receivable, payable, agencyOverride, agencyOverrideAgency } = await resolveCommissions(lead);
     lead.grossCommission = receivable;
     lead.commission = payable;
+    lead.agencyOverrideAmount = agencyOverride;
+    lead.agencyOverrideAgency = agencyOverrideAgency;
   } else if (lead.status === 'rejected') {
     lead.grossCommission = 0;
     lead.commission = 0;
+    lead.agencyOverrideAmount = 0;
+    lead.agencyOverrideAgency = null;
     lead.commissionStatus = 'none';
+    lead.agencyOverrideStatus = 'none';
   }
   return lead;
 }

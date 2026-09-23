@@ -26,6 +26,11 @@ const userSchema = new mongoose.Schema(
     // assigned to them personally.
     employeeType: { type: String, enum: ['cpv', 'sales', 'coordinator', 'account'] },
 
+    // Banks this sales/cpv employee is tagged to — new leads for these banks
+    // auto-route to them (see services/leadRouting.service.js). Meaningless
+    // for other employeeTypes, but harmless if set.
+    assignedBanks: { type: [mongoose.Schema.Types.ObjectId], ref: 'Bank', default: [] },
+
     // Agent-only
     holdPct: { type: Number, default: 0, min: 0, max: 100 },
     referralCode: { type: String, unique: true, sparse: true },
@@ -48,6 +53,15 @@ const userSchema = new mongoose.Schema(
 
     // Agency-only: overpayment credit pool
     bucketBalance: { type: Number, default: 0 },
+
+    // Agency-only: which commission model this agency is on.
+    // 'wholesale' (default) = today's existing flow — agency is invoiced for
+    // grossCommission and funds its own bucket to pay its agents. Untouched.
+    // 'referral' = agency's tagged agents earn the normal agent payout, and
+    // the agency itself earns the per-product agencyOverride on top — paid
+    // by MySilah, not the agency's own bucket. Agency-submitted leads earn
+    // the agency the full receivable commission. Admin-set only.
+    agencyCommissionModel: { type: String, enum: ['wholesale', 'referral'], default: 'wholesale' },
 
     // Agency self-registration fields
     companyName: { type: String, trim: true },

@@ -35,7 +35,7 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name, code, description, hasSpend } = req.body;
+    const { name, code, description, hasSpend, hasCpv, hasActivation } = req.body;
     if (!name) return res.status(400).json({ message: 'Bank name is required' });
 
     const dupe = await Bank.findOne({ name });
@@ -44,6 +44,8 @@ exports.create = async (req, res) => {
     const bank = await Bank.create({
       name, code, description,
       hasSpend: hasSpend === 'true' || hasSpend === true,
+      ...(hasCpv !== undefined && { hasCpv: hasCpv === 'true' || hasCpv === true }),
+      ...(hasActivation !== undefined && { hasActivation: hasActivation === 'true' || hasActivation === true }),
       logo: req.file ? getFilename(req.file) : undefined,
       assignedAgencies: parseAgencies(req.body.assignedAgencies) || [],
     });
@@ -55,13 +57,15 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, code, description, isActive, hasSpend } = req.body;
+    const { name, code, description, isActive, hasSpend, hasCpv, hasActivation } = req.body;
     const update = {};
     if (name !== undefined) update.name = name;
     if (code !== undefined) update.code = code;
     if (description !== undefined) update.description = description;
     if (isActive !== undefined) update.isActive = isActive;
     if (hasSpend !== undefined) update.hasSpend = hasSpend === 'true' || hasSpend === true;
+    if (hasCpv !== undefined) update.hasCpv = hasCpv === 'true' || hasCpv === true;
+    if (hasActivation !== undefined) update.hasActivation = hasActivation === 'true' || hasActivation === true;
     const parsedAgencies = parseAgencies(req.body.assignedAgencies);
     if (parsedAgencies !== undefined) update.assignedAgencies = parsedAgencies;
 

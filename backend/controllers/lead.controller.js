@@ -21,9 +21,10 @@ const normalizePhone = (p) => {
 const isValidUAEPhone = (p) => /^9715\d{8}$/.test(normalizePhone(p));
 
 const POPULATE_FIELDS = [
-  { path: 'bank', select: 'name code hasSpend' },
+  { path: 'bank', select: 'name code hasSpend hasCpv hasActivation' },
   { path: 'agency', select: 'name email' },
   { path: 'agent', select: 'name email' },
+  { path: 'agencyOverrideAgency', select: 'name email' },
   { path: 'cardProduct', select: 'name cardType commissionBrackets cashbackCategories cardImage benefits feesEligibility', populate: { path: 'cashbackCategories.category', select: 'name' } },
   { path: 'loanProduct', select: 'name loanCategory commissionBrackets benefits feesEligibility minSalary maxLoanAmount maxTenure interestRateRange' },
   { path: 'accountProduct', select: 'name accountCategory commissionBrackets benefits feesEligibility' },
@@ -205,7 +206,7 @@ exports.create = async (req, res) => {
 exports.sendToAgency = async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.role === 'agent') filter.agent = req.user._id;
+    if (['agent', 'agency'].includes(req.user.role)) filter.agent = req.user._id;
     const lead = await Lead.findOne(filter);
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     if (lead.status !== 'draft') {
@@ -264,7 +265,7 @@ exports.removeDraft = async (req, res) => {
 exports.listMine = async (req, res) => {
   try {
     const leads = await Lead.find({ agent: req.user._id })
-      .populate('bank', 'name code hasSpend')
+      .populate('bank', 'name code hasSpend hasCpv hasActivation')
       .populate('agency', 'name email')
       .populate('cardProduct', 'name cardType commissionBrackets')
       .populate('loanProduct', 'name loanCategory commissionBrackets')
@@ -339,8 +340,9 @@ exports.stats = async (req, res) => {
 exports.listForAgency = async (req, res) => {
   try {
     const leads = await Lead.find({ agency: resolveAgencyId(req.user), status: { $ne: 'draft' } })
-      .populate('bank', 'name code hasSpend')
+      .populate('bank', 'name code hasSpend hasCpv hasActivation')
       .populate('agent', 'name email')
+      .populate('agencyOverrideAgency', 'name email')
       .populate('assignedEmployee', 'name email')
       .populate('assignedCpvEmployee', 'name email employeeType')
       .populate('assignedSalesEmployee', 'name email employeeType')
@@ -383,9 +385,10 @@ exports.listForAgency = async (req, res) => {
 exports.listAll = async (req, res) => {
   try {
     const leads = await Lead.find()
-      .populate('bank', 'name code hasSpend')
+      .populate('bank', 'name code hasSpend hasCpv hasActivation')
       .populate('agent', 'name email')
       .populate('agency', 'name email')
+      .populate('agencyOverrideAgency', 'name email')
       .populate('assignedEmployee', 'name email')
       .populate('assignedCpvEmployee', 'name email employeeType')
       .populate('assignedSalesEmployee', 'name email employeeType')
@@ -548,9 +551,11 @@ exports.updateLoanAmount = async (req, res) => {
 
     // Recalculate commission based on new loan amount (only if not yet locked by disbursement)
     if (lead.status !== 'disbursed') {
-      const { receivable, payable } = await commissionService.resolveCommissions(lead);
+      const { receivable, payable, agencyOverride, agencyOverrideAgency } = await commissionService.resolveCommissions(lead);
       lead.grossCommission = receivable;
       lead.commission = payable;
+      lead.agencyOverrideAmount = agencyOverride;
+      lead.agencyOverrideAgency = agencyOverrideAgency;
     }
 
     await lead.save();
@@ -627,9 +632,11 @@ exports.updateProduct = async (req, res) => {
     lead.bank = newBank._id;
     lead[productField] = newProduct._id;
 
-    const { receivable, payable } = await commissionService.resolveCommissions(lead);
+    const { receivable, payable, agencyOverride, agencyOverrideAgency } = await commissionService.resolveCommissions(lead);
     lead.grossCommission = receivable;
     lead.commission = payable;
+    lead.agencyOverrideAmount = agencyOverride;
+    lead.agencyOverrideAgency = agencyOverrideAgency;
 
     await lead.save();
 
@@ -1532,6 +1539,42 @@ exports.markCommissionPaid = async (req, res) => {
 };
 
 /**
+ * POST /api/leads/:id/mark-agency-override-paid  (admin)
+ * Pays out the referral-model agency's override commission (the extra AED
+ * on top of its agent's own payout — see commission.service.js). Separate
+ * from markCommissionPaid, which pays the agent.
+ */
+exports.markAgencyOverridePaid = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    if (lead.agencyOverrideStatus !== 'pending') {
+      return res.status(400).json({ message: 'Agency override is not pending payment' });
+    }
+
+    lead.agencyOverrideStatus = 'paid';
+    lead.agencyOverridePaidAt = new Date();
+    await lead.save();
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      await createAndEmit(
+        [String(populated.agencyOverrideAgency?._id || populated.agencyOverrideAgency)],
+        {
+          type: 'commission_paid',
+          title: 'Referral Bonus Paid',
+          body: `${lead.customerName} — AED ${Number(lead.agencyOverrideAmount || 0).toLocaleString()} referral bonus paid`,
+          lead: lead._id,
+        },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
  * GET /api/leads/holds  (admin)
  * List all credit-card leads with an active (unreleased) hold amount.
  */
@@ -2203,11 +2246,12 @@ exports.updateEngagementStatus = async (req, res) => {
 };
 
 /**
- * PATCH /api/leads/:id/reference-no  (agent, own lead only)
+ * PATCH /api/leads/:id/reference-no  (agent, agency, or agency employee — own lead only)
  */
 exports.updateReferenceNo = async (req, res) => {
   try {
-    const lead = await Lead.findOne({ _id: req.params.id, agent: req.user._id });
+    const scope = ['agency', 'employee'].includes(req.user.role) ? { agency: resolveAgencyId(req.user) } : { agent: req.user._id };
+    const lead = await Lead.findOne({ _id: req.params.id, ...scope });
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
     lead.referenceNo = (req.body.referenceNo || '').trim();
     await lead.save();
@@ -2300,7 +2344,7 @@ exports.getOne = async (req, res) => {
       }
     }
     const lead = await Lead.findOne(filter)
-      .populate('bank', 'name code hasSpend')
+      .populate('bank', 'name code hasSpend hasCpv hasActivation')
       .populate('agency', 'name email')
       .populate('agent', 'name email phone')
       .populate({ path: 'cardProduct', select: 'name cardType commissionBrackets cashbackCategories cardImage benefits feesEligibility', populate: { path: 'cashbackCategories.category', select: 'name' } })
@@ -2467,7 +2511,7 @@ exports.listAssigned = async (req, res) => {
         { assignedSalesEmployee: empId },
       ],
     })
-      .populate('bank', 'name code hasSpend')
+      .populate('bank', 'name code hasSpend hasCpv hasActivation')
       .populate('agency', 'name email')
       .populate('agent', 'name email')
       .populate('assignedCpvEmployee', 'name email employeeType')
@@ -2871,7 +2915,12 @@ exports.importLeads = async (req, res) => {
           const seq = String(agentDoc.leadCount).padStart(4, '0');
           leadData.leadNumber = `LD-${agentShortId}-${seq}`;
 
-          await Lead.create(leadData);
+          // Bulk CSV import is a backfill/admin tool, not a live intake
+          // channel — it must never auto-route historical rows to today's
+          // tagged staff just because they default to status 'submitted'.
+          const bulkLead = new Lead(leadData);
+          bulkLead.$locals.skipAutoRoute = true;
+          await bulkLead.save();
           created += 1;
         } catch (err) {
           fail(`Could not create lead: ${err.message}`);

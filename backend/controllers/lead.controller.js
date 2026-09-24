@@ -2524,7 +2524,20 @@ exports.listAssigned = async (req, res) => {
       .populate('consentStatusHistory.consentStatus', 'label color')
       .populate('consentStatusHistory.changedBy', 'name email')
       .sort({ updatedAt: -1 });
-    res.json(leads);
+    // CPV/Sales must not see payout figures — same fields redacted on
+    // listForAgency (Coordinator) and getOne (every non-Account employee).
+    const redacted = leads.map((l) => {
+      const out = l.toObject();
+      delete out.commission;
+      delete out.grossCommission;
+      delete out.commissionStatus;
+      delete out.commissionPaidAt;
+      delete out.payoutHistory;
+      delete out.agentCommissionType;
+      delete out.agentCommissionValue;
+      return out;
+    });
+    res.json(redacted);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

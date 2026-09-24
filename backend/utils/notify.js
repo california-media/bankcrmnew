@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const { getIO } = require('./io');
@@ -11,15 +12,30 @@ async function getAdminIds() {
   return admins.map((a) => String(a._id));
 }
 
+// Agency Coordinators work the agency-wide pages, so they get a copy of
+// every notification sent to their agency's account.
+async function getCoordinatorIds(agencyIds) {
+  if (!agencyIds.length) return [];
+  const coordinators = await User.find({
+    role: 'employee',
+    employeeType: 'coordinator',
+    isActive: true,
+    agency: { $in: agencyIds },
+  }).select('_id').lean();
+  return coordinators.map((c) => String(c._id));
+}
+
 async function createAndEmit(recipientIds, data, actorId) {
   const { type, title, body, lead } = data;
   const actorStr = actorId ? String(actorId) : null;
+  const baseIds = recipientIds.filter(Boolean).map(String).filter((id) => mongoose.Types.ObjectId.isValid(id));
+  const agencyIds = baseIds.length
+    ? (await User.find({ _id: { $in: baseIds }, role: 'agency' }).select('_id').lean()).map((a) => String(a._id))
+    : [];
+  const coordinatorIds = await getCoordinatorIds(agencyIds);
   const unique = [
     ...new Set(
-      recipientIds
-        .filter(Boolean)
-        .map(String)
-        .filter((id) => id !== actorStr)
+      [...baseIds, ...coordinatorIds].filter((id) => id !== actorStr)
     ),
   ];
   if (!unique.length) return;

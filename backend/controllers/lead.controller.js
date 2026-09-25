@@ -2694,6 +2694,10 @@ const normalizeProductType = (v) => {
 exports.importLeads = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'File is required' });
+    // Agency owner and its Agency Coordinator import on behalf of the agency;
+    // admin imports are unscoped (agency comes from the product).
+    const isAgencyImporter = req.user.role === 'agency' || (req.user.role === 'employee' && req.user.employeeType === 'coordinator');
+    const importerAgencyId = isAgencyImporter ? String(resolveAgencyId(req.user)) : null;
 
     let rows;
     try {
@@ -2728,7 +2732,7 @@ exports.importLeads = async (req, res) => {
       // Everything below is best-effort: a blank cell is simply skipped, but a
       // value that IS provided must resolve to something real or the row fails.
 
-      let agentId = req.user._id; // default: importer themself owns the lead
+      let agentId = isAgencyImporter ? importerAgencyId : req.user._id; // default: importer (or their agency) owns the lead
       const agentEmailRaw = String(row['Agent Email'] ?? '').trim();
       if (agentEmailRaw) {
         const agent = await User.findOne({ email: agentEmailRaw.toLowerCase(), role: 'agent' });
@@ -2776,11 +2780,11 @@ exports.importLeads = async (req, res) => {
       // only bulk-create leads against products their own agency owns. With no
       // product resolved, an agency importer's leads simply belong to themself.
       const productAgency = cardProduct?.agency || loanProduct?.agency;
-      if (req.user.role === 'agency' && productAgency && String(productAgency) !== String(req.user._id)) {
+      if (isAgencyImporter && productAgency && String(productAgency) !== importerAgencyId) {
         fail(`Product "${row['Product Name']}" does not belong to your agency`); continue;
       }
 
-      const agencyId = req.user.role === 'agency' ? req.user._id : productAgency;
+      const agencyId = isAgencyImporter ? importerAgencyId : productAgency;
 
       const phoneRaw = String(row['Phone'] ?? '').trim();
       if (!isValidUAEPhone(phoneRaw)) { fail(`Invalid UAE mobile number "${phoneRaw}" — must start with 9715 (e.g. 971501234567)`); continue; }
@@ -2811,6 +2815,7 @@ exports.importLeads = async (req, res) => {
         try {
           const existing = await Lead.findOne({ leadNumber: leadNoRaw });
           if (!existing) { fail(`No lead found with Lead No "${leadNoRaw}"`); continue; }
+          if (isAgencyImporter && String(existing.agency) !== importerAgencyId) { fail(`Lead No "${leadNoRaw}" does not belong to your agency`); continue; }
 
           const updateFields = {};
           if (leadData.customerName) updateFields.customerName = leadData.customerName;

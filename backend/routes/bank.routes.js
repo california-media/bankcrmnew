@@ -1,12 +1,18 @@
 const router = require('express').Router();
 const ctrl = require('../controllers/bank.controller');
-const { protect, requireRole } = require('../middleware/auth.middleware');
+const { protect, requireRole, allowEmployeeTypes } = require('../middleware/auth.middleware');
 const upload = require('../middleware/upload.middleware');
 
 router.use(protect);
 
 // All authenticated roles: list all banks
-router.get('/', requireRole('admin', 'agency', 'agent'), ctrl.list);
+// Agency Coordinator also needs the list (Employees page → Assigned Banks);
+// ctrl.list already scopes an employee to their parent agency's banks.
+router.get('/', (req, res, next) => (
+  req.user?.role === 'employee'
+    ? allowEmployeeTypes('coordinator')(req, res, next)
+    : requireRole('admin', 'agency', 'agent')(req, res, next)
+), ctrl.list);
 
 // Admin: bank CRUD
 router.post('/', requireRole('admin'), upload.bankLogos.single('logo'), ctrl.create);

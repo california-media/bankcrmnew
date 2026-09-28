@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const lineItemSchema = new mongoose.Schema(
   {
     customerName: { type: String, trim: true, default: '' },
+    leadNumber: { type: String, trim: true }, // shown under the customer name; set when the line comes from a lead
     description: { type: String, trim: true, required: true },
     qty: { type: Number, required: true, min: 1, default: 1 },
     unitPrice: { type: Number, required: true, min: 0 },

@@ -23,6 +23,7 @@ const TOTAL_BG = '#e3e9f3';
 // (CompanySettings) and passed in as `companySettings`; these are the
 // fallback if that hasn't been set up yet.
 const COMPANY = {
+  name: 'Silah L.L.C-FZ',
   officeAddressLines: ['Meydan Grandstand, 6th Floor, Meydan Road, Nad Al Sheba.', 'PO Box 95195, Dubai, UAE.'],
   email: 'admin@mysilah.ae',
   trnStatus: 'Under Process',
@@ -150,6 +151,9 @@ function renderInvoicePdf(invoice, res, companySettings) {
   const notesLines = companySettings?.notesLines?.length ? companySettings.notesLines : DEFAULT_NOTES_LINES;
   const vatNote = companySettings?.vatNote || DEFAULT_VAT_NOTE;
   const trn = companySettings?.trn || COMPANY.trnStatus;
+  const contactName = companySettings?.contactName || invoice.createdBy?.name || 'MySilah Team';
+  const contactPhone = companySettings?.contactPhone || invoice.createdBy?.phone;
+  const contactEmail = companySettings?.contactEmail || COMPANY.email;
 
   const doc = new PDFDocument({ margin: PAGE_MARGIN, size: 'A4' });
   res.setHeader('Content-Type', 'application/pdf');
@@ -171,15 +175,16 @@ function renderInvoicePdf(invoice, res, companySettings) {
     header: null,
     leftLines: [
       { text: 'Supplier', bold: true, gap: 13 },
+      { text: COMPANY.name, gap: 13 },
       { text: COMPANY.officeAddressLines[0], gap: 13 },
       { text: COMPANY.officeAddressLines[1], gap: 13 },
+      { text: `TRN: ${trn}`, gap: 13 },
     ],
     rightLines: [
       { text: 'Contact Person', bold: true, gap: 13 },
-      { text: createdByName, gap: 13 },
-      ...(invoice.createdBy?.phone ? [{ text: `Phone: ${invoice.createdBy.phone}`, gap: 13 }] : []),
-      { text: `Email: ${COMPANY.email}`, gap: 13 },
-      { text: `TRN: ${trn}`, gap: 13 },
+      { text: contactName, gap: 13 },
+      ...(contactPhone ? [{ text: `Phone: ${contactPhone}`, gap: 13 }] : []),
+      { text: `Email: ${contactEmail}`, gap: 13 },
     ],
   });
   y += 14;
@@ -210,8 +215,11 @@ function renderInvoicePdf(invoice, res, companySettings) {
   items.forEach((item, index) => {
     const description = item.description || '';
     const customerName = item.customerName || '—';
+    const leadNumber = item.leadNumber ? `(${item.leadNumber})` : '';
     const descHeight = doc.font('Helvetica').fontSize(9).heightOfString(description, { width: COLS[2].w - CELL_PAD * 2 });
-    const custHeight = doc.heightOfString(customerName, { width: COLS[1].w - CELL_PAD * 2 });
+    const nameHeight = doc.heightOfString(customerName, { width: COLS[1].w - CELL_PAD * 2 });
+    const leadNoHeight = leadNumber ? doc.fontSize(7.5).heightOfString(leadNumber, { width: COLS[1].w - CELL_PAD * 2 }) + 2 : 0;
+    const custHeight = nameHeight + leadNoHeight;
     const rowHeight = Math.max(descHeight, custHeight, 12) + 12;
 
     if (y + rowHeight > pageBottom() - 20) {
@@ -225,6 +233,11 @@ function renderInvoicePdf(invoice, res, companySettings) {
     doc.font('Helvetica').fontSize(9).fillColor(TEXT_DARK);
     doc.text(String(index + 1), COLS[0].x + CELL_PAD, cellY, { width: COLS[0].w - CELL_PAD * 2, align: 'center' });
     doc.text(customerName, COLS[1].x + CELL_PAD, cellY, { width: COLS[1].w - CELL_PAD * 2 });
+    if (leadNumber) {
+      doc.fontSize(7.5).fillColor(TEXT_GRAY)
+        .text(leadNumber, COLS[1].x + CELL_PAD, cellY + nameHeight + 2, { width: COLS[1].w - CELL_PAD * 2 });
+      doc.fontSize(9).fillColor(TEXT_DARK);
+    }
     doc.text(description, COLS[2].x + CELL_PAD, cellY, { width: COLS[2].w - CELL_PAD * 2 });
     doc.text(String(item.qty ?? 1), COLS[3].x + CELL_PAD, cellY, { width: COLS[3].w - CELL_PAD * 2, align: 'center' });
     doc.text(fmt(item.unitPrice), COLS[4].x + CELL_PAD, cellY, { width: COLS[4].w - CELL_PAD * 2, align: 'right' });

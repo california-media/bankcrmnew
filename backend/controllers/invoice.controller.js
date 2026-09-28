@@ -17,6 +17,26 @@ const leadLineDescription = (lead) => {
   return parts.length ? parts.join(' — ') : `Commission — Lead ${lead.leadNumber || lead._id}`;
 };
 
+// Older invoices were saved before line items carried leadNumber — fill it
+// in from the invoice's lead(s) (populated with leadNumber + customerName):
+// by position when there's one line per lead (lines are created in lead
+// order) and the names agree, otherwise by a unique customer-name match.
+const withLeadNumbers = (invoice) => {
+  const leads = invoice.leads?.length ? invoice.leads : (invoice.lead ? [invoice.lead] : []);
+  const items = invoice.lineItems || [];
+  invoice.lineItems = items.map((li, i) => {
+    if (li.leadNumber) return li;
+    const byPosition = leads.length === items.length ? leads[i] : null;
+    let match = byPosition && (!li.customerName || byPosition.customerName === li.customerName) ? byPosition : null;
+    if (!match && li.customerName) {
+      const byName = leads.filter((l) => l?.customerName && l.customerName === li.customerName);
+      if (byName.length === 1) [match] = byName;
+    }
+    return match?.leadNumber ? { ...li, leadNumber: match.leadNumber } : li;
+  });
+  return invoice;
+};
+
 const nextInvoiceNumber = async () => {
   const count = await Invoice.countDocuments();
   return `INV-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
@@ -85,6 +105,8 @@ exports.create = async (req, res) => {
     const leadIds = Array.isArray(leads) && leads.length ? leads : (lead ? [lead] : []);
 
     let finalLineItems = lineItems;
+    // A client-sent line-item leadNumber is only kept if it's one of the selected leads.
+    const selectedLeadNumbers = new Set();
     if (leadIds.length) {
       const leadDocs = await Lead.find({ _id: { $in: leadIds } })
         .populate('bank', 'name')
@@ -94,6 +116,7 @@ exports.create = async (req, res) => {
       if (leadDocs.length !== leadIds.length) {
         return res.status(404).json({ message: 'One or more leads not found' });
       }
+      leadDocs.forEach((d) => { if (d.leadNumber) selectedLeadNumbers.add(d.leadNumber); });
       const byId = new Map(leadDocs.map((d) => [String(d._id), d]));
       const orderedLeadDocs = leadIds.map((id) => byId.get(String(id)));
       const mismatched = orderedLeadDocs.find((d) => String(d.agency) !== String(agency));
@@ -112,6 +135,7 @@ exports.create = async (req, res) => {
       if (!finalLineItems || !finalLineItems.length) {
         finalLineItems = orderedLeadDocs.map((leadDoc) => ({
           customerName: leadDoc.customerName || '',
+          leadNumber: leadDoc.leadNumber || '',
           description: leadLineDescription(leadDoc),
           qty: 1,
           unitPrice: leadDoc.grossCommission || 0,
@@ -147,8 +171,10 @@ exports.create = async (req, res) => {
       const unitPrice = Number(li.unitPrice);
       const lineSubtotal = qty * unitPrice;
       const vatAmount = applyVat ? Math.round(lineSubtotal * (vatRate / 100) * 100) / 100 : 0;
+      const leadNumber = String(li.leadNumber || '').trim();
       return {
         customerName: li.customerName || '',
+        leadNumber: selectedLeadNumbers.has(leadNumber) ? leadNumber : undefined,
         description: li.description,
         qty,
         unitPrice,
@@ -234,7 +260,7 @@ exports.getOne = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to view this invoice' });
     }
     const companySettings = await CompanySettings.getSingleton();
-    res.json({ ...invoice.toObject(), companySettings });
+    res.json({ ...withLeadNumbers(invoice.toObject()), companySettings });
   } catch (err) {
     if (err.name === 'CastError') return res.status(404).json({ message: 'Invoice not found' });
     res.status(500).json({ message: err.message });
@@ -247,14 +273,14 @@ exports.downloadPdf = async (req, res) => {
     const invoice = await Invoice.findById(req.params.id)
       .populate('agency', 'name email')
       .populate('createdBy', 'name email phone')
-      .populate('lead', 'leadNumber')
-      .populate('leads', 'leadNumber');
+      .populate('lead', 'leadNumber customerName')
+      .populate('leads', 'leadNumber customerName');
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
     if (req.user.role !== 'admin' && String(invoice.agency?._id) !== String(resolveAgencyId(req.user))) {
       return res.status(403).json({ message: 'Not authorized to view this invoice' });
     }
     const companySettings = await CompanySettings.getSingleton();
-    renderInvoicePdf(invoice, res, companySettings);
+    renderInvoicePdf(withLeadNumbers(invoice.toObject()), res, companySettings);
   } catch (err) {
     if (err.name === 'CastError') return res.status(404).json({ message: 'Invoice not found' });
     res.status(500).json({ message: err.message });

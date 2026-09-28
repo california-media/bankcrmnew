@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const lineItemSchema = new mongoose.Schema(
   {
     customerName: { type: String, trim: true, default: '' },
+    lead: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead' }, // set when the line bills a lead
     leadNumber: { type: String, trim: true }, // shown under the customer name; set when the line comes from a lead
     description: { type: String, trim: true, required: true },
     qty: { type: Number, required: true, min: 1, default: 1 },
@@ -25,6 +26,17 @@ const invoiceSchema = new mongoose.Schema(
     lineItems: { type: [lineItemSchema], required: true, validate: (v) => Array.isArray(v) && v.length > 0 },
     amount: { type: Number, required: true, min: 0 }, // sum of lineItems, denormalized for quick listing/sorting
     notes: { type: String, trim: true },
+    // Conversation between the billed agency (owner login) and admin about
+    // this invoice. Never printed on the invoice itself.
+    comments: [
+      {
+        author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        authorName: { type: String, trim: true },
+        authorRole: { type: String, enum: ['admin', 'agency'] },
+        text: { type: String, trim: true, required: true, maxlength: 2000 },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     status: { type: String, enum: ['unpaid', 'paid', 'cancelled'], default: 'unpaid' },
     issuedAt: { type: Date, default: Date.now },
     paidAt: { type: Date },

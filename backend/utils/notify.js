@@ -25,14 +25,16 @@ async function getCoordinatorIds(agencyIds) {
   return coordinators.map((c) => String(c._id));
 }
 
+// data.noCoordinatorCopy skips the automatic Coordinator copies — for
+// things Coordinators can't open (e.g. invoices).
 async function createAndEmit(recipientIds, data, actorId) {
-  const { type, title, body, lead } = data;
+  const { type, title, body, lead, invoice, noCoordinatorCopy } = data;
   const actorStr = actorId ? String(actorId) : null;
   const baseIds = recipientIds.filter(Boolean).map(String).filter((id) => mongoose.Types.ObjectId.isValid(id));
   const agencyIds = baseIds.length
     ? (await User.find({ _id: { $in: baseIds }, role: 'agency' }).select('_id').lean()).map((a) => String(a._id))
     : [];
-  const coordinatorIds = await getCoordinatorIds(agencyIds);
+  const coordinatorIds = noCoordinatorCopy ? [] : await getCoordinatorIds(agencyIds);
   const unique = [
     ...new Set(
       [...baseIds, ...coordinatorIds].filter((id) => id !== actorStr)
@@ -41,7 +43,7 @@ async function createAndEmit(recipientIds, data, actorId) {
   if (!unique.length) return;
 
   const docs = await Notification.insertMany(
-    unique.map((recipient) => ({ recipient, type, title, body, lead: lead || undefined }))
+    unique.map((recipient) => ({ recipient, type, title, body, lead: lead || undefined, invoice: invoice || undefined }))
   );
 
   const io = getIO();

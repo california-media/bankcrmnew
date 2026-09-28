@@ -9,6 +9,9 @@ router.post('/', requireRole('admin'), ctrl.create);
 router.get('/suggest-leads', requireRole('admin'), ctrl.suggestFromLeads);
 router.put('/:id/status', requireRole('admin'), ctrl.updateStatus);
 router.delete('/:id', requireRole('admin'), ctrl.remove);
+router.put('/:id', requireRole('admin'), ctrl.update);
+// Invoice notes: admin, or the billed agency's owner login (not its staff).
+router.post('/:id/comments', requireRole('admin', 'agency'), ctrl.addComment);
 
 // Admin, or the billed agency (Account Access employee only — Coordinator
 // excluded, same "all access except agent payment" rule as agency-payouts).

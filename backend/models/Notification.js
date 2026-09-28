@@ -22,12 +22,15 @@ const notificationSchema = new mongoose.Schema(
         'hold_released',
         // Agency wallet top-up requests (agencyPayout.controller.js)
         'bucket_request',
+        // Agency <-> admin notes on an invoice (invoice.controller.js)
+        'invoice_note',
       ],
       required: true,
     },
     title:  { type: String, required: true },
     body:   { type: String, required: true },
     lead:   { type: mongoose.Schema.Types.ObjectId, ref: 'Lead' },
+    invoice: { type: mongoose.Schema.Types.ObjectId, ref: 'Invoice' },
     isRead: { type: Boolean, default: false },
   },
   { timestamps: true }

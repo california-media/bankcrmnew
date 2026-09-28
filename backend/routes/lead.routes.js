@@ -14,6 +14,7 @@ router.delete('/:id', requireRole('agent'), ctrl.removeDraft);
 router.patch('/:id/engagement-status', requireRole('agent'), ctrl.updateEngagementStatus);
 router.patch('/:id/complete-referral', requireRole('agent'), ctrl.completeReferral);
 router.patch('/:id/reference-no', requireRole('agent', 'agency', 'employee'), ctrl.updateReferenceNo);
+router.patch('/:id/customer-details', requireRole('admin', 'employee'), ctrl.updateCustomerDetails);
 router.patch('/:id/remarks', requireRole('admin', 'agency', 'employee'), ctrl.updateRemarks);
 router.post('/:id/documents', requireRole('agent', 'admin', 'agency'), upload.leadDocuments.array('documents', 5), ctrl.addDocuments);
 

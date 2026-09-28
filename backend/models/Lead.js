@@ -205,6 +205,21 @@ const leadSchema = new mongoose.Schema(
         _id: false,
       },
     ],
+    // Edits to the Customer box after submission (name, email, reference no.,
+    // nationality, city, visa type, company, job title, experience) — one
+    // entry per changed field. changedByName is a snapshot so the entry still
+    // reads right on responses that don't populate changedBy.
+    customerDetailsHistory: [
+      {
+        field: { type: String },
+        from: { type: String },
+        to: { type: String },
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        changedByName: { type: String },
+        changedAt: { type: Date, default: Date.now },
+        _id: false,
+      },
+    ],
     consentStatusHistory: [
       {
         consentStatus: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeStatus' },

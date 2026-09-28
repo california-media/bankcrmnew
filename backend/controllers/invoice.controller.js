@@ -5,6 +5,18 @@ const CompanySettings = require('../models/CompanySettings');
 const { resolveAgencyId } = require('../middleware/auth.middleware');
 const { renderInvoicePdf } = require('../services/invoicePdf.service');
 
+// Line-item description for an invoice raised from a lead: what was sold —
+// product type, bank and the card/loan/account name, e.g.
+// "Credit Card — Emirates NBD — Titanium Card". Expects bank + product
+// populated with `name`. Falls back to the lead number when the lead has
+// no bank/product on it.
+const PRODUCT_TYPE_LABELS = { credit_card: 'Credit Card', loan: 'Loan', account: 'Account' };
+const leadLineDescription = (lead) => {
+  const productName = lead.cardProduct?.name || lead.loanProduct?.name || lead.accountProduct?.name;
+  const parts = [PRODUCT_TYPE_LABELS[lead.productType], lead.bank?.name, productName].filter(Boolean);
+  return parts.length ? parts.join(' — ') : `Commission — Lead ${lead.leadNumber || lead._id}`;
+};
+
 const nextInvoiceNumber = async () => {
   const count = await Invoice.countDocuments();
   return `INV-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
@@ -46,10 +58,11 @@ exports.suggestFromLeads = async (req, res) => {
     filter._id = { $nin: [...invoicedSingle, ...invoicedMulti] };
     const leads = await Lead.find(filter)
       .populate('agency', 'name email')
+      .populate('bank', 'name')
       .populate('cardProduct', 'name')
       .populate('loanProduct', 'name')
       .populate('accountProduct', 'name')
-      .select('leadNumber customerName agency grossCommission createdAt productType cardProduct loanProduct accountProduct')
+      .select('leadNumber customerName agency grossCommission createdAt productType bank cardProduct loanProduct accountProduct')
       .sort({ createdAt: -1 })
       .limit(200);
     res.json(leads);
@@ -73,7 +86,11 @@ exports.create = async (req, res) => {
 
     let finalLineItems = lineItems;
     if (leadIds.length) {
-      const leadDocs = await Lead.find({ _id: { $in: leadIds } });
+      const leadDocs = await Lead.find({ _id: { $in: leadIds } })
+        .populate('bank', 'name')
+        .populate('cardProduct', 'name')
+        .populate('loanProduct', 'name')
+        .populate('accountProduct', 'name');
       if (leadDocs.length !== leadIds.length) {
         return res.status(404).json({ message: 'One or more leads not found' });
       }
@@ -95,7 +112,7 @@ exports.create = async (req, res) => {
       if (!finalLineItems || !finalLineItems.length) {
         finalLineItems = orderedLeadDocs.map((leadDoc) => ({
           customerName: leadDoc.customerName || '',
-          description: `Commission — Lead ${leadDoc.leadNumber || leadDoc._id}`,
+          description: leadLineDescription(leadDoc),
           qty: 1,
           unitPrice: leadDoc.grossCommission || 0,
         }));

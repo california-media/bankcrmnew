@@ -2253,9 +2253,91 @@ exports.updateReferenceNo = async (req, res) => {
     const scope = ['agency', 'employee'].includes(req.user.role) ? { agency: resolveAgencyId(req.user) } : { agent: req.user._id };
     const lead = await Lead.findOne({ _id: req.params.id, ...scope });
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
-    lead.referenceNo = (req.body.referenceNo || '').trim();
+    const referenceNo = (req.body.referenceNo || '').trim();
+    if (referenceNo !== (lead.referenceNo || '')) {
+      lead.customerDetailsHistory.push({
+        field: 'referenceNo',
+        from: lead.referenceNo || '',
+        to: referenceNo,
+        changedBy: req.user._id,
+        changedByName: req.user.name || req.user.email,
+      });
+    }
+    lead.referenceNo = referenceNo;
     await lead.save();
-    res.json({ referenceNo: lead.referenceNo });
+    res.json({ referenceNo: lead.referenceNo, customerDetailsHistory: lead.customerDetailsHistory });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Customer box fields editable after submission. Phone and monthly salary are
+// deliberately not in this list — they stay as submitted.
+const CUSTOMER_DETAIL_FIELDS = ['customerName', 'email', 'referenceNo', 'nationality', 'city', 'visaType', 'companyName', 'jobTitle', 'yearsOfExperience'];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * PATCH /api/leads/:id/customer-details  (Super Admin, Agency Coordinator, assigned CPV/Sales)
+ * Body: any subset of CUSTOMER_DETAIL_FIELDS; a blank value clears the field
+ * (except customerName, which is required). Every field that actually changes
+ * is logged in customerDetailsHistory with its old and new value.
+ */
+exports.updateCustomerDetails = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    let allowed = false;
+    if (req.user.role === 'admin') {
+      allowed = !req.user.adminScope;
+    } else if (req.user.role === 'employee' && req.user.employeeType === 'coordinator') {
+      allowed = String(lead.agency) === String(resolveAgencyId(req.user));
+    } else if (req.user.role === 'employee' && ['cpv', 'sales'].includes(req.user.employeeType)) {
+      const empId = String(req.user._id);
+      allowed = [lead.assignedEmployee, lead.assignedCpvEmployee, lead.assignedSalesEmployee].some((e) => e && String(e) === empId);
+    }
+    if (!allowed) return res.status(403).json({ message: 'Forbidden' });
+
+    const updates = {};
+    for (const key of CUSTOMER_DETAIL_FIELDS) {
+      if (!(key in req.body)) continue;
+      const raw = req.body[key];
+      if (key === 'yearsOfExperience') {
+        if (raw == null || raw === '') { updates[key] = null; continue; }
+        const years = Number(raw);
+        if (!Number.isFinite(years) || years < 0 || years > 60) {
+          return res.status(400).json({ message: 'Experience must be between 0 and 60 years' });
+        }
+        updates[key] = years;
+      } else {
+        updates[key] = raw == null ? '' : String(raw).trim();
+      }
+    }
+    if ('customerName' in updates && !updates.customerName) {
+      return res.status(400).json({ message: 'Customer name is required' });
+    }
+    if (updates.email && !EMAIL_RE.test(updates.email)) {
+      return res.status(400).json({ message: 'Invalid email' });
+    }
+
+    const asText = (v) => (v == null ? '' : String(v));
+    const changedByName = req.user.name || req.user.email;
+    Object.entries(updates).forEach(([key, value]) => {
+      if (asText(lead[key]) === asText(value)) return;
+      lead.customerDetailsHistory.push({
+        field: key,
+        from: asText(lead[key]),
+        to: asText(value),
+        changedBy: req.user._id,
+        changedByName,
+      });
+      lead[key] = value === '' || value === null ? undefined : value;
+    });
+    await lead.save();
+
+    const out = { customerDetailsHistory: lead.customerDetailsHistory };
+    CUSTOMER_DETAIL_FIELDS.forEach((key) => { out[key] = lead[key] ?? null; });
+    res.json(out);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

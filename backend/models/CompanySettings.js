@@ -25,6 +25,9 @@ const companySettingsSchema = new mongoose.Schema(
       trim: true,
       default: 'Since Silah is a newly established company, our VAT registration is currently under process.',
     },
+    // MySilah's own VAT TRN shown under Contact Person — "Under Process"
+    // until the registration comes through, then the admin types the number.
+    trn: { type: String, trim: true, default: 'Under Process' },
     // Default VAT rate offered when creating a new invoice — each invoice
     // stores its own vatRate/vatApplicable snapshot, so changing this later
     // doesn't alter invoices already created.

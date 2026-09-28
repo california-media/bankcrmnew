@@ -19,11 +19,11 @@ const LIGHT_GRAY = '#f3f4f6';
 const TOTAL_BG = '#e3e9f3';
 
 // MySilah's own fixed letterhead details — same on every invoice, not stored
-// per-record. Bank details / notes text are admin-editable (CompanySettings)
-// and passed in as `companySettings`; these are the fallback if that hasn't
-// been set up yet.
+// per-record. Bank details / notes text / TRN are admin-editable
+// (CompanySettings) and passed in as `companySettings`; these are the
+// fallback if that hasn't been set up yet.
 const COMPANY = {
-  officeAddressLines: ['Meydan Grandstand, 6th Floor, Meydan Road, Nad Al Sheba, Dubai,', 'U.A.E.'],
+  officeAddressLines: ['Meydan Grandstand, 6th Floor, Meydan Road, Nad Al Sheba.', 'PO Box 95195, Dubai, UAE.'],
   email: 'admin@mysilah.ae',
   trnStatus: 'Under Process',
 };
@@ -149,6 +149,7 @@ function renderInvoicePdf(invoice, res, companySettings) {
   const bank = companySettings?.bank || DEFAULT_BANK;
   const notesLines = companySettings?.notesLines?.length ? companySettings.notesLines : DEFAULT_NOTES_LINES;
   const vatNote = companySettings?.vatNote || DEFAULT_VAT_NOTE;
+  const trn = companySettings?.trn || COMPANY.trnStatus;
 
   const doc = new PDFDocument({ margin: PAGE_MARGIN, size: 'A4' });
   res.setHeader('Content-Type', 'application/pdf');
@@ -163,22 +164,22 @@ function renderInvoicePdf(invoice, res, companySettings) {
   const afterMeta = drawHeaderMeta(doc, invoice, 50);
   let y = Math.max(afterMeta, 100);
 
-  // Office Address / Contact Person
+  // Supplier / Contact Person
   const createdByName = invoice.createdBy?.name || 'MySilah Team';
   y = drawTwoColBox(doc, y, {
     bg: LIGHT_GRAY,
     header: null,
     leftLines: [
-      { text: 'Office Address', bold: true, gap: 13 },
+      { text: 'Supplier', bold: true, gap: 13 },
       { text: COMPANY.officeAddressLines[0], gap: 13 },
       { text: COMPANY.officeAddressLines[1], gap: 13 },
-      { text: `Email: ${COMPANY.email}`, gap: 13 },
     ],
     rightLines: [
       { text: 'Contact Person', bold: true, gap: 13 },
       { text: createdByName, gap: 13 },
       ...(invoice.createdBy?.phone ? [{ text: `Phone: ${invoice.createdBy.phone}`, gap: 13 }] : []),
-      { text: `TRN: ${COMPANY.trnStatus}`, gap: 13 },
+      { text: `Email: ${COMPANY.email}`, gap: 13 },
+      { text: `TRN: ${trn}`, gap: 13 },
     ],
   });
   y += 14;
@@ -316,7 +317,7 @@ function renderInvoicePdf(invoice, res, companySettings) {
 
   doc.moveTo(CONTENT_X, y).lineTo(CONTENT_RIGHT, y).strokeColor(NAVY).lineWidth(1.5).stroke();
   y += 12;
-  doc.font('Helvetica').fontSize(9).fillColor(NAVY).text('Thank you for your business.', CONTENT_X, y, { width: CONTENT_W, align: 'center' });
+  doc.font('Helvetica').fontSize(9).fillColor(NAVY).text('This is system generated invoice doesn’t required the company stamp and sign.', CONTENT_X, y, { width: CONTENT_W, align: 'center' });
 
   doc.end();
 }

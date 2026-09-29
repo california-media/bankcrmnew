@@ -77,8 +77,8 @@ function AgencyBanks() {
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Bank</Button>
       </div>
 
-      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-        <Table size="small" rowKey="_id" loading={loading} dataSource={banks} columns={columns} />
+      <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflowX: 'auto' }}>
+        <Table size="small" rowKey="_id" loading={loading} dataSource={banks} columns={columns} scroll={{ x: 'max-content' }} />
       </div>
 
       <Modal

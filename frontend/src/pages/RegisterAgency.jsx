@@ -27,8 +27,8 @@ function RegisterAgency() {
 
   if (submitted) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5' }}>
-        <Card style={{ width: 480, textAlign: 'center' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5', padding: '16px' }}>
+        <Card style={{ width: 480, maxWidth: '100%', textAlign: 'center' }}>
           <Result
             status="success"
             title="Registration Submitted!"
@@ -43,8 +43,8 @@ function RegisterAgency() {
   const itemStyle = { marginBottom: 10 };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5', padding: '16px 0' }}>
-      <Card style={{ width: 460 }} styles={{ body: { padding: '20px 24px' } }}>
+    <div style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f0f2f5', padding: '16px' }}>
+      <Card style={{ width: 460, maxWidth: '100%' }} styles={{ body: { padding: '20px 24px' } }}>
         <div style={{ textAlign: 'center', marginBottom: 16 }}>
           <img src="/mysilah.svg" alt="Inizio Global" style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
         </div>

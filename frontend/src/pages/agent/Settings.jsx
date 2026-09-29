@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, message, Divider, Row, Col, Alert, Tooltip, Typography, Modal } from 'antd';
 import { useLocation } from 'react-router-dom';
-import { BankOutlined, LockOutlined, UserOutlined, CopyOutlined, CheckOutlined, LinkOutlined, DeleteOutlined, WarningOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { BankOutlined, LockOutlined, UserOutlined, CopyOutlined, CheckOutlined, LinkOutlined, DeleteOutlined, WarningOutlined, SafetyCertificateOutlined, FileSearchOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
@@ -18,6 +18,7 @@ function AgentSettings() {
   const [savingBank, setSavingBank] = useState(false);
   const [profile, setProfile] = useState(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedTrackLink, setCopiedTrackLink] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
@@ -375,6 +376,46 @@ function AgentSettings() {
           </div>
         </Card>
       )}
+
+      {/* Track Application Status */}
+      <Card
+        style={{ borderRadius: 16, border: '1px solid #e2e8f0', marginTop: 20 }}
+        styles={{ header: { borderBottom: '1px solid #f1f5f9' } }}
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileSearchOutlined style={{ color: '#7C3AED' }} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>Track Application Status</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>Check a lead's status with just the reference number + first name — no login needed</div>
+            </div>
+          </div>
+        }
+      >
+        <div style={{ padding: '4px 0' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
+            Shareable Link
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', borderRadius: 10, padding: '10px 14px', border: '1px solid #e2e8f0' }}>
+            <span style={{ flex: 1, fontSize: 13, color: '#7C3AED', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {`${window.location.origin}/track-status`}
+            </span>
+            <Tooltip title={copiedTrackLink ? 'Copied!' : 'Copy link'}>
+              <Button
+                size="small"
+                icon={copiedTrackLink ? <CheckOutlined /> : <CopyOutlined />}
+                type={copiedTrackLink ? 'primary' : 'default'}
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/track-status`);
+                  setCopiedTrackLink(true);
+                  setTimeout(() => setCopiedTrackLink(false), 2000);
+                }}
+              />
+            </Tooltip>
+          </div>
+        </div>
+      </Card>
 
       {/* Danger Zone */}
       <Card

@@ -16,12 +16,16 @@ const avatarBg = (name) => {
 const initials = (name) => (name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
 const PIPELINE_STAGES = [
-  { key: 'submitted',    label: 'NEW',       bg: '#e0f7fa', border: '#a5f3fc', dot: '#06b6d4', text: '#0e7490' },
-  { key: 'approved',     label: 'APPROVED',  bg: '#f3e8ff', border: '#d8b4fe', dot: '#a855f7', text: '#7e22ce' },
-  { key: 'cpvDone',      label: 'CPV DONE',  bg: '#fef9c3', border: '#fde047', dot: '#eab308', text: '#a16207' },
-  { key: 'activateDone', label: 'ACTIVATED', bg: '#e0f2fe', border: '#7dd3fc', dot: '#0ea5e9', text: '#0369a1' },
-  { key: 'disbursed',    label: 'PAID',      bg: '#dcfce7', border: '#86efac', dot: '#22c55e', text: '#15803d' },
+  { key: 'submitted',    view: 'pending',       label: 'NEW',       bg: '#e0f7fa', border: '#a5f3fc', dot: '#06b6d4', text: '#0e7490' },
+  { key: 'approved',     view: 'approved_only', label: 'APPROVED',  bg: '#f3e8ff', border: '#d8b4fe', dot: '#a855f7', text: '#7e22ce' },
+  { key: 'cpvDone',      view: 'cpv_done',      label: 'CPV DONE',  bg: '#fef9c3', border: '#fde047', dot: '#eab308', text: '#a16207' },
+  { key: 'activateDone', view: 'activated',     label: 'ACTIVATED', bg: '#e0f2fe', border: '#7dd3fc', dot: '#0ea5e9', text: '#0369a1' },
+  { key: 'disbursed',    view: 'disbursed',     label: 'PAID',      bg: '#dcfce7', border: '#86efac', dot: '#22c55e', text: '#15803d' },
 ];
+
+// Wraps a dashboard tile so clicking it opens the page behind the number.
+const CardLink = ({ to, children }) =>
+  to ? <Link to={to} style={{ display: 'block', height: '100%', textDecoration: 'none' }}>{children}</Link> : children;
 
 const LeadPipeline = ({ pipelineStats }) => {
   const max = Math.max(1, ...PIPELINE_STAGES.map((s) => pipelineStats?.[s.key] ?? 0));
@@ -43,7 +47,7 @@ const LeadPipeline = ({ pipelineStats }) => {
         const count = pipelineStats?.[stage.key] ?? 0;
         const pct = Math.max(count === 0 ? 2 : (count / max) * 100, 2);
         return (
-          <div key={stage.key} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+          <Link key={stage.key} to={`/agency/leads?view=${stage.view}`} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, textDecoration: 'none' }}>
             <div style={{ width: 100, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 999, background: stage.bg, border: `1.5px solid ${stage.border}`, fontSize: 10, fontWeight: 700, color: stage.text, whiteSpace: 'nowrap' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: stage.dot, flexShrink: 0 }} />
               {stage.label}
@@ -66,21 +70,22 @@ const LeadPipeline = ({ pipelineStats }) => {
             <div style={{ width: 24, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#334155', flexShrink: 0 }}>
               {(count === 0 || pct <= 16) ? count : ''}
             </div>
-          </div>
+          </Link>
         );
       })}
     </Card>
   );
 };
 
-const StatCard = ({ title, value, icon, gradient, shadowColor, loading }) =>
+const StatCard = ({ title, value, icon, gradient, shadowColor, loading, link }) =>
   loading ? (
     <Card styles={{ body: { padding: '22px 24px' } }} style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}>
       <Skeleton active paragraph={{ rows: 1 }} />
     </Card>
   ) : (
+    <CardLink to={link}>
     <div
-      style={{ borderRadius: 16, background: gradient, boxShadow: `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`, height: '100%', overflow: 'hidden', padding: '24px', position: 'relative', transition: 'box-shadow 0.25s, transform 0.25s', cursor: 'default' }}
+      style={{ borderRadius: 16, background: gradient, boxShadow: `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`, height: '100%', overflow: 'hidden', padding: '24px', position: 'relative', transition: 'box-shadow 0.25s, transform 0.25s', cursor: link ? 'pointer' : 'default' }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 20px 52px ${shadowColor}70, 0 6px 18px ${shadowColor}45`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
@@ -94,16 +99,18 @@ const StatCard = ({ title, value, icon, gradient, shadowColor, loading }) =>
         {value ?? '—'}
       </div>
     </div>
+    </CardLink>
   );
 
-const PayoutCard = ({ title, value, sub, icon, gradient, shadowColor, loading }) =>
+const PayoutCard = ({ title, value, sub, icon, gradient, shadowColor, loading, link }) =>
   loading ? (
     <Card styles={{ body: { padding: '20px 24px' } }} style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}>
       <Skeleton active paragraph={{ rows: 1 }} />
     </Card>
   ) : (
+    <CardLink to={link}>
     <div
-      style={{ borderRadius: 16, background: gradient, boxShadow: `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`, height: '100%', overflow: 'hidden', padding: '24px', position: 'relative', transition: 'box-shadow 0.25s, transform 0.25s', cursor: 'default' }}
+      style={{ borderRadius: 16, background: gradient, boxShadow: `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`, height: '100%', overflow: 'hidden', padding: '24px', position: 'relative', transition: 'box-shadow 0.25s, transform 0.25s', cursor: link ? 'pointer' : 'default' }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 20px 52px ${shadowColor}70, 0 6px 18px ${shadowColor}45`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
@@ -116,11 +123,16 @@ const PayoutCard = ({ title, value, sub, icon, gradient, shadowColor, loading })
       <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', lineHeight: 1, marginBottom: 8 }}>{value}</div>
       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>{sub}</div>
     </div>
+    </CardLink>
   );
 
 function AgencyDashboard() {
   const { user } = useSelector((s) => s.auth);
   const [leads, setLeads] = useState(null);
+  // Money sections (payouts, referral bonus, product payouts, top agents) are only for
+  // the agency owner and its Account Access (accountant) staff — not Coordinators or CPV/Sales.
+  const canSeeMoney = user.role === 'agency' || (user.role === 'employee' && user.employeeType === 'account');
+  const payoutsLink = (tab) => `/agency/payouts?tab=${tab}`;
 
   useEffect(() => {
     api.get('/leads/agency').then((res) => setLeads(res.data));
@@ -175,7 +187,7 @@ function AgencyDashboard() {
         const map = {};
         leads.filter((l) => l.commissionStatus === 'paid' && l.agent).forEach((l) => {
           const id = l.agent._id || l.agent;
-          if (!map[id]) map[id] = { name: l.agent.name || l.agent.email || '—', amount: 0 };
+          if (!map[id]) map[id] = { id, name: l.agent.name || l.agent.email || '—', amount: 0 };
           map[id].amount += l.grossCommission || 0;
         });
         return Object.values(map).sort((a, b) => b.amount - a.amount).slice(0, 5);
@@ -183,16 +195,29 @@ function AgencyDashboard() {
     : null;
 
   const cards = [
-    { key: 'total', title: 'Total Leads', value: stats?.total, icon: <AuditOutlined />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)', shadowColor: '#1d4ed8' },
-    { key: 'pending', title: 'Awaiting Action', value: stats?.pending, icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)', shadowColor: '#b45309' },
-    { key: 'approved', title: 'Approved', value: stats?.approved, icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)', shadowColor: '#15803d' },
-    { key: 'rejected', title: 'Rejected', value: stats?.rejected, icon: <CloseCircleOutlined />, gradient: 'linear-gradient(135deg, #b91c1c 0%, #f87171 100%)', shadowColor: '#b91c1c' },
+    { key: 'total', title: 'Total Leads', value: stats?.total, icon: <AuditOutlined />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)', shadowColor: '#1d4ed8', link: '/agency/leads?view=all' },
+    { key: 'pending', title: 'Awaiting Action', value: stats?.pending, icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)', shadowColor: '#b45309', link: '/agency/leads?view=pending' },
+    { key: 'approved', title: 'Approved', value: stats?.approved, icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)', shadowColor: '#15803d', link: '/agency/leads?view=approved' },
+    { key: 'rejected', title: 'Rejected', value: stats?.rejected, icon: <CloseCircleOutlined />, gradient: 'linear-gradient(135deg, #b91c1c 0%, #f87171 100%)', shadowColor: '#b91c1c', link: '/agency/leads?tab=rejected' },
+  ];
+
+  const referralLeads = leads ? leads.filter((l) => (l.agencyOverrideAmount || 0) > 0) : null;
+  const referralStats = referralLeads
+    ? {
+        pending: referralLeads.filter((l) => l.agencyOverrideStatus === 'pending').reduce((s, l) => s + (l.agencyOverrideAmount || 0), 0),
+        paid: referralLeads.filter((l) => l.agencyOverrideStatus === 'paid').reduce((s, l) => s + (l.agencyOverrideAmount || 0), 0),
+      }
+    : null;
+
+  const referralCards = [
+    { key: 'referralPending', title: 'Referral Bonus Pending', value: aed(referralStats?.pending), sub: 'From tagged agents’ booked leads', icon: <RiseOutlined />, gradient: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)', shadowColor: '#6d28d9', link: '/agency/leads?view=referral_pending' },
+    { key: 'referralPaid', title: 'Referral Bonus Paid', value: aed(referralStats?.paid), sub: 'Already paid by MySilah', icon: <DollarOutlined />, gradient: 'linear-gradient(135deg, #0f766e 0%, #2dd4bf 100%)', shadowColor: '#0f766e', link: '/agency/leads?view=referral_paid' },
   ];
 
   const payoutCards = [
-    { key: 'expected', title: 'Expected Payout', value: aed(stats?.expectedPayout), sub: 'Active leads — not yet disbursed', icon: <RiseOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)', shadowColor: '#b45309' },
-    { key: 'total', title: 'Total Payout to Admin', value: aed(stats?.totalPayout), sub: 'Disbursed leads (paid + pending)', icon: <DollarOutlined />, gradient: 'linear-gradient(135deg, #0369a1 0%, #38bdf8 100%)', shadowColor: '#0369a1' },
-    { key: 'paid', title: 'Paid to Admin', value: aed(stats?.paidToAdmin), sub: 'Commissions already settled', icon: <BankOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)', shadowColor: '#15803d' },
+    { key: 'expected', title: 'Expected Payout', value: aed(stats?.expectedPayout), sub: 'Active leads — not yet disbursed', icon: <RiseOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)', shadowColor: '#b45309', link: payoutsLink('pending') },
+    { key: 'total', title: 'Total Payout to Admin', value: aed(stats?.totalPayout), sub: 'Disbursed leads (paid + pending)', icon: <DollarOutlined />, gradient: 'linear-gradient(135deg, #0369a1 0%, #38bdf8 100%)', shadowColor: '#0369a1', link: payoutsLink('awaiting') },
+    { key: 'paid', title: 'Paid to Admin', value: aed(stats?.paidToAdmin), sub: 'Commissions already settled', icon: <BankOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)', shadowColor: '#15803d', link: payoutsLink('history') },
   ];
 
   return (
@@ -242,6 +267,8 @@ function AgencyDashboard() {
       </Row>
 
       {/* Payout Section */}
+      {canSeeMoney && (
+      <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <div style={{ width: 4, height: 20, borderRadius: 2, background: 'linear-gradient(180deg, #6d28d9, #a78bfa)' }} />
         <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#64748b' }}>Admin Payouts</span>
@@ -254,16 +281,36 @@ function AgencyDashboard() {
           </Col>
         ))}
       </Row>
+      </>
+      )}
+
+      {/* Referral Bonus Section — only for agencies on the referral commission model */}
+      {canSeeMoney && referralLeads && referralLeads.length > 0 && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ width: 4, height: 20, borderRadius: 2, background: 'linear-gradient(180deg, #0f766e, #2dd4bf)' }} />
+            <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#64748b' }}>Referral Bonus</span>
+          </div>
+          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+            {referralCards.map((c) => (
+              <Col xs={24} sm={12} key={c.key}>
+                <PayoutCard {...c} loading={!stats} />
+              </Col>
+            ))}
+          </Row>
+        </>
+      )}
 
       {/* Pipeline + Product Payouts + Top Agents */}
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={14}>
+        <Col xs={24} lg={canSeeMoney ? 14 : 24}>
           {leads ? <LeadPipeline pipelineStats={pipelineStats} /> : (
             <Card style={{ borderRadius: 16, border: '1px solid #e2e8f0' }}>
               <Skeleton active paragraph={{ rows: 5 }} />
             </Card>
           )}
         </Col>
+        {canSeeMoney && (
         <Col xs={24} lg={10}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Product Payouts */}
@@ -280,6 +327,7 @@ function AgencyDashboard() {
               {productPayouts ? productPayouts.map((p, i) => (
                 <div key={p.type}>
                   {i > 0 && <div style={{ height: 1, background: '#f1f5f9', margin: '12px 0' }} />}
+                  <CardLink to={payoutsLink('history')}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
                       {p.icon}
@@ -292,6 +340,7 @@ function AgencyDashboard() {
                       {aed(p.amount)}
                     </div>
                   </div>
+                  </CardLink>
                 </div>
               )) : <Skeleton active paragraph={{ rows: 2 }} />}
             </Card>
@@ -310,6 +359,7 @@ function AgencyDashboard() {
               {topAgents ? (topAgents.length ? topAgents.map((a, i) => (
                 <div key={a.name + i}>
                   {i > 0 && <div style={{ height: 1, background: '#f1f5f9', margin: '12px 0' }} />}
+                  <CardLink to={`/agency/leads?view=all&agent=${a.id}`}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{
                       width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
@@ -321,6 +371,7 @@ function AgencyDashboard() {
                     <div style={{ flex: 1, fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{a.name}</div>
                     <div style={{ fontWeight: 700, fontSize: 15, color: '#16a34a' }}>{aed(a.amount)}</div>
                   </div>
+                  </CardLink>
                 </div>
               )) : (
                 <Typography.Text type="secondary" style={{ fontSize: 13 }}>No paid commissions yet</Typography.Text>
@@ -329,6 +380,7 @@ function AgencyDashboard() {
 
           </div>
         </Col>
+        )}
       </Row>
     </>
   );

@@ -11,7 +11,7 @@ import {
   CopyOutlined,
 } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import NoticeBanner from '../../components/NoticeBanner';
 
@@ -29,11 +29,11 @@ const productLabels = { credit_card: 'Credit Card', loan: 'Loan' };
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const PIPELINE_STAGES = [
-  { key: 'submitted',    label: 'NEW',       bg: '#e0f7fa', border: '#a5f3fc', dot: '#06b6d4', text: '#0e7490' },
-  { key: 'approved',     label: 'APPROVED',  bg: '#f3e8ff', border: '#d8b4fe', dot: '#a855f7', text: '#7e22ce' },
-  { key: 'cpvDone',      label: 'CPV DONE',  bg: '#fef9c3', border: '#fde047', dot: '#eab308', text: '#a16207' },
-  { key: 'activateDone', label: 'ACTIVATED', bg: '#e0f2fe', border: '#7dd3fc', dot: '#0ea5e9', text: '#0369a1' },
-  { key: 'disbursed',    label: 'PAID',      bg: '#dcfce7', border: '#86efac', dot: '#22c55e', text: '#15803d' },
+  { key: 'submitted',    view: 'submitted',     label: 'NEW',       bg: '#e0f7fa', border: '#a5f3fc', dot: '#06b6d4', text: '#0e7490' },
+  { key: 'approved',     view: 'approved_only', label: 'APPROVED',  bg: '#f3e8ff', border: '#d8b4fe', dot: '#a855f7', text: '#7e22ce' },
+  { key: 'cpvDone',      view: 'cpv_done',      label: 'CPV DONE',  bg: '#fef9c3', border: '#fde047', dot: '#eab308', text: '#a16207' },
+  { key: 'activateDone', view: 'activated',     label: 'ACTIVATED', bg: '#e0f2fe', border: '#7dd3fc', dot: '#0ea5e9', text: '#0369a1' },
+  { key: 'disbursed',    view: 'disbursed',     label: 'PAID',      bg: '#dcfce7', border: '#86efac', dot: '#22c55e', text: '#15803d' },
 ];
 
 const LeadPipeline = ({ stats }) => {
@@ -56,7 +56,7 @@ const LeadPipeline = ({ stats }) => {
         const count = stats?.[stage.key] ?? 0;
         const pct = Math.max(count === 0 ? 2 : (count / max) * 100, 2);
         return (
-          <div key={stage.key} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+          <Link key={stage.key} to={`/agent/leads?view=${stage.view}`} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, textDecoration: 'none' }}>
             {/* Label pill */}
             <div style={{ width: 100, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 999, background: stage.bg, border: `1.5px solid ${stage.border}`, fontSize: 10, fontWeight: 700, color: stage.text, whiteSpace: 'nowrap' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: stage.dot, flexShrink: 0 }} />
@@ -82,21 +82,22 @@ const LeadPipeline = ({ stats }) => {
             <div style={{ width: 24, textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#334155', flexShrink: 0 }}>
               {(count === 0 || pct <= 16) ? count : ''}
             </div>
-          </div>
+          </Link>
         );
       })}
     </Card>
   );
 };
 
-const StatCard = ({ title, value, sub, icon, gradient, shadowColor, loading }) =>
+const StatCard = ({ title, value, sub, icon, gradient, shadowColor, loading, link }) =>
   loading ? (
     <Card styles={{ body: { padding: '22px 24px' } }} style={{ borderRadius: 16, border: '1px solid #e2e8f0', height: '100%' }}>
       <Skeleton active paragraph={{ rows: 2 }} />
     </Card>
   ) : (
+    <Link to={link} style={{ display: 'block', height: '100%', textDecoration: 'none' }}>
     <div
-      style={{ borderRadius: 16, background: gradient, boxShadow: `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`, height: '100%', overflow: 'hidden', padding: '24px', position: 'relative', transition: 'box-shadow 0.25s, transform 0.25s', cursor: 'default' }}
+      style={{ borderRadius: 16, background: gradient, boxShadow: `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`, height: '100%', overflow: 'hidden', padding: '24px', position: 'relative', transition: 'box-shadow 0.25s, transform 0.25s', cursor: 'pointer' }}
       onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 20px 52px ${shadowColor}70, 0 6px 18px ${shadowColor}45`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
       onMouseLeave={e => { e.currentTarget.style.boxShadow = `0 8px 28px ${shadowColor}55, 0 2px 8px ${shadowColor}30`; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
@@ -111,10 +112,12 @@ const StatCard = ({ title, value, sub, icon, gradient, shadowColor, loading }) =
       </div>
       {sub && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.68)' }}>{sub}</div>}
     </div>
+    </Link>
   );
 
 function AgentDashboard() {
   const { user } = useSelector((s) => s.auth);
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
   const [loadingRecent, setLoadingRecent] = useState(true);
@@ -127,10 +130,10 @@ function AgentDashboard() {
   }, []);
 
   const cards = [
-    { key: 'paid', title: 'Payout Earned', value: aed(stats?.paidEarnings), sub: 'Lifetime payout', icon: <DollarOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)', shadowColor: '#15803d' },
-    { key: 'pending', title: 'Pending Payout', value: aed(stats?.pendingEarnings), sub: `Across ${stats?.active || 0} active cases`, icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)', shadowColor: '#1d4ed8' },
-    { key: 'active', title: 'Active Cases', value: stats?.active ?? 0, sub: 'In pipeline', icon: <FolderOpenOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)', shadowColor: '#b45309' },
-    { key: 'closed', title: 'Closed Deals', value: stats?.disbursed ?? 0, sub: 'Successfully disbursed', icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)', shadowColor: '#6d28d9' },
+    { key: 'paid', title: 'Payout Earned', value: aed(stats?.paidEarnings), sub: 'Lifetime payout', icon: <DollarOutlined />, gradient: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)', shadowColor: '#15803d', link: '/agent/commissions?tab=paid' },
+    { key: 'pending', title: 'Pending Payout', value: aed(stats?.pendingEarnings), sub: `Across ${stats?.active || 0} active cases`, icon: <ClockCircleOutlined />, gradient: 'linear-gradient(135deg, #1d4ed8 0%, #60a5fa 100%)', shadowColor: '#1d4ed8', link: '/agent/commissions?tab=pending_payout' },
+    { key: 'active', title: 'Active Cases', value: stats?.active ?? 0, sub: 'In pipeline', icon: <FolderOpenOutlined />, gradient: 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)', shadowColor: '#b45309', link: '/agent/leads?view=pending' },
+    { key: 'closed', title: 'Closed Deals', value: stats?.disbursed ?? 0, sub: 'Successfully disbursed', icon: <CheckCircleOutlined />, gradient: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)', shadowColor: '#6d28d9', link: '/agent/leads?tab=archive' },
   ];
 
   const columns = [
@@ -248,7 +251,7 @@ function AgentDashboard() {
             {isMobile ? (
               loadingRecent ? <Skeleton active paragraph={{ rows: 4 }} style={{ padding: '12px 16px' }} /> : (
                 recent.map((row) => (
-                  <div key={row._id} style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                  <div key={row._id} onClick={() => navigate(`/agent/leads/${row._id}`)} style={{ cursor: 'pointer', padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', marginBottom: 2 }}>{row.customerName}</div>
                       <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>{row.bank?.name} · {productLabels[row.productType] || row.productType}</div>
@@ -277,6 +280,7 @@ function AgentDashboard() {
                 dataSource={recent}
                 columns={columns}
                 pagination={false}
+                onRow={(row) => ({ onClick: () => navigate(`/agent/leads/${row._id}`), style: { cursor: 'pointer' } })}
               />
             )}
           </Card>
@@ -290,20 +294,20 @@ function AgentDashboard() {
             >
               <div style={{ fontWeight: 700, fontSize: 14, color: '#1e1b4b', marginBottom: 16 }}>Performance This Month</div>
               {[
-                { label: 'Submitted', value: stats?.thisMonth?.submitted ?? 0, color: '#7C3AED' },
-                { label: 'Approved', value: stats?.thisMonth?.approved ?? 0, color: '#16a34a' },
-                { label: 'Paid', value: stats?.thisMonth?.paid ?? 0, color: '#7c3aed' },
+                { label: 'Submitted', value: stats?.thisMonth?.submitted ?? 0, color: '#7C3AED', link: '/agent/leads?view=month_submitted' },
+                { label: 'Approved', value: stats?.thisMonth?.approved ?? 0, color: '#16a34a', link: '/agent/leads?view=month_approved' },
+                { label: 'Paid', value: stats?.thisMonth?.paid ?? 0, color: '#7c3aed', link: '/agent/commissions?tab=paid' },
               ].map((row) => (
-                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <Link key={row.label} to={row.link} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, textDecoration: 'none' }}>
                   <span style={{ fontSize: 13, color: '#475569', fontWeight: 500 }}>{row.label}</span>
                   <span style={{ fontSize: 20, fontWeight: 800, color: row.color, lineHeight: 1 }}>{row.value}</span>
-                </div>
+                </Link>
               ))}
               <div style={{ height: 1, background: '#e9d5ff', margin: '12px 0' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Link to="/agent/commissions?tab=paid" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none' }}>
                 <span style={{ fontSize: 12, color: '#7C3AED', fontWeight: 600 }}>Earned</span>
                 <span style={{ fontSize: 16, fontWeight: 800, color: '#7C3AED' }}>AED {Number(stats?.thisMonth?.earned || 0).toLocaleString()}</span>
-              </div>
+              </Link>
             </Card>
             <LeadPipeline stats={stats} />
           </div>

@@ -6,6 +6,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, SearchOutlined, UploadOutlined, SettingOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import QuillEditor from '../../components/QuillEditor';
 import api from '../../api/client';
+import BulkToggleBar from '../../components/BulkToggleBar';
 import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
@@ -26,6 +27,8 @@ const CARD_TYPE_LABEL = Object.fromEntries(CARD_TYPES.map((t) => [t.value, t.lab
 
 function CardProducts() {
   const [cards, setCards] = useState([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [bulkBusy, setBulkBusy] = useState(null);
   const [banks, setBanks] = useState([]);
   const [agencies, setAgencies] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -140,7 +143,7 @@ function CardProducts() {
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ isActive: true, agentVisible: true, websiteVisible: true });
+    form.setFieldsValue({ isActive: true, agentVisible: true, sendConsent: true, websiteVisible: true });
     setFileList([]);
     setBenefitsHtml('');
     setFeesHtml('');
@@ -155,8 +158,10 @@ function CardProducts() {
       cardType: c.cardType,
       bank: c.bank?._id,
       agency: c.agency?._id,
+      assignedAgencies: (c.assignedAgencies || []).map((a) => a?._id || a),
       isActive: c.isActive,
       agentVisible: c.agentVisible !== false,
+      sendConsent: c.sendConsent !== false,
       websiteVisible: c.websiteVisible !== false,
       clawbackMonths: c.clawbackMonths || 0,
       clawbackDays: c.clawbackDays ?? 30,
@@ -175,6 +180,7 @@ function CardProducts() {
       rate: c.rate || '',
       redirectUrl: c.redirectUrl || '',
       redirectActive: c.redirectActive || false,
+      referralVisible: c.referralVisible || false,
     });
     setBenefitsHtml(c.benefits || '');
     setFeesHtml(c.feesEligibility || '');
@@ -195,6 +201,7 @@ function CardProducts() {
       fd.append('cardType', values.cardType);
       fd.append('bank', values.bank);
       if (values.agency) fd.append('agency', values.agency);
+      fd.append('assignedAgencies', JSON.stringify(values.assignedAgencies || []));
       fd.append('clawbackMonths', values.clawbackMonths || 0);
       fd.append('clawbackDays', values.clawbackDays || 0);
       fd.append('commissionBrackets', JSON.stringify(values.commissionBrackets || []));
@@ -205,10 +212,12 @@ function CardProducts() {
       fd.append('keyFeatures', keyFeaturesHtml);
       fd.append('isActive', values.isActive !== false ? 'true' : 'false');
       fd.append('agentVisible', values.agentVisible !== false ? 'true' : 'false');
+      fd.append('sendConsent', values.sendConsent !== false ? 'true' : 'false');
       fd.append('websiteVisible', values.websiteVisible !== false ? 'true' : 'false');
       fd.append('rate', values.rate || '');
       fd.append('redirectUrl', values.redirectUrl || '');
       fd.append('redirectActive', values.redirectActive ? 'true' : 'false');
+      fd.append('referralVisible', values.referralVisible ? 'true' : 'false');
 
       const newFile = fileList.find((f) => f.originFileObj);
       if (newFile) fd.append('cardImage', newFile.originFileObj);
@@ -237,6 +246,28 @@ function CardProducts() {
     }
   };
 
+  // Bulk on/off for Status / Agent Visible / Website Visible / Send Consent — same PUT the row switches use.
+  const bulkUpdate = async (field, value) => {
+    setBulkBusy(`${field}:${value}`);
+    try {
+      const results = await Promise.allSettled(
+        selectedRowKeys.map((id) => {
+          const fd = new FormData();
+          fd.append(field, value ? 'true' : 'false');
+          return api.put(`/card-products/${id}`, fd);
+        })
+      );
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      const done = results.length - failed;
+      if (done) message.success(`Updated ${done} product${done !== 1 ? 's' : ''}`);
+      if (failed) message.error(`${failed} update${failed !== 1 ? 's' : ''} failed`);
+      setSelectedRowKeys([]);
+      load();
+    } finally {
+      setBulkBusy(null);
+    }
+  };
+
   const toggleActive = async (row) => {
     try {
       const fd = new FormData();
@@ -252,6 +283,17 @@ function CardProducts() {
     try {
       const fd = new FormData();
       fd.append('agentVisible', row.agentVisible !== false ? 'false' : 'true');
+      await api.put(`/card-products/${row._id}`, fd);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const toggleSendConsent = async (row) => {
+    try {
+      const fd = new FormData();
+      fd.append('sendConsent', row.sendConsent !== false ? 'false' : 'true');
       await api.put(`/card-products/${row._id}`, fd);
       load();
     } catch (err) {
@@ -347,6 +389,18 @@ function CardProducts() {
       ),
     },
     {
+      title: 'Send Consent',
+      dataIndex: 'sendConsent',
+      render: (v, row) => (
+        <Switch
+          checked={v !== false}
+          checkedChildren="On"
+          unCheckedChildren="Off"
+          onChange={() => toggleSendConsent(row)}
+        />
+      ),
+    },
+    {
       title: 'Actions',
       width: 200,
       render: (_, row) => (
@@ -370,14 +424,14 @@ function CardProducts() {
         </div>
       </div>
 
-      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <Input
           allowClear
           placeholder="Search card name..."
           prefix={<SearchOutlined />}
           value={cardSearch}
           onChange={(e) => setCardSearch(e.target.value)}
-          style={{ width: 260, flexShrink: 0, borderRadius: 6 }}
+          style={{ width: 260, maxWidth: '100%', flexShrink: 1, borderRadius: 6 }}
         />
         <Select
           allowClear
@@ -385,7 +439,7 @@ function CardProducts() {
           value={bankFilter}
           onChange={setBankFilter}
           options={banks.map((b) => ({ value: b._id, label: b.name }))}
-          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+          style={{ width: 180, maxWidth: '100%', flexShrink: 1, borderRadius: 6 }}
         />
         <Select
           allowClear
@@ -393,7 +447,7 @@ function CardProducts() {
           value={agencyFilter}
           onChange={setAgencyFilter}
           options={agencies.map((a) => ({ value: a._id, label: a.name }))}
-          style={{ width: 180, flexShrink: 0 }}
+          style={{ width: 180, maxWidth: '100%', flexShrink: 1 }}
         />
         <Select
           allowClear
@@ -401,14 +455,17 @@ function CardProducts() {
           value={categoryFilter}
           onChange={setCategoryFilter}
           options={categories.map((c) => ({ value: c._id, label: c.name }))}
-          style={{ width: 180, flexShrink: 0 }}
+          style={{ width: 180, maxWidth: '100%', flexShrink: 1 }}
         />
       </div>
+      <BulkToggleBar count={selectedRowKeys.length} busy={bulkBusy} onApply={bulkUpdate} onClear={() => setSelectedRowKeys([])} />
       <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
         <Table
           size="small"
           rowKey="_id"
+          rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
           loading={loading}
+          scroll={{ x: 'max-content' }}
           dataSource={cards.filter((c) => {
             if (cardSearch.trim() && !c.name.toLowerCase().includes(cardSearch.trim().toLowerCase())) return false;
             if (bankFilter && c.bank?._id !== bankFilter) return false;
@@ -468,6 +525,21 @@ function CardProducts() {
               </Form.Item>
             </Col>
           </Row>
+
+          <Form.Item
+            name="assignedAgencies"
+            label="Assign to Agencies"
+            tooltip="Leave empty to keep this product visible to every agency (default). Pick specific agencies to restrict it to only them."
+          >
+            <Select
+              mode="multiple"
+              allowClear
+              showSearch
+              placeholder="All agencies (default) — pick to restrict"
+              options={agencyOptions}
+              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+            />
+          </Form.Item>
 
           <Row gutter={16}>
             <Col span={12}>
@@ -530,6 +602,7 @@ function CardProducts() {
                       {...restField}
                       name={[name, 'receivable']}
                       label="Receivable (AED)"
+                      tooltip="Total commission MySilah earns from the bank for this deal. Everything else (Payable, Agency Override) is paid out of this amount."
                       rules={[{ required: true, message: 'Required' }]}
                       style={{ marginBottom: 0 }}
                     >
@@ -539,10 +612,20 @@ function CardProducts() {
                       {...restField}
                       name={[name, 'payable']}
                       label="Payable (AED)"
+                      tooltip="Agent's share — paid to whoever submitted the lead (the agent, or the agency itself if it submitted directly)."
                       rules={[{ required: true, message: 'Required' }]}
                       style={{ marginBottom: 0 }}
                     >
                       <InputNumber min={0} step={50} placeholder="500" style={{ width: 130 }} />
+                    </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'agencyOverride']}
+                      label="Agency Override (AED)"
+                      tooltip="Extra AED paid to the agency that created the submitting agent's account, on top of the agent's own Payable commission, when this lead disburses. 0 = no override."
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber min={0} step={10} placeholder="50" style={{ width: 150 }} />
                     </Form.Item>
                     <Form.Item
                       {...restField}
@@ -723,8 +806,28 @@ function CardProducts() {
                 <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
               </Form.Item>
             </Col>
+            <Col span={6}>
+              <Form.Item
+                name="sendConsent"
+                label="Send Consent Message"
+                valuePropName="checked"
+                tooltip="Whether submitting a lead for this product sends the WhatsApp consent message to the customer."
+              >
+                <Switch checkedChildren="On" unCheckedChildren="Off" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item
+                name="referralVisible"
+                label="Show on Referral Form"
+                valuePropName="checked"
+                tooltip="Whether this product is a pickable option on the public /ref/:code referral partner form. Independent from Redirect Active."
+              >
+                <Switch checkedChildren="Shown" unCheckedChildren="Hidden" />
+              </Form.Item>
+            </Col>
           </Row>
-       
+
 
           <Divider orientation="left" style={{ fontSize: 13 }}>Product Content</Divider>
           <Tabs

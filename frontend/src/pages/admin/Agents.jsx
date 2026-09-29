@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Table, Typography, Button, Modal, Form, Input, InputNumber, message, Space, Popconfirm, Row, Col, Card, Tag, Tooltip } from 'antd';
+import { Table, Typography, Button, Modal, Form, Input, InputNumber, Select, message, Space, Popconfirm, Row, Col, Card, Tag, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, StopOutlined, CheckCircleOutlined, TableOutlined, AppstoreOutlined, LockOutlined, EyeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
@@ -65,13 +65,18 @@ function AdminAgents() {
   const [viewMode, setViewMode] = useState('table');
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
+  const [pwTarget, setPwTarget] = useState(null);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwForm] = Form.useForm();
+  const [agencies, setAgencies] = useState([]);
 
   const load = () => {
     setLoading(true);
     api.get('/admin/agents').then((res) => setAgents(res.data)).finally(() => setLoading(false));
   };
+  const loadAgencies = () => api.get('/agencies').then((res) => setAgencies(res.data)).catch(() => {});
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadAgencies(); }, []);
 
   const onSubmit = async () => {
     const values = await form.validateFields();
@@ -91,7 +96,13 @@ function AdminAgents() {
 
   const openEdit = (row) => {
     setEditTarget(row);
-    editForm.setFieldsValue({ name: row.name, email: row.email, phone: row.phone || '', holdPct: row.holdPct || 0 });
+    editForm.setFieldsValue({
+      name: row.name,
+      email: row.email,
+      phone: row.phone || '',
+      holdPct: row.holdPct || 0,
+      agency: row.agency?._id || row.agency || null,
+    });
   };
 
   const onEdit = async () => {
@@ -116,6 +127,25 @@ function AdminAgents() {
       load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed');
+    }
+  };
+
+  const openResetPassword = (row) => {
+    setPwTarget(row);
+    pwForm.resetFields();
+  };
+
+  const onResetPassword = async () => {
+    const { password } = await pwForm.validateFields();
+    setPwSaving(true);
+    try {
+      await api.patch(`/admin/agents/${pwTarget._id}/reset-password`, { password });
+      message.success('Password updated');
+      setPwTarget(null);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update password');
+    } finally {
+      setPwSaving(false);
     }
   };
 
@@ -201,6 +231,9 @@ function AdminAgents() {
           <Tooltip title="Edit">
             <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} style={{ color: '#64748b' }} />
           </Tooltip>
+          <Tooltip title="Reset Password">
+            <Button size="small" type="text" icon={<LockOutlined />} onClick={() => openResetPassword(row)} style={{ color: '#64748b' }} />
+          </Tooltip>
           <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
             <Button size="small" type="text" icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />} onClick={() => onToggleActive(row)} style={{ color: row.isActive ? '#f59e0b' : '#16a34a' }} />
           </Tooltip>
@@ -216,7 +249,7 @@ function AdminAgents() {
 
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', rowGap: 12 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Agents</h2>
         <div style={{ display: 'flex', gap: 8 }}>
           <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
@@ -229,7 +262,7 @@ function AdminAgents() {
 
       {viewMode === 'table' ? (
         <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-          <Table size="small" rowKey="_id" loading={loading} dataSource={agents} columns={columns} />
+          <Table size="small" rowKey="_id" loading={loading} dataSource={agents} columns={columns} scroll={{ x: 'max-content' }} />
         </div>
       ) : (
         <Row gutter={[14, 14]}>
@@ -300,6 +333,9 @@ function AdminAgents() {
                     <Tooltip title="Edit">
                       <Button size="small" type="text" icon={<EditOutlined />} onClick={() => openEdit(row)} style={{ color: '#64748b' }} />
                     </Tooltip>
+                    <Tooltip title="Reset Password">
+                      <Button size="small" type="text" icon={<LockOutlined />} onClick={() => openResetPassword(row)} style={{ color: '#64748b' }} />
+                    </Tooltip>
                     <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
                       <Button size="small" type="text" icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />} onClick={() => onToggleActive(row)} style={{ color: row.isActive ? '#f59e0b' : '#16a34a' }} />
                     </Tooltip>
@@ -350,6 +386,28 @@ function AdminAgents() {
             tooltip="% of commission held back until clawback period expires. Set 0 to disable."
           >
             <InputNumber min={0} max={100} formatter={(v) => `${v}%`} parser={(v) => v.replace('%', '')} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+            name="agency"
+            label="Tagged Agency"
+            tooltip="This agent's leads credit this agency's commission model (e.g. referral overrides). Leave blank for no agency."
+          >
+            <Select
+              allowClear
+              placeholder="No agency"
+              showSearch
+              optionFilterProp="label"
+              options={agencies.map((a) => ({ value: a._id, label: a.name || a.email }))}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Reset password modal */}
+      <Modal title={`Reset Password — ${pwTarget?.name || pwTarget?.email || ''}`} open={!!pwTarget} onCancel={() => setPwTarget(null)} onOk={onResetPassword} okText="Update" confirmLoading={pwSaving} destroyOnClose>
+        <Form form={pwForm} layout="vertical">
+          <Form.Item name="password" label="New Password" rules={[{ required: true }, { min: 6, message: 'Minimum 6 characters' }]}>
+            <Input.Password placeholder="New password" />
           </Form.Item>
         </Form>
       </Modal>

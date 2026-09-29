@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Space, Popconfirm, Typography, message, Switch, Tag, Upload, Avatar } from 'antd';
+import { Button, Table, Modal, Form, Input, Select, Space, Popconfirm, Typography, message, Switch, Tag, Upload, Avatar } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, UploadOutlined, BankOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
@@ -7,6 +7,7 @@ const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || (import.meta.env.VITE_
 
 function AdminBanks() {
   const [banks, setBanks] = useState([]);
+  const [agencies, setAgencies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -25,19 +26,24 @@ function AdminBanks() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    api.get('/agencies').then((res) => setAgencies(res.data)).catch(() => {});
+  }, []);
+
+  const agencyOptions = agencies.map((a) => ({ value: a._id, label: a.name || a.email }));
 
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ isActive: true });
+    form.setFieldsValue({ isActive: true, hasCpv: true, hasActivation: true });
     setFileList([]);
     setOpen(true);
   };
 
   const openEdit = (bank) => {
     setEditing(bank);
-    form.setFieldsValue(bank);
+    form.setFieldsValue({ ...bank, assignedAgencies: (bank.assignedAgencies || []).map((a) => a?._id || a) });
     setFileList(bank.logo ? [{
       uid: '-1', name: bank.logo, status: 'done',
       url: `${UPLOADS_BASE}/bank-logos/${bank.logo}`,
@@ -56,6 +62,9 @@ function AdminBanks() {
         formData.append('description', values.description || '');
         formData.append('isActive', values.isActive !== false ? 'true' : 'false');
         formData.append('hasSpend', values.hasSpend ? 'true' : 'false');
+        formData.append('hasCpv', values.hasCpv !== false ? 'true' : 'false');
+        formData.append('hasActivation', values.hasActivation !== false ? 'true' : 'false');
+        formData.append('assignedAgencies', JSON.stringify(values.assignedAgencies || []));
         formData.append('logo', newFile.originFileObj);
         if (editing) {
           await api.put(`/banks/${editing._id}`, formData);
@@ -69,6 +78,9 @@ function AdminBanks() {
           description: values.description || '',
           isActive: values.isActive !== false,
           hasSpend: !!values.hasSpend,
+          hasCpv: values.hasCpv !== false,
+          hasActivation: values.hasActivation !== false,
+          assignedAgencies: values.assignedAgencies || [],
         };
         if (editing) {
           await api.put(`/banks/${editing._id}`, payload);
@@ -181,6 +193,7 @@ function AdminBanks() {
             return !q || b.name.toLowerCase().includes(q) || (b.code || '').toLowerCase().includes(q);
           })}
           columns={columns}
+          scroll={{ x: 'max-content' }}
         />
       </div>
 
@@ -226,8 +239,28 @@ function AdminBanks() {
           <Form.Item name="isActive" label="Status" valuePropName="checked">
             <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
           </Form.Item>
+          <Form.Item name="hasCpv" label="CPV" valuePropName="checked">
+            <Switch checkedChildren="Enabled" unCheckedChildren="Disabled" />
+          </Form.Item>
+          <Form.Item name="hasActivation" label="Activation" valuePropName="checked">
+            <Switch checkedChildren="Enabled" unCheckedChildren="Disabled" />
+          </Form.Item>
           <Form.Item name="hasSpend" label="Spend" valuePropName="checked">
             <Switch checkedChildren="Enabled" unCheckedChildren="Disabled" />
+          </Form.Item>
+          <Form.Item
+            name="assignedAgencies"
+            label="Assign to Agencies"
+            tooltip="Leave empty to keep this bank visible to every agency (default). Pick specific agencies to restrict it to only them."
+          >
+            <Select
+              mode="multiple"
+              allowClear
+              showSearch
+              placeholder="All agencies (default) — pick to restrict"
+              options={agencyOptions}
+              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+            />
           </Form.Item>
         </Form>
       </Modal>

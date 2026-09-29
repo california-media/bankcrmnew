@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Space, Card, Row, Col, Modal, Form, Grid, Popover, InputNumber, Descriptions } from 'antd';
+import { Table, Tag, Typography, Input, Tabs, Select, message, Button, Space, Card, Row, Col, Modal, Form, Grid, Popover, InputNumber } from 'antd';
 import { SearchOutlined, TableOutlined, AppstoreOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useLeadView } from '../../utils/leadViews';
+import LeadViewBanner from '../../components/LeadViewBanner';
 import { useSelector } from 'react-redux';
 import api from '../../api/client';
 import { ACTION_LABELS, LOAN_MILESTONES, getLoanActions } from '../../utils/loanActions';
@@ -99,7 +101,7 @@ function AssignedLeads() {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [leadsTab, setLeadsTab] = useState('active');
+  const { view, leadsTab, setLeadsTab, tabsActiveKey, clearView } = useLeadView();
   const [empStatuses, setEmpStatuses] = useState([]);
   const [labelStatuses, setLabelStatuses] = useState([]);
   const [updatingStatus, setUpdatingStatus] = useState(null);
@@ -235,7 +237,7 @@ function AssignedLeads() {
     const hasMilestones = isLoan || row.productType === 'account';
     const loanActions = hasMilestones ? getLoanActions(row) : { buttons: [], canDisburse: false };
     const btns = [];
-    if (showCpv && !hasMilestones && s === 'approved' && !row.cpvDone)
+    if (showCpv && !hasMilestones && s === 'approved' && row.bank?.hasCpv !== false && !row.cpvDone)
       btns.push({ key: 'cpv', label: 'CPV Done', onClick: () => openActionModal(row._id, 'cpv') });
     if (showSales) {
       if (['submitted', 'under_review', 'assigned'].includes(s))
@@ -245,8 +247,8 @@ function AssignedLeads() {
         if (loanActions.canDisburse) btns.push({ key: 'disburse', label: 'Disburse', onClick: () => openStatusModal(row._id, 'disbursed', 'Disbursed') });
         if (isLoan && LOAN_EDITABLE_FROM.includes(s)) btns.push({ key: 'edit-loan', icon: <EditOutlined />, onClick: () => openLoanEdit(row) });
       } else {
-        if (s === 'approved' && !row.activateDone) btns.push({ key: 'activate', label: 'Activated', onClick: () => openActionModal(row._id, 'activate') });
-        if (s === 'approved' && row.cpvDone && row.activateDone) btns.push({ key: 'disburse', label: 'Disburse', onClick: () => openStatusModal(row._id, 'disbursed', 'Disbursed') });
+        if (s === 'approved' && row.bank?.hasActivation !== false && !row.activateDone) btns.push({ key: 'activate', label: 'Activated', onClick: () => openActionModal(row._id, 'activate') });
+        if (s === 'approved' && (row.bank?.hasCpv === false || row.cpvDone) && (row.bank?.hasActivation === false || row.activateDone)) btns.push({ key: 'disburse', label: 'Disburse', onClick: () => openStatusModal(row._id, 'disbursed', 'Disbursed') });
       }
       if (['submitted', 'under_review', 'assigned', 'approved'].includes(s))
         btns.push({ key: 'reject', label: 'Reject', danger: true, onClick: () => openStatusModal(row._id, 'rejected', 'Rejected') });
@@ -254,18 +256,23 @@ function AssignedLeads() {
     return btns;
   };
 
-  const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected').length;
+  const activeCount = leads.filter(l => !['approved', 'disbursed', 'rejected'].includes(l.status)).length;
+  const approvedCount = leads.filter(l => l.status === 'approved').length;
   const rejectedCount = leads.filter(l => l.status === 'rejected').length;
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
 
   const filtered = useMemo(() => {
     let result = leads;
-    if (leadsTab === 'archive') {
+    if (view) {
+      result = result.filter(view.match);
+    } else if (leadsTab === 'approved') {
+      result = result.filter(l => l.status === 'approved');
+    } else if (leadsTab === 'archive') {
       result = result.filter(l => l.status === 'disbursed');
     } else if (leadsTab === 'rejected') {
       result = result.filter(l => l.status === 'rejected');
     } else {
-      result = result.filter(l => l.status !== 'disbursed' && l.status !== 'rejected');
+      result = result.filter(l => !['approved', 'disbursed', 'rejected'].includes(l.status));
     }
     const q = search.trim().toLowerCase();
     if (!q) return result;
@@ -274,7 +281,7 @@ function AssignedLeads() {
         l.customerName?.toLowerCase().includes(q) ||
         (l.leadNumber || '').toLowerCase().includes(q)
     );
-  }, [leads, search, leadsTab]);
+  }, [leads, search, leadsTab, view]);
 
   const columns = [
     {
@@ -427,14 +434,16 @@ function AssignedLeads() {
         style={{ width: isMobile ? '100%' : 280, marginBottom: 16 }}
       />
 
+      <LeadViewBanner view={view} count={filtered.length} onClear={clearView} />
       <Tabs
-        activeKey={leadsTab}
+        activeKey={tabsActiveKey}
         onChange={setLeadsTab}
         style={{ marginBottom: 8 }}
         items={[
           { key: 'active', label: `Active (${activeCount})` },
+          { key: 'approved', label: `Approved (${approvedCount})` },
+          { key: 'archive', label: `Disbursed (${archiveCount})` },
           { key: 'rejected', label: `Rejected (${rejectedCount})` },
-          { key: 'archive', label: `Approved (${archiveCount})` },
         ]}
       />
 
@@ -538,16 +547,23 @@ function AssignedLeads() {
         onOk={saveLoanAmount}
         okText="Save"
         destroyOnClose
+        width={440}
       >
         {loanEditLead && (
-          <Descriptions size="small" style={{ marginBottom: 16 }}>
-            <Descriptions.Item label="Client">{loanEditLead.customerName}</Descriptions.Item>
-            <Descriptions.Item label="Product">{loanEditLead.loanProduct?.name}</Descriptions.Item>
-          </Descriptions>
+          <div style={{ display: 'flex', gap: 20, marginBottom: 18, padding: '10px 14px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }}>Client</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', wordBreak: 'break-word' }}>{loanEditLead.customerName}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }}>Product</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', wordBreak: 'break-word' }}>{loanEditLead.loanProduct?.name || '—'}</div>
+            </div>
+          </div>
         )}
         <Form form={loanForm} layout="vertical">
           <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount is required' }]}>
-            <InputNumber min={1} step={1000} style={{ width: '100%' }} />
+            <InputNumber min={1} step={1000} style={{ width: '100%' }} prefix="AED" />
           </Form.Item>
         </Form>
       </Modal>

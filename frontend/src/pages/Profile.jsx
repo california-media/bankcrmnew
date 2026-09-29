@@ -1,18 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Row, Col, Avatar, Tag, Form, Input, Button,
-  Space, Divider, message, Tooltip, Modal, Alert,
+  Space, Divider, message, Tooltip, Modal, Alert, Dropdown,
 } from 'antd';
 import {
   UserOutlined, MailOutlined, PhoneOutlined, CalendarOutlined,
   CopyOutlined, CheckOutlined, EditOutlined, SaveOutlined,
   CloseOutlined, BankOutlined, IdcardOutlined, LinkOutlined,
-  DeleteOutlined, WarningOutlined,
+  DeleteOutlined, WarningOutlined, CameraOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { updateProfile, logout } from '../store/slices/authSlice';
 import api from '../api/client';
+
+const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '/uploads');
 
 const ROLE_BG    = { admin: '#7c3aed', agency: '#1e40af', agent: '#7C3AED', employee: '#b45309' };
 const ROLE_LIGHT = { admin: '#ede9fe', agency: '#dbeafe', agent: '#ede9fe', employee: '#fef3c7' };
@@ -42,10 +44,10 @@ const SectionHeader = ({ title, action }) => (
 );
 
 const InfoRow = ({ icon, label, value }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: '1px solid #f8fafc' }}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px', borderBottom: '1px solid #f8fafc', flexWrap: 'wrap' }}>
     <span style={{ color: '#94a3b8', fontSize: 15, width: 20, flexShrink: 0 }}>{icon}</span>
     <span style={{ fontSize: 12, color: '#94a3b8', width: 110, flexShrink: 0 }}>{label}</span>
-    <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 500 }}>{value || '—'}</span>
+    <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>{value || '—'}</span>
   </div>
 );
 
@@ -64,6 +66,8 @@ export default function Profile() {
   const [copiedLink, setCopiedLink]   = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleting, setDeleting]       = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef(null);
 
   const [infoForm]    = Form.useForm();
   const [bankForm]    = Form.useForm();
@@ -131,6 +135,37 @@ export default function Profile() {
     }
   };
 
+  const uploadAvatar = async (file) => {
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const result = await dispatch(updateProfile(formData)).unwrap();
+      setProfile((p) => ({ ...p, avatar: result.avatar }));
+      message.success('Photo updated');
+    } catch (err) {
+      message.error(err || 'Upload failed');
+    } finally {
+      setUploadingAvatar(false);
+    }
+    return false;
+  };
+
+  const removeAvatar = async () => {
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('removeAvatar', 'true');
+      const result = await dispatch(updateProfile(formData)).unwrap();
+      setProfile((p) => ({ ...p, avatar: result.avatar }));
+      message.success('Photo removed');
+    } catch (err) {
+      message.error(err || 'Remove failed');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const confirmDelete = async (values) => {
     setDeleting(true);
     try {
@@ -180,12 +215,60 @@ export default function Profile() {
         alignItems: 'center',
         gap: 20,
       }}>
-        <Avatar
-          size={72}
-          style={{ background: avatarBg, fontSize: 26, fontWeight: 800, flexShrink: 0, boxShadow: `0 4px 16px ${avatarBg}55` }}
-        >
-          {initials}
-        </Avatar>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <Avatar
+            size={72}
+            src={profile.avatar ? `${UPLOADS_BASE}/avatars/${profile.avatar}` : undefined}
+            style={{ background: avatarBg, fontSize: 26, fontWeight: 800, boxShadow: `0 4px 16px ${avatarBg}55` }}
+          >
+            {initials}
+          </Avatar>
+          {(role === 'agency' || role === 'agent') && (
+            <>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept=".jpg,.jpeg,.png,.webp"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadAvatar(file);
+                  e.target.value = '';
+                }}
+              />
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: [
+                    { key: 'upload', label: 'Upload new photo', icon: <CameraOutlined /> },
+                    { key: 'remove', label: 'Remove photo', icon: <DeleteOutlined />, danger: true, disabled: !profile.avatar },
+                  ],
+                  onClick: ({ key }) => {
+                    if (key === 'upload') avatarInputRef.current?.click();
+                    if (key === 'remove') {
+                      Modal.confirm({
+                        title: 'Remove profile photo?',
+                        okText: 'Remove',
+                        okButtonProps: { danger: true },
+                        onOk: removeAvatar,
+                      });
+                    }
+                  },
+                }}
+              >
+                <Tooltip title="Change photo">
+                  <Button
+                    shape="circle"
+                    size="small"
+                    icon={<CameraOutlined />}
+                    loading={uploadingAvatar}
+                    style={{ position: 'absolute', bottom: -4, right: -4, boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }}
+                  />
+                </Tooltip>
+              </Dropdown>
+            </>
+          )}
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 700, fontSize: 20, color: '#0f172a' }}>{profile.name || '—'}</span>

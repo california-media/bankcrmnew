@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Table, Button, Input, Select, Tabs, Row, Col, Tag, Grid } from 'antd';
 import { PlusOutlined, SearchOutlined, TableOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
+import { useLeadView } from '../../utils/leadViews';
+import LeadViewBanner from '../../components/LeadViewBanner';
 import api from '../../api/client';
 
 const { useBreakpoint } = Grid;
@@ -73,7 +75,7 @@ function MyLeads() {
   const [statusFilter, setStatusFilter] = useState();
   const [labelStatuses, setLabelStatuses] = useState([]);
   const [productFilter, setProductFilter] = useState();
-  const [leadsTab, setLeadsTab] = useState('active');
+  const { view, leadsTab, setLeadsTab, tabsActiveKey, clearView } = useLeadView();
   const [viewMode, setViewMode] = useState('table');
 
   const load = async () => {
@@ -95,16 +97,20 @@ function MyLeads() {
     const q = search.trim().toLowerCase();
     return leads.filter((l) => {
       const isPendingReferral = l.isReferral && !l.productType;
-      if (leadsTab === 'referral' && !isPendingReferral) return false;
-      if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
-      if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
-      if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected' || isPendingReferral)) return false;
       if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
+      if (view) {
+        if (!view.match(l)) return false;
+      } else if (!q) {
+        if (leadsTab === 'referral' && !isPendingReferral) return false;
+        if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
+        if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
+        if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected' || isPendingReferral)) return false;
+      }
       if (statusFilter && String(l.employeeStatus?._id) !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
       return true;
     });
-  }, [leads, search, statusFilter, productFilter, leadsTab]);
+  }, [leads, search, statusFilter, productFilter, leadsTab, view]);
 
   const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected' && !(l.isReferral && !l.productType)).length;
   const rejectedCount = leads.filter(l => l.status === 'rejected').length;
@@ -236,8 +242,9 @@ function MyLeads() {
         />
       </div>
 
+      <LeadViewBanner view={view} count={filtered.length} onClear={clearView} />
       <Tabs
-        activeKey={leadsTab}
+        activeKey={tabsActiveKey}
         onChange={setLeadsTab}
         style={{ marginBottom: 8 }}
         items={[

@@ -6,6 +6,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import QuillEditor from '../../components/QuillEditor';
 import api from '../../api/client';
+import BulkToggleBar from '../../components/BulkToggleBar';
 
 const ACCOUNT_CATEGORIES = [
   { value: 'business', label: 'Business Account' },
@@ -21,6 +22,8 @@ const CATEGORY_COLOR = {
 
 function AccountProducts() {
   const [accounts, setAccounts] = useState([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [bulkBusy, setBulkBusy] = useState(null);
   const [banks, setBanks] = useState([]);
   const [agencies, setAgencies] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -54,7 +57,7 @@ function AccountProducts() {
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ isActive: true, agentVisible: true, websiteVisible: true });
+    form.setFieldsValue({ isActive: true, agentVisible: true, sendConsent: true, websiteVisible: true });
     setBenefitsHtml('');
     setFeesHtml('');
     setOpen(true);
@@ -67,8 +70,10 @@ function AccountProducts() {
       accountCategory: a.accountCategory,
       bank: a.bank?._id,
       agency: a.agency?._id,
+      assignedAgencies: (a.assignedAgencies || []).map((x) => x?._id || x),
       isActive: a.isActive,
       agentVisible: a.agentVisible !== false,
+      sendConsent: a.sendConsent !== false,
       websiteVisible: a.websiteVisible !== false,
       commissionBrackets: a.commissionBrackets || [],
       minBalance: a.minBalance ?? null,
@@ -123,6 +128,26 @@ function AccountProducts() {
     }
   };
 
+  // Bulk on/off for Status / Agent Visible / Website Visible / Send Consent — same PUT the row switches use.
+  const bulkUpdate = async (field, value) => {
+    setBulkBusy(`${field}:${value}`);
+    try {
+      const results = await Promise.allSettled(
+        selectedRowKeys.map((id) => {
+          return api.put(`/account-products/${id}`, { [field]: value });
+        })
+      );
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      const done = results.length - failed;
+      if (done) message.success(`Updated ${done} product${done !== 1 ? 's' : ''}`);
+      if (failed) message.error(`${failed} update${failed !== 1 ? 's' : ''} failed`);
+      setSelectedRowKeys([]);
+      load();
+    } finally {
+      setBulkBusy(null);
+    }
+  };
+
   const toggleActive = async (row) => {
     try {
       await api.put(`/account-products/${row._id}`, { isActive: !row.isActive });
@@ -135,6 +160,15 @@ function AccountProducts() {
   const toggleAgentVisible = async (row) => {
     try {
       await api.put(`/account-products/${row._id}`, { agentVisible: row.agentVisible === false });
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const toggleSendConsent = async (row) => {
+    try {
+      await api.put(`/account-products/${row._id}`, { sendConsent: row.sendConsent === false });
       load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Update failed');
@@ -203,6 +237,13 @@ function AccountProducts() {
       ),
     },
     {
+      title: 'Send Consent',
+      dataIndex: 'sendConsent',
+      render: (v, row) => (
+        <Switch checked={v !== false} checkedChildren="On" unCheckedChildren="Off" onChange={() => toggleSendConsent(row)} />
+      ),
+    },
+    {
       title: 'Actions',
       width: 200,
       render: (_, row) => (
@@ -225,14 +266,14 @@ function AccountProducts() {
         </div>
       </div>
 
-      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <Input
           allowClear
           placeholder="Search account name..."
           prefix={<SearchOutlined />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ width: 260, flexShrink: 0, borderRadius: 6 }}
+          style={{ width: 260, maxWidth: '100%', flexShrink: 1, borderRadius: 6 }}
         />
         <Select
           allowClear
@@ -240,7 +281,7 @@ function AccountProducts() {
           value={bankFilter}
           onChange={setBankFilter}
           options={banks.map((b) => ({ value: b._id, label: b.name }))}
-          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+          style={{ width: 180, maxWidth: '100%', flexShrink: 1, borderRadius: 6 }}
         />
         <Select
           allowClear
@@ -248,11 +289,12 @@ function AccountProducts() {
           value={agencyFilter}
           onChange={setAgencyFilter}
           options={agencies.map((a) => ({ value: a._id, label: a.name }))}
-          style={{ width: 180, flexShrink: 0 }}
+          style={{ width: 180, maxWidth: '100%', flexShrink: 1 }}
         />
       </div>
+      <BulkToggleBar count={selectedRowKeys.length} busy={bulkBusy} onApply={bulkUpdate} onClear={() => setSelectedRowKeys([])} />
       <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-        <Table size="small" rowKey="_id" loading={loading} dataSource={accounts.filter((a) => {
+        <Table size="small" rowKey="_id" rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }} loading={loading} scroll={{ x: 'max-content' }} dataSource={accounts.filter((a) => {
           if (search.trim()) {
             const q = search.trim().toLowerCase();
             if (!a.name.toLowerCase().includes(q) && !(a.bank?.name || '').toLowerCase().includes(q)) return false;
@@ -292,6 +334,20 @@ function AccountProducts() {
               showSearch
               options={agencyOptions}
               placeholder="Select agency"
+              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+            />
+          </Form.Item>
+          <Form.Item
+            name="assignedAgencies"
+            label="Assign to Agencies"
+            tooltip="Leave empty to keep this product visible to every agency (default). Pick specific agencies to restrict it to only them."
+          >
+            <Select
+              mode="multiple"
+              allowClear
+              showSearch
+              placeholder="All agencies (default) — pick to restrict"
+              options={agencyOptions}
               filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
             />
           </Form.Item>
@@ -449,6 +505,16 @@ function AccountProducts() {
             <Col span={6}>
               <Form.Item name="websiteVisible" label="Visible in Website" valuePropName="checked">
                 <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item
+                name="sendConsent"
+                label="Send Consent Message"
+                valuePropName="checked"
+                tooltip="Whether submitting a lead for this product sends the WhatsApp consent message to the customer."
+              >
+                <Switch checkedChildren="On" unCheckedChildren="Off" />
               </Form.Item>
             </Col>
           </Row>

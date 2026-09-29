@@ -180,7 +180,7 @@ const authSlice = createSlice({
     builder
       .addCase(updateProfile.fulfilled, (state, action) => {
         if (state.user) {
-          state.user = { ...state.user, name: action.payload.name, phone: action.payload.phone };
+          state.user = { ...state.user, name: action.payload.name, phone: action.payload.phone, avatar: action.payload.avatar };
         }
       });
 

@@ -56,7 +56,10 @@ export default function Notifications() {
 
   const handleRow = (n) => {
     if (!n.isRead) markRead([String(n._id)]);
-    if (n.lead) navigate(`/${user.role}/leads/${n.lead}`);
+    // Agency Coordinators use the agency-wide lead pages, not the employee ones.
+    const base = user.role === 'employee' && user.employeeType === 'coordinator' ? 'agency' : user.role;
+    if (n.lead) navigate(`/${base}/leads/${n.lead}`);
+    else if (n.invoice) navigate(`/${base}/invoices`);
   };
 
   return (
@@ -100,10 +103,10 @@ export default function Notifications() {
             padding: '14px 20px',
             borderBottom: idx < notifications.length - 1 ? '1px solid #f1f5f9' : 'none',
             background: n.isRead ? 'transparent' : '#f8faff',
-            cursor: n.lead ? 'pointer' : 'default',
+            cursor: (n.lead || n.invoice) ? 'pointer' : 'default',
             transition: 'background 0.12s',
           }}
-          onMouseEnter={e => { if (n.lead) e.currentTarget.style.background = '#f1f5f9'; }}
+          onMouseEnter={e => { if (n.lead || n.invoice) e.currentTarget.style.background = '#f1f5f9'; }}
           onMouseLeave={e => e.currentTarget.style.background = n.isRead ? 'transparent' : '#f8faff'}
         >
           {/* Round icon */}

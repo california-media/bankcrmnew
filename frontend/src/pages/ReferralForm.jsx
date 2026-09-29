@@ -110,9 +110,9 @@ export default function ReferralForm() {
   useEffect(() => {
     setProductsLoading(true);
     Promise.all([
-      axios.get(`${API_BASE}/public/banks`),
-      axios.get(`${API_BASE}/public/card-products`),
-      axios.get(`${API_BASE}/public/loan-products`),
+      axios.get(`${API_BASE}/public/banks?referralOnly=1`),
+      axios.get(`${API_BASE}/public/card-products?referralOnly=1`),
+      axios.get(`${API_BASE}/public/loan-products?referralOnly=1`),
     ])
       .then(([banksRes, cardsRes, loansRes]) => {
         setBanks(banksRes.data);
@@ -410,18 +410,6 @@ export default function ReferralForm() {
                               )}
                             </div>
                           </div>
-                          {selectedCard.cashbackCategories?.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                              {selectedCard.cashbackCategories.map((c, idx) => {
-                                const label = c.category?.name || (typeof c.category === 'string' ? c.category : `Cat ${idx + 1}`);
-                                return (
-                                  <span key={c.category?._id || c.category || idx} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe' }}>
-                                    {label}{c.rate != null ? ` ${c.rate}%` : ''}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          )}
                         </div>
                       )}
                     </>

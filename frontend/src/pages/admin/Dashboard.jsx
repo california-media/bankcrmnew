@@ -135,12 +135,12 @@ const MiniStat = ({ label, value, color = '#7C3AED', link, icon }) => {
 
 /* ── Pipeline stages ─────────────────────────────────────────────── */
 const STAGE_MAP = [
-  { status: 'submitted',    label: 'NEW',        bg: '#e0f7fa', border: '#a5f3fc', dot: '#06b6d4', text: '#0e7490' },
-  { status: 'under_review', label: 'PROCESSING', bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6', text: '#1d4ed8' },
-  { status: 'approved',     label: 'APPROVED',   bg: '#f3e8ff', border: '#d8b4fe', dot: '#a855f7', text: '#7e22ce' },
-  { status: 'cpvDone',      label: 'CPV DONE',   bg: '#fef9c3', border: '#fde047', dot: '#eab308', text: '#a16207' },
-  { status: 'activateDone', label: 'ACTIVATED',  bg: '#e0f2fe', border: '#7dd3fc', dot: '#0ea5e9', text: '#0369a1' },
-  { status: 'disbursed',    label: 'PAID',       bg: '#dcfce7', border: '#86efac', dot: '#22c55e', text: '#15803d' },
+  { status: 'submitted',    view: 'submitted',     label: 'NEW',        bg: '#e0f7fa', border: '#a5f3fc', dot: '#06b6d4', text: '#0e7490' },
+  { status: 'under_review', view: 'under_review',  label: 'PROCESSING', bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6', text: '#1d4ed8' },
+  { status: 'approved',     view: 'approved_only', label: 'APPROVED',   bg: '#f3e8ff', border: '#d8b4fe', dot: '#a855f7', text: '#7e22ce' },
+  { status: 'cpvDone',      view: 'cpv_done',      label: 'CPV DONE',   bg: '#fef9c3', border: '#fde047', dot: '#eab308', text: '#a16207' },
+  { status: 'activateDone', view: 'activated',     label: 'ACTIVATED',  bg: '#e0f2fe', border: '#7dd3fc', dot: '#0ea5e9', text: '#0369a1' },
+  { status: 'disbursed',    view: 'disbursed',     label: 'PAID',       bg: '#dcfce7', border: '#86efac', dot: '#22c55e', text: '#15803d' },
 ];
 
 /* ── Lead Pipeline card ──────────────────────────────────────────── */
@@ -202,7 +202,7 @@ function LeadPipeline({ pipeline, totalLeads }) {
           const countInside = stage.count > 0 && pct >= 14;
 
           return (
-            <div key={stage.status} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Link key={stage.status} to={`/admin/leads?view=${stage.view}`} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
               <div style={{
                 width: 124, padding: '6px 12px', borderRadius: 999, flexShrink: 0,
                 background: stage.bg, border: `1.5px solid ${stage.border}`,
@@ -237,7 +237,7 @@ function LeadPipeline({ pipeline, totalLeads }) {
                   </div>
                 )}
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
@@ -282,7 +282,8 @@ function ProductPayouts({ payouts, topAgents, loading }) {
           const pct = (paid / maxPaid) * 100;
           const color = PRODUCT_COLORS[p.type] || '#7C3AED';
           return (
-            <div key={p.type} style={{
+            <Link key={p.type} to="/admin/payouts?tab=paid" style={{
+              display: 'block', textDecoration: 'none',
               padding: '11px 14px', borderRadius: 12,
               background: '#f8fafc', border: '1px solid #f1f5f9',
             }}>
@@ -302,7 +303,7 @@ function ProductPayouts({ payouts, topAgents, loading }) {
                   borderRadius: 999, transition: 'width 0.6s ease',
                 }} />
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
@@ -336,7 +337,8 @@ function TopAgentsList({ agents }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {agents.map((agent, i) => (
-        <div key={agent._id} style={{
+        <Link key={agent._id} to={`/admin/agents/${agent._id}`} style={{
+          textDecoration: 'none',
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '7px 8px', borderRadius: 10,
           background: i === 0 ? '#fffbeb' : 'transparent',
@@ -370,7 +372,7 @@ function TopAgentsList({ agents }) {
           <div style={{ fontWeight: 700, fontSize: 12, color: '#0f172a', flexShrink: 0 }}>
             {aed(agent.paid)}
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   );
@@ -511,7 +513,7 @@ function AdminDashboard() {
       icon: <AuditOutlined />,
       iconColor: '#7C3AED',
       trend: overview?.trend?.totalLeads,
-      link: '/admin/leads',
+      link: '/admin/leads?view=all',
     },
     {
       key: 'activeLeads',
@@ -520,6 +522,7 @@ function AdminDashboard() {
       icon: <RiseOutlined />,
       iconColor: '#0ea5e9',
       trend: overview?.trend?.activeLeads,
+      link: '/admin/leads?view=in_pipeline',
     },
     {
       key: 'paidCommission',
@@ -528,6 +531,7 @@ function AdminDashboard() {
       icon: <DollarOutlined />,
       iconColor: '#16a34a',
       trend: overview?.trend?.paidCommission,
+      link: '/admin/payouts?tab=paid',
     },
     {
       key: 'payableCommission',
@@ -536,6 +540,7 @@ function AdminDashboard() {
       icon: <ClockCircleOutlined />,
       iconColor: '#f97316',
       trend: null,
+      link: '/admin/payouts?tab=payable',
     },
   ];
 
@@ -553,7 +558,7 @@ function AdminDashboard() {
 
       {/* Secondary Stats Strip */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <MiniStat label="Approved" value={overview?.approvedLeads} color="#22c55e" icon={<CheckCircleOutlined />} />
+        <MiniStat label="Approved" value={overview?.approvedLeads} color="#22c55e" icon={<CheckCircleOutlined />} link="/admin/leads?view=approved_only" />
         <MiniStat label="Agents"   value={overview?.agents}        color="#7C3AED" icon={<UserOutlined />}        link="/admin/agents" />
         <MiniStat label="Agencies" value={overview?.agencies}      color="#0ea5e9" icon={<ApartmentOutlined />}   link="/admin/agencies" />
         <MiniStat label="Banks"    value={overview?.banks}         color="#f97316" icon={<BankOutlined />}        link="/admin/banks" />

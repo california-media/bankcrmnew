@@ -251,6 +251,7 @@ function FeaturedProducts() {
               columns={columns}
               components={{ body: { row: SortableRow } }}
               pagination={false}
+              scroll={{ x: 'max-content' }}
             />
           </SortableContext>
         </DndContext>

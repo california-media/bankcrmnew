@@ -3,7 +3,7 @@ import {
   Table, Tag, Typography, Button, Input, Select, Tabs, Space, message, Popconfirm, Row, Col, Card, Modal, Form, Alert,
 } from 'antd';
 import {
-  SearchOutlined, InboxOutlined, ClockCircleOutlined, CheckCircleOutlined, BarChartOutlined, FileOutlined, DownloadOutlined, WalletOutlined,
+  SearchOutlined, InboxOutlined, ClockCircleOutlined, CheckCircleOutlined, BarChartOutlined, FileOutlined, DownloadOutlined, WalletOutlined, FileAddOutlined, EyeOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -26,6 +26,8 @@ export default function Receive() {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [filterAgency, setFilterAgency] = useState(null);
   const [agencies, setAgencies] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [invoicing, setInvoicing] = useState(null); // leadId currently being invoiced
 
   const [noteModal, setNoteModal] = useState(false);
   const [noteTarget, setNoteTarget] = useState(null); // array of IDs or null = all
@@ -41,10 +43,37 @@ export default function Receive() {
     }
   };
 
+  const loadInvoices = () => {
+    api.get('/invoices').then((res) => setInvoices(res.data)).catch(() => {});
+  };
+
   useEffect(() => {
     load();
     api.get('/agencies').then((res) => setAgencies(res.data)).catch(() => {});
+    loadInvoices();
   }, []);
+
+  // Which of the currently-loaded (disbursed) leads already have an invoice —
+  // drives the "Create Invoice" vs "Invoiced" state on the Marked Received tab.
+  const invoiceByLead = useMemo(() => {
+    const map = {};
+    invoices.forEach((inv) => { if (inv.lead) map[String(inv.lead._id || inv.lead)] = inv; });
+    return map;
+  }, [invoices]);
+
+  const createInvoiceForLead = async (row) => {
+    setInvoicing(row._id);
+    try {
+      await api.post('/invoices', { agency: row.agency?._id, lead: row._id });
+      message.success('Invoice created');
+      loadInvoices();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Invoice creation failed');
+      if (err.response?.status === 409) loadInvoices(); // someone else beat us to it — refresh so the button flips to "Invoiced"
+    } finally {
+      setInvoicing(null);
+    }
+  };
 
   const markReceived = async (leadIds, note) => {
     setSaving(true);
@@ -254,10 +283,35 @@ export default function Receive() {
     ),
   };
 
+  const invoiceColumn = {
+    title: 'Invoice',
+    render: (_, row) => {
+      const inv = invoiceByLead[String(row._id)];
+      if (inv) {
+        return (
+          <Space>
+            <Tag color={inv.status === 'paid' ? 'green' : inv.status === 'cancelled' ? 'default' : 'orange'}>{inv.invoiceNumber}</Tag>
+            <Button size="small" icon={<EyeOutlined />} onClick={(e) => { e.stopPropagation(); window.open(`/invoices/${inv._id}/view`, '_blank'); }}>View</Button>
+          </Space>
+        );
+      }
+      return (
+        <Button
+          size="small"
+          icon={<FileAddOutlined />}
+          loading={invoicing === row._id}
+          onClick={(e) => { e.stopPropagation(); createInvoiceForLead(row); }}
+        >
+          Create Invoice
+        </Button>
+      );
+    },
+  };
+
   const columns =
     tab === 'pending'  ? [...baseColumns] :
     tab === 'receipt'  ? [...baseColumns, receiptColumn, actionColumn] :
-                         [...baseColumns, confirmedColumn];
+                         [...baseColumns, confirmedColumn, invoiceColumn];
 
   const tabItems = [
     {
@@ -381,6 +435,7 @@ export default function Receive() {
                 ? { selectedRowKeys, onChange: setSelectedRowKeys }
                 : undefined
             }
+            scroll={{ x: 'max-content' }}
           />
         </div>
       </div>

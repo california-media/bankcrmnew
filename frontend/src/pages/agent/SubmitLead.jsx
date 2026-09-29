@@ -1,68 +1,20 @@
 import { useEffect, useState } from 'react';
 import {
   Card, Form, Input, Select, Button, Typography, Row, Col, message,
-  Space, InputNumber, Segmented, Descriptions, Modal, Alert,
+  Space, InputNumber, Segmented, Descriptions, Modal, Alert, Grid,
 } from 'antd';
 import { ArrowLeftOutlined, CreditCardOutlined, BankOutlined, SendOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import api from '../../api/client';
 import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
 import { validateUAELocalPhone, toFullUAEPhone } from '../../utils/validatePhone';
+import { NATIONALITIES, CITIES } from '../../utils/customerOptions';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || `${API_BASE}/uploads`;
-
-const NATIONALITIES = [
-  'Afghan', 'Albanian', 'Algerian', 'American', 'Andorran', 'Angolan', 'Antiguan',
-  'Argentine', 'Armenian', 'Australian', 'Austrian', 'Azerbaijani', 'Bahamian',
-  'Bahraini', 'Bangladeshi', 'Barbadian', 'Belarusian', 'Belgian', 'Belizean',
-  'Beninese', 'Bhutanese', 'Bolivian', 'Bosnian', 'Botswanan', 'Brazilian',
-  'British', 'Bruneian', 'Bulgarian', 'Burkinabe', 'Burundian', 'Cambodian',
-  'Cameroonian', 'Canadian', 'Cape Verdean', 'Central African', 'Chadian',
-  'Chilean', 'Chinese', 'Colombian', 'Comorian', 'Congolese', 'Costa Rican',
-  'Croatian', 'Cuban', 'Cypriot', 'Czech', 'Danish', 'Djiboutian', 'Dominican',
-  'Dutch', 'East Timorese', 'Ecuadorian', 'Egyptian', 'Emirati', 'Equatorial Guinean',
-  'Eritrean', 'Estonian', 'Eswatini', 'Ethiopian', 'Fijian', 'Finnish', 'French',
-  'Gabonese', 'Gambian', 'Georgian', 'German', 'Ghanaian', 'Greek', 'Grenadian',
-  'Guatemalan', 'Guinean', 'Guinea-Bissauan', 'Guyanese', 'Haitian', 'Honduran',
-  'Hungarian', 'Icelandic', 'Indian', 'Indonesian', 'Iranian', 'Iraqi', 'Irish',
-  'Israeli', 'Italian', 'Ivorian', 'Jamaican', 'Japanese', 'Jordanian',
-  'Kazakhstani', 'Kenyan', 'Kiribati', 'Korean', 'Kuwaiti', 'Kyrgyzstani',
-  'Laotian', 'Latvian', 'Lebanese', 'Lesotho', 'Liberian', 'Libyan',
-  'Liechtenstein', 'Lithuanian', 'Luxembourgish', 'Macedonian', 'Malagasy',
-  'Malawian', 'Malaysian', 'Maldivian', 'Malian', 'Maltese', 'Marshallese',
-  'Mauritanian', 'Mauritian', 'Mexican', 'Micronesian', 'Moldovan', 'Monacan',
-  'Mongolian', 'Montenegrin', 'Moroccan', 'Mozambican', 'Myanmar', 'Namibian',
-  'Nauruan', 'Nepali', 'New Zealander', 'Nicaraguan', 'Nigerian', 'Nigerien',
-  'Norwegian', 'Omani', 'Pakistani', 'Palauan', 'Palestinian', 'Panamanian',
-  'Papua New Guinean', 'Paraguayan', 'Peruvian', 'Philippine', 'Polish',
-  'Portuguese', 'Qatari', 'Romanian', 'Russian', 'Rwandan', 'Salvadoran',
-  'Samoan', 'Saudi Arabian', 'Senegalese', 'Serbian', 'Seychellois',
-  'Sierra Leonean', 'Singaporean', 'Slovak', 'Slovenian', 'Solomon Islander',
-  'Somali', 'South African', 'South Sudanese', 'Spanish', 'Sri Lankan',
-  'Sudanese', 'Surinamese', 'Swedish', 'Swiss', 'Syrian', 'Taiwanese',
-  'Tajikistani', 'Tanzanian', 'Thai', 'Togolese', 'Tongan', 'Trinidadian',
-  'Tunisian', 'Turkish', 'Turkmenistani', 'Tuvaluan', 'Ugandan', 'Ukrainian',
-  'Uruguayan', 'Uzbekistani', 'Vanuatuan', 'Venezuelan', 'Vietnamese', 'Yemeni',
-  'Zambian', 'Zimbabwean',
-].map((n) => ({ value: n, label: n }));
-
-const CITIES = [
-  'Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah',
-  'Fujairah', 'Umm Al Quwain', 'Al Ain', 'Other',
-].map((c) => ({ value: c, label: c }));
-
-const VISA_OPTIONS = [
-  { value: 'employment', label: 'Employment Visa' },
-  { value: 'residence',  label: 'Residence Visa' },
-  { value: 'investor',   label: 'Investor Visa' },
-  { value: 'golden',     label: 'Golden Visa' },
-  { value: 'freelance',  label: 'Freelance Visa' },
-  { value: 'tourist',    label: 'Tourist Visa' },
-  { value: 'other',      label: 'Other' },
-];
 
 // LoanProduct.loanCategory is a 10-value enum; 'business' maps to the Business
 // Loan bucket, everything else (personal/mortgage/investor/auto_loan/buyout/
@@ -139,7 +91,11 @@ function buildBracketOptions(brackets) {
     }));
 }
 
+const { useBreakpoint } = Grid;
+
 function SubmitLead() {
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const [submitting, setSubmitting]     = useState(false);
   const [productType, setProductType]   = useState('credit_card');
   const [cardProducts, setCardProducts] = useState([]);
@@ -156,6 +112,7 @@ function SubmitLead() {
   const [termsOpen, setTermsOpen]       = useState(false);
   const [pendingValues, setPendingValues] = useState(null);
   const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -321,7 +278,7 @@ function SubmitLead() {
       await api.post(`/leads/${lead._id}/send-to-agency`);
 
       message.success('Lead submitted to agency successfully.');
-      navigate('/agent/leads');
+      navigate(user?.role === 'agency' ? '/agency/leads' : '/agent/leads');
     } catch (err) {
       message.error(err.response?.data?.message || 'Submission failed');
     } finally {
@@ -424,7 +381,7 @@ function SubmitLead() {
 
           {/* RIGHT — Product */}
           <Col xs={24} lg={10}>
-            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8ecf4', borderTop: `3px solid ${productType === 'credit_card' ? '#7C3AED' : '#22c55e'}`, boxShadow: `0 4px 18px ${productType === 'credit_card' ? 'rgba(124,58,237,0.08)' : 'rgba(34,197,94,0.08)'}`, padding: '14px 18px', height: '100%', transition: 'border-top-color 0.2s, box-shadow 0.2s' }}>
+            <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e8ecf4', borderTop: '3px solid #7C3AED', boxShadow: '0 4px 18px rgba(124,58,237,0.08)', padding: '14px 18px', height: '100%', marginTop: isMobile ? 16 : 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #f1f5f9' }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: productType === 'credit_card' ? '#f3e8ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>
                   {productType === 'credit_card'
@@ -437,7 +394,7 @@ function SubmitLead() {
 
               <div style={{ marginBottom: 10 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.6 }}>Type</div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                   {[
                     { value: 'credit_card',   label: 'Credit Card',   icon: <CreditCardOutlined />, activeColor: '#7C3AED', activeBg: '#f3e8ff', activeBorder: '#7C3AED' },
                     { value: 'loan_personal', label: 'Personal Loan', icon: <BankOutlined />,       activeColor: '#15803d', activeBg: '#f0fdf4', activeBorder: '#22c55e' },
@@ -451,8 +408,8 @@ function SubmitLead() {
                         type="button"
                         onClick={() => selectProductTab(opt.value)}
                         style={{
-                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                          padding: '7px 10px', borderRadius: 8,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                          padding: '7px 10px', borderRadius: 8, whiteSpace: 'nowrap',
                           border: active ? `2px solid ${opt.activeBorder}` : '2px solid #e2e8f0',
                           background: active ? opt.activeBg : '#f8fafc',
                           color: active ? opt.activeColor : '#94a3b8',

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Typography, Spin, Input } from 'antd';
+import { Typography, Spin, Input, Grid } from 'antd';
+
+const { useBreakpoint } = Grid;
 import {
   SearchOutlined, ClockCircleOutlined, SendOutlined,
   CheckCircleOutlined, CloseCircleOutlined, MessageOutlined,
@@ -59,10 +61,15 @@ function TemplatePreview() {
 
 export default function ConsentLogs() {
   const navigate = useNavigate();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const { user } = useSelector((s) => s.auth);
   const role = user?.role;
-  const apiUrl  = API_BY_ROLE[role]  || '/leads/agency';
-  const leadPath = PATH_BY_ROLE[role] || '/agency/leads';
+  // Agency Coordinator/Account Access are role 'employee' but need the
+  // agency-wide endpoint, not the assigned-only one plain CPV/Sales use.
+  const isAgencyScopedEmployee = role === 'employee' && ['coordinator', 'account'].includes(user?.employeeType);
+  const apiUrl  = isAgencyScopedEmployee ? '/leads/agency'  : API_BY_ROLE[role]  || '/leads/agency';
+  const leadPath = isAgencyScopedEmployee ? '/agency/leads' : PATH_BY_ROLE[role] || '/agency/leads';
   const [leads, setLeads]   = useState([]);
   const [allStatuses, setAllStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -164,7 +171,7 @@ export default function ConsentLogs() {
       </div>
     )}
 
-    <div style={{ display: 'flex', gap: 16, height: 'calc(100vh - 220px)', minHeight: 400 }}>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 16, height: isMobile ? 'auto' : 'calc(100vh - 220px)', minHeight: 400 }}>
 
       {/* LEFT — activity feed */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -189,6 +196,7 @@ export default function ConsentLogs() {
         <div style={{
           flex: 1, overflowY: 'auto', borderRadius: 12,
           border: '1px solid #e2e8f0', background: '#fff',
+          maxHeight: isMobile ? '60vh' : undefined,
         }}>
           {loading ? (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
@@ -276,7 +284,7 @@ export default function ConsentLogs() {
       </div>
 
       {/* RIGHT — template panel */}
-      <div style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ width: isMobile ? '100%' : 300, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
 
         <div style={{
           borderRadius: 12, border: '1px solid #e2e8f0', background: '#fff',

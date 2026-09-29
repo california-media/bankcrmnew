@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Table, Button, Drawer, Form, Input, Select, Switch, Popconfirm,
-  Tag, Space, Typography, DatePicker, InputNumber, message, Upload, Modal,
+  Tag, Space, Typography, DatePicker, InputNumber, message, Upload, Modal, Grid,
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, GlobalOutlined,
@@ -13,6 +13,7 @@ import QuillEditor from '../../components/QuillEditor';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+const { useBreakpoint } = Grid;
 
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '/uploads');
 
@@ -35,6 +36,8 @@ const ANT_COLOR = {
 
 
 export default function AdminBlog() {
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const [posts,        setPosts]        = useState([]);
   const [categories,   setCategories]   = useState([]);
   const [loading,      setLoading]      = useState(false);
@@ -346,7 +349,7 @@ export default function AdminBlog() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', rowGap: 12 }}>
         <div>
           <Title level={4} style={{ margin: 0 }}>Blog Posts</Title>
           <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
@@ -686,7 +689,7 @@ export default function AdminBlog() {
           </Form.Item>
 
           {/* Meta row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: 12 }}>
             <Form.Item name="publishedDate" label="Publish Date">
               <DatePicker style={{ width: '100%' }} />
             </Form.Item>

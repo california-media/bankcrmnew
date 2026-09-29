@@ -1,16 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, message, Space, Row, Col, Popconfirm, Tooltip } from 'antd';
-import { EditOutlined, DeleteOutlined, LockOutlined, UserAddOutlined, TableOutlined, AppstoreOutlined, PoweroffOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Select, message, Space, Row, Col, Popconfirm, Tooltip, Upload, Typography, Tag } from 'antd';
+import { EditOutlined, DeleteOutlined, LockOutlined, UserAddOutlined, TableOutlined, AppstoreOutlined, PoweroffOutlined, CheckCircleOutlined, UploadOutlined } from '@ant-design/icons';
 import api from '../../api/client';
+
+const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '/uploads');
 
 const ColHead = ({ children }) => (
   <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.8, textTransform: 'uppercase' }}>{children}</span>
 );
 
+const EMPLOYEE_TYPE_OPTIONS = [
+  { value: 'cpv', label: 'CPV' },
+  { value: 'sales', label: 'Sales' },
+  { value: 'coordinator', label: 'Coordinator (all access except payment)' },
+  { value: 'account', label: 'Account Access (payments & reports)' },
+];
+
 const TypePill = ({ type }) => {
   const map = {
-    cpv:   { bg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8', label: 'CPV' },
-    sales: { bg: '#faf5ff', border: '#e9d5ff', text: '#7e22ce', label: 'Sales' },
+    cpv:         { bg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8', label: 'CPV' },
+    sales:       { bg: '#faf5ff', border: '#e9d5ff', text: '#7e22ce', label: 'Sales' },
+    coordinator: { bg: '#fef3c7', border: '#fde68a', text: '#b45309', label: 'Coordinator' },
+    account:     { bg: '#dcfce7', border: '#86efac', text: '#15803d', label: 'Account Access' },
   };
   const p = map[type] || { bg: '#f1f5f9', border: '#e2e8f0', text: '#475569', label: type || '—' };
   return (
@@ -37,15 +48,19 @@ function Employees() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState('table');
+  const [banks, setBanks] = useState([]);
 
   const [addOpen, setAddOpen] = useState(false);
   const [addForm] = Form.useForm();
   const [addSaving, setAddSaving] = useState(false);
+  const [addFileList, setAddFileList] = useState([]);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [editForm] = Form.useForm();
   const [editSaving, setEditSaving] = useState(false);
+  const [editFileList, setEditFileList] = useState([]);
+  const [editAvatarRemoved, setEditAvatarRemoved] = useState(false);
 
   const [pwOpen, setPwOpen] = useState(false);
   const [pwTarget, setPwTarget] = useState(null);
@@ -64,6 +79,8 @@ function Employees() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => { api.get('/banks').then(({ data }) => setBanks(data)).catch(() => {}); }, []);
+
   const toggleActive = async (id) => {
     try {
       await api.patch(`/employees/${id}/toggle`);
@@ -78,10 +95,22 @@ function Employees() {
     const values = await addForm.validateFields();
     setAddSaving(true);
     try {
-      await api.post('/employees', values);
+      const newFile = addFileList.find((f) => f.originFileObj);
+      if (newFile) {
+        const formData = new FormData();
+        Object.entries(values).forEach(([k, v]) => {
+          if (Array.isArray(v)) v.forEach((item) => formData.append(k, item));
+          else formData.append(k, v ?? '');
+        });
+        formData.append('avatar', newFile.originFileObj);
+        await api.post('/employees', formData);
+      } else {
+        await api.post('/employees', values);
+      }
       message.success('Employee added');
       setAddOpen(false);
       addForm.resetFields();
+      setAddFileList([]);
       load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed to add employee');
@@ -92,7 +121,12 @@ function Employees() {
 
   const openEdit = (row) => {
     setEditTarget(row);
-    editForm.setFieldsValue({ name: row.name, email: row.email, employeeType: row.employeeType });
+    editForm.setFieldsValue({ name: row.name, email: row.email, employeeType: row.employeeType, assignedBanks: row.assignedBanks || [] });
+    setEditFileList(row.avatar ? [{
+      uid: '-1', name: row.avatar, status: 'done',
+      url: `${UPLOADS_BASE}/avatars/${row.avatar}`,
+    }] : []);
+    setEditAvatarRemoved(false);
     setEditOpen(true);
   };
 
@@ -100,7 +134,26 @@ function Employees() {
     const values = await editForm.validateFields();
     setEditSaving(true);
     try {
-      await api.patch(`/employees/${editTarget._id}`, values);
+      const newFile = editFileList.find((f) => f.originFileObj);
+      if (newFile) {
+        const formData = new FormData();
+        Object.entries(values).forEach(([k, v]) => {
+          if (Array.isArray(v)) v.forEach((item) => formData.append(k, item));
+          else formData.append(k, v ?? '');
+        });
+        formData.append('avatar', newFile.originFileObj);
+        await api.patch(`/employees/${editTarget._id}`, formData);
+      } else if (editAvatarRemoved) {
+        const formData = new FormData();
+        Object.entries(values).forEach(([k, v]) => {
+          if (Array.isArray(v)) v.forEach((item) => formData.append(k, item));
+          else formData.append(k, v ?? '');
+        });
+        formData.append('removeAvatar', 'true');
+        await api.patch(`/employees/${editTarget._id}`, formData);
+      } else {
+        await api.patch(`/employees/${editTarget._id}`, values);
+      }
       message.success('Employee updated');
       setEditOpen(false);
       load();
@@ -157,6 +210,20 @@ function Employees() {
       dataIndex: 'employeeType',
       width: 90,
       render: (v) => <TypePill type={v} />,
+    },
+    {
+      title: <ColHead>Banks</ColHead>,
+      dataIndex: 'assignedBanks',
+      render: (_, row) => (
+        row.assignedBanks?.length ? (
+          <Space size={4} wrap>
+            {row.assignedBanks.map((id) => {
+              const b = banks.find((bk) => bk._id === id);
+              return <Tag key={id} color="purple">{b?.name || id}</Tag>;
+            })}
+          </Space>
+        ) : <Typography.Text type="secondary">—</Typography.Text>
+      ),
     },
     {
       title: <ColHead>Status</ColHead>,
@@ -234,23 +301,25 @@ function Employees() {
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Employees</h2>
-        <Space>
+        <Space wrap>
           <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
           <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
-          <Button type="primary" icon={<UserAddOutlined />} onClick={() => { addForm.resetFields(); setAddOpen(true); }}>
+          <Button type="primary" icon={<UserAddOutlined />} onClick={() => { addForm.resetFields(); setAddFileList([]); setAddOpen(true); }}>
             Add Employee
           </Button>
         </Space>
       </div>
 
       {viewMode === 'table' ? (
-        <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflowX: 'auto' }}>
           <Table
             size="small"
             rowKey="_id"
             loading={loading}
             dataSource={employees}
             columns={columns}
+            tableLayout="fixed"
+            scroll={{ x: 'max-content' }}
             onRow={() => ({ style: { cursor: 'default' } })}
           />
         </div>
@@ -272,11 +341,13 @@ function Employees() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{
                       width: 44, height: 44, borderRadius: 12,
-                      background: 'linear-gradient(135deg, #7C3AED 0%, #8b5cf6 100%)',
+                      background: row.avatar ? undefined : 'linear-gradient(135deg, #7C3AED 0%, #8b5cf6 100%)',
+                      backgroundImage: row.avatar ? `url(${UPLOADS_BASE}/avatars/${row.avatar})` : undefined,
+                      backgroundSize: 'cover', backgroundPosition: 'center',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 16, fontWeight: 700, color: '#fff', flexShrink: 0,
                     }}>
-                      {(row.name || row.email || '?')[0].toUpperCase()}
+                      {!row.avatar && (row.name || row.email || '?')[0].toUpperCase()}
                     </div>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', lineHeight: 1.3 }}>{row.name || '—'}</div>
@@ -288,6 +359,17 @@ function Employees() {
                     <TypePill type={row.employeeType} />
                   </div>
                 </div>
+
+                {row.assignedBanks?.length ? (
+                  <div style={{ marginBottom: 14 }}>
+                    <Space size={4} wrap>
+                      {row.assignedBanks.map((id) => {
+                        const b = banks.find((bk) => bk._id === id);
+                        return <Tag key={id} color="purple">{b?.name || id}</Tag>;
+                      })}
+                    </Space>
+                  </div>
+                ) : null}
 
                 {/* Action buttons */}
                 <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 14, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -361,6 +443,27 @@ function Employees() {
       {/* Add modal */}
       <Modal title="Add Employee" open={addOpen} onCancel={() => setAddOpen(false)} onOk={addEmployee} okText="Add" confirmLoading={addSaving} destroyOnClose>
         <Form form={addForm} layout="vertical">
+          <Form.Item label="Photo">
+            <Upload
+              listType="picture-card"
+              fileList={addFileList}
+              beforeUpload={(file) => {
+                setAddFileList([{ uid: file.uid, name: file.name, status: 'done', originFileObj: file }]);
+                return false;
+              }}
+              onRemove={() => { setAddFileList([]); return false; }}
+              accept=".jpg,.jpeg,.png,.webp"
+              maxCount={1}
+            >
+              {addFileList.length === 0 && (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8, fontSize: 12 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>JPG, PNG or WebP — max 10 MB</Typography.Text>
+          </Form.Item>
           <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }]}>
             <Input placeholder="Full name" />
           </Form.Item>
@@ -371,7 +474,19 @@ function Employees() {
             <Input.Password placeholder="Password" />
           </Form.Item>
           <Form.Item name="employeeType" label="Employee Type" rules={[{ required: true, message: 'Select a type' }]}>
-            <Select placeholder="Select type" options={[{ value: 'cpv', label: 'CPV' }, { value: 'sales', label: 'Sales' }]} />
+            <Select placeholder="Select type" options={EMPLOYEE_TYPE_OPTIONS} />
+          </Form.Item>
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.employeeType !== cur.employeeType}>
+            {({ getFieldValue }) => ['sales', 'cpv'].includes(getFieldValue('employeeType')) && (
+              <Form.Item name="assignedBanks" label="Assigned Banks" tooltip="New leads for these banks auto-assign to this employee (round-robin if more than one is tagged to the same bank).">
+                <Select
+                  mode="multiple"
+                  placeholder="Select banks this employee handles"
+                  options={banks.map((b) => ({ value: b._id, label: b.name }))}
+                  allowClear
+                />
+              </Form.Item>
+            )}
           </Form.Item>
         </Form>
       </Modal>
@@ -379,6 +494,28 @@ function Employees() {
       {/* Edit modal */}
       <Modal title="Edit Employee" open={editOpen} onCancel={() => setEditOpen(false)} onOk={saveEdit} okText="Save" confirmLoading={editSaving} destroyOnClose>
         <Form form={editForm} layout="vertical">
+          <Form.Item label="Photo">
+            <Upload
+              listType="picture-card"
+              fileList={editFileList}
+              beforeUpload={(file) => {
+                setEditFileList([{ uid: file.uid, name: file.name, status: 'done', originFileObj: file }]);
+                setEditAvatarRemoved(false);
+                return false;
+              }}
+              onRemove={() => { setEditFileList([]); setEditAvatarRemoved(true); return false; }}
+              accept=".jpg,.jpeg,.png,.webp"
+              maxCount={1}
+            >
+              {editFileList.length === 0 && (
+                <div>
+                  <UploadOutlined />
+                  <div style={{ marginTop: 8, fontSize: 12 }}>Upload</div>
+                </div>
+              )}
+            </Upload>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>JPG, PNG or WebP — max 10 MB</Typography.Text>
+          </Form.Item>
           <Form.Item name="name" label="Name" rules={[{ required: true }]}>
             <Input placeholder="Full name" />
           </Form.Item>
@@ -386,7 +523,19 @@ function Employees() {
             <Input placeholder="email@example.com" />
           </Form.Item>
           <Form.Item name="employeeType" label="Employee Type">
-            <Select placeholder="Select type" allowClear options={[{ value: 'cpv', label: 'CPV' }, { value: 'sales', label: 'Sales' }]} />
+            <Select placeholder="Select type" allowClear options={EMPLOYEE_TYPE_OPTIONS} />
+          </Form.Item>
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.employeeType !== cur.employeeType}>
+            {({ getFieldValue }) => ['sales', 'cpv'].includes(getFieldValue('employeeType')) && (
+              <Form.Item name="assignedBanks" label="Assigned Banks" tooltip="New leads for these banks auto-assign to this employee (round-robin if more than one is tagged to the same bank).">
+                <Select
+                  mode="multiple"
+                  placeholder="Select banks this employee handles"
+                  options={banks.map((b) => ({ value: b._id, label: b.name }))}
+                  allowClear
+                />
+              </Form.Item>
+            )}
           </Form.Item>
         </Form>
       </Modal>

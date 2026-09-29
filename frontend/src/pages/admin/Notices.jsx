@@ -197,6 +197,7 @@ export default function Notices() {
         rowKey="_id"
         loading={loading}
         pagination={{ pageSize: 15 }}
+        scroll={{ x: 'max-content' }}
       />
 
       <Modal

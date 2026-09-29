@@ -8,7 +8,7 @@ import {
   BellOutlined, PlusCircleOutlined, CheckCircleOutlined, MenuOutlined,
   UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined, WalletOutlined,
   SettingOutlined, MailOutlined, NotificationOutlined, ReadOutlined, FileProtectOutlined,
-  BarChartOutlined, StarOutlined, RiseOutlined, LockOutlined, FolderOutlined,
+  BarChartOutlined, StarOutlined, RiseOutlined, LockOutlined, GiftOutlined, FolderOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -18,6 +18,8 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
 dayjs.extend(relativeTime);
+
+const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '/uploads');
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -51,9 +53,11 @@ const menusByRole = {
     { key: '/admin/loan-products',     icon: <FundOutlined />,         label: <Link to="/admin/loan-products">Loan Products</Link> },
     { key: '/admin/account-products',  icon: <BankOutlined />,         label: <Link to="/admin/account-products">Account Products</Link> },
     { key: '/admin/featured-products', icon: <StarOutlined />,         label: <Link to="/admin/featured-products">Featured Products</Link> },
-    { key: '/admin/resources',         icon: <FolderOutlined />,       label: <Link to="/admin/resources">Resources</Link> },
     { key: '/admin/payouts',           icon: <DollarOutlined />,       label: <Link to="/admin/payouts">Payouts</Link> },
     { key: '/admin/receive',           icon: <InboxOutlined />,        label: <Link to="/admin/receive">Receive</Link> },
+    { key: '/admin/agency-ledger',     icon: <WalletOutlined />,       label: <Link to="/admin/agency-ledger">Agency Ledger</Link> },
+    { key: '/admin/credit-notes',      icon: <FileAddOutlined />,      label: <Link to="/admin/credit-notes">Credit Notes</Link> },
+    { key: '/admin/invoices',          icon: <FileAddOutlined />,      label: <Link to="/admin/invoices">Invoices</Link> },
     { key: '/admin/employee-statuses', icon: <UnorderedListOutlined />,label: <Link to="/admin/employee-statuses">Lead Status</Link> },
     { key: '/admin/pipeline',          icon: <ProjectOutlined />,      label: <Link to="/admin/pipeline">Pipeline</Link> },
     { key: '/admin/consent-logs',      icon: <MessageOutlined />,      label: <Link to="/admin/consent-logs">Consent Logs</Link> },
@@ -67,6 +71,9 @@ const menusByRole = {
       { key: '/admin/reports',          icon: <BarChartOutlined />,     label: <Link to="/admin/reports">Performance Report</Link> },
       { key: '/admin/margin-report',    icon: <RiseOutlined />,         label: <Link to="/admin/margin-report">Margin Report</Link> },
     ] },
+    { key: '/admin/manage-admins',     icon: <IdcardOutlined />,       label: <Link to="/admin/manage-admins">Roles & Permissions</Link> },
+    { key: '/admin/promotions',        icon: <GiftOutlined />,         label: <Link to="/admin/promotions">Promotions</Link> },
+    { key: '/admin/resources',         icon: <FolderOutlined />,       label: <Link to="/admin/resources">Resources</Link> },
   ],
   agent: [
     { key: '/agent',                  icon: <DashboardOutlined />,    label: <Link to="/agent">Dashboard</Link> },
@@ -77,6 +84,7 @@ const menusByRole = {
     { key: '/agent/reports',          icon: <BarChartOutlined />,     label: <Link to="/agent/reports">Reports</Link> },
     { key: '/agent/notifications',    icon: <BellOutlined />,         label: <Link to="/agent/notifications">Notifications</Link> },
     { key: '/agent/settings',         icon: <SettingOutlined />,      label: <Link to="/agent/settings">Settings</Link> },
+    { key: '/agent/promotions',       icon: <GiftOutlined />,         label: <Link to="/agent/promotions">Promotion</Link> },
     { key: '/agent/resources',        icon: <FolderOutlined />,       label: <Link to="/agent/resources">Resources</Link> },
   ],
   agency: [
@@ -84,10 +92,15 @@ const menusByRole = {
     { key: '/agency/leads',           icon: <AuditOutlined />,        label: <Link to="/agency/leads">Lead Queue</Link> },
     { key: '/agency/pipeline',        icon: <ProjectOutlined />,      label: <Link to="/agency/pipeline">Pipeline</Link> },
     { key: '/agency/employees',       icon: <TeamOutlined />,         label: <Link to="/agency/employees">Employees</Link> },
+    { key: '/agency/agents',          icon: <IdcardOutlined />,       label: <Link to="/agency/agents">Agents</Link> },
+    { key: '/agency/leads/new',       icon: <FileAddOutlined />,      label: <Link to="/agency/leads/new">New Lead</Link> },
     { key: '/agency/payouts',         icon: <DollarOutlined />,       label: <Link to="/agency/payouts">Payouts</Link> },
+    { key: '/agency/invoices',        icon: <FileAddOutlined />,      label: <Link to="/agency/invoices">Invoices</Link> },
     { key: '/agency/consent-logs',    icon: <MessageOutlined />,      label: <Link to="/agency/consent-logs">Consent Logs</Link> },
     { key: '/agency/notifications',   icon: <BellOutlined />,         label: <Link to="/agency/notifications">Notifications</Link> },
     { key: '/agency/reports',         icon: <BarChartOutlined />,     label: <Link to="/agency/reports">Reports</Link> },
+    { key: '/agency/roles-permissions', icon: <IdcardOutlined />,     label: <Link to="/agency/roles-permissions">Roles & Permissions</Link> },
+    { key: '/agency/resources',       icon: <FolderOutlined />,       label: <Link to="/agency/resources">Resources</Link> },
   ],
   employee: [
     { key: '/employee',               icon: <DashboardOutlined />,    label: <Link to="/employee">Dashboard</Link> },
@@ -95,6 +108,7 @@ const menusByRole = {
     { key: '/employee/pipeline',      icon: <ProjectOutlined />,      label: <Link to="/employee/pipeline">Pipeline</Link> },
     { key: '/employee/consent-logs',  icon: <MessageOutlined />,      label: <Link to="/employee/consent-logs">Consent Logs</Link> },
     { key: '/employee/notifications', icon: <BellOutlined />,         label: <Link to="/employee/notifications">Notifications</Link> },
+    { key: '/employee/resources',     icon: <FolderOutlined />,       label: <Link to="/employee/resources">Resources</Link> },
   ],
   blog_editor: [
     { key: '/blog_editor',            icon: <ReadOutlined />,   label: <Link to="/blog_editor">Blog Posts</Link> },
@@ -103,7 +117,28 @@ const menusByRole = {
   ],
 };
 
+// Admin sidebar scoping (Phase 1 — visibility only, see User.adminScope for
+// the full note). null/undefined and 'coordinator' both see the full menu
+// unfiltered ("all access" is the point of Coordinator); the other three
+// scopes only see the menu keys listed here.
+const ADMIN_SCOPE_MENU_KEYS = {
+  product: ['/admin/banks', '/admin/card-products', '/admin/loan-products', '/admin/account-products', '/admin/featured-products'],
+  leads:   ['/admin', '/admin/leads', '/admin/pipeline', '/admin/employee-statuses', '/admin/consent-logs', '/admin/reports-group'],
+  finance: ['/admin/payouts', '/admin/receive', '/admin/bucket-requests', '/admin/reports-group'],
+};
+
+// Agency Coordinator/Account Access — an 'employee' role, but filtered from
+// the AGENCY menu (not the plain employee one) since they see the real
+// agency-wide pages, not the CPV/Sales assigned-only view. Same Phase 1
+// note as ADMIN_SCOPE_MENU_KEYS above: visibility only, backend enforces
+// the real boundary per allowEmployeeTypes() in auth.middleware.js.
+const AGENCY_EMPLOYEE_TYPE_MENU_KEYS = {
+  coordinator: ['/agency', '/agency/leads', '/agency/pipeline', '/agency/employees', '/agency/consent-logs', '/agency/notifications', '/agency/reports', '/agency/resources'],
+  account:     ['/agency', '/agency/payouts', '/agency/invoices', '/agency/reports'],
+};
+
 const titleByRole = { admin: 'Admin', agency: 'Agency', agent: 'Agent', employee: 'Employee', blog_editor: 'Blog Editor' };
+const AGENCY_EMPLOYEE_TYPE_TITLE = { coordinator: 'Agency Coordinator', account: 'Account Access' };
 const ROLE_COLORS = { admin: '#7c3aed', agency: '#1e40af', agent: '#0f766e', employee: '#b45309', blog_editor: '#0ea5e9' };
 
 function NotifDropdown({ notifications, role, markRead, markAllRead, navigate }) {
@@ -120,11 +155,12 @@ function NotifDropdown({ notifications, role, markRead, markAllRead, navigate })
           key={n._id}
           onClick={() => {
             if (n.lead) navigate(`/${role}/leads/${n.lead}`);
+            else if (n.invoice) navigate(`/${role}/invoices`);
             if (!n.isRead) markRead([String(n._id)]);
           }}
           style={{
             padding: '10px 14px',
-            cursor: n.lead ? 'pointer' : 'default',
+            cursor: (n.lead || n.invoice) ? 'pointer' : 'default',
             background: n.isRead ? 'transparent' : '#eff6ff',
             borderBottom: '1px solid #f1f5f9',
             display: 'flex', alignItems: 'flex-start', gap: 10,
@@ -168,10 +204,16 @@ function AppLayoutInner() {
   const [savingPwd, setSavingPwd] = useState(false);
   const [pwdForm] = Form.useForm();
 
-  const baseItems = menusByRole[user.role] || [];
+  const agencyEmployeeKeys = user.role === 'employee' ? AGENCY_EMPLOYEE_TYPE_MENU_KEYS[user.employeeType] : null;
+  const baseItems = agencyEmployeeKeys
+    ? menusByRole.agency.filter((item) => agencyEmployeeKeys.includes(item.key))
+    : menusByRole[user.role] || [];
+  const allowedAdminKeys = user.role === 'admin' ? ADMIN_SCOPE_MENU_KEYS[user.adminScope] : null;
+  const scopedItems = allowedAdminKeys ? baseItems.filter((item) => allowedAdminKeys.includes(item.key)) : baseItems;
   const items = user.role === 'agency' && user.canViewPayouts
-    ? [...baseItems, { key: '/agency/agent-payouts', icon: <DollarOutlined />, label: <Link to="/agency/agent-payouts">Agent Payouts</Link> }]
-    : baseItems;
+    ? [...scopedItems, { key: '/agency/agent-payouts', icon: <DollarOutlined />, label: <Link to="/agency/agent-payouts">Agent Payouts</Link> }]
+    : scopedItems;
+  const effectiveTitle = agencyEmployeeKeys ? AGENCY_EMPLOYEE_TYPE_TITLE[user.employeeType] : titleByRole[user.role];
   const roleColor = ROLE_COLORS[user.role] || '#1e40af';
 
   const onMenuAction = ({ key }) => {
@@ -246,11 +288,11 @@ function AppLayoutInner() {
       >
         <div style={{ padding: '16px 16px 12px' }}>
           <div>
-            <a href="https://mysilah.ae/" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block' }}>
+            <Link to={`/${user.role}`} style={{ display: 'inline-block' }}>
               <img src="/mysilah.svg" alt="My Silah" style={{ height: 34, width: 'auto', objectFit: 'contain' }} />
-            </a>
+            </Link>
             <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1.4, marginTop: 3, fontWeight: 500 }}>
-              {titleByRole[user.role]} Portal
+              {effectiveTitle} Portal
             </div>
           </div>
         </div>
@@ -259,14 +301,23 @@ function AppLayoutInner() {
 
         <div style={{ padding: '6px 12px 10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <Avatar size={28} style={{ background: roleColor, fontWeight: 600, fontSize: 11, flexShrink: 0 }}>
+            <Avatar
+              size={28}
+              src={user.avatar ? `${UPLOADS_BASE}/avatars/${user.avatar}` : undefined}
+              style={{ background: roleColor, fontWeight: 600, fontSize: 11, flexShrink: 0 }}
+            >
               {(user.name || user.email)[0].toUpperCase()}
             </Avatar>
             <div style={{ minWidth: 0 }}>
               <div style={{ color: '#0f172a', fontSize: 12, fontWeight: 500, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {user.name || user.email}
               </div>
-              <div style={{ color: '#64748b', fontSize: 10, fontWeight: 400 }}>{titleByRole[user.role]}</div>
+              <div style={{ color: '#64748b', fontSize: 10, fontWeight: 400 }}>{effectiveTitle}</div>
+              {user.agencyName && (
+                <div style={{ color: '#7C3AED', fontSize: 10, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.agencyName}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -351,7 +402,7 @@ function AppLayoutInner() {
 
           <div style={{ minWidth: 0, flex: '0 1 auto' }}>
             <Typography.Text style={{ fontSize: isMobile ? 13 : 14, fontWeight: 500, color: '#374151', whiteSpace: 'nowrap', display: 'block' }}>
-              {titleByRole[user.role]} Panel
+              {effectiveTitle} Panel
             </Typography.Text>
             {!isMobile && (
               <div style={{ fontSize: 11, color: '#b0b8c8', marginTop: 1, fontWeight: 400 }}>
@@ -372,7 +423,7 @@ function AppLayoutInner() {
               content={
                 <NotifDropdown
                   notifications={notifications}
-                  role={user.role}
+                  role={agencyEmployeeKeys ? 'agency' : user.role}
                   markRead={markRead}
                   markAllRead={markAllRead}
                   navigate={navigate}
@@ -401,13 +452,16 @@ function AppLayoutInner() {
                 onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <Avatar style={{ backgroundColor: roleColor, fontWeight: 700, flexShrink: 0 }}>
+                <Avatar
+                  src={user.avatar ? `${UPLOADS_BASE}/avatars/${user.avatar}` : undefined}
+                  style={{ backgroundColor: roleColor, fontWeight: 700, flexShrink: 0 }}
+                >
                   {(user.name || user.email)[0].toUpperCase()}
                 </Avatar>
                 {!isMobile && (
                   <div style={{ lineHeight: 1.2 }}>
                     <div style={{ fontWeight: 500, fontSize: 13, color: '#0f172a' }}>{user.name || user.email}</div>
-                    <div style={{ fontSize: 11, fontWeight: 400, color: token.colorTextSecondary }}>{titleByRole[user.role]}</div>
+                    <div style={{ fontSize: 11, fontWeight: 400, color: token.colorTextSecondary }}>{effectiveTitle}</div>
                   </div>
                 )}
                 <DownOutlined style={{ fontSize: 10, color: '#94a3b8', marginLeft: 2 }} />

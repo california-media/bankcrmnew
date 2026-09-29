@@ -7,6 +7,12 @@ import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
 
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '/uploads');
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
+const dirham = (n) => (
+  <>
+    <img src="/uae-dirham.svg" alt="AED" style={{ height: '0.8em', width: '0.8em', verticalAlign: '-0.05em', marginRight: 3 }} />
+    {Number(n || 0).toLocaleString()}
+  </>
+);
 
 function StatCard({ icon, iconColor, label, value, borderColor }) {
   return (
@@ -83,13 +89,13 @@ function ProductCard({ product, onClick }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>Min Salary</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{aed(firstBracket.minimumSalary)}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{dirham(firstBracket.minimumSalary)}</div>
             </div>
             <div style={{ color: '#cbd5e1', fontSize: 18, fontWeight: 300 }}>→</div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>Payout</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>Referral Reward</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#16a34a' }}>
-                {product.productType === 'loan' ? `${Number(firstBracket.payable || 0)}%` : aed(firstBracket.payable)}
+                {product.productType === 'loan' ? `${Number(firstBracket.payable || 0)}%` : dirham(firstBracket.payable)}
               </div>
             </div>
           </div>

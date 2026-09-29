@@ -118,8 +118,11 @@ export default function Pipeline() {
   const navigate = useNavigate();
   const { user } = useSelector((s) => s.auth);
   const role = user?.role;
-  const leadsUrl = LEADS_URL[role] || '/leads/agency';
-  const leadPath = LEAD_PATH[role] || '/agency/leads';
+  // Agency Coordinator/Account Access are role 'employee' but need the
+  // agency-wide endpoint, not the assigned-only one plain CPV/Sales use.
+  const isAgencyScopedEmployee = role === 'employee' && ['coordinator', 'account'].includes(user?.employeeType);
+  const leadsUrl = isAgencyScopedEmployee ? '/leads/agency'  : LEADS_URL[role] || '/leads/agency';
+  const leadPath = isAgencyScopedEmployee ? '/agency/leads' : LEAD_PATH[role] || '/agency/leads';
 
   const [leads, setLeads] = useState([]);
   const [columns, setColumns] = useState([]);

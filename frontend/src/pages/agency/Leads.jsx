@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Button, Input, Select, DatePicker, Row, Col, Space, message, Modal, Form, InputNumber, Descriptions, Tabs, Upload, Grid, Popconfirm, Popover } from 'antd';
+import { Table, Tag, Typography, Button, Input, Select, DatePicker, Row, Col, Space, message, Modal, Form, InputNumber, Tabs, Upload, Grid, Popconfirm, Popover, Tooltip } from 'antd';
 import { SearchOutlined, EditOutlined, UserAddOutlined, TableOutlined, AppstoreOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 
 const { useBreakpoint } = Grid;
 import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLeadView } from '../../utils/leadViews';
+import LeadViewBanner from '../../components/LeadViewBanner';
+import { useSelector } from 'react-redux';
 import api from '../../api/client';
 import exportLeadsToExcel from '../../utils/exportLeadsExcel';
 import downloadLeadImportTemplate from '../../utils/importLeadsTemplate';
@@ -101,6 +104,11 @@ const buildWhatsAppUrl = (row) => {
 
 function AgencyLeads() {
   const navigate = useNavigate();
+  const { user } = useSelector((s) => s.auth);
+  // Coordinator ("all access except agent payment") — backend already
+  // strips commission fields for this account; hide the now-empty column
+  // too instead of showing a confusing "AED 0" for every row.
+  const hidePayout = user?.role === 'employee' && user?.employeeType === 'coordinator';
   const screens = useBreakpoint();
   const isMobile = !screens.md;
   const [leads, setLeads] = useState([]);
@@ -110,9 +118,11 @@ function AgencyLeads() {
   const [productFilter, setProductFilter] = useState();
   const [bankFilter, setBankFilter] = useState();
   const [employeeFilter, setEmployeeFilter] = useState();
+  const [searchParams] = useSearchParams();
+  const [agentFilter, setAgentFilter] = useState(searchParams.get('agent') || undefined);
   const [dateRange, setDateRange] = useState(null);
   const [milestoneFilter, setMilestoneFilter] = useState();
-  const [leadsTab, setLeadsTab] = useState('active');
+  const { view, leadsTab, setLeadsTab, tabsActiveKey, clearView } = useLeadView();
 
   // Status update modal
   const [statusModal, setStatusModal] = useState({ open: false, leadId: null, status: null, label: '' });
@@ -316,7 +326,8 @@ function AgencyLeads() {
     }
   };
 
-  const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected').length;
+  const activeCount = leads.filter(l => !['approved', 'disbursed', 'rejected'].includes(l.status)).length;
+  const approvedCount = leads.filter(l => l.status === 'approved').length;
   const rejectedCount = leads.filter(l => l.status === 'rejected').length;
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
 
@@ -328,14 +339,27 @@ function AgencyLeads() {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [leads]);
 
+  const agentOptions = useMemo(() => {
+    const seen = new Set();
+    return leads
+      .filter((l) => l.agent?._id && !seen.has(String(l.agent._id)) && seen.add(String(l.agent._id)))
+      .map((l) => ({ value: String(l.agent._id), label: l.agent.name || l.agent.email }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [leads]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const [from, to] = dateRange || [];
     return leads.filter((l) => {
-      if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
-      if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
-      if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected')) return false;
-      if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q)) return false;
+      if (q && !l.customerName.toLowerCase().includes(q) && !(l.leadNumber || '').toLowerCase().includes(q) && !(l.referenceNo || '').toLowerCase().includes(q)) return false;
+      if (view) {
+        if (!view.match(l)) return false;
+      } else if (!q) {
+        if (leadsTab === 'approved' && l.status !== 'approved') return false;
+        if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
+        if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
+        if (leadsTab === 'active' && ['approved', 'disbursed', 'rejected'].includes(l.status)) return false;
+      }
       if (statusFilter && String(l.employeeStatus?._id) !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
       if (bankFilter && String(l.bank?._id) !== bankFilter) return false;
@@ -343,6 +367,7 @@ function AgencyLeads() {
         const emp = l.assignedSalesEmployee || l.assignedCpvEmployee || l.assignedEmployee;
         if (!emp || String(emp._id) !== employeeFilter) return false;
       }
+      if (agentFilter && String(l.agent?._id) !== agentFilter) return false;
       if (from && dayjs(l.createdAt).isBefore(from.startOf('day'))) return false;
       if (to && dayjs(l.createdAt).isAfter(to.endOf('day'))) return false;
       if (milestoneFilter === 'approved' && l.status !== 'approved') return false;
@@ -351,7 +376,7 @@ function AgencyLeads() {
       if (milestoneFilter === 'spent' && !l.spendDone) return false;
       return true;
     });
-  }, [leads, search, statusFilter, productFilter, bankFilter, employeeFilter, dateRange, milestoneFilter, leadsTab]);
+  }, [leads, search, statusFilter, productFilter, bankFilter, employeeFilter, agentFilter, dateRange, milestoneFilter, leadsTab, view]);
 
   const renderProduct = (row) => {
     if (row.productType === 'credit_card' && row.cardProduct) {
@@ -393,6 +418,26 @@ function AgencyLeads() {
           </div>
         </div>
       ),
+    },
+    {
+      title: <ColHead>Agent</ColHead>,
+      width: 120,
+      onCell: () => ({ style: { maxWidth: 120 } }),
+      render: (_, row) => {
+        const agent = row.agent;
+        if (!agent) return <span style={{ color: '#cbd5e1', fontSize: 13 }}>—</span>;
+        const name = agent.name || agent.email;
+        return (
+          <Tooltip title={name}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, maxWidth: '100%' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: avatarBg(name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                {initials(name)}
+              </div>
+              <span style={{ fontSize: 12, color: '#334155', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1 }}>{name}</span>
+            </div>
+          </Tooltip>
+        );
+      },
     },
     {
       title: <ColHead>Reference No.</ColHead>,
@@ -507,7 +552,7 @@ function AgencyLeads() {
       ),
     },
     {
-      title: <ColHead>Agent</ColHead>,
+      title: <ColHead>Assigned To</ColHead>,
       width: 120,
       render: (_, row) => {
         const emp = row.assignedSalesEmployee || row.assignedCpvEmployee || row.assignedEmployee;
@@ -530,6 +575,7 @@ function AgencyLeads() {
       render: (v) => <span style={{ fontSize: 12, color: '#64748b' }}>{v ? relTime(v) : '—'}</span>,
     },
     {
+      key: 'payout',
       title: <ColHead>Payout</ColHead>,
       width: 110,
       align: 'right',
@@ -550,10 +596,10 @@ function AgencyLeads() {
         let milestoneButtons = [];
         let canDisburse = false;
         if (row.productType === 'credit_card') {
-          if (row.status === 'approved' && !row.cpvDone) milestoneButtons.push({ type: 'cpv', label: 'CPV' });
-          if (row.status === 'approved' && !row.activateDone) milestoneButtons.push({ type: 'activate', label: 'Activated' });
+          if (row.status === 'approved' && row.bank?.hasCpv !== false && !row.cpvDone) milestoneButtons.push({ type: 'cpv', label: 'CPV' });
+          if (row.status === 'approved' && row.bank?.hasActivation !== false && !row.activateDone) milestoneButtons.push({ type: 'activate', label: 'Activated' });
           if (row.status === 'approved' && row.bank?.hasSpend && !row.spendDone) milestoneButtons.push({ type: 'spend', label: 'Spend' });
-          canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
+          canDisburse = row.status === 'approved' && (row.bank?.hasCpv === false || row.cpvDone) && (row.bank?.hasActivation === false || row.activateDone);
         } else if (row.productType === 'loan' || row.productType === 'account') {
           const loanActions = getLoanActions(row);
           milestoneButtons = loanActions.buttons;
@@ -573,16 +619,16 @@ function AgencyLeads() {
         );
       },
     },
-  ];
+  ].filter((c) => !(hidePayout && c.key === 'payout'));
 
   const selectedLeads = leads.filter((l) => selectedRowKeys.includes(l._id));
   const canBulkApprove = selectedLeads.length > 0 && selectedLeads.every((l) => ['submitted', 'under_review', 'assigned'].includes(l.status));
   const canBulkReject = selectedLeads.length > 0 && selectedLeads.every((l) => REJECTABLE_FROM.includes(l.status));
-  const canBulkCpv = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && !l.cpvDone);
-  const canBulkActivate = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && !l.activateDone);
+  const canBulkCpv = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && l.bank?.hasCpv !== false && !l.cpvDone);
+  const canBulkActivate = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && l.bank?.hasActivation !== false && !l.activateDone);
   const canBulkSpend = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && l.bank?.hasSpend && !l.spendDone);
   const canBulkDisburse = selectedLeads.length > 0 && selectedLeads.every((l) => {
-    if (l.productType === 'credit_card') return l.status === 'approved' && l.cpvDone && l.activateDone;
+    if (l.productType === 'credit_card') return l.status === 'approved' && (l.bank?.hasCpv === false || l.cpvDone) && (l.bank?.hasActivation === false || l.activateDone);
     if (l.productType === 'loan' || l.productType === 'account') return getLoanActions(l).canDisburse;
     return false;
   });
@@ -678,6 +724,16 @@ function AgencyLeads() {
           filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
           style={{ width: 150, minWidth: 120, borderRadius: 6 }}
         />
+        <Select
+          allowClear
+          showSearch
+          placeholder="All Agents"
+          value={agentFilter}
+          onChange={setAgentFilter}
+          options={agentOptions}
+          filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+          style={{ width: 150, minWidth: 120, borderRadius: 6 }}
+        />
         <DatePicker.RangePicker
           value={dateRange}
           onChange={setDateRange}
@@ -697,8 +753,8 @@ function AgencyLeads() {
           ]}
           style={{ width: 150, minWidth: 130, borderRadius: 6 }}
         />
-        {(search || statusFilter || productFilter || bankFilter || employeeFilter || dateRange || milestoneFilter) && (
-          <Button size="small" type="text" style={{ color: '#7C3AED', flexShrink: 0 }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setBankFilter(undefined); setEmployeeFilter(undefined); setDateRange(null); setMilestoneFilter(undefined); }}>
+        {(search || statusFilter || productFilter || bankFilter || employeeFilter || agentFilter || dateRange || milestoneFilter) && (
+          <Button size="small" type="text" style={{ color: '#7C3AED', flexShrink: 0 }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setBankFilter(undefined); setEmployeeFilter(undefined); setAgentFilter(undefined); setDateRange(null); setMilestoneFilter(undefined); }}>
             Clear
           </Button>
         )}
@@ -766,14 +822,16 @@ function AgencyLeads() {
         </div>
       )}
 
+      <LeadViewBanner view={view} count={filtered.length} onClear={clearView} />
       <Tabs
-        activeKey={leadsTab}
+        activeKey={tabsActiveKey}
         onChange={setLeadsTab}
         style={{ marginBottom: 8 }}
         items={[
           { key: 'active', label: `Active (${activeCount})` },
+          { key: 'approved', label: `Approved (${approvedCount})` },
+          { key: 'archive', label: `Disbursed (${archiveCount})` },
           { key: 'rejected', label: `Rejected (${rejectedCount})` },
-          { key: 'archive', label: `Approved (${archiveCount})` },
         ]}
       />
 
@@ -788,6 +846,8 @@ function AgencyLeads() {
             rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
             onRow={(row) => ({ onClick: () => navigate(`/agency/leads/${row._id}`), style: { cursor: 'pointer' } })}
             pagination={{ pageSize: 15, showSizeChanger: false }}
+            tableLayout="fixed"
+            scroll={{ x: 'max-content' }}
           />
         </div>
       ) : (
@@ -869,10 +929,10 @@ function AgencyLeads() {
                       let milestoneButtons = [];
                       let canDisburse = false;
                       if (row.productType === 'credit_card') {
-                        if (row.status === 'approved' && !row.cpvDone) milestoneButtons.push({ type: 'cpv', label: 'CPV' });
-                        if (row.status === 'approved' && !row.activateDone) milestoneButtons.push({ type: 'activate', label: 'Activate' });
+                        if (row.status === 'approved' && row.bank?.hasCpv !== false && !row.cpvDone) milestoneButtons.push({ type: 'cpv', label: 'CPV' });
+                        if (row.status === 'approved' && row.bank?.hasActivation !== false && !row.activateDone) milestoneButtons.push({ type: 'activate', label: 'Activate' });
                         if (row.status === 'approved' && row.bank?.hasSpend && !row.spendDone) milestoneButtons.push({ type: 'spend', label: 'Spend' });
-                        canDisburse = row.status === 'approved' && row.cpvDone && row.activateDone;
+                        canDisburse = row.status === 'approved' && (row.bank?.hasCpv === false || row.cpvDone) && (row.bank?.hasActivation === false || row.activateDone);
                       } else if (row.productType === 'loan' || row.productType === 'account') {
                         const loanActions = getLoanActions(row);
                         milestoneButtons = loanActions.buttons;
@@ -914,16 +974,23 @@ function AgencyLeads() {
         onOk={saveLoanAmount}
         okText="Save"
         destroyOnClose
+        width={440}
       >
         {loanEditLead && (
-          <Descriptions size="small" style={{ marginBottom: 16 }}>
-            <Descriptions.Item label="Client">{loanEditLead.customerName}</Descriptions.Item>
-            <Descriptions.Item label="Product">{loanEditLead.loanProduct?.name}</Descriptions.Item>
-          </Descriptions>
+          <div style={{ display: 'flex', gap: 20, marginBottom: 18, padding: '10px 14px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }}>Client</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', wordBreak: 'break-word' }}>{loanEditLead.customerName}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }}>Product</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', wordBreak: 'break-word' }}>{loanEditLead.loanProduct?.name || '—'}</div>
+            </div>
+          </div>
         )}
         <Form form={loanForm} layout="vertical">
           <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount is required' }]}>
-            <InputNumber min={1} step={1000} style={{ width: '100%' }} />
+            <InputNumber min={1} step={1000} style={{ width: '100%' }} prefix="AED" />
           </Form.Item>
         </Form>
       </Modal>

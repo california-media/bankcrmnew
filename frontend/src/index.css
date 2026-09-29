@@ -117,9 +117,9 @@ body {
   }
   .login-form-col {
     padding: 24px;
-    height: 100vh;
+    min-height: 100vh;
     align-items: center;
-    overflow: hidden;
+    overflow-y: auto;
   }
   .login-mobile-logo {
     display: block;
@@ -130,7 +130,7 @@ body {
     padding: 16px;
     align-items: center;
     min-height: 100vh;
-    overflow: hidden;
+    overflow-y: auto;
   }
   .register-card {
     width: 100%;
@@ -175,4 +175,21 @@ body {
 .ant-table-thead > tr > th:last-child,
 .ant-table-tbody > tr > td:last-child {
   padding-right: 16px !important;
+}
+
+/* iOS Safari auto-zooms the whole page when a focused form control's
+   font-size computes under 16px — antd's default token is 14px. Bumping
+   focusable controls to 16px on mobile stops the zoom without changing
+   desktop's visual density. */
+@media (max-width: 767px) {
+  input,
+  textarea,
+  select,
+  .ant-select-selector,
+  .ant-select-input,
+  .ant-input,
+  .ant-input-number-input,
+  .ant-picker-input > input {
+    font-size: 16px !important;
+  }
 }

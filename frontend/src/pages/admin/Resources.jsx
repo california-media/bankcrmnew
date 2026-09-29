@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Select, Space, Popconfirm, Typography, message, Switch, Tag, Upload } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, FilePdfOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Form, Input, Select, Space, Popconfirm, Typography, message, Switch, Tag, Upload, Checkbox, Tooltip } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined, FilePdfOutlined, PlayCircleOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '/uploads');
@@ -12,6 +12,15 @@ const TYPE_OPTIONS = [
   { value: 'other', label: 'Other' },
 ];
 const TYPE_COLORS = { flyer: 'blue', policy: 'gold', training: 'purple', other: 'default' };
+const ROLE_OPTIONS = [
+  { value: 'agent', label: 'Agent' },
+  { value: 'agency', label: 'Partner Agency' },
+  { value: 'coordinator', label: 'Agency Coordinator' },
+  { value: 'sales', label: 'Sales Staff' },
+  { value: 'cpv', label: 'CPV Staff' },
+  { value: 'account', label: 'Account Access' },
+];
+const ROLE_LABEL = Object.fromEntries(ROLE_OPTIONS.map((o) => [o.value, o.label]));
 
 function Resources() {
   const [resources, setResources] = useState([]);
@@ -61,7 +70,9 @@ function Resources() {
       description: r.description || '',
       bank: r.bank?._id || r.bank || undefined,
       type: r.type,
+      videoLink: r.videoLink || '',
       assignedAgencies: (r.assignedAgencies || []).map((a) => a?._id || a),
+      visibleToRoles: r.visibleToRoles || [],
       isActive: r.isActive !== false,
     });
     setFileList(r.file ? [{
@@ -75,8 +86,8 @@ function Resources() {
   const onSubmit = async () => {
     const values = await form.validateFields();
     const newFile = fileList.find((f) => f.originFileObj);
-    if (!editing && !newFile) {
-      message.error('A file is required');
+    if (!editing && !newFile && !values.videoLink) {
+      message.error('A file or a video link is required');
       return;
     }
     try {
@@ -85,7 +96,13 @@ function Resources() {
       fd.append('description', values.description || '');
       fd.append('bank', values.bank || '');
       fd.append('type', values.type);
-      fd.append('assignedAgencies', JSON.stringify(values.assignedAgencies || []));
+      fd.append('videoLink', values.videoLink || '');
+      // Assign to Agencies only shows once a role is picked (same rule for
+      // both Add and Edit) — so if no role is checked, it doesn't apply,
+      // regardless of what it was set to before.
+      const hasRoles = (values.visibleToRoles || []).length > 0;
+      fd.append('assignedAgencies', JSON.stringify(hasRoles ? (values.assignedAgencies || []) : []));
+      fd.append('visibleToRoles', JSON.stringify(values.visibleToRoles || []));
       fd.append('isActive', values.isActive !== false ? 'true' : 'false');
       if (newFile) fd.append('file', newFile.originFileObj);
 
@@ -128,9 +145,15 @@ function Resources() {
     {
       title: 'File',
       width: 70,
-      render: (_, row) => row.fileType === 'image'
-        ? <img src={`${UPLOADS_BASE}/resources/${row.file}`} alt="" style={{ width: 52, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #e2e8f0' }} />
-        : <div style={{ width: 52, height: 40, borderRadius: 4, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fef2f2', color: '#dc2626', fontSize: 18 }}><FilePdfOutlined /></div>,
+      render: (_, row) => {
+        if (row.fileType === 'image') {
+          return <img src={`${UPLOADS_BASE}/resources/${row.file}`} alt="" style={{ width: 52, height: 40, objectFit: 'cover', borderRadius: 4, border: '1px solid #e2e8f0' }} />;
+        }
+        if (row.fileType === 'pdf') {
+          return <div style={{ width: 52, height: 40, borderRadius: 4, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fef2f2', color: '#dc2626', fontSize: 18 }}><FilePdfOutlined /></div>;
+        }
+        return <div style={{ width: 52, height: 40, borderRadius: 4, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#eff6ff', color: '#2563eb', fontSize: 18 }}><PlayCircleOutlined /></div>;
+      },
     },
     { title: 'Title', dataIndex: 'title', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
     { title: 'Bank', render: (_, row) => row.bank?.name || <Typography.Text type="secondary">—</Typography.Text> },
@@ -140,6 +163,27 @@ function Resources() {
       render: (_, row) => row.assignedAgencies?.length
         ? <Tag>{row.assignedAgencies.length} agenc{row.assignedAgencies.length === 1 ? 'y' : 'ies'}</Tag>
         : <Typography.Text type="secondary">All agencies</Typography.Text>,
+    },
+    {
+      title: 'Visible To',
+      width: 170,
+      render: (_, row) => {
+        if (!row.visibleToRoles?.length) return <Typography.Text type="secondary">Everyone</Typography.Text>;
+        const labels = row.visibleToRoles.map((r) => ROLE_LABEL[r] || r);
+        const MAX_SHOWN = 2;
+        const shown = labels.slice(0, MAX_SHOWN);
+        const rest = labels.slice(MAX_SHOWN);
+        return (
+          <Space size={4} wrap>
+            {shown.map((l) => <Tag key={l}>{l}</Tag>)}
+            {rest.length > 0 && (
+              <Tooltip title={rest.join(', ')}>
+                <Tag>+{rest.length} more</Tag>
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: 'Active',
@@ -167,7 +211,7 @@ function Resources() {
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>Add Resource</Button>
       </div>
       <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-        Flyers, policy documents, and training decks available for agents to view or download.
+        Flyers, policy documents, and training material (files or videos) available to agents, agencies, and staff to view or download.
       </Typography.Text>
 
       <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
@@ -199,7 +243,7 @@ function Resources() {
           <Form.Item name="isActive" label="Active" valuePropName="checked" initialValue={true}>
             <Switch checkedChildren="On" unCheckedChildren="Off" />
           </Form.Item>
-          <Form.Item label="File (image or PDF)">
+          <Form.Item label="File (image or PDF)" tooltip="Optional if a video link is provided below — a resource just needs one or the other.">
             <Upload
               listType="picture-card"
               fileList={fileList}
@@ -220,19 +264,49 @@ function Resources() {
             </Upload>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>JPG, PNG, or PDF — max 10 MB</Typography.Text>
           </Form.Item>
+          <Form.Item name="videoLink" label="Video Link" tooltip="Optional if a file is uploaded above. e.g. a YouTube or Vimeo link for a training video.">
+            <Input placeholder="https://youtube.com/watch?v=..." />
+          </Form.Item>
           <Form.Item
-            name="assignedAgencies"
-            label="Assign to Agencies"
-            tooltip="Leave empty to keep this resource visible to every agency (default). Pick specific agencies to restrict it to only them."
+            name="visibleToRoles"
+            label="Visible To"
+            tooltip="Leave empty to show this resource to everyone (default). Tick specific roles to restrict it — e.g. a training video just for Sales and CPV staff."
           >
-            <Select
-              mode="multiple"
-              allowClear
-              showSearch
-              placeholder="All agencies (default) — pick to restrict"
-              options={agencyOptions}
-              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
-            />
+            <Checkbox.Group options={ROLE_OPTIONS} />
+          </Form.Item>
+          <Form.Item shouldUpdate={(prev, cur) => prev.visibleToRoles !== cur.visibleToRoles} noStyle>
+            {({ getFieldValue }) => {
+              // Same rule for Add and Edit: Assign to Agencies only shows
+              // (and only applies — see onSubmit) once a role is picked.
+              const hasRoles = getFieldValue('visibleToRoles')?.length > 0;
+              if (!hasRoles) {
+                // Warn before this save silently lifts an agency restriction
+                // that was set before Visible To existed (or before it was
+                // unchecked just now) — since with no role picked, Assign to
+                // Agencies is hidden and won't be sent, per the rule above.
+                return editing?.assignedAgencies?.length > 0 && (
+                  <Typography.Paragraph type="warning" style={{ marginTop: -12, marginBottom: 16, fontSize: 12.5 }}>
+                    This resource is currently restricted to {editing.assignedAgencies.length} agenc{editing.assignedAgencies.length === 1 ? 'y' : 'ies'}. Pick a role above to keep managing that, or saving now will make it visible to every agency.
+                  </Typography.Paragraph>
+                );
+              }
+              return (
+                <Form.Item
+                  name="assignedAgencies"
+                  label="Assign to Agencies"
+                  tooltip="Leave empty to keep this resource visible to every agency (default). Pick specific agencies to restrict it to only them."
+                >
+                  <Select
+                    mode="multiple"
+                    allowClear
+                    showSearch
+                    placeholder="All agencies (default) — pick to restrict"
+                    options={agencyOptions}
+                    filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+                  />
+                </Form.Item>
+              );
+            }}
           </Form.Item>
         </Form>
       </Modal>

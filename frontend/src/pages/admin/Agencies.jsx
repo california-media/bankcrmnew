@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Button, Table, Modal, Form, Input, Tag, Typography, message, Alert, Tooltip, Popconfirm, Space, Tabs, Badge, Descriptions, Switch } from 'antd';
-import { PlusOutlined, MailOutlined, CopyOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Form, Input, Tag, Typography, message, Alert, Tooltip, Popconfirm, Space, Tabs, Badge, Descriptions, Switch, Select } from 'antd';
+import { PlusOutlined, MailOutlined, CopyOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined, ClockCircleOutlined, CloseCircleOutlined, LockOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 
 function Agencies() {
@@ -12,8 +12,11 @@ function Agencies() {
   const [inviteUrl, setInviteUrl] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
   const [detailTarget, setDetailTarget] = useState(null);
+  const [pwTarget, setPwTarget] = useState(null);
+  const [pwSaving, setPwSaving] = useState(false);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
+  const [pwForm] = Form.useForm();
   const [tab, setTab] = useState('all');
 
   const load = async () => {
@@ -70,7 +73,7 @@ function Agencies() {
 
   const openEdit = (row) => {
     setEditTarget(row);
-    editForm.setFieldsValue({ name: row.name || '', email: row.email });
+    editForm.setFieldsValue({ name: row.name || '', email: row.email, agencyCommissionModel: row.agencyCommissionModel || 'wholesale' });
   };
 
   const onEdit = async () => {
@@ -82,6 +85,25 @@ function Agencies() {
       load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed to update');
+    }
+  };
+
+  const openResetPassword = (row) => {
+    setPwTarget(row);
+    pwForm.resetFields();
+  };
+
+  const onResetPassword = async () => {
+    const { password } = await pwForm.validateFields();
+    setPwSaving(true);
+    try {
+      await api.patch(`/agencies/${pwTarget._id}/reset-password`, { password });
+      message.success('Password updated');
+      setPwTarget(null);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update password');
+    } finally {
+      setPwSaving(false);
     }
   };
 
@@ -156,6 +178,9 @@ function Agencies() {
       <Tooltip title="Edit">
         <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(row)} />
       </Tooltip>
+      <Tooltip title="Reset Password">
+        <Button size="small" icon={<LockOutlined />} onClick={() => openResetPassword(row)} />
+      </Tooltip>
       <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
         <Button
           size="small"
@@ -184,6 +209,11 @@ function Agencies() {
       title: 'Status',
       dataIndex: 'isActive',
       render: (v) => v ? <Tag color="green">Active</Tag> : <Tag color="orange">Pending invite</Tag>,
+    },
+    {
+      title: 'Commission Model',
+      dataIndex: 'agencyCommissionModel',
+      render: (v) => v === 'referral' ? <Tag color="purple">Referral</Tag> : <Tag>Wholesale</Tag>,
     },
     {
       title: 'Payouts Access',
@@ -274,7 +304,7 @@ function Agencies() {
             label: <span>All Agencies ({agencies.length})</span>,
             children: (
               <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-                <Table size="small" rowKey="_id" loading={loading} dataSource={agencies} columns={columns} />
+                <Table size="small" rowKey="_id" loading={loading} dataSource={agencies} columns={columns} scroll={{ x: 860 }} />
               </div>
             ),
           },
@@ -356,6 +386,35 @@ function Agencies() {
         <Form form={editForm} layout="vertical">
           <Form.Item name="name" label="Agency name"><Input /></Form.Item>
           <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item>
+          <Form.Item
+            name="agencyCommissionModel"
+            label="Commission model"
+            tooltip="Wholesale: agency is invoiced for gross commission and pays its own agents from its bucket (today's default). Referral: MySilah pays the agency's tagged agents directly, plus a referral bonus to the agency — and pays the agency in full for leads it submits itself."
+          >
+            <Select
+              options={[
+                { value: 'wholesale', label: 'Wholesale — agency pays MySilah' },
+                { value: 'referral', label: 'Referral — MySilah pays agency' },
+              ]}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal
+        title={`Reset Password — ${pwTarget?.name || pwTarget?.email || ''}`}
+        open={!!pwTarget}
+        onCancel={() => setPwTarget(null)}
+        onOk={onResetPassword}
+        okText="Update"
+        confirmLoading={pwSaving}
+        destroyOnClose
+      >
+        <Form form={pwForm} layout="vertical">
+          <Form.Item name="password" label="New Password" rules={[{ required: true }, { min: 6, message: 'Minimum 6 characters' }]}>
+            <Input.Password placeholder="New password" />
+          </Form.Item>
         </Form>
       </Modal>
 

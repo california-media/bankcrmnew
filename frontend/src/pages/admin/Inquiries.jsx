@@ -117,6 +117,7 @@ export default function Inquiries() {
         rowClassName={(r) => (!r.read ? 'inquiry-unread' : '')}
         pagination={{ pageSize: 20 }}
         onRow={(record) => ({ onClick: () => open(record), style: { cursor: 'pointer' } })}
+        scroll={{ x: 'max-content' }}
       />
       </div>
 

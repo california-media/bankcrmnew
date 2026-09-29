@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import {
-  Card, Col, Row, Typography, Tag, Space, Button, Descriptions, Skeleton,
+  Card, Col, Row, Typography, Tag, Space, Button, Skeleton,
   Timeline, Divider, message, Modal, Form, InputNumber, Input, Select, Image, Tabs, Alert, Segmented, Upload,
 } from 'antd';
 import {
   ArrowLeftOutlined, CheckOutlined, CloseOutlined, DeleteOutlined, EditOutlined, FileOutlined, DollarOutlined, ThunderboltOutlined,
-  PaperClipOutlined, UploadOutlined, SendOutlined,
+  PaperClipOutlined, UploadOutlined, SendOutlined, SwapOutlined,
 } from '@ant-design/icons';
 import api from '../../api/client';
 import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
 import { ACTION_LABELS, LOAN_MILESTONES, getLoanActions } from '../../utils/loanActions';
+import { NATIONALITIES, CITIES, VISA_OPTIONS } from '../../utils/customerOptions';
 
 const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
 
@@ -63,13 +64,49 @@ const COMM_LABELS = { paid: 'Paid', payable: 'Payout Ready', pending: 'Pending',
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 const pct = (n) => `${Number(n || 0)}%`;
 
-const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned', 'approved'];
-const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
+const REJECTABLE_FROM      = ['submitted', 'under_review', 'assigned'];
+const LOAN_EDITABLE_FROM   = ['submitted', 'under_review', 'assigned', 'approved'];
+const CHANGE_PRODUCT_FROM  = ['submitted', 'under_review', 'assigned', 'rejected'];
+
+// Some LoanProduct.loanCategory values map to exactly one Loan Type (the
+// process-flow field getLoanActions() switches on) — set it automatically
+// instead of asking for a pick. 'mortgage' maps to two (New vs Buyout), a
+// genuine choice. Mirrors frontend/src/pages/agent/SubmitLead.jsx.
+const LOAN_TYPE_OPTIONS_BY_CATEGORY = {
+  auto_loan: [{ value: 'auto_loan', label: 'Auto Loan' }],
+  pos_loan: [{ value: 'pos_loan', label: 'POS Loan' }],
+  mortgage: [
+    { value: 'mortgage_new', label: 'Mortgage Loan (New)' },
+    { value: 'mortgage_buyout', label: 'Mortgage Loan (Buyout)' },
+  ],
+};
+const OTHER_LOAN_TYPE_OPTIONS = [
+  { value: 'new_stl_loan',      label: 'New STL Loan' },
+  { value: 'buyout',            label: 'Buyout' },
+  { value: 'pdc',               label: 'PDC' },
+  { value: 'business_loan',     label: 'Business Loan' },
+  { value: 'sme_new_loan',      label: 'SME New Loan' },
+  { value: 'sme_buyout_loan',   label: 'SME Buyout Loan' },
+  { value: 'pos_loan_non_bank', label: 'POS Loan / Non Bank' },
+];
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || `${API_BASE}/uploads`;
 
 const VISA_LABELS = { employment: 'Employment', residence: 'Residence', investor: 'Investor', golden: 'Golden', freelance: 'Freelance', tourist: 'Tourist', other: 'Other' };
+
+// Fields in the "Edit Customer Details" form (and their labels in Customer
+// Details History). Phone and monthly salary are intentionally not editable.
+const CUSTOMER_FIELD_LABELS = {
+  customerName: 'Name', email: 'Email', referenceNo: 'Reference No.', nationality: 'Nationality', city: 'City',
+  visaType: 'Visa Type', companyName: 'Company', jobTitle: 'Job Title', yearsOfExperience: 'Experience',
+};
+const customerFieldText = (field, value) => {
+  if (value == null || value === '') return '—';
+  if (field === 'visaType') return VISA_LABELS[value] || value;
+  if (field === 'yearsOfExperience') return `${value} yr${Number(value) !== 1 ? 's' : ''}`;
+  return value;
+};
 
 const InfoItem = ({ label, value, sub }) => {
   if (value == null || value === '' || value === false) return null;
@@ -81,6 +118,17 @@ const InfoItem = ({ label, value, sub }) => {
     </div>
   );
 };
+
+const ModalSummary = ({ items }) => (
+  <div style={{ display: 'flex', gap: 20, marginBottom: 18, padding: '10px 14px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+    {items.map(({ label, value }) => (
+      <div key={label} style={{ flex: 1, minWidth: 120 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }}>{label}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', wordBreak: 'break-word' }}>{value || '—'}</div>
+      </div>
+    ))}
+  </div>
+);
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -102,6 +150,10 @@ export default function LeadDetail() {
   const [editingRemarks, setEditingRemarks] = useState(false);
   const [remarksValue, setRemarksValue] = useState('');
   const [remarksSaving, setRemarksSaving] = useState(false);
+
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [customerSaving, setCustomerSaving] = useState(false);
+  const [customerForm] = Form.useForm();
 
   const uploadDocuments = async () => {
     if (!docFileList.length) return;
@@ -128,13 +180,40 @@ export default function LeadDetail() {
     setRefSaving(true);
     try {
       const { data } = await api.patch(`/leads/${lead._id}/reference-no`, { referenceNo: refValue });
-      setLead((prev) => ({ ...prev, referenceNo: data.referenceNo }));
+      setLead((prev) => ({ ...prev, referenceNo: data.referenceNo, customerDetailsHistory: data.customerDetailsHistory }));
       setEditingRef(false);
       message.success('Reference number updated');
     } catch (err) {
       message.error(err.response?.data?.message || 'Update failed');
     } finally {
       setRefSaving(false);
+    }
+  };
+
+  const openCustomerModal = () => {
+    customerForm.setFieldsValue(Object.fromEntries(
+      Object.keys(CUSTOMER_FIELD_LABELS).map((key) => [key, lead[key] ?? undefined]),
+    ));
+    setCustomerModalOpen(true);
+  };
+
+  const saveCustomerDetails = async () => {
+    const values = await customerForm.validateFields();
+    setCustomerSaving(true);
+    try {
+      const payload = Object.fromEntries(
+        Object.keys(CUSTOMER_FIELD_LABELS).map((key) => [key, values[key] ?? null]),
+      );
+      const before = lead.customerDetailsHistory?.length || 0;
+      const { data } = await api.patch(`/leads/${lead._id}/customer-details`, payload);
+      setLead((prev) => ({ ...prev, ...data }));
+      setCustomerModalOpen(false);
+      if ((data.customerDetailsHistory?.length || 0) > before) message.success('Customer details updated');
+      else message.info('No changes to save');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    } finally {
+      setCustomerSaving(false);
     }
   };
 
@@ -155,6 +234,12 @@ export default function LeadDetail() {
   const [loanOpen, setLoanOpen]       = useState(false);
   const [statusModal, setStatusModal] = useState({ open: false, status: null, label: '' });
   const [loanForm]                    = Form.useForm();
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [productForm]                 = Form.useForm();
+  const [productSaving, setProductSaving] = useState(false);
+  const [productCatalogue, setProductCatalogue] = useState([]);
+  const [productCatalogueLoading, setProductCatalogueLoading] = useState(false);
+  const [selectedProductBankId, setSelectedProductBankId] = useState(null);
   const [statusNoteForm]              = Form.useForm();
   const [statusSaving, setStatusSaving] = useState(false);
   const [noteText, setNoteText] = useState('');
@@ -182,6 +267,7 @@ export default function LeadDetail() {
   const [cardProducts, setCardProducts]   = useState([]);
   const [loanProducts, setLoanProducts]   = useState([]);
   const [selectedCard, setSelectedCard]   = useState(null);
+  const [selectedCompleteLoan, setSelectedCompleteLoan] = useState(null);
   const [selectedBracket, setSelectedBracket] = useState(null);
   const [completing, setCompleting]       = useState(false);
   const [termsOpen, setTermsOpen]         = useState(false);
@@ -213,7 +299,7 @@ export default function LeadDetail() {
         })
         .catch(() => {});
     }
-    if (role === 'agency') {
+    if (role === 'agency' || (role === 'employee' && user.employeeType === 'coordinator')) {
       api.get('/employees').then((res) => setEmployees(res.data)).catch(() => {});
     }
     if (role === 'employee' || role === 'agency' || role === 'admin') {
@@ -252,6 +338,40 @@ export default function LeadDetail() {
       load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const openProductModal = () => {
+    productForm.resetFields();
+    setSelectedProductBankId(null);
+    setProductModalOpen(true);
+    setProductCatalogueLoading(true);
+    const endpoint = lead.productType === 'credit_card' ? '/card-products'
+      : lead.productType === 'loan' ? '/loan-products'
+      : '/account-products';
+    api.get(endpoint)
+      .then((res) => setProductCatalogue(res.data.filter((p) => p.isActive)))
+      .catch(() => setProductCatalogue([]))
+      .finally(() => setProductCatalogueLoading(false));
+  };
+
+  const onProductBankChange = (bankId) => {
+    setSelectedProductBankId(bankId);
+    productForm.resetFields(['productId']);
+  };
+
+  const saveProductChange = async () => {
+    const { bank, productId } = await productForm.validateFields();
+    setProductSaving(true);
+    try {
+      await api.patch(`/leads/${id}/product`, { bank, productId });
+      message.success('Product updated');
+      setProductModalOpen(false);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    } finally {
+      setProductSaving(false);
     }
   };
 
@@ -352,8 +472,22 @@ export default function LeadDetail() {
     completeForm.resetFields();
     setCompleteProdType('credit_card');
     setSelectedCard(null);
+    setSelectedCompleteLoan(null);
     setSelectedBracket(null);
     setCompleteOpen(true);
+  };
+
+  const onCompleteLoanSelect = (id) => {
+    const loan = loanProducts.find((l) => l._id === id) || null;
+    setSelectedCompleteLoan(loan);
+    // Auto-loan/POS-loan products have exactly one valid Loan Type — set it
+    // directly instead of asking the operator to pick from a 1-item dropdown.
+    const fixed = loan ? LOAN_TYPE_OPTIONS_BY_CATEGORY[loan.loanCategory] : null;
+    if (fixed && fixed.length === 1) {
+      completeForm.setFieldValue('loanType', fixed[0].value);
+    } else {
+      completeForm.resetFields(['loanType']);
+    }
   };
 
   const onCompleteCardSelect = (id) => {
@@ -407,7 +541,8 @@ export default function LeadDetail() {
     }
   };
 
-  const backPath = role === 'admin' ? '/admin/leads' : role === 'agency' ? '/agency/leads' : role === 'employee' ? '/employee/leads' : '/agent/leads';
+  const isCoordinator = role === 'employee' && user.employeeType === 'coordinator';
+  const backPath = role === 'admin' ? '/admin/leads' : (role === 'agency' || isCoordinator) ? '/agency/leads' : role === 'employee' ? '/employee/leads' : '/agent/leads';
 
   if (loading) {
     return (
@@ -436,6 +571,32 @@ export default function LeadDetail() {
   const statusMeta = statusMap[lead.status] || { color: 'default', label: lead.status };
   const isLoan = lead.productType === 'loan';
   const product = isLoan ? lead.loanProduct : lead.cardProduct;
+
+  const canChangeProduct = (() => {
+    if (!CHANGE_PRODUCT_FROM.includes(lead.status)) return false;
+    if (role === 'admin') return [null, 'coordinator', 'leads'].includes(user.adminScope);
+    if (role === 'agency') return true;
+    if (role === 'employee' && user.employeeType === 'coordinator') return true;
+    if (role === 'employee' && user.employeeType === 'sales') {
+      return String(lead.assignedSalesEmployee?._id || lead.assignedSalesEmployee || '') === String(user.id);
+    }
+    return false;
+  })();
+
+  const productBankOptions = (() => {
+    const seen = new Set();
+    return productCatalogue
+      .filter((p) => p.bank?._id)
+      .reduce((acc, p) => {
+        if (!seen.has(p.bank._id)) { seen.add(p.bank._id); acc.push({ value: p.bank._id, label: p.bank.name }); }
+        return acc;
+      }, [])
+      .sort((a, b) => a.label.localeCompare(b.label));
+  })();
+
+  const productOptions = productCatalogue
+    .filter((p) => !selectedProductBankId || p.bank?._id === selectedProductBankId)
+    .map((p) => ({ value: p._id, label: p.name }));
   // Account leads (business_account/current_account/savings_account) run the
   // same getLoanActions()-driven milestone chain as loans, so this flag
   // gates milestone buttons/pills for both product types; isLoan itself is
@@ -454,6 +615,11 @@ export default function LeadDetail() {
     const eligible = sorted.filter(b => b.minimumSalary <= lead.customerSalary);
     return eligible.length ? eligible[eligible.length - 1] : sorted[0];
   })();
+
+  // Super Admin (no adminScope), Agency Coordinator, and the CPV/Sales
+  // employee assigned to this lead — the backend enforces the same rule.
+  const canEditCustomer = (role === 'admin' && !user.adminScope)
+    || (role === 'employee' && ['coordinator', 'cpv', 'sales'].includes(user.employeeType));
 
   const cardStyle = { borderRadius: 12, marginBottom: 12, borderTop: '3px solid #7C3AED' };
   const cardBodyStyle = { padding: '14px 16px' };
@@ -506,13 +672,20 @@ export default function LeadDetail() {
           {/* Customer */}
           <Card size="small" style={cardStyle} styles={{ body: cardBodyStyle }}>
             <div style={{ marginBottom: 10 }}>
-              {sectionLabel('Customer')}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                {sectionLabel('Customer')}
+                {canEditCustomer && (
+                  <Button size="small" type="text" icon={<EditOutlined />} style={{ color: '#7c3aed', padding: '0 4px' }} onClick={openCustomerModal}>
+                    Edit
+                  </Button>
+                )}
+              </div>
               <div style={{ fontWeight: 700, fontSize: 16, color: '#0f172a', marginTop: 4 }}>{lead.customerName}</div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px 16px' }}>
               {lead.phone && <InfoItem label="Phone" value={lead.phone} />}
               {lead.email && <InfoItem label="Email" value={lead.email} />}
-              {role === 'agent' && String(lead.agent?._id || lead.agent) === String(user.id || user._id) ? (
+              {(role === 'agency' || role === 'employee' || (role === 'agent' && String(lead.agent?._id || lead.agent) === String(user.id || user._id))) ? (
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>Reference No.</div>
                   {editingRef ? (
@@ -618,6 +791,57 @@ export default function LeadDetail() {
                       ),
                     };
                   })}
+                />
+              </div>
+            </Card>
+          )}
+
+          {/* Product History */}
+          {lead.productHistory?.length > 0 && (
+            <Card size="small" title={sectionLabel('Product History')} style={cardStyle} styles={{ body: { padding: '8px 16px' } }}>
+              <div style={{ maxHeight: 240, overflowY: 'auto', paddingRight: 4 }}>
+                <Timeline
+                  style={{ marginTop: 8 }}
+                  items={[...lead.productHistory].reverse().map((h) => ({
+                    color: 'purple',
+                    children: (
+                      <div style={{ paddingBottom: 2 }}>
+                        <div style={{ fontSize: 12, color: '#0f172a' }}>
+                          {h.fromBankName} — {h.fromProductName} → {h.toBankName} — {h.toProductName}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+                          {new Date(h.changedAt).toLocaleString()}
+                          {role !== 'agent' && h.changedBy && ` · ${h.changedBy.name || h.changedBy.email}`}
+                        </div>
+                      </div>
+                    ),
+                  }))}
+                />
+              </div>
+            </Card>
+          )}
+
+          {/* Customer Details History */}
+          {lead.customerDetailsHistory?.length > 0 && (
+            <Card size="small" title={sectionLabel('Customer Details History')} style={cardStyle} styles={{ body: { padding: '8px 16px' } }}>
+              <div style={{ maxHeight: 240, overflowY: 'auto', paddingRight: 4 }}>
+                <Timeline
+                  style={{ marginTop: 8 }}
+                  items={[...lead.customerDetailsHistory].reverse().map((h) => ({
+                    color: 'purple',
+                    children: (
+                      <div style={{ paddingBottom: 2 }}>
+                        <div style={{ fontSize: 12, color: '#0f172a', wordBreak: 'break-word' }}>
+                          <strong>{CUSTOMER_FIELD_LABELS[h.field] || h.field}:</strong>{' '}
+                          {customerFieldText(h.field, h.from)} → {customerFieldText(h.field, h.to)}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>
+                          {new Date(h.changedAt).toLocaleString()}
+                          {role !== 'agent' && (h.changedBy?.name || h.changedByName) && ` · ${h.changedBy?.name || h.changedByName}`}
+                        </div>
+                      </div>
+                    ),
+                  }))}
                 />
               </div>
             </Card>
@@ -749,7 +973,7 @@ export default function LeadDetail() {
               <div style={{ marginTop: 12 }}>
                 <Input
                   size="small"
-                  placeholder="Document name / label (e.g. Emirates ID, Salary Slip)"
+                  placeholder="Document name / label (e.g. Card Activation)"
                   value={docLabel}
                   onChange={(e) => setDocLabel(e.target.value)}
                   style={{ borderRadius: 7, fontSize: 13, marginBottom: 8 }}
@@ -847,16 +1071,16 @@ export default function LeadDetail() {
                 {['submitted', 'under_review', 'assigned'].includes(lead.status) && (
                   <Button block size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>Approve</Button>
                 )}
-                {!hasMilestones && lead.status === 'approved' && !lead.cpvDone && (
+                {!hasMilestones && lead.status === 'approved' && lead.bank?.hasCpv !== false && !lead.cpvDone && (
                   <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'cpv' }); }}>CPV</Button>
                 )}
-                {!hasMilestones && lead.status === 'approved' && !lead.activateDone && (
+                {!hasMilestones && lead.status === 'approved' && lead.bank?.hasActivation !== false && !lead.activateDone && (
                   <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'activate' }); }}>Activated</Button>
                 )}
                 {!hasMilestones && lead.status === 'approved' && lead.bank?.hasSpend && !lead.spendDone && (
                   <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'spend' }); }}>Spend</Button>
                 )}
-                {!hasMilestones && lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
+                {!hasMilestones && lead.status === 'approved' && (lead.bank?.hasCpv === false || lead.cpvDone) && (lead.bank?.hasActivation === false || lead.activateDone) && (
                   <Button block size="small" onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
                 )}
                 {hasMilestones && loanActions.buttons.map((b) => (
@@ -867,6 +1091,9 @@ export default function LeadDetail() {
                 )}
                 {isLoan && LOAN_EDITABLE_FROM.includes(lead.status) && (
                   <Button block size="small" icon={<EditOutlined />} onClick={() => { loanForm.setFieldsValue({ loanAmount: lead.loanAmount }); setLoanOpen(true); }}>Edit Loan Amount</Button>
+                )}
+                {canChangeProduct && (
+                  <Button block size="small" icon={<SwapOutlined />} onClick={openProductModal}>Change Product</Button>
                 )}
                 {REJECTABLE_FROM.includes(lead.status) && (
                   <Button block size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal('rejected', 'Rejected')}>Reject</Button>
@@ -885,9 +1112,23 @@ export default function LeadDetail() {
           {/* Admin Actions */}
           {role === 'admin' && (
             <Card size="small" title={sectionLabel('Actions')} style={cardStyle} styles={{ body: cardBodyStyle }}>
+              {hasMilestones && loanDoneTypes.length > 0 && (
+                <Space style={{ marginBottom: 10, flexWrap: 'wrap' }}>
+                  {loanDoneTypes.map((t) => <Tag key={t} color="green" style={{ margin: 0 }}>{ACTION_LABELS[t]} ✓</Tag>)}
+                </Space>
+              )}
               <Space direction="vertical" size={6} style={{ width: '100%' }}>
                 {['submitted', 'under_review', 'assigned'].includes(lead.status) && (
                   <Button block size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>Approve</Button>
+                )}
+                {hasMilestones && loanActions.buttons.map((b) => (
+                  <Button key={b.type} block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: b.type }); }}>{b.label}</Button>
+                ))}
+                {isLoan && LOAN_EDITABLE_FROM.includes(lead.status) && (
+                  <Button block size="small" icon={<EditOutlined />} onClick={() => { loanForm.setFieldsValue({ loanAmount: lead.loanAmount }); setLoanOpen(true); }}>Edit Loan Amount</Button>
+                )}
+                {canChangeProduct && (
+                  <Button block size="small" icon={<SwapOutlined />} onClick={openProductModal}>Change Product</Button>
                 )}
                 {lead.status === 'approved' && (
                   <Button block size="small" onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
@@ -902,6 +1143,11 @@ export default function LeadDetail() {
           {/* Employee Actions */}
           {role === 'employee' && (() => {
             const et = user.employeeType;
+            // Agency Coordinator ("all access except payment") gets the same
+            // lead actions as a sales employee — the one thing withheld from
+            // Coordinator is payment/payout visibility, handled elsewhere
+            // (not in this action set at all).
+            const hasFullAccess = et === 'sales' || et === 'coordinator';
             return (
               <Card size="small" title={sectionLabel('Actions')} style={cardStyle} styles={{ body: cardBodyStyle }}>
                 <Space direction="vertical" size={6} style={{ width: '100%' }}>
@@ -919,26 +1165,43 @@ export default function LeadDetail() {
                   {et === 'cpv' && !hasMilestones && lead.status === 'approved' && !lead.cpvDone && (
                     <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'cpv' }); }}>Mark CPV Done</Button>
                   )}
-                  {et === 'sales' && ['submitted', 'under_review', 'assigned'].includes(lead.status) && (
+                  {hasFullAccess && ['submitted', 'under_review', 'assigned'].includes(lead.status) && (
                     <Button block size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal('approved', 'Approved')}>Approve</Button>
                   )}
-                  {et === 'sales' && !hasMilestones && lead.status === 'approved' && !lead.activateDone && (
+                  {hasFullAccess && !hasMilestones && lead.status === 'approved' && !lead.activateDone && (
                     <Button block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: 'activate' }); }}>Mark Activated</Button>
                   )}
-                  {et === 'sales' && !hasMilestones && lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
+                  {hasFullAccess && !hasMilestones && lead.status === 'approved' && lead.cpvDone && lead.activateDone && (
                     <Button block size="small" style={{ background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }} icon={<DollarOutlined />} onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
                   )}
-                  {et === 'sales' && hasMilestones && loanActions.buttons.map((b) => (
+                  {hasFullAccess && hasMilestones && loanActions.buttons.map((b) => (
                     <Button key={b.type} block size="small" onClick={() => { actionForm.resetFields(); setActionModal({ open: true, type: b.type }); }}>{b.label}</Button>
                   ))}
-                  {et === 'sales' && hasMilestones && loanActions.canDisburse && (
+                  {hasFullAccess && hasMilestones && loanActions.canDisburse && (
                     <Button block size="small" style={{ background: '#7c3aed', color: '#fff', borderColor: '#7c3aed' }} icon={<DollarOutlined />} onClick={() => openStatusModal('disbursed', 'Disbursed')}>Mark Disbursed</Button>
                   )}
-                  {et === 'sales' && isLoan && LOAN_EDITABLE_FROM.includes(lead.status) && (
+                  {hasFullAccess && isLoan && LOAN_EDITABLE_FROM.includes(lead.status) && (
                     <Button block size="small" icon={<EditOutlined />} onClick={() => { loanForm.setFieldsValue({ loanAmount: lead.loanAmount }); setLoanOpen(true); }}>Edit Loan Amount</Button>
                   )}
-                  {et === 'sales' && REJECTABLE_FROM.includes(lead.status) && (
+                  {canChangeProduct && (
+                    <Button block size="small" icon={<SwapOutlined />} onClick={openProductModal}>Change Product</Button>
+                  )}
+                  {hasFullAccess && REJECTABLE_FROM.includes(lead.status) && (
                     <Button block size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal('rejected', 'Rejected')}>Reject</Button>
+                  )}
+                  {et === 'coordinator' && !['disbursed', 'rejected'].includes(lead.status) && (
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Assign Employees</div>
+                      <Select allowClear placeholder="CPV employee" loading={assigningEmployee === 'cpv'} value={lead.assignedCpvEmployee?._id || undefined} onChange={(val) => assignEmployee(val || null, 'cpv')} size="small" style={{ width: '100%', marginBottom: 4 }} options={employees.filter((e) => e.isActive && e.employeeType === 'cpv').map((e) => ({ value: e._id, label: e.name || e.email }))} />
+                      <Select allowClear placeholder="Sales employee" loading={assigningEmployee === 'sales'} value={lead.assignedSalesEmployee?._id || undefined} onChange={(val) => assignEmployee(val || null, 'sales')} size="small" style={{ width: '100%' }} options={employees.filter((e) => e.isActive && e.employeeType === 'sales').map((e) => ({ value: e._id, label: e.name || e.email }))} />
+                    </div>
+                  )}
+                  {/* Status (lead label) for Coordinator + Sales — same options and stage rule as the agency Status card */}
+                  {hasFullAccess && ['submitted', 'under_review', 'assigned'].includes(lead.status) && (
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Status</div>
+                      <Select placeholder="Set stage..." value={lead.employeeStatus?._id || lead.employeeStatus || undefined} loading={empStatusSaving} onChange={(val) => updateEmpStatus(val || null)} size="small" style={{ width: '100%' }} options={labelStatuses.map((s) => ({ value: s._id, label: <Tag color={s.color}>{s.label}</Tag> }))} />
+                    </div>
                   )}
                   {/* Status Label — hidden per request, keep code for later restore
                   <div style={{ marginTop: 4 }}>
@@ -1040,13 +1303,18 @@ export default function LeadDetail() {
                       {aed(isLoan ? lead.loanProduct?.minSalary : matchedCardBracket?.minimumSalary)}
                     </div>
                   </div>
-                  <span style={{ color: '#cbd5e1', fontSize: 20, fontWeight: 300 }}>→</span>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 3 }}>Payout</div>
-                    <div style={{ fontWeight: 800, fontSize: 17, color: '#16a34a' }}>
-                      {aed(role === 'agency' ? lead.grossCommission : lead.commission)}
-                    </div>
-                  </div>
+                  {/* Payout is hidden from agency staff (Coordinator, CPV, Sales) — only the agency owner and Accountant see it. */}
+                  {!(role === 'employee' && user.employeeType !== 'account') && (
+                    <>
+                      <span style={{ color: '#cbd5e1', fontSize: 20, fontWeight: 300 }}>→</span>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 3 }}>Payout</div>
+                        <div style={{ fontWeight: 800, fontSize: 17, color: '#16a34a' }}>
+                          {aed(role === 'agency' ? lead.grossCommission : lead.commission)}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                   <div>
@@ -1063,19 +1331,6 @@ export default function LeadDetail() {
                     <img src={`${UPLOADS_BASE}/card-images/${lead.cardProduct.cardImage}`} alt={lead.cardProduct.name} style={{ height: 46, objectFit: 'contain', borderRadius: 5, boxShadow: '0 2px 6px rgba(0,0,0,0.12)' }} />
                   )}
                 </div>
-                {!isLoan && lead.cardProduct?.cashbackCategories?.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
-                    {lead.cardProduct.cashbackCategories.map((c, idx) => {
-                      const label = c.category?.name || (typeof c.category === 'string' ? c.category : null) || `Category ${idx + 1}`;
-                      const key = c.category?._id || c.category || idx;
-                      return (
-                        <span key={key} style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#eef2ff', color: '#4338ca', border: '1px solid #c7d2fe' }}>
-                          {label}{c.rate != null ? ` ${c.rate}%` : ''}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
               {isLoan && (lead.loanAmount > 0 || lead.loanType) && (
                 <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -1151,14 +1406,93 @@ export default function LeadDetail() {
       </Modal>
 
       {/* Loan amount modal */}
-      <Modal title="Edit Loan Amount" open={loanOpen} onCancel={() => setLoanOpen(false)} onOk={saveLoanAmount} okText="Save" destroyOnClose>
-        <Descriptions size="small" style={{ marginBottom: 16 }}>
-          <Descriptions.Item label="Client">{lead.customerName}</Descriptions.Item>
-          <Descriptions.Item label="Product">{lead.loanProduct?.name}</Descriptions.Item>
-        </Descriptions>
+      <Modal title="Edit Loan Amount" open={loanOpen} onCancel={() => setLoanOpen(false)} onOk={saveLoanAmount} okText="Save" destroyOnClose width={440}>
+        <ModalSummary items={[{ label: 'Client', value: lead.customerName }, { label: 'Product', value: lead.loanProduct?.name }]} />
         <Form form={loanForm} layout="vertical">
           <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true }]}>
-            <InputNumber min={1} step={1000} style={{ width: '100%' }} />
+            <InputNumber min={1} step={1000} style={{ width: '100%' }} prefix="AED" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Edit Customer Details modal — phone and salary shown read-only */}
+      <Modal title="Edit Customer Details" open={customerModalOpen} onCancel={() => setCustomerModalOpen(false)} onOk={saveCustomerDetails} okText="Save" confirmLoading={customerSaving} destroyOnClose width={560}>
+        <ModalSummary items={[{ label: 'Phone (not editable)', value: lead.phone }, { label: 'Monthly Salary (not editable)', value: lead.customerSalary > 0 ? aed(lead.customerSalary) : null }]} />
+        <Form form={customerForm} layout="vertical">
+          <Row gutter={12}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="customerName" label="Full Name (as per Emirates ID)" rules={[{ required: true, whitespace: true, message: 'Name required' }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="email" label="Email" rules={[{ type: 'email', message: 'Invalid email' }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="referenceNo" label="Reference No.">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="nationality" label="Nationality">
+                <Select showSearch allowClear placeholder="Select nationality" options={NATIONALITIES} filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="city" label="City">
+                <Select allowClear placeholder="Select city" options={CITIES} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="visaType" label="Visa Type">
+                <Select allowClear placeholder="Select visa type" options={VISA_OPTIONS} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="companyName" label="Company">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="jobTitle" label="Job Title">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="yearsOfExperience" label="Length of Service (yrs)">
+                <InputNumber min={0} max={60} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form>
+      </Modal>
+
+      {/* Change Product modal */}
+      <Modal title="Change Product" open={productModalOpen} onCancel={() => setProductModalOpen(false)} onOk={saveProductChange} okText="Save" confirmLoading={productSaving} destroyOnClose width={480}>
+        <ModalSummary items={[{ label: 'Client', value: lead.customerName }, { label: 'Current Product', value: product?.name }]} />
+        <Form form={productForm} layout="vertical">
+          <Form.Item name="bank" label="Bank" rules={[{ required: true, message: 'Select a bank' }]}>
+            <Select
+              showSearch
+              allowClear
+              placeholder="Select bank"
+              loading={productCatalogueLoading}
+              options={productBankOptions}
+              onChange={onProductBankChange}
+              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+            />
+          </Form.Item>
+          <Form.Item name="productId" label="Product" rules={[{ required: true, message: 'Select a product' }]}>
+            <Select
+              showSearch
+              disabled={!selectedProductBankId}
+              placeholder={selectedProductBankId ? 'Select product' : 'Select a bank first'}
+              loading={productCatalogueLoading}
+              options={productOptions}
+              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+            />
           </Form.Item>
         </Form>
       </Modal>
@@ -1192,6 +1526,7 @@ export default function LeadDetail() {
           onChange={(v) => {
             setCompleteProdType(v);
             setSelectedCard(null);
+            setSelectedCompleteLoan(null);
             setSelectedBracket(null);
             completeForm.resetFields(['cardProduct', 'loanProduct', 'salaryBracket', 'loanAmount', 'loanType']);
           }}
@@ -1240,23 +1575,27 @@ export default function LeadDetail() {
                   showSearch
                   placeholder="Select loan product"
                   optionFilterProp="label"
+                  onChange={onCompleteLoanSelect}
                   options={loanProducts.map((l) => ({ value: l._id, label: `${l.name} — ${l.bank?.name || ''}` }))}
                 />
               </Form.Item>
               <Form.Item name="loanAmount" label="Loan Amount (AED)">
                 <InputNumber min={1} step={1000} style={{ width: '100%' }} placeholder="e.g. 50000" />
               </Form.Item>
-              <Form.Item name="loanType" label="Loan Type">
-                <Select placeholder="Select type" allowClear options={[
-                  { value: 'new_stl_loan',      label: 'New STL Loan' },
-                  { value: 'buyout',            label: 'Buyout' },
-                  { value: 'pdc',               label: 'PDC' },
-                  { value: 'business_loan',     label: 'Business Loan' },
-                  { value: 'sme_new_loan',      label: 'SME New Loan' },
-                  { value: 'sme_buyout_loan',   label: 'SME Buyout Loan' },
-                  { value: 'pos_loan_non_bank', label: 'POS Loan / Non Bank' },
-                ]} />
-              </Form.Item>
+              {selectedCompleteLoan && (() => {
+                // Single-option categories (auto_loan/pos_loan) were already
+                // set automatically in onCompleteLoanSelect and don't need a
+                // dropdown at all — everything else, including mortgage's
+                // genuine New/Buyout choice, is shown and required so this
+                // never silently completes with loanType left blank.
+                const fixed = LOAN_TYPE_OPTIONS_BY_CATEGORY[selectedCompleteLoan.loanCategory];
+                if (fixed && fixed.length === 1) return null;
+                return (
+                  <Form.Item name="loanType" label="Loan Type" rules={[{ required: true, message: 'Select loan type' }]}>
+                    <Select placeholder="Select type" options={fixed || OTHER_LOAN_TYPE_OPTIONS} />
+                  </Form.Item>
+                );
+              })()}
             </>
           )}
         </Form>

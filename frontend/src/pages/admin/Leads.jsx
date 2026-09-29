@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Table, Tag, Typography, Input, Select, DatePicker, Space, Button, Tabs, Tooltip, Card, Row, Col, ConfigProvider, Upload, Modal, Popconfirm, message, Grid } from 'antd';
-import { SearchOutlined, TableOutlined, AppstoreOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Tag, Typography, Input, Select, DatePicker, Space, Button, Tabs, Tooltip, Popover, Card, Row, Col, ConfigProvider, Upload, Modal, Form, InputNumber, Popconfirm, message, Grid } from 'antd';
+import { SearchOutlined, TableOutlined, AppstoreOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined, CheckOutlined, CloseOutlined, DollarOutlined, EditOutlined } from '@ant-design/icons';
 
 const { useBreakpoint } = Grid;
 import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLeadView } from '../../utils/leadViews';
+import LeadViewBanner from '../../components/LeadViewBanner';
 import api from '../../api/client';
 import exportLeadsToExcel from '../../utils/exportLeadsExcel';
 import downloadLeadImportTemplate from '../../utils/importLeadsTemplate';
+import { LOAN_MILESTONES, ACTION_LABELS, getLoanActions } from '../../utils/loanActions';
 
 const STATUSES = [
   { value: 'draft', label: 'Draft', color: 'default' },
@@ -18,6 +21,12 @@ const STATUSES = [
   { value: 'rejected', label: 'Rejected', color: 'red' },
   { value: 'disbursed', label: 'Disbursed', color: 'purple' },
 ];
+
+// Matches frontend/src/pages/agency/Leads.jsx's table convention — Reject
+// is only offered pre-approval here; once a lead is Approved only Disburse
+// remains in this table. (The lead detail page keeps full override.)
+const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned'];
+const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
 
 const PRODUCTS = [
   { value: 'credit_card', label: 'Credit Card' },
@@ -64,11 +73,26 @@ function AdminLeads() {
   const [dateRange, setDateRange] = useState(null);
 
   const [bankFilter, setBankFilter] = useState();
+  const [agencyFilter, setAgencyFilter] = useState();
+  const [searchParams] = useSearchParams();
+  const [agentFilter, setAgentFilter] = useState(searchParams.get('agent') || undefined);
   const [milestoneFilter, setMilestoneFilter] = useState();
-  const [leadsTab, setLeadsTab] = useState('active');
+  const { view, leadsTab, setLeadsTab, tabsActiveKey, clearView } = useLeadView();
   const [viewMode, setViewMode] = useState('table');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+
+  const [statusModal, setStatusModal] = useState({ open: false, leadId: null, status: null, label: '' });
+  const [statusNoteForm] = Form.useForm();
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [actionModal, setActionModal] = useState({ open: false, leadId: null, type: null });
+  const [actionForm] = Form.useForm();
+  const [actionSaving, setActionSaving] = useState(false);
+  const [empStatuses, setEmpStatuses] = useState([]);
+  const [loanEditOpen, setLoanEditOpen] = useState(false);
+  const [loanEditLead, setLoanEditLead] = useState(null);
+  const [loanForm] = Form.useForm();
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
 
   const load = async () => {
     setLoading(true);
@@ -90,10 +114,142 @@ function AdminLeads() {
     }
   };
 
+  const openStatusModal = (leadId, status, label) => {
+    statusNoteForm.resetFields();
+    setStatusModal({ open: true, leadId, status, label });
+  };
+
+  const confirmStatusUpdate = async () => {
+    setStatusSaving(true);
+    try {
+      const { note } = statusNoteForm.getFieldsValue();
+      await api.patch(`/leads/${statusModal.leadId}/status`, { status: statusModal.status, note: note || undefined });
+      message.success(`Marked as ${statusModal.label}`);
+      setStatusModal({ open: false, leadId: null, status: null, label: '' });
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    } finally {
+      setStatusSaving(false);
+    }
+  };
+
+  const openActionModal = (leadId, type) => {
+    actionForm.resetFields();
+    setActionModal({ open: true, leadId, type });
+  };
+
+  const confirmAction = async () => {
+    setActionSaving(true);
+    try {
+      const { note } = actionForm.getFieldsValue();
+      await api.patch(`/leads/${actionModal.leadId}/${actionModal.type}`, { note: note || undefined });
+      message.success(`${ACTION_LABELS[actionModal.type] || 'Action'} marked done`);
+      setActionModal({ open: false, leadId: null, type: null });
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Action failed');
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
   useEffect(() => {
     load();
     api.get('/employee-statuses?statusType=lead_label').then((r) => setLabelStatuses(r.data.filter((s) => s.isActive))).catch(() => {});
+    api.get('/employee-statuses?statusType=whatsapp_consent').then((r) => setEmpStatuses(r.data.filter((s) => s.isActive))).catch(() => {});
   }, []);
+
+  const updateConsentStatus = async (leadId, consentStatusId) => {
+    try {
+      const { data } = await api.patch(`/leads/${leadId}/consent-status`, { consentStatusId: consentStatusId || null });
+      setLeads((prev) => prev.map((l) => (l._id === leadId ? data : l)));
+      message.success('Consent status updated');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update');
+    }
+  };
+
+  const openLoanEdit = (lead) => {
+    setLoanEditLead(lead);
+    loanForm.setFieldsValue({ loanAmount: lead.loanAmount });
+    setLoanEditOpen(true);
+  };
+
+  const saveLoanAmount = async () => {
+    const { loanAmount } = await loanForm.validateFields();
+    try {
+      await api.patch(`/leads/${loanEditLead._id}/loan-amount`, { loanAmount });
+      message.success('Loan amount updated');
+      setLoanEditOpen(false);
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const bulkUpdateStatus = async (status, label, eligibleFrom) => {
+    const eligibleIds = selectedRowKeys.filter((id) => {
+      const lead = leads.find((l) => l._id === id);
+      return lead && eligibleFrom.includes(lead.status);
+    });
+    const skipped = selectedRowKeys.length - eligibleIds.length;
+    if (!eligibleIds.length) {
+      message.warning(`No selected lead(s) can be ${label.toLowerCase()}`);
+      return;
+    }
+    const results = await Promise.allSettled(
+      eligibleIds.map((id) => api.patch(`/leads/${id}/status`, { status }))
+    );
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    message.success(
+      `${succeeded} lead(s) marked ${label}`
+      + (failed ? `, ${failed} failed` : '')
+      + (skipped ? `, ${skipped} skipped (not eligible)` : '')
+    );
+    setSelectedRowKeys([]);
+    load();
+  };
+
+  // Same payment-locked guard as the single-row delete button (see
+  // adminDeleteLead backend guard) — skip locked leads instead of failing.
+  const isPaymentLocked = (l) => l.commissionStatus === 'paid' || ['agency_paid', 'received'].includes(l.agencyPaymentStatus);
+
+  const bulkDelete = async () => {
+    const eligibleIds = selectedRowKeys.filter((id) => {
+      const lead = leads.find((l) => l._id === id);
+      return lead && !isPaymentLocked(lead);
+    });
+    const skipped = selectedRowKeys.length - eligibleIds.length;
+    if (!eligibleIds.length) {
+      message.warning('No selected lead(s) can be deleted (all have a payment recorded)');
+      return;
+    }
+    const results = await Promise.allSettled(
+      eligibleIds.map((id) => api.delete(`/leads/${id}/admin-delete`))
+    );
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    message.success(
+      `${succeeded} lead(s) deleted`
+      + (failed ? `, ${failed} failed` : '')
+      + (skipped ? `, ${skipped} skipped (payment recorded)` : '')
+    );
+    setSelectedRowKeys([]);
+    load();
+  };
+
+  const bulkMilestoneAction = async (type, label) => {
+    const results = await Promise.allSettled(
+      selectedRowKeys.map((id) => api.patch(`/leads/${id}/${type}`, {}))
+    );
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    message.success(`${succeeded} lead(s) marked ${label}` + (failed ? `, ${failed} failed` : ''));
+    setSelectedRowKeys([]);
+    load();
+  };
 
   const handleImportFile = async (file) => {
     setImporting(true);
@@ -113,7 +269,8 @@ function AdminLeads() {
     return false; // prevent antd Upload from trying to auto-upload itself
   };
 
-  const activeCount = leads.filter(l => l.status !== 'disbursed' && l.status !== 'rejected' && !l.isReferral).length;
+  const activeCount = leads.filter(l => !['approved', 'disbursed', 'rejected'].includes(l.status) && !l.isReferral).length;
+  const approvedCount = leads.filter(l => l.status === 'approved' && !l.isReferral).length;
   const rejectedCount = leads.filter(l => l.status === 'rejected').length;
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
   const referralCount = leads.filter(l => l.isReferral).length;
@@ -126,18 +283,47 @@ function AdminLeads() {
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [leads]);
 
+  const agencyOptions = useMemo(() => {
+    const seen = new Set();
+    return leads
+      .filter((l) => l.agency?._id && !seen.has(String(l.agency._id)) && seen.add(String(l.agency._id)))
+      .map((l) => ({ value: String(l.agency._id), label: l.agency.name }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [leads]);
+
+  const agentOptions = useMemo(() => {
+    const seen = new Set();
+    return leads
+      .filter((l) => l.agent?._id && !seen.has(String(l.agent._id)) && seen.add(String(l.agent._id)))
+      .map((l) => ({ value: String(l.agent._id), label: l.agent.name }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [leads]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const [from, to] = dateRange || [];
     return leads.filter((l) => {
-      if (leadsTab === 'referral' && !l.isReferral) return false;
-      if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
-      if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
-      if (leadsTab === 'active' && (l.status === 'disbursed' || l.status === 'rejected' || l.isReferral)) return false;
-      if (q && !l.customerName.toLowerCase().includes(q) && !String(l._id).toLowerCase().includes(q)) return false;
+      if (
+        q &&
+        !l.customerName.toLowerCase().includes(q) &&
+        !String(l._id).toLowerCase().includes(q) &&
+        !(l.leadNumber || '').toLowerCase().includes(q) &&
+        !(l.referenceNo || '').toLowerCase().includes(q)
+      ) return false;
+      if (view) {
+        if (!view.match(l)) return false;
+      } else if (!q) {
+        if (leadsTab === 'referral' && !l.isReferral) return false;
+        if (leadsTab === 'approved' && (l.status !== 'approved' || l.isReferral)) return false;
+        if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
+        if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
+        if (leadsTab === 'active' && (['approved', 'disbursed', 'rejected'].includes(l.status) || l.isReferral)) return false;
+      }
       if (statusFilter && String(l.employeeStatus?._id) !== statusFilter) return false;
       if (productFilter && l.productType !== productFilter) return false;
       if (bankFilter && String(l.bank?._id) !== bankFilter) return false;
+      if (agencyFilter && String(l.agency?._id) !== agencyFilter) return false;
+      if (agentFilter && String(l.agent?._id) !== agentFilter) return false;
       if (from && dayjs(l.createdAt).isBefore(from.startOf('day'))) return false;
       if (to && dayjs(l.createdAt).isAfter(to.endOf('day'))) return false;
       if (milestoneFilter === 'approved' && l.status !== 'approved') return false;
@@ -146,7 +332,7 @@ function AdminLeads() {
       if (milestoneFilter === 'spent' && !l.spendDone) return false;
       return true;
     });
-  }, [leads, search, statusFilter, productFilter, bankFilter, dateRange, milestoneFilter, leadsTab]);
+  }, [leads, search, statusFilter, productFilter, bankFilter, agencyFilter, agentFilter, dateRange, milestoneFilter, leadsTab, view]);
 
   const renderProduct = (row) => {
     const name = row.productType === 'credit_card' ? row.cardProduct?.name : row.productType === 'account' ? row.accountProduct?.name : row.loanProduct?.name;
@@ -163,6 +349,38 @@ function AdminLeads() {
           <div style={{ fontSize: 11, color: '#888' }}>{sub}</div>
         </div>
       </Tooltip>
+    );
+  };
+
+  // Loan/account leads run the milestone chain from utils/loanActions.js
+  // (Account Open, Car Registration, mortgage steps, etc). Same "X/Y
+  // milestones" hover-pill pattern as frontend/src/pages/agency/Leads.jsx.
+  const pill = (done, label) => done
+    ? <span key={label} style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>{label} ✓</span>
+    : <span key={label} style={{ fontSize: 9, fontWeight: 700, color: '#dc2626', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>{label} ✗</span>;
+
+  const renderMilestoneBadges = (row) => {
+    if (row.status !== 'approved' && row.status !== 'disbursed') return null;
+    if (row.productType !== 'loan' && row.productType !== 'account') return null;
+    const loanMilestones = LOAN_MILESTONES[row.accountType || row.loanType] || [];
+    if (!loanMilestones.length) return null;
+    const loanDoneCount = loanMilestones.filter((m) => row[m.field]).length;
+    return (
+      <div style={{ display: 'flex', gap: 3, marginTop: 3, flexWrap: 'nowrap' }}>
+        <Popover
+          content={<div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>{loanMilestones.map((m) => pill(row[m.field], ACTION_LABELS[m.type]))}</div>}
+          trigger="hover"
+        >
+          <span style={{
+            fontSize: 9, fontWeight: 700, whiteSpace: 'nowrap', borderRadius: 999, padding: '0 5px', cursor: 'default',
+            color: loanDoneCount === loanMilestones.length ? '#15803d' : '#b45309',
+            background: loanDoneCount === loanMilestones.length ? '#dcfce7' : '#fef3c7',
+            border: `1px solid ${loanDoneCount === loanMilestones.length ? '#86efac' : '#fde68a'}`,
+          }}>
+            {loanDoneCount}/{loanMilestones.length} milestones
+          </span>
+        </Popover>
+      </div>
     );
   };
 
@@ -243,8 +461,8 @@ function AdminLeads() {
             {row.activateDone && <span style={{ fontSize: 9, fontWeight: 700, color: '#15803d', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 999, padding: '0 5px', whiteSpace: 'nowrap' }}>Activated ✓</span>}
           </div>
         ) : null;
-        if (['approved', 'disbursed', 'rejected'].includes(row.status)) return <div><StatusPill status={row.status} />{badges}</div>;
-        if (!row.employeeStatus) return <div><StatusPill status={row.status} />{badges}</div>;
+        if (['approved', 'disbursed', 'rejected'].includes(row.status)) return <div><StatusPill status={row.status} />{badges}{renderMilestoneBadges(row)}</div>;
+        if (!row.employeeStatus) return <div><StatusPill status={row.status} />{badges}{renderMilestoneBadges(row)}</div>;
         const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8', volcano: '#f97316' };
         const c = COLOR_MAP[row.employeeStatus.color] || '#94a3b8';
         return (
@@ -255,26 +473,29 @@ function AdminLeads() {
               </span>
             </Tooltip>
             {badges}
+            {renderMilestoneBadges(row)}
           </div>
         );
       },
     },
     {
       title: <ColHead>Consent</ColHead>,
-      width: 100,
-      render: (_, row) => {
-        const s = row.consentStatus;
-        if (!s) return <span style={{ color: '#cbd5e1' }}>—</span>;
-        const COLOR_MAP = { blue: '#3b82f6', green: '#22c55e', gold: '#eab308', orange: '#f97316', red: '#ef4444', cyan: '#06b6d4', purple: '#a855f7', default: '#94a3b8' };
-        const c = COLOR_MAP[s.color] || '#94a3b8';
-        return (
-          <Tooltip title={s.label}>
-            <span style={{ display: 'inline-block', maxWidth: 90, padding: '3px 8px', borderRadius: 999, border: `1.5px solid ${c}`, fontSize: 10, fontWeight: 700, color: c, textTransform: 'uppercase', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {s.label}
-            </span>
-          </Tooltip>
-        );
-      },
+      width: 130,
+      render: (_, row) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Select
+            size="small"
+            placeholder="Set consent"
+            value={row.consentStatus?._id ? String(row.consentStatus._id) : undefined}
+            onChange={(val) => updateConsentStatus(row._id, val)}
+            style={{ width: '100%' }}
+            options={empStatuses.map((s) => ({
+              value: String(s._id),
+              label: <Tag color={s.color} style={{ margin: 0 }}>{s.label}</Tag>,
+            }))}
+          />
+        </div>
+      ),
     },
     {
       title: <ColHead>Updated</ColHead>,
@@ -305,101 +526,174 @@ function AdminLeads() {
     },
     {
       title: <ColHead>Actions</ColHead>,
-      width: 70,
-      align: 'center',
-      render: (_, row) => (
-        <div onClick={(e) => e.stopPropagation()}>
-          <Popconfirm
-            title="Delete this lead?"
-            description="This cannot be undone."
-            onConfirm={() => deleteLead(row._id)}
-            okText="Delete"
-            okButtonProps={{ danger: true }}
-            cancelText="Cancel"
-          >
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </div>
-      ),
+      width: 260,
+      render: (_, row) => {
+        const canApprove  = ['submitted', 'under_review', 'assigned'].includes(row.status);
+        const canReject   = REJECTABLE_FROM.includes(row.status);
+        const canEditLoan = row.productType === 'loan' && LOAN_EDITABLE_FROM.includes(row.status);
+        // Matches agency/Leads.jsx — Disburse only appears once all required
+        // milestones for this lead's product are actually done.
+        let milestoneButtons = [];
+        let canDisburse = false;
+        if (row.status === 'approved') {
+          if (row.productType === 'credit_card') {
+            if (row.bank?.hasCpv !== false && !row.cpvDone) milestoneButtons.push({ type: 'cpv', label: 'CPV' });
+            if (row.bank?.hasActivation !== false && !row.activateDone) milestoneButtons.push({ type: 'activate', label: 'Activated' });
+            if (row.bank?.hasSpend && !row.spendDone) milestoneButtons.push({ type: 'spend', label: 'Spend' });
+            canDisburse = (row.bank?.hasCpv === false || row.cpvDone) && (row.bank?.hasActivation === false || row.activateDone);
+          } else if (row.productType === 'loan' || row.productType === 'account') {
+            const loanActions = getLoanActions(row);
+            milestoneButtons = loanActions.buttons;
+            canDisburse = loanActions.canDisburse;
+          }
+        }
+        // Matches the backend guard in adminDeleteLead — once real money has
+        // moved for this lead, deleting it would erase that history from
+        // every report that sums the Lead collection. Block it in the UI
+        // too instead of letting the click round-trip to a server error.
+        const paymentLocked = row.commissionStatus === 'paid' || ['agency_paid', 'received'].includes(row.agencyPaymentStatus);
+        return (
+          <Space size={4} wrap onClick={(e) => e.stopPropagation()}>
+            {canApprove && <Button size="small" type="primary" icon={<CheckOutlined />} onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>}
+            {milestoneButtons.map((b) => (
+              <Button key={b.type} size="small" onClick={() => openActionModal(row._id, b.type)}>{b.label}</Button>
+            ))}
+            {canDisburse && <Button size="small" icon={<DollarOutlined />} onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>}
+            {canEditLoan && <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />}
+            {canReject && <Button size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>}
+            {paymentLocked ? (
+              <Tooltip title="This lead already has a payment recorded and cannot be deleted.">
+                <Button size="small" danger disabled icon={<DeleteOutlined />} />
+              </Tooltip>
+            ) : (
+              <Popconfirm
+                title="Delete this lead?"
+                description="This cannot be undone."
+                onConfirm={() => deleteLead(row._id)}
+                okText="Delete"
+                okButtonProps={{ danger: true }}
+                cancelText="Cancel"
+              >
+                <Button size="small" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
+            )}
+          </Space>
+        );
+      },
     },
   ];
+
+  const selectedLeads = leads.filter((l) => selectedRowKeys.includes(l._id));
+  const canBulkApprove = selectedLeads.length > 0 && selectedLeads.every((l) => ['submitted', 'under_review', 'assigned'].includes(l.status));
+  const canBulkReject = selectedLeads.length > 0 && selectedLeads.every((l) => REJECTABLE_FROM.includes(l.status));
+  const canBulkCpv = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && l.bank?.hasCpv !== false && !l.cpvDone);
+  const canBulkActivate = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && l.bank?.hasActivation !== false && !l.activateDone);
+  const canBulkSpend = selectedLeads.length > 0 && selectedLeads.every((l) => l.productType === 'credit_card' && l.status === 'approved' && l.bank?.hasSpend && !l.spendDone);
+  const canBulkDisburse = selectedLeads.length > 0 && selectedLeads.every((l) => {
+    if (l.productType === 'credit_card') return l.status === 'approved' && (l.bank?.hasCpv === false || l.cpvDone) && (l.bank?.hasActivation === false || l.activateDone);
+    if (l.productType === 'loan' || l.productType === 'account') return getLoanActions(l).canDisburse;
+    return false;
+  });
 
   return (
     <>
       <ConfigProvider theme={{ token: { borderRadius: 6 } }}>
       <div style={{ marginBottom: 16 }}>
-        {/* Row 1: filters + view toggle */}
-        <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, flexWrap: isMobile ? 'wrap' : 'nowrap', overflowX: isMobile ? 'visible' : 'auto' }}>
-          <Input
-            allowClear
-            placeholder="Search client or lead ID..."
-            prefix={<SearchOutlined />}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: isMobile ? '100%' : 200, minWidth: 140 }}
-          />
-          <Select
-            allowClear
-            placeholder="All Stages"
-            value={statusFilter}
-            onChange={setStatusFilter}
-            options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
-            style={{ width: isMobile ? 'calc(50% - 3px)' : 130, minWidth: 110 }}
-          />
-          <Select
-            allowClear
-            placeholder="All Products"
-            value={productFilter}
-            onChange={setProductFilter}
-            options={PRODUCTS}
-            style={{ width: isMobile ? 'calc(50% - 3px)' : 130, minWidth: 110 }}
-          />
-          <Select
-            allowClear
-            showSearch
-            placeholder="All Banks"
-            value={bankFilter}
-            onChange={setBankFilter}
-            options={bankOptions}
-            filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
-            style={{ width: isMobile ? '100%' : 160, minWidth: 120 }}
-          />
-          <Select
-            allowClear
-            placeholder="All Milestones"
-            value={milestoneFilter}
-            onChange={setMilestoneFilter}
-            options={[
-              { value: 'approved', label: 'Approved' },
-              { value: 'cpv', label: 'CPV Done' },
-              { value: 'activated', label: 'Activated' },
-              { value: 'spent', label: 'Spent' },
-            ]}
-            style={{ width: isMobile ? 'calc(50% - 3px)' : 150, minWidth: 120 }}
-          />
-          {!isMobile && <DatePicker.RangePicker
-            value={dateRange}
-            onChange={setDateRange}
-            allowClear
-            style={{ width: 210, minWidth: 190 }}
-          />}
-          {(search || statusFilter || productFilter || bankFilter || milestoneFilter || dateRange) && (
-            <Button size="small" type="text" style={{ color: '#7C3AED', flexShrink: 0 }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setBankFilter(undefined); setMilestoneFilter(undefined); setDateRange(null); }}>
-              Clear
-            </Button>
-          )}
-          {!isMobile && <>
-            <div style={{ flex: 1 }} />
-            <Space size={6} style={{ flexShrink: 0 }}>
-              <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
-              <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
-            </Space>
-          </>}
+        {/* Filter card: two evenly-filled rows, no dead space */}
+        <div className="leads-filter-bar" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            <Input
+              allowClear
+              placeholder="Search client or lead ID..."
+              prefix={<SearchOutlined />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ flex: isMobile ? '1 1 100%' : '1.6 1 200px', minWidth: 160 }}
+            />
+            <Select
+              allowClear
+              placeholder="All Stages"
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={labelStatuses.map((s) => ({ value: String(s._id), label: s.label }))}
+              style={{ flex: isMobile ? '1 1 calc(50% - 4px)' : '1 1 130px', minWidth: 110 }}
+            />
+            <Select
+              allowClear
+              placeholder="All Products"
+              value={productFilter}
+              onChange={setProductFilter}
+              options={PRODUCTS}
+              style={{ flex: isMobile ? '1 1 calc(50% - 4px)' : '1 1 130px', minWidth: 110 }}
+            />
+            <Select
+              allowClear
+              showSearch
+              placeholder="All Banks"
+              value={bankFilter}
+              onChange={setBankFilter}
+              options={bankOptions}
+              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+              style={{ flex: isMobile ? '1 1 100%' : '1 1 140px', minWidth: 120 }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Select
+              allowClear
+              showSearch
+              placeholder="All Agencies"
+              value={agencyFilter}
+              onChange={setAgencyFilter}
+              options={agencyOptions}
+              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+              style={{ flex: isMobile ? '1 1 calc(50% - 4px)' : '1 1 140px', minWidth: 120 }}
+            />
+            <Select
+              allowClear
+              showSearch
+              placeholder="All Agents"
+              value={agentFilter}
+              onChange={setAgentFilter}
+              options={agentOptions}
+              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+              style={{ flex: isMobile ? '1 1 calc(50% - 4px)' : '1 1 140px', minWidth: 120 }}
+            />
+            <Select
+              allowClear
+              placeholder="All Milestones"
+              value={milestoneFilter}
+              onChange={setMilestoneFilter}
+              options={[
+                { value: 'approved', label: 'Approved' },
+                { value: 'cpv', label: 'CPV Done' },
+                { value: 'activated', label: 'Activated' },
+                { value: 'spent', label: 'Spent' },
+              ]}
+              style={{ flex: isMobile ? '1 1 calc(50% - 4px)' : '1 1 140px', minWidth: 120 }}
+            />
+            {!isMobile && <DatePicker.RangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              allowClear
+              style={{ flex: '1 1 210px', minWidth: 190 }}
+            />}
+            {(search || statusFilter || productFilter || bankFilter || agencyFilter || agentFilter || milestoneFilter || dateRange) && (
+              <Button size="small" type="text" style={{ color: '#7C3AED', flexShrink: 0 }} onClick={() => { setSearch(''); setStatusFilter(undefined); setProductFilter(undefined); setBankFilter(undefined); setAgencyFilter(undefined); setAgentFilter(undefined); setMilestoneFilter(undefined); setDateRange(null); }}>
+                Clear all
+              </Button>
+            )}
+          </div>
         </div>
-        {/* Row 2: count + actions */}
+        {/* Toolbar: count, view toggle, template/import/export */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <Typography.Text type="secondary" style={{ whiteSpace: 'nowrap' }}>{filtered.length} shown</Typography.Text>
           <div style={{ flex: 1 }} />
+          {!isMobile && (
+            <Space size={6}>
+              <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
+              <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
+            </Space>
+          )}
           <Space size={8}>
             <Button icon={<DownloadOutlined />} onClick={downloadLeadImportTemplate}>Template</Button>
             <Upload accept=".xlsx,.xls" showUploadList={false} beforeUpload={handleImportFile}>
@@ -440,20 +734,163 @@ function AdminLeads() {
           </>
         )}
       </Modal>
+
+      <Modal
+        title={`Move to: ${statusModal.label}`}
+        open={statusModal.open}
+        onCancel={() => setStatusModal({ open: false, leadId: null, status: null, label: '' })}
+        onOk={confirmStatusUpdate}
+        okText="Confirm"
+        confirmLoading={statusSaving}
+        destroyOnClose
+      >
+        <Form form={statusNoteForm} layout="vertical">
+          <Form.Item name="note" label="Note (optional)">
+            <Input.TextArea rows={3} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title={`Mark ${ACTION_LABELS[actionModal.type] || ''} Done`}
+        open={actionModal.open}
+        onCancel={() => setActionModal({ open: false, leadId: null, type: null })}
+        onOk={confirmAction}
+        okText="Confirm"
+        confirmLoading={actionSaving}
+        destroyOnClose
+      >
+        <Form form={actionForm} layout="vertical">
+          <Form.Item name="note" label="Note (optional)">
+            <Input.TextArea rows={3} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Loan amount modal */}
+      <Modal
+        title="Edit Loan Amount"
+        open={loanEditOpen}
+        onCancel={() => setLoanEditOpen(false)}
+        onOk={saveLoanAmount}
+        okText="Save"
+        destroyOnClose
+        width={440}
+      >
+        {loanEditLead && (
+          <div style={{ display: 'flex', gap: 20, marginBottom: 18, padding: '10px 14px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }}>Client</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', wordBreak: 'break-word' }}>{loanEditLead.customerName}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 3 }}>Product</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', wordBreak: 'break-word' }}>{loanEditLead.loanProduct?.name || '—'}</div>
+            </div>
+          </div>
+        )}
+        <Form form={loanForm} layout="vertical">
+          <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount is required' }]}>
+            <InputNumber min={1} step={1000} style={{ width: '100%' }} prefix="AED" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {selectedRowKeys.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <Space wrap>
+            {leadsTab !== 'rejected' && canBulkApprove && (
+              <Popconfirm
+                title={`Approve ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkUpdateStatus('approved', 'Approved', ['submitted', 'under_review', 'assigned'])}
+              >
+                <Button type="primary" style={{ background: '#16a34a', borderColor: '#16a34a' }}>
+                  Approve {selectedRowKeys.length} lead(s)
+                </Button>
+              </Popconfirm>
+            )}
+            {leadsTab !== 'rejected' && canBulkReject && (
+              <Popconfirm
+                title={`Reject ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkUpdateStatus('rejected', 'Rejected', REJECTABLE_FROM)}
+              >
+                <Button danger>Reject {selectedRowKeys.length} lead(s)</Button>
+              </Popconfirm>
+            )}
+            {leadsTab !== 'rejected' && canBulkCpv && (
+              <Popconfirm
+                title={`Mark CPV done for ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkMilestoneAction('cpv', 'CPV Done')}
+              >
+                <Button>CPV {selectedRowKeys.length} lead(s)</Button>
+              </Popconfirm>
+            )}
+            {leadsTab !== 'rejected' && canBulkActivate && (
+              <Popconfirm
+                title={`Mark Activated for ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkMilestoneAction('activate', 'Activated')}
+              >
+                <Button>Activate {selectedRowKeys.length} lead(s)</Button>
+              </Popconfirm>
+            )}
+            {leadsTab !== 'rejected' && canBulkSpend && (
+              <Popconfirm
+                title={`Mark Spend done for ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkMilestoneAction('spend', 'Spend Done')}
+              >
+                <Button>Spend {selectedRowKeys.length} lead(s)</Button>
+              </Popconfirm>
+            )}
+            {leadsTab !== 'rejected' && canBulkDisburse && (
+              <Popconfirm
+                title={`Disburse ${selectedRowKeys.length} lead(s)?`}
+                onConfirm={() => bulkUpdateStatus('disbursed', 'Disbursed', ['approved'])}
+              >
+                <Button type="primary" style={{ background: '#7e22ce', borderColor: '#7e22ce' }}>
+                  Disburse {selectedRowKeys.length} lead(s)
+                </Button>
+              </Popconfirm>
+            )}
+            <Popconfirm
+              title={`Delete ${selectedRowKeys.length} lead(s)?`}
+              description="This cannot be undone. Leads with a payment already recorded will be skipped."
+              onConfirm={bulkDelete}
+              okText="Delete"
+              okButtonProps={{ danger: true }}
+              cancelText="Cancel"
+            >
+              <Button danger icon={<DeleteOutlined />}>Delete {selectedRowKeys.length} lead(s)</Button>
+            </Popconfirm>
+          </Space>
+        </div>
+      )}
+
+        <LeadViewBanner view={view} count={filtered.length} onClear={clearView} />
         <Tabs
-          activeKey={leadsTab}
+          activeKey={tabsActiveKey}
           onChange={setLeadsTab}
           style={{ marginBottom: 4 }}
           items={[
             { key: 'active', label: `Active (${activeCount})` },
             { key: 'referral', label: `Referral Leads (${referralCount})` },
+            { key: 'approved', label: `Approved (${approvedCount})` },
+            { key: 'archive', label: `Disbursed (${archiveCount})` },
             { key: 'rejected', label: `Rejected (${rejectedCount})` },
-            { key: 'archive', label: `Approved (${archiveCount})` },
           ]}
         />
       {viewMode === 'table' && !isMobile ? (
         <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-          <Table size="small" rowKey="_id" loading={loading} dataSource={filtered} columns={columns} tableLayout="fixed" onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })} />
+          <Table
+            size="small"
+            rowKey="_id"
+            loading={loading}
+            dataSource={filtered}
+            columns={columns}
+            tableLayout="fixed"
+            scroll={{ x: 1300 }}
+            rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }}
+            onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })}
+          />
         </div>
       ) : (
         <Row gutter={[14, 14]}>

@@ -11,12 +11,14 @@ import {
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || `${API_BASE}/uploads`;
 import dayjs from 'dayjs';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 function AgencyPayouts() {
-  const [tab, setTab] = useState('pending');
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get('tab') || 'pending');
 
   const [pendingLeads, setPendingLeads] = useState([]);
   const [history, setHistory] = useState([]);
@@ -305,7 +307,7 @@ function AgencyPayouts() {
                     style={{ marginBottom: 12, borderRadius: 8 }}
                     type="warning"
                     message={
-                      <Space size={24}>
+                      <Space size={24} wrap>
                         <span>{selectedRowKeys.length} lead(s) selected</span>
                         <span style={{ fontWeight: 700 }}>Total due: {aed(selectedTotal)}</span>
                         <Button type="primary" size="small" onClick={openPayoutModal}>

@@ -6,7 +6,7 @@ import {
 import {
   SearchOutlined, DollarOutlined, CheckCircleOutlined, LockOutlined, InfoCircleOutlined, WalletOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
@@ -23,10 +23,12 @@ export default function Payouts() {
   const [paying, setPaying] = useState(false);
   const [releasing, setReleasing] = useState(false);
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState('payable');
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get('tab') || 'payable');
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [selectedHoldKeys, setSelectedHoldKeys] = useState([]);
   const [agencies, setAgencies] = useState([]);
+  const [payingOverrideId, setPayingOverrideId] = useState(null);
 
   // Pay modal state
   const [payModal, setPayModal] = useState({ open: false, ids: null, mode: 'cash' }); // ids=null means all payable; mode: 'cash' | 'bucket'
@@ -36,7 +38,7 @@ export default function Payouts() {
     setLoading(true);
     try {
       const { data } = await api.get('/leads');
-      setLeads(data.filter((l) => l.commissionStatus !== 'none'));
+      setLeads(data.filter((l) => l.commissionStatus !== 'none' || (l.agencyOverrideAmount || 0) > 0));
     } finally {
       setLoading(false);
     }
@@ -373,6 +375,56 @@ export default function Payouts() {
     },
   ];
 
+  const agencyOverrideLeads = useMemo(() => leads.filter((l) => (l.agencyOverrideAmount || 0) > 0), [leads]);
+  const overrideStats = useMemo(() => ({
+    pending: agencyOverrideLeads.filter((l) => l.agencyOverrideStatus === 'pending').length,
+  }), [agencyOverrideLeads]);
+
+  const payOverride = async (leadId) => {
+    setPayingOverrideId(leadId);
+    try {
+      await api.post(`/leads/${leadId}/mark-agency-override-paid`);
+      message.success('Referral bonus paid');
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed');
+    } finally {
+      setPayingOverrideId(null);
+    }
+  };
+
+  const overrideColumns = [
+    {
+      title: 'Lead ID',
+      dataIndex: 'leadNumber',
+      render: (v) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{v || '—'}</Typography.Text>,
+    },
+    { title: 'Client', dataIndex: 'customerName' },
+    { title: 'Agent', render: (_, row) => row.agent?.name || row.agent?.email || '—' },
+    { title: 'Agency', render: (_, row) => row.agencyOverrideAgency?.name || row.agencyOverrideAgency?.email || '—' },
+    {
+      title: 'Referral Bonus',
+      align: 'right',
+      render: (_, row) => <span style={{ fontWeight: 700 }}>{aed(row.agencyOverrideAmount)}</span>,
+    },
+    {
+      title: 'Status',
+      render: (_, row) => (
+        <Tag color={row.agencyOverrideStatus === 'paid' ? 'green' : 'gold'}>
+          {row.agencyOverrideStatus === 'paid' ? 'Paid' : 'Pending'}
+        </Tag>
+      ),
+    },
+    {
+      title: '',
+      render: (_, row) => row.agencyOverrideStatus === 'pending' && (
+        <Button size="small" type="primary" loading={payingOverrideId === row._id} onClick={() => payOverride(row._id)}>
+          Mark Paid
+        </Button>
+      ),
+    },
+  ];
+
   const tabItems = [
     {
       key: 'payable',
@@ -385,6 +437,10 @@ export default function Payouts() {
     {
       key: 'holds',
       label: <span><LockOutlined style={{ color: '#f59e0b', marginRight: 5 }} />On Hold ({holds.length})</span>,
+    },
+    {
+      key: 'agencyOverrides',
+      label: <span><DollarOutlined style={{ color: '#7c3aed', marginRight: 5 }} />Agency Referral Bonus ({overrideStats.pending})</span>,
     },
   ];
 
@@ -429,7 +485,7 @@ export default function Payouts() {
           items={tabItems}
           style={{ marginBottom: 0 }}
         />
-        {tab !== 'holds' && (
+        {tab !== 'holds' && tab !== 'agencyOverrides' && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
             <Space>
               <Input
@@ -554,9 +610,22 @@ export default function Payouts() {
                 columns={holdColumns}
                 rowSelection={{ selectedRowKeys: selectedHoldKeys, onChange: setSelectedHoldKeys }}
                 locale={{ emptyText: 'No active holds' }}
+                scroll={{ x: 'max-content' }}
               />
             </div>
           </>
+        ) : tab === 'agencyOverrides' ? (
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+            <Table
+              size="small"
+              rowKey="_id"
+              loading={loading}
+              dataSource={agencyOverrideLeads}
+              columns={overrideColumns}
+              locale={{ emptyText: 'No agency referral bonuses' }}
+              scroll={{ x: 'max-content' }}
+            />
+          </div>
         ) : (
           <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
             <Table
@@ -570,6 +639,7 @@ export default function Payouts() {
                   ? { selectedRowKeys, onChange: setSelectedRowKeys, getCheckboxProps: (row) => ({ disabled: !['payable', 'pending', 'none'].includes(row.commissionStatus) }) }
                   : undefined
               }
+              scroll={{ x: 'max-content' }}
             />
           </div>
         )}

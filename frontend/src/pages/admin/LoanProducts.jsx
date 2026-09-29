@@ -6,6 +6,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import QuillEditor from '../../components/QuillEditor';
 import api from '../../api/client';
+import BulkToggleBar from '../../components/BulkToggleBar';
 
 
 const pct = (n) => `${Number(n || 0)}%`;
@@ -38,6 +39,8 @@ const CATEGORY_COLOR = {
 
 function LoanProducts() {
   const [loans, setLoans] = useState([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [bulkBusy, setBulkBusy] = useState(null);
   const [banks, setBanks] = useState([]);
   const [agencies, setAgencies] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -71,7 +74,7 @@ function LoanProducts() {
   const openCreate = () => {
     setEditing(null);
     form.resetFields();
-    form.setFieldsValue({ isActive: true, agentVisible: true, websiteVisible: true });
+    form.setFieldsValue({ isActive: true, agentVisible: true, sendConsent: true, websiteVisible: true });
     setBenefitsHtml('');
     setFeesHtml('');
     setOpen(true);
@@ -83,8 +86,10 @@ function LoanProducts() {
       loanCategory: l.loanCategory,
       bank: l.bank?._id,
       agency: l.agency?._id,
+      assignedAgencies: (l.assignedAgencies || []).map((a) => a?._id || a),
       isActive: l.isActive,
       agentVisible: l.agentVisible !== false,
+      sendConsent: l.sendConsent !== false,
       websiteVisible: l.websiteVisible !== false,
       commissionBrackets: l.commissionBrackets || [],
       interestRateRange: l.interestRateRange,
@@ -111,6 +116,7 @@ function LoanProducts() {
       keyNotes: l.keyNotes,
       redirectUrl: l.redirectUrl || '',
       redirectActive: l.redirectActive || false,
+      referralVisible: l.referralVisible || false,
     });
     setBenefitsHtml(l.benefits || '');
     setFeesHtml(l.feesEligibility || '');
@@ -147,6 +153,26 @@ function LoanProducts() {
     }
   };
 
+  // Bulk on/off for Status / Agent Visible / Website Visible / Send Consent — same PUT the row switches use.
+  const bulkUpdate = async (field, value) => {
+    setBulkBusy(`${field}:${value}`);
+    try {
+      const results = await Promise.allSettled(
+        selectedRowKeys.map((id) => {
+          return api.put(`/loan-products/${id}`, { [field]: value });
+        })
+      );
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      const done = results.length - failed;
+      if (done) message.success(`Updated ${done} product${done !== 1 ? 's' : ''}`);
+      if (failed) message.error(`${failed} update${failed !== 1 ? 's' : ''} failed`);
+      setSelectedRowKeys([]);
+      load();
+    } finally {
+      setBulkBusy(null);
+    }
+  };
+
   const toggleActive = async (row) => {
     try {
       await api.put(`/loan-products/${row._id}`, { isActive: !row.isActive });
@@ -159,6 +185,15 @@ function LoanProducts() {
   const toggleAgentVisible = async (row) => {
     try {
       await api.put(`/loan-products/${row._id}`, { agentVisible: row.agentVisible === false });
+      load();
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  const toggleSendConsent = async (row) => {
+    try {
+      await api.put(`/loan-products/${row._id}`, { sendConsent: row.sendConsent === false });
       load();
     } catch (err) {
       message.error(err.response?.data?.message || 'Update failed');
@@ -242,6 +277,18 @@ function LoanProducts() {
       ),
     },
     {
+      title: 'Send Consent',
+      dataIndex: 'sendConsent',
+      render: (v, row) => (
+        <Switch
+          checked={v !== false}
+          checkedChildren="On"
+          unCheckedChildren="Off"
+          onChange={() => toggleSendConsent(row)}
+        />
+      ),
+    },
+    {
       title: 'Actions',
       width: 200,
       render: (_, row) => (
@@ -264,14 +311,14 @@ function LoanProducts() {
         </div>
       </div>
 
-      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      <div className="leads-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <Input
           allowClear
           placeholder="Search loan name..."
           prefix={<SearchOutlined />}
           value={loanSearch}
           onChange={(e) => setLoanSearch(e.target.value)}
-          style={{ width: 260, flexShrink: 0, borderRadius: 6 }}
+          style={{ width: 260, maxWidth: '100%', flexShrink: 1, borderRadius: 6 }}
         />
         <Select
           allowClear
@@ -279,7 +326,7 @@ function LoanProducts() {
           value={bankFilter}
           onChange={setBankFilter}
           options={banks.map((b) => ({ value: b._id, label: b.name }))}
-          style={{ width: 180, flexShrink: 0, borderRadius: 6 }}
+          style={{ width: 180, maxWidth: '100%', flexShrink: 1, borderRadius: 6 }}
         />
         <Select
           allowClear
@@ -287,11 +334,12 @@ function LoanProducts() {
           value={agencyFilter}
           onChange={setAgencyFilter}
           options={agencies.map((a) => ({ value: a._id, label: a.name }))}
-          style={{ width: 180, flexShrink: 0 }}
+          style={{ width: 180, maxWidth: '100%', flexShrink: 1 }}
         />
       </div>
+      <BulkToggleBar count={selectedRowKeys.length} busy={bulkBusy} onApply={bulkUpdate} onClear={() => setSelectedRowKeys([])} />
       <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-        <Table size="small" rowKey="_id" loading={loading} dataSource={loans.filter((l) => {
+        <Table size="small" rowKey="_id" rowSelection={{ selectedRowKeys, onChange: setSelectedRowKeys }} loading={loading} scroll={{ x: 'max-content' }} dataSource={loans.filter((l) => {
           if (loanSearch.trim()) {
             const q = loanSearch.trim().toLowerCase();
             if (!l.name.toLowerCase().includes(q) && !(l.bank?.name || '').toLowerCase().includes(q)) return false;
@@ -331,6 +379,20 @@ function LoanProducts() {
               showSearch
               options={agencyOptions}
               placeholder="Select agency"
+              filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+            />
+          </Form.Item>
+          <Form.Item
+            name="assignedAgencies"
+            label="Assign to Agencies"
+            tooltip="Leave empty to keep this product visible to every agency (default). Pick specific agencies to restrict it to only them."
+          >
+            <Select
+              mode="multiple"
+              allowClear
+              showSearch
+              placeholder="All agencies (default) — pick to restrict"
+              options={agencyOptions}
               filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
             />
           </Form.Item>
@@ -484,6 +546,7 @@ function LoanProducts() {
                       {...restField}
                       name={[name, 'receivable']}
                       label="Receivable (%)"
+                      tooltip="Total commission MySilah earns from the bank for this deal, as a % of the loan amount. Payable and Agency Override are paid out of this."
                       rules={[{ required: true, message: 'Required' }]}
                       style={{ marginBottom: 0 }}
                     >
@@ -493,10 +556,20 @@ function LoanProducts() {
                       {...restField}
                       name={[name, 'payable']}
                       label="Payable (%)"
+                      tooltip="Agent's share — paid to whoever submitted the lead (the agent, or the agency itself if it submitted directly). % of loan amount."
                       rules={[{ required: true, message: 'Required' }]}
                       style={{ marginBottom: 0 }}
                     >
                       <InputNumber min={0} max={100} step={0.1} placeholder="1.2" style={{ width: 120 }} />
+                    </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'agencyOverride']}
+                      label="Agency Override (AED)"
+                      tooltip="Extra AED paid to the agency that created the submitting agent's account, on top of the agent's own Payable commission, when this lead disburses. Always a flat AED amount here too, even though Receivable/Payable on loans are percentages. 0 = no override."
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber min={0} step={10} placeholder="50" style={{ width: 150 }} />
                     </Form.Item>
                     <MinusCircleOutlined
                       onClick={() => remove(name)}
@@ -538,6 +611,26 @@ function LoanProducts() {
             <Col span={6}>
               <Form.Item name="websiteVisible" label="Visible in Website" valuePropName="checked">
                 <Switch checkedChildren="Visible" unCheckedChildren="Hidden" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item
+                name="sendConsent"
+                label="Send Consent Message"
+                valuePropName="checked"
+                tooltip="Whether submitting a lead for this product sends the WhatsApp consent message to the customer."
+              >
+                <Switch checkedChildren="On" unCheckedChildren="Off" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item
+                name="referralVisible"
+                label="Show on Referral Form"
+                valuePropName="checked"
+                tooltip="Whether this product is a pickable option on the public /ref/:code referral partner form. Independent from Redirect Active."
+              >
+                <Switch checkedChildren="Shown" unCheckedChildren="Hidden" />
               </Form.Item>
             </Col>
           </Row>

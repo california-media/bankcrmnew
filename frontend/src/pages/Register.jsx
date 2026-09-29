@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, Button, Alert, Checkbox } from 'antd';
+import { Form, Input, Button, Alert, Checkbox, Grid } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -24,6 +24,7 @@ const UAE_PASS_ERROR_MESSAGES = {
 
 const inputStyle = { borderRadius: 10, fontSize: 13, borderColor: '#E8E8EE', height: 38 };
 const itemStyle  = { marginBottom: 7 };
+const { useBreakpoint } = Grid;
 
 function Register() {
   const dispatch = useDispatch();
@@ -31,6 +32,8 @@ function Register() {
   const [searchParams] = useSearchParams();
   const { user, status, error, registrationPending, otpStatus, otpError, phoneVerifyToken } = useSelector((s) => s.auth);
   const [form] = Form.useForm();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
   const [uaepassError, setUaepassError] = useState(null);
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [resendTimer, setResendTimer] = useState(60);
@@ -54,9 +57,9 @@ function Register() {
   useEffect(() => () => dispatch(resetRegistrationPending()), [dispatch]);
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = isMobile ? '' : 'hidden';
     return () => { document.body.style.overflow = ''; };
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     const prefill = searchParams.get('uaepass_prefill');

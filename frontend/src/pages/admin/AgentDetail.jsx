@@ -247,6 +247,7 @@ export default function AgentDetail() {
           pagination={{ pageSize: 10, size: 'small' }}
           onRow={(row) => ({ onClick: () => navigate(`/admin/leads/${row._id}`), style: { cursor: 'pointer' } })}
           locale={{ emptyText: 'No leads yet' }}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
     </div>

@@ -125,6 +125,7 @@ export default function AgencyAgentPayouts() {
           rowKey="_id"
           loading={loading}
           size="middle"
+          scroll={{ x: 'max-content' }}
           pagination={{ pageSize: 20, showSizeChanger: false }}
           locale={{ emptyText: 'No payout records yet' }}
         />

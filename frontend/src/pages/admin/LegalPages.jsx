@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Tabs, Button, Input, DatePicker, Typography, Space, Modal, message, Spin, Tag } from 'antd';
+import { Tabs, Button, Input, DatePicker, Typography, Space, Modal, message, Spin, Tag, Grid } from 'antd';
 import { SaveOutlined, EyeOutlined, GlobalOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../api/client';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+const { useBreakpoint } = Grid;
 
 const PAGES = [
   { slug: 'terms',          label: 'Terms & Conditions',  url: '/terms.html' },
@@ -42,12 +43,14 @@ const PREVIEW_STYLES = `
 
 function PageEditor({ page, onChange, onSave, saving }) {
   const [previewOpen, setPreviewOpen] = useState(false);
+  const screens = useBreakpoint();
+  const isMobile = !screens.md;
 
   if (!page) return <div style={{ padding: 40, textAlign: 'center' }}><Spin /></div>;
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 16, marginBottom: 16, alignItems: 'flex-end' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr auto', gap: 16, marginBottom: 16, alignItems: 'flex-end' }}>
         <div>
           <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>PAGE TITLE</div>
           <Input
@@ -165,7 +168,7 @@ export default function LegalPages() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', rowGap: 12 }}>
         <div>
           <Title level={4} style={{ margin: 0 }}>Legal Pages</Title>
           <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>

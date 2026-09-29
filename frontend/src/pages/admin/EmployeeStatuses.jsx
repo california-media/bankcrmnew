@@ -219,7 +219,7 @@ function StatusTable({ statusType }) {
       </div>
 
       <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-        <Table size="small" rowKey="_id" loading={loading} dataSource={statuses} columns={columns} />
+        <Table size="small" rowKey="_id" loading={loading} dataSource={statuses} columns={columns} scroll={{ x: 'max-content' }} />
       </div>
 
       <Modal title="Add Status" open={addOpen} onCancel={() => setAddOpen(false)} onOk={addStatus} okText="Add" confirmLoading={addSaving} destroyOnClose>

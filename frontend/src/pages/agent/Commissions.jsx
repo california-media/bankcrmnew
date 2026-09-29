@@ -1,12 +1,14 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card, Row, Col, Typography, Table, Tag, Empty, Skeleton, Space, Tabs, Statistic } from 'antd';
 import { CheckCircleOutlined, ClockCircleOutlined, RiseOutlined, DollarOutlined, LockOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
 
 const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 const productLabels = { credit_card: 'Credit Card', loan: 'Loan' };
 
 function Commissions() {
+  const [searchParams] = useSearchParams();
   const [ledger, setLedger] = useState(null);
   const [bonuses, setBonuses] = useState([]);
 
@@ -215,7 +217,7 @@ function Commissions() {
 
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '0 24px 24px' }}>
         <Tabs
-          defaultActiveKey="paid"
+          defaultActiveKey={searchParams.get('tab') || 'paid'}
           style={{ marginTop: 0 }}
           items={[
             {

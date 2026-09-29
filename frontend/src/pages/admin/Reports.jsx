@@ -120,6 +120,20 @@ function AdminReports({ initialTab = 'overview' }) {
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, count]) => ({ name, count }));
   }, [filtered]);
 
+  // Lead-count breakdown (not profit) — separate from marginByAgency/marginByAgent
+  // on the Margin tab below, which count money not lead volume.
+  const leadsByAgency = useMemo(() => {
+    const map = {};
+    filtered.forEach(l => { const name = l.agency?.name || l.agency?.email; if (name) map[name] = (map[name] || 0) + 1; });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, count]) => ({ name, count }));
+  }, [filtered]);
+
+  const leadsByAgent = useMemo(() => {
+    const map = {};
+    filtered.forEach(l => { const name = l.agent?.name || l.agent?.email; if (name) map[name] = (map[name] || 0) + 1; });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, count]) => ({ name, count }));
+  }, [filtered]);
+
   const paidLeads = useMemo(() => filtered.filter(l => l.commissionStatus === 'paid'), [filtered]);
 
   const marginKpi = useMemo(() => {
@@ -132,6 +146,15 @@ function AdminReports({ initialTab = 'overview' }) {
     const map = {};
     paidLeads.forEach(l => {
       const name = l.agency?.name || l.agency?.email || '—';
+      map[name] = (map[name] || 0) + ((l.grossCommission || 0) - (l.commission || 0));
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, profit]) => ({ name, profit }));
+  }, [paidLeads]);
+
+  const marginByAgent = useMemo(() => {
+    const map = {};
+    paidLeads.forEach(l => {
+      const name = l.agent?.name || l.agent?.email || '—';
       map[name] = (map[name] || 0) + ((l.grossCommission || 0) - (l.commission || 0));
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([name, profit]) => ({ name, profit }));
@@ -486,6 +509,26 @@ function AdminReports({ initialTab = 'overview' }) {
         </Col>
 
         <Col xs={24} lg={12}>
+          <Card title="Profit by Agent" size="small" style={{ borderRadius: 12 }}>
+            {marginByAgent.length ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={marginByAgent} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={v => aed(v)} />
+                  <Bar dataKey="profit" radius={[4, 4, 0, 0]} fill="#7C3AED" name="Profit" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                No data
+              </div>
+            )}
+          </Card>
+        </Col>
+
+        <Col xs={24} lg={12}>
           <Card title="Profit Over Time (12 months)" size="small" style={{ borderRadius: 12 }}>
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={marginByMonth} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
@@ -605,6 +648,46 @@ function AdminReports({ initialTab = 'overview' }) {
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} />
                   <Tooltip />
                   <Bar dataKey="count" fill="#7C3AED" radius={[0, 4, 4, 0]} name="Leads" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                No data
+              </div>
+            )}
+          </Card>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Card title="Leads by Agency" size="small" style={{ borderRadius: 12 }}>
+            {leadsByAgency.length ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={leadsByAgency} layout="vertical" margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#0EA5E9" radius={[0, 4, 4, 0]} name="Leads" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                No data
+              </div>
+            )}
+          </Card>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Card title="Leads by Agent" size="small" style={{ borderRadius: 12 }}>
+            {leadsByAgent.length ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={leadsByAgent} layout="vertical" margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#22c55e" radius={[0, 4, 4, 0]} name="Leads" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (

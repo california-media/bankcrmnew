@@ -4,11 +4,13 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import RegisterAgency from './pages/RegisterAgency';
 import ReferralForm from './pages/ReferralForm';
+import TrackStatus from './pages/TrackStatus';
 import SetPassword from './pages/SetPassword';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import AppLayout from './components/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
+import InvoiceView from './pages/InvoiceView';
 import AdminDashboard from './pages/admin/Dashboard';
 import Agencies from './pages/admin/Agencies';
 import AdminLeads from './pages/admin/Leads';
@@ -26,16 +28,24 @@ import MyLeads from './pages/agent/MyLeads';
 import Commissions from './pages/agent/Commissions';
 import AgentProducts from './pages/agent/Products';
 import AgentSettings from './pages/agent/Settings';
+import AgentPromotions from './pages/agent/Promotions';
 import AgentResources from './pages/agent/Resources';
 import AgencyDashboard from './pages/agency/Dashboard';
 import AgencyLeads from './pages/agency/Leads';
 import AgencyEmployees from './pages/agency/Employees';
+import Agents from './pages/agency/Agents';
+import AgencyRolesPermissions from './pages/agency/RolesPermissions';
 import AgencyPayouts from './pages/agency/Payouts';
+import AgencyInvoices from './pages/agency/Invoices';
 import AgencyAgentPayouts from './pages/agency/AgentPayouts';
 import ConsentLogs from './pages/agency/ConsentLogs';
 import Pipeline from './pages/agency/Pipeline';
 import Payouts from './pages/admin/Payouts';
 import Receive from './pages/admin/Receive';
+import AgencyLedger from './pages/admin/AgencyLedger';
+import CreditNotes from './pages/admin/CreditNotes';
+import Invoices from './pages/admin/Invoices';
+import Promotions from './pages/admin/Promotions';
 import EmployeeStatuses from './pages/admin/EmployeeStatuses';
 import BucketRequests from './pages/admin/BucketRequests';
 import Inquiries from './pages/admin/Inquiries';
@@ -50,6 +60,7 @@ import AdminNotices from './pages/admin/Notices';
 import AdminBlog from './pages/admin/Blog';
 import LegalPages from './pages/admin/LegalPages';
 import AdminReports from './pages/admin/Reports';
+import ManageAdmins from './pages/admin/ManageAdmins';
 import AgencyReports from './pages/agency/Reports';
 import AgentReports from './pages/agent/Reports';
 import VerifyEmail from './pages/VerifyEmail';
@@ -84,7 +95,14 @@ const theme = {
 
 function App() {
   return (
-    <ConfigProvider theme={theme}>
+    // virtual={false}: disables antd's virtual-scroll dropdown list app-wide.
+    // On mobile, rc-virtual-list's touch scroll containment is flaky — a
+    // scroll gesture inside a long Select dropdown (Nationality, City, Bank,
+    // ...) sometimes leaks through and scrolls the page behind it instead.
+    // Plain (non-virtual) rendering uses a normal scrollable div, which
+    // touch browsers contain correctly. All these dropdown lists are a few
+    // hundred options at most, so there's no real perf cost either.
+    <ConfigProvider theme={theme} virtual={false}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -96,6 +114,18 @@ function App() {
         <Route path="/auth/uaepass/callback" element={<UaePassCallback />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/ref/:code" element={<ReferralForm />} />
+        <Route path="/track-status" element={<TrackStatus />} />
+        {/* Standalone, no sidebar — this is what "View" opens in a new tab.
+            Server-side getOne/pdf still scope by agency, so this URL is only
+            ever useful to someone already authorized for that invoice. */}
+        <Route
+          path="/invoices/:id/view"
+          element={
+            <ProtectedRoute roles={['admin', 'agency', 'employee']}>
+              <InvoiceView />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/admin"
@@ -119,6 +149,10 @@ function App() {
           <Route path="banks" element={<AdminBanks />} />
           <Route path="payouts" element={<Payouts />} />
           <Route path="receive" element={<Receive />} />
+          <Route path="agency-ledger" element={<AgencyLedger />} />
+          <Route path="credit-notes" element={<CreditNotes />} />
+          <Route path="invoices" element={<Invoices />} />
+          <Route path="promotions" element={<Promotions />} />
           <Route path="employee-statuses" element={<EmployeeStatuses />} />
           <Route path="pipeline" element={<Pipeline />} />
           <Route path="consent-logs" element={<ConsentLogs />} />
@@ -131,6 +165,7 @@ function App() {
           <Route path="legal-pages" element={<LegalPages />} />
           <Route path="reports" element={<AdminReports initialTab="performance" />} />
           <Route path="margin-report" element={<AdminReports initialTab="margin" />} />
+          <Route path="manage-admins" element={<ManageAdmins />} />
         </Route>
 
         <Route
@@ -151,13 +186,19 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="settings" element={<Profile />} />
+          <Route path="promotions" element={<AgentPromotions />} />
           <Route path="resources" element={<AgentResources />} />
         </Route>
 
         <Route
           path="/agency"
           element={
-            <ProtectedRoute roles={['agency']}>
+            /* 'employee' is also allowed here for Agency Coordinator/Account
+               Access — a plain CPV/Sales employee reaching this by URL still
+               gets refused per-endpoint by the backend (see
+               allowEmployeeTypes in auth.middleware.js), so this widening
+               only opens the door, not the data. */
+            <ProtectedRoute roles={['agency', 'employee']}>
               <AppLayout />
             </ProtectedRoute>
           }
@@ -166,13 +207,18 @@ function App() {
           <Route path="leads" element={<AgencyLeads />} />
           <Route path="leads/:id" element={<LeadDetail />} />
           <Route path="employees" element={<AgencyEmployees />} />
+          <Route path="agents" element={<Agents />} />
+          <Route path="leads/new" element={<SubmitLead />} />
+          <Route path="roles-permissions" element={<AgencyRolesPermissions />} />
           <Route path="pipeline" element={<Pipeline />} />
           <Route path="payouts" element={<AgencyPayouts />} />
+          <Route path="invoices" element={<AgencyInvoices />} />
           <Route path="consent-logs" element={<ConsentLogs />} />
           <Route path="agent-payouts" element={<AgencyAgentPayouts />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="reports" element={<AgencyReports />} />
+          <Route path="resources" element={<AgentResources />} />
         </Route>
 
         <Route
@@ -190,6 +236,7 @@ function App() {
           <Route path="consent-logs" element={<ConsentLogs />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="resources" element={<AgentResources />} />
         </Route>
 
         <Route

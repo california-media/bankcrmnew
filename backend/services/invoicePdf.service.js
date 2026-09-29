@@ -1,3 +1,4 @@
+const path = require('path');
 const PDFDocument = require('pdfkit');
 const { amountToWordsAed } = require('../utils/numberToWords');
 
@@ -56,12 +57,13 @@ const CELL_PAD = 5;
 const fmt = (n) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('-') : '—';
 
+// PNG render of frontend/public/mysilah.svg (pdfkit can't draw that SVG's
+// embedded masks/filters) — regenerate it if the logo changes.
+const LOGO_PATH = path.join(__dirname, '..', 'assets', 'mysilah-logo.png');
+const LOGO_H = 56; // matches InvoicePreview's 56px logo height
+
 function drawLogo(doc, y) {
-  doc.font('Helvetica-Bold').fontSize(30)
-    .fillColor(TEXT_DARK).text('My', CONTENT_X, y, { continued: true })
-    .fillColor('#2563eb').text('Silah');
-  doc.font('Helvetica').fontSize(8).fillColor('#94a3b8')
-    .text('CONNECT.  EMPOWER.  GROW.', CONTENT_X, y + 32);
+  doc.image(LOGO_PATH, CONTENT_X, y, { height: LOGO_H });
 }
 
 // `align: 'right'` combined with `continued: true` mis-renders in pdfkit
@@ -166,7 +168,7 @@ function renderInvoicePdf(invoice, res, companySettings) {
 
   drawLogo(doc, 50);
   const afterMeta = drawHeaderMeta(doc, invoice, 50);
-  let y = Math.max(afterMeta, 100);
+  let y = Math.max(afterMeta, 50 + LOGO_H + 6);
 
   // Supplier / Contact Person
   const createdByName = invoice.createdBy?.name || 'MySilah Team';

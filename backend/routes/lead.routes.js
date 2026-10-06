@@ -40,6 +40,7 @@ router.post('/import', (req, res, next) => (
 router.get('/agency', allowEmployeeTypes('coordinator', 'account'), ctrl.listForAgency);
 router.post('/bulk-assign-employee', allowEmployeeTypes('coordinator'), ctrl.bulkAssignEmployee);
 router.post('/bulk-receipt', requireRole('agency'), upload.single('receiptFile'), ctrl.bulkAddReceipt);
+router.patch('/:id/undo-approval', requireRole('admin', 'agency'), ctrl.undoApproval);
 router.patch('/:id/loan-amount', requireRole('agency', 'employee', 'admin'), ctrl.updateLoanAmount);
 router.patch('/:id/product', requireRole('agency', 'employee', 'admin'), ctrl.updateProduct);
 router.patch('/:id/cpv', requireRole('agency', 'employee', 'admin'), ctrl.updateCpv);

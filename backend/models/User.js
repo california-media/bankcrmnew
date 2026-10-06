@@ -42,6 +42,15 @@ const userSchema = new mongoose.Schema(
     uaepassUuid: { type: String, sparse: true, default: null },
     uaepassTitle: { type: String, trim: true, default: null },
 
+    // Super Agent: a self-registered "agency" with no trade license. Stored as
+    // role 'agent' + isSuperAgent so every agent screen/route keeps working.
+    // Sub-agents point at them via superAgent (cleared if the super agent is
+    // deactivated — they then fall back to MySilah directly).
+    isSuperAgent: { type: Boolean, default: false },
+    superAgentCode: { type: String, unique: true, sparse: true },
+    superAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    deactivatedAt: { type: Date, default: null },
+
     // Agent bank details for payouts
     bankDetails: {
       accountHolderName: { type: String, trim: true, default: '' },
@@ -49,6 +58,16 @@ const userSchema = new mongoose.Schema(
       accountNumber:     { type: String, trim: true, default: '' },
       iban:              { type: String, trim: true, default: '' },
       swiftCode:         { type: String, trim: true, default: '' },
+      // Supporting docs (filenames in the 'bank-docs' upload folder)
+      chequeCopy:        { type: String, default: null },
+      bankLetter:        { type: String, default: null },
+      // Agent ticked "information given by me is correct"
+      confirmedCorrect:  { type: Boolean, default: false },
+      // Manual verification by admin / admin coordinator
+      verificationStatus: { type: String, enum: ['none', 'pending', 'approved', 'rejected'], default: 'none' },
+      verifiedBy:        { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      verifiedAt:        { type: Date, default: null },
+      rejectReason:      { type: String, trim: true, default: '' },
     },
 
     // Agency-only: overpayment credit pool

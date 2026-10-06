@@ -43,10 +43,11 @@ const sendInviteEmail = async ({ to, inviteUrl }) => {
   return { dev: false };
 };
 
-const sendInquiryNotification = async ({ name, email, phone, companyName, message }) => {
+const sendInquiryNotification = async ({ name, email, phone, companyName, message, queryType }) => {
   const t = getTransporter();
   const to = process.env.INQUIRY_NOTIFY_EMAIL || process.env.ADMIN_EMAIL;
-  const subject = `New Inquiry from ${name}`;
+  const typeLabel = queryType === 'support' ? 'Support' : 'General Query';
+  const subject = `New ${typeLabel} Request from ${name}`;
   const html = `
     <h2>New site inquiry</h2>
     <table>
@@ -54,6 +55,7 @@ const sendInquiryNotification = async ({ name, email, phone, companyName, messag
       <tr><td><strong>Email</strong></td><td>${email}</td></tr>
       <tr><td><strong>Phone</strong></td><td>${phone || '—'}</td></tr>
       <tr><td><strong>Company</strong></td><td>${companyName || '—'}</td></tr>
+      <tr><td><strong>Query type</strong></td><td>${typeLabel}</td></tr>
     </table>
     <p><strong>Message:</strong></p>
     <p>${(message || '').replace(/\n/g, '<br>')}</p>

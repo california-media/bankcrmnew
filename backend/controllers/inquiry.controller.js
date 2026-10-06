@@ -3,12 +3,17 @@ const { sendInquiryNotification, sendInquiryConfirmation } = require('../utils/e
 
 exports.submit = async (req, res) => {
   try {
-    const { name, email, phone, companyName, message } = req.body;
+    const { name, email, phone, companyName, message, queryType } = req.body;
     if (!name || !email) return res.status(400).json({ message: 'Name and email required' });
+    // Older copies of the website form don't send a type — treat those as a general query
+    const type = queryType === undefined || queryType === '' ? 'general' : queryType;
+    if (!['general', 'support'].includes(type)) {
+      return res.status(400).json({ message: 'Query type must be general or support' });
+    }
 
-    const inquiry = await SiteInquiry.create({ name, email, phone, companyName, message });
+    const inquiry = await SiteInquiry.create({ name, email, phone, companyName, message, queryType: type });
 
-    sendInquiryNotification({ name, email, phone, companyName, message }).catch((err) =>
+    sendInquiryNotification({ name, email, phone, companyName, message, queryType: type }).catch((err) =>
       console.error('[inquiry email]', err.message)
     );
     sendInquiryConfirmation({ name, email }).catch((err) =>

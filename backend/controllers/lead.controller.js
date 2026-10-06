@@ -9,6 +9,8 @@ const AgencyPayout = require('../models/AgencyPayout');
 const LeadDeletionLog = require('../models/LeadDeletionLog');
 const { resolveAgencyId } = require('../middleware/auth.middleware');
 const commissionService = require('../services/commission.service');
+const { resolveActiveSuperAgentId } = require('../utils/superAgent');
+const { redactForSuperAgent } = require('./superAgent.controller');
 const { createAndEmit, getAdminIds, formatStatus } = require('../utils/notify');
 const waba = require('../services/waba.service');
 const { getFilename } = require('../middleware/upload.middleware');
@@ -112,6 +114,11 @@ exports.create = async (req, res) => {
       agent: req.user._id,
       status: 'draft',
     };
+    // Attach the agent's super agent (if still active) — re-checked at submit.
+    if (req.user.role === 'agent') {
+      const saId = await resolveActiveSuperAgentId(req.user);
+      if (saId) leadData.superAgent = saId;
+    }
     if (customerSalary != null) leadData.customerSalary = customerSalary;
     if (referenceNo) leadData.referenceNo = referenceNo.trim();
     if (email) leadData.email = email.trim();
@@ -141,6 +148,8 @@ exports.create = async (req, res) => {
       loanAmount,
       accountProduct,
       customerSalary,
+      agent: req.user._id,
+      superAgent: leadData.superAgent,
     });
     leadData.grossCommission = receivable;
     leadData.commission = payable;
@@ -220,6 +229,12 @@ exports.sendToAgency = async (req, res) => {
     if (!agencyDoc) return res.status(400).json({ message: 'The target agency is no longer active' });
 
     lead.status = 'submitted';
+
+    // The super agent is decided at submit time: only if the agent still has
+    // one and it is active. A super agent deactivated after the draft was
+    // created therefore earns nothing on this lead.
+    const submitter = await User.findById(lead.agent).select('role superAgent').lean();
+    lead.superAgent = submitter?.role === 'agent' ? await resolveActiveSuperAgentId(submitter) : null;
 
     // Auto-assign consent status: "Sent" label first, then isDefault, then lowest order
     let defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: /^sent$/i, isActive: true });
@@ -501,6 +516,84 @@ exports.updateStatus = async (req, res) => {
           type: 'status_changed',
           title: { approved: 'Application Approved', disbursed: 'Application Disbursed', rejected: 'Application Rejected' }[status] || `Lead ${formatStatus(status)}`,
           body: `${lead.customerName} — ${populated.bank?.name || ''}`,
+          lead: lead._id,
+        },
+        req.user._id,
+      );
+    } catch (_) {}
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/leads/:id/undo-approval  (admin, agency)
+ * Reverts a lead that was approved by mistake back to the stage it was in
+ * before approval. Locked commission figures are cleared (they are re-locked
+ * if the lead is approved again). Refused once money has moved.
+ */
+exports.undoApproval = async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) return res.status(404).json({ message: 'Lead not found' });
+
+    if (req.user.role === 'agency' && String(lead.agency) !== String(req.user._id)) {
+      return res.status(403).json({ message: 'This lead is not assigned to you' });
+    }
+    if (lead.status !== 'approved') {
+      return res.status(400).json({ message: 'Only approved leads can be moved back' });
+    }
+    if (
+      ['payable', 'paid'].includes(lead.commissionStatus) ||
+      lead.agencyOverrideStatus === 'paid' ||
+      (lead.agencyPaymentStatus && lead.agencyPaymentStatus !== 'pending')
+    ) {
+      return res.status(400).json({ message: 'Payment has already been processed for this lead, so the approval cannot be undone' });
+    }
+
+    // Stage before the (latest) approval. History only records changes made
+    // after submit, so an approval with nothing before it came from "submitted".
+    const history = lead.statusHistory || [];
+    let lastApproved = -1;
+    history.forEach((h, i) => { if (h.status === 'approved') lastApproved = i; });
+    const prev = lastApproved > 0 ? history[lastApproved - 1].status : 'submitted';
+    const target = ['submitted', 'under_review', 'assigned'].includes(prev) ? prev : 'submitted';
+
+    lead.status = target;
+    lead.statusHistory.push({
+      status: target,
+      note: `Approval undone${req.body?.note ? `: ${String(req.body.note).trim()}` : ''}`,
+      changedBy: req.user._id,
+      changedAt: new Date(),
+    });
+    lead.commission = 0;
+    lead.commissionStatus = 'none';
+    lead.agencyOverrideAmount = 0;
+    lead.agencyOverrideAgency = null;
+    lead.agencyOverrideStatus = 'none';
+    // Restore the expected (pre-approval) figures shown on a fresh lead
+    const { receivable, payable } = await commissionService.resolveCommissions(lead);
+    lead.grossCommission = receivable;
+    lead.commission = payable;
+
+    // The auto-applied "Approved" label no longer applies
+    const current = lead.employeeStatus ? await EmployeeStatus.findById(lead.employeeStatus).select('label') : null;
+    if (current && /^approved$/i.test(current.label)) {
+      const lbl = await EmployeeStatus.findOne({ label: /^new lead$/i, statusType: 'lead_label', isActive: true });
+      if (lbl) lead.employeeStatus = lbl._id;
+    }
+    await lead.save();
+
+    const populated = await lead.populate(POPULATE_FIELDS);
+    try {
+      const adminIds = await getAdminIds();
+      await createAndEmit(
+        [...adminIds, String(populated.agency?._id || populated.agency), String(populated.agent?._id || populated.agent)],
+        {
+          type: 'status_changed',
+          title: 'Approval Reverted',
+          body: `${lead.customerName} — moved back to ${formatStatus(target)}`,
           lead: lead._id,
         },
         req.user._id,
@@ -2408,7 +2501,11 @@ exports.addDocuments = async (req, res) => {
 exports.getOne = async (req, res) => {
   try {
     const filter = { _id: req.params.id };
-    if (req.user.role === 'agent') filter.agent = req.user._id;
+    if (req.user.role === 'agent') {
+      // A super agent may also open leads submitted by their sub-agents (redacted below)
+      if (req.user.isSuperAgent) filter.$or = [{ agent: req.user._id }, { superAgent: req.user._id, status: { $ne: 'draft' } }];
+      else filter.agent = req.user._id;
+    }
     if (req.user.role === 'agency') filter.agency = req.user._id;
     if (req.user.role === 'employee') {
       // Coordinator and Account Access both need to open any lead in their
@@ -2444,6 +2541,9 @@ exports.getOne = async (req, res) => {
       .populate('consentStatusHistory.changedBy', 'name email role')
       .populate('consentStatusHistory.consentStatus', 'label color');
     if (!lead) return res.status(404).json({ message: 'Lead not found' });
+    if (req.user.isSuperAgent && String(lead.agent?._id || lead.agent) !== String(req.user._id)) {
+      return res.json(redactForSuperAgent(lead));
+    }
     const out = lead.toObject();
     // Account Access's whole job is payment figures, so it's exempt here —
     // every other employee type (cpv/sales/coordinator) gets commission

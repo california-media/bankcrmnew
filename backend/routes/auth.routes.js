@@ -20,6 +20,12 @@ router.post('/set-password', ctrl.setPassword);
 router.get('/me', protect, ctrl.me);
 router.get('/profile', protect, ctrl.getProfile);
 router.patch('/profile', protect, upload.avatars.single('avatar'), ctrl.updateProfile);
+router.patch(
+  '/bank-details',
+  protect,
+  upload.bankDocs.fields([{ name: 'chequeCopy', maxCount: 1 }, { name: 'bankLetter', maxCount: 1 }]),
+  ctrl.updateBankDetails
+);
 router.post('/forgot-password', ctrl.forgotPassword);
 router.post('/reset-password', ctrl.resetPassword);
 router.delete('/account', protect, ctrl.deleteAccount);

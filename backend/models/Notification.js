@@ -24,6 +24,8 @@ const notificationSchema = new mongoose.Schema(
         'bucket_request',
         // Agency <-> admin notes on an invoice (invoice.controller.js)
         'invoice_note',
+        // Support tickets (supportTicket.controller.js)
+        'support_ticket', 'bank_docs',
       ],
       required: true,
     },

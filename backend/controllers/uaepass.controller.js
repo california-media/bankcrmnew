@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
+const { inactiveMessage, DEACTIVATED_MESSAGE } = require('../utils/superAgent');
 
 const IS_STAGING   = process.env.UAEPASS_ENV !== 'production';
 const BASE_URL     = IS_STAGING ? 'https://id.uaepass.ae/idshub' : 'https://id.uaepass.ae/idshub';
@@ -243,6 +244,11 @@ exports.callback = async (req, res) => {
     if (!agent && emiratesId) agent = await User.findOne({ emiratesId });
 
     if (agent) {
+      // Deactivated / not-yet-approved accounts must not get in via UAE Pass either.
+      if (!agent.isActive) {
+        const code = inactiveMessage(agent) === DEACTIVATED_MESSAGE ? 'account_deactivated' : 'account_not_active';
+        return res.redirect(`${errorOrigin}/${errorReturnPage}?uaepass_error=${code}`);
+      }
       const updates = {};
       if (!agent.uaepassSub)                                          updates.uaepassSub   = sub;
       if (uuid        && uuid !== agent.uaepassUuid)                  updates.uaepassUuid  = uuid;

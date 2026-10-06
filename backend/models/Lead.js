@@ -74,6 +74,9 @@ const leadSchema = new mongoose.Schema(
     assignedSalesEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     // Locked at approval/disbursement exactly like grossCommission/commission —
     // the extra AED the submitting agent's tagging agency earns, if any.
+    // Super agent attached to the submitting agent at submit time. Locked on
+    // the lead so later deactivation of the super agent doesn't affect it.
+    superAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     agencyOverrideAmount: { type: Number, default: 0 },
     agencyOverrideAgency: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     // Payout lifecycle for the agency override amount — separate from

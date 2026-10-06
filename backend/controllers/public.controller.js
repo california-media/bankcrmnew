@@ -6,6 +6,7 @@ const LoanProduct       = require('../models/LoanProduct');
 const FeaturedProduct   = require('../models/FeaturedProduct');
 const AccountProduct    = require('../models/AccountProduct');
 const EmployeeStatus    = require('../models/EmployeeStatus');
+const { resolveActiveSuperAgentId } = require('../utils/superAgent');
 const commissionService = require('../services/commission.service');
 const waba              = require('../services/waba.service');
 
@@ -146,6 +147,7 @@ exports.submitReferral = async (req, res) => {
       if (sentConsent) leadData.consentStatus = sentConsent._id;
     }
 
+    leadData.superAgent = await resolveActiveSuperAgentId(agent);
     const { receivable, payable } = await commissionService.resolveCommissions(leadData);
     leadData.grossCommission = receivable;
     leadData.commission = payable;

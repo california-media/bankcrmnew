@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const PhoneOtp = require('../models/PhoneOtp');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
+const { generateSuperAgentCode, generateUniqueReferralCode, inactiveMessage, releaseSubAgents } = require('../utils/superAgent');
 const { sendPasswordResetEmail, sendEmailVerification } = require('../utils/email');
 const { sendWhatsAppOtp } = require('../services/whatsappOtp.service');
 const { deleteFromS3, getFilename } = require('../middleware/upload.middleware');
@@ -29,6 +30,8 @@ const sanitize = (user) => ({
   role: user.role,
   avatar: user.avatar,
   referralCode: user.referralCode,
+  isSuperAgent: !!user.isSuperAgent,
+  superAgentCode: user.superAgentCode,
   employeeType: user.employeeType,
   canViewPayouts: user.canViewPayouts,
   adminScope: user.adminScope,
@@ -45,6 +48,9 @@ const sanitizeFull = (user) => ({
   role: user.role,
   avatar: user.avatar,
   referralCode: user.referralCode,
+  isSuperAgent: !!user.isSuperAgent,
+  superAgentCode: user.superAgentCode,
+  superAgent: user.superAgent,
   leadCount: user.leadCount,
   isActive: user.isActive,
   createdAt: user.createdAt,
@@ -65,7 +71,7 @@ const safeUser = async (id) =>
  */
 exports.registerAgent = async (req, res) => {
   try {
-    const { name, email, password, phone, referralCode, emiratesId, uaepassSub, phoneVerifyToken } = req.body;
+    const { name, email, password, phone, referralCode, superAgentCode, emiratesId, uaepassSub, phoneVerifyToken } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
     }
@@ -100,12 +106,14 @@ exports.registerAgent = async (req, res) => {
       referredBy = refUser._id;
     }
 
-    let code;
-    while (true) {
-      code = generateReferralCode();
-      const collision = await User.findOne({ referralCode: code });
-      if (!collision) break;
+    let superAgent;
+    if (superAgentCode && String(superAgentCode).trim()) {
+      const sa = await User.findOne({ superAgentCode: String(superAgentCode).trim().toUpperCase(), isSuperAgent: true, isActive: true });
+      if (!sa) return res.status(400).json({ message: 'Invalid super agent code' });
+      superAgent = sa._id;
     }
+
+    const code = await generateUniqueReferralCode();
 
     const verifyToken = crypto.randomBytes(32).toString('hex');
 
@@ -117,6 +125,7 @@ exports.registerAgent = async (req, res) => {
       role: 'agent',
       referralCode: code,
       referredBy,
+      ...(superAgent ? { superAgent } : {}),
       isActive: false,
       emailVerifyToken: verifyToken,
       emailVerifyExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -224,9 +233,21 @@ exports.verifyEmail = async (req, res) => {
  */
 exports.registerAgency = async (req, res) => {
   try {
-    const { name, companyName, tradeLicense, email, phone, password, emiratesId, city } = req.body;
+    const { name, companyName, tradeLicense, email, phone, password, emiratesId, city, phoneVerifyToken } = req.body;
     if (!companyName || !email || !password) {
       return res.status(400).json({ message: 'Company name, email, and password are required' });
+    }
+    if (!phone || !phoneVerifyToken) {
+      return res.status(400).json({ message: 'Phone verification is required' });
+    }
+    try {
+      const decoded = jwt.verify(phoneVerifyToken, process.env.JWT_SECRET);
+      if (decoded.purpose !== 'phone-verify') throw new Error('wrong token purpose');
+      if (decoded.phone !== phone) {
+        return res.status(400).json({ message: 'Phone verification does not match' });
+      }
+    } catch (_) {
+      return res.status(400).json({ message: 'Phone verification expired, please verify your number again' });
     }
 
     const exists = await User.findOne({ email: email.toLowerCase() });
@@ -237,21 +258,32 @@ exports.registerAgency = async (req, res) => {
       if (idExists) return res.status(409).json({ message: 'A user is already registered with this Emirates ID' });
     }
 
+    // No trade license => Super Agent (agent-type account that can have sub-agents),
+    // trade license present => a regular Agency.
+    const license = String(tradeLicense || '').trim();
+    const isSuperAgent = !license;
+
     await User.create({
       name: name || companyName,
       companyName,
-      tradeLicense,
+      ...(license ? { tradeLicense: license } : {}),
       email: email.toLowerCase(),
       password,
       phone,
-      emiratesId,
+      emiratesId: emiratesId || undefined,
       location: city,
-      role: 'agency',
+      role: isSuperAgent ? 'agent' : 'agency',
+      ...(isSuperAgent
+        ? { isSuperAgent: true, superAgentCode: await generateSuperAgentCode(), referralCode: await generateUniqueReferralCode() }
+        : {}),
       isActive: false,
       registrationStatus: 'pending',
     });
 
-    res.status(201).json({ message: 'Registration submitted. Awaiting admin approval.' });
+    res.status(201).json({
+      message: 'Registration submitted. Awaiting admin approval.',
+      accountType: isSuperAgent ? 'super_agent' : 'agency',
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -266,15 +298,13 @@ exports.login = async (req, res) => {
     if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
 
     const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user || !user.password) return res.status(401).json({ message: 'Invalid credentials' });
-    if (!user.isActive) {
-      if (user.registrationStatus === 'pending') return res.status(403).json({ message: 'Account pending admin approval.' });
-      if (user.registrationStatus === 'rejected') return res.status(403).json({ message: 'Account registration was rejected. Contact support.' });
-      return res.status(403).json({ message: 'Account not activated. Check your invite email.' });
-    }
+    if (!user || !user.password) return res.status(401).json({ message: 'Incorrect email or password.' });
 
+    // Check the password first so account status is only revealed to the real owner.
     const ok = await user.comparePassword(password);
-    if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!ok) return res.status(401).json({ message: 'Incorrect email or password.' });
+
+    if (!user.isActive) return res.status(403).json({ message: inactiveMessage(user) });
 
     const token = signAuthToken(user);
     const full = await safeUser(user._id);
@@ -351,7 +381,9 @@ exports.getProfile = async (req, res) => {
     const user = await User.findById(req.user._id)
       .select('-password -inviteToken -inviteTokenExpires')
       .populate('agency', 'name email phone')
-      .populate('referredBy', 'name email referralCode');
+      .populate('referredBy', 'name email referralCode')
+      .populate('superAgent', 'name superAgentCode')
+      .populate('bankDetails.verifiedBy', 'name email');
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json({ user: sanitizeFull(user) });
   } catch (err) {
@@ -364,7 +396,7 @@ exports.getProfile = async (req, res) => {
  */
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, phone, emiratesId, currentPassword, newPassword, bankDetails } = req.body;
+    const { name, phone, emiratesId, currentPassword, newPassword } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -380,16 +412,6 @@ exports.updateProfile = async (req, res) => {
       user.avatar = null;
     }
 
-    if (bankDetails && typeof bankDetails === 'object' && user.role === 'agent') {
-      const bd = bankDetails;
-      if (!user.bankDetails) user.bankDetails = {};
-      if (bd.accountHolderName !== undefined) user.bankDetails.accountHolderName = bd.accountHolderName;
-      if (bd.bankName !== undefined) user.bankDetails.bankName = bd.bankName;
-      if (bd.accountNumber !== undefined) user.bankDetails.accountNumber = bd.accountNumber;
-      if (bd.iban !== undefined) user.bankDetails.iban = bd.iban;
-      if (bd.swiftCode !== undefined) user.bankDetails.swiftCode = bd.swiftCode;
-    }
-
     if (newPassword) {
       if (newPassword.length < 6) return res.status(400).json({ message: 'New password must be at least 6 characters' });
       user.password = newPassword;
@@ -401,6 +423,62 @@ exports.updateProfile = async (req, res) => {
       .populate('agency', 'name email phone')
       .populate('referredBy', 'name email referralCode');
     res.json({ user: sanitizeFull(updated) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/auth/bank-details  (agent) — multipart
+ * Fields: accountHolderName, bankName, accountNumber, iban, swiftCode,
+ *         confirmedCorrect ('true'), files: chequeCopy, bankLetter.
+ * Any change puts the documents back to 'pending' for manual verification by
+ * admin / admin coordinator.
+ */
+exports.updateBankDetails = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (user.role !== 'agent') return res.status(403).json({ message: 'Only agents have bank details' });
+
+    const b = req.body;
+    if (String(b.confirmedCorrect) !== 'true') {
+      return res.status(400).json({ message: 'Please confirm the information given by you is correct' });
+    }
+
+    const bd = user.bankDetails || {};
+    const cheque = req.files?.chequeCopy?.[0];
+    const letter = req.files?.bankLetter?.[0];
+
+    const next = {
+      accountHolderName: b.accountHolderName !== undefined ? String(b.accountHolderName).trim() : bd.accountHolderName || '',
+      bankName:          b.bankName          !== undefined ? String(b.bankName).trim()          : bd.bankName          || '',
+      accountNumber:     b.accountNumber     !== undefined ? String(b.accountNumber).trim()     : bd.accountNumber     || '',
+      iban:              b.iban              !== undefined ? String(b.iban).trim()              : bd.iban              || '',
+      swiftCode:         b.swiftCode         !== undefined ? String(b.swiftCode).trim()         : bd.swiftCode         || '',
+      chequeCopy:        cheque ? getFilename(cheque) : bd.chequeCopy || null,
+      bankLetter:        letter ? getFilename(letter) : bd.bankLetter || null,
+    };
+
+    if (cheque && bd.chequeCopy) deleteFromS3('bank-docs', bd.chequeCopy);
+    if (letter && bd.bankLetter) deleteFromS3('bank-docs', bd.bankLetter);
+
+    const hasBothDocs = !!(next.chequeCopy && next.bankLetter);
+    user.bankDetails = {
+      ...next,
+      confirmedCorrect: true,
+      // Submitted for manual review once both documents are present
+      verificationStatus: hasBothDocs ? 'pending' : 'none',
+      verifiedBy: null,
+      verifiedAt: null,
+      rejectReason: '',
+    };
+    await user.save();
+
+    const updated = await User.findById(user._id)
+      .select('-password -inviteToken -inviteTokenExpires')
+      .populate('bankDetails.verifiedBy', 'name email');
+    res.json({ bankDetails: updated.bankDetails });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -450,7 +528,9 @@ exports.deleteAccount = async (req, res) => {
     if (!ok) return res.status(401).json({ message: 'Incorrect password' });
 
     user.isActive = false;
+    user.deactivatedAt = new Date();
     user.deletedAt = new Date();
+    if (user.isSuperAgent) await releaseSubAgents(user._id);
     user.email = `deleted_${Date.now()}_${user.email}`;
     await user.save();
 

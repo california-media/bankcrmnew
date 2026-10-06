@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const Lead = require('../models/Lead');
 const { generateReferralCode } = require('../utils/token');
+const { releaseSubAgents } = require('../utils/superAgent');
+const { createAndEmit } = require('../utils/notify');
 
 const sanitizeAgent = (user) => ({
   id: user._id,
@@ -14,6 +16,9 @@ const sanitizeAgent = (user) => ({
   createdAt: user.createdAt,
   bankDetails: user.bankDetails,
   agency: user.agency,
+  isSuperAgent: !!user.isSuperAgent,
+  superAgentCode: user.superAgentCode,
+  superAgent: user.superAgent,
 });
 
 /**
@@ -26,9 +31,15 @@ exports.listAgents = async (req, res) => {
       .select('-password -inviteToken -inviteTokenExpires')
       .populate('referredBy', 'name email referralCode')
       .populate('agency', 'name email')
+      .populate('superAgent', 'name email superAgentCode')
       .sort({ createdAt: -1 });
 
     const ids = agents.map((a) => a._id);
+    const subCounts = await User.aggregate([
+      { $match: { superAgent: { $in: ids } } },
+      { $group: { _id: '$superAgent', n: { $sum: 1 } } },
+    ]);
+    const subCountBy = Object.fromEntries(subCounts.map((c) => [String(c._id), c.n]));
     const stats = await Lead.aggregate([
       { $match: { agent: { $in: ids } } },
       {
@@ -47,6 +58,7 @@ exports.listAgents = async (req, res) => {
     const enriched = agents.map((a) => ({
       ...a.toObject(),
       stats: byAgent[String(a._id)] || { total: 0, approved: 0, paidCommission: 0 },
+      subAgentCount: subCountBy[String(a._id)] || 0,
     }));
     res.json(enriched);
   } catch (err) {
@@ -154,8 +166,14 @@ exports.getAgent = async (req, res) => {
   try {
     const agent = await User.findOne({ _id: req.params.id, role: 'agent' })
       .select('-password -inviteToken -inviteTokenExpires')
-      .populate('referredBy', 'name email referralCode');
+      .populate('referredBy', 'name email referralCode')
+      .populate('superAgent', 'name email superAgentCode')
+      .populate('bankDetails.verifiedBy', 'name email');
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
+
+    const subAgents = agent.isSuperAgent
+      ? await User.find({ superAgent: agent._id }).select('name email phone isActive createdAt').sort({ createdAt: -1 })
+      : [];
 
     const leads = await Lead.find({ agent: agent._id })
       .select('status commission commissionStatus createdAt customerName bank productType loanAmount leadNumber')
@@ -171,7 +189,7 @@ exports.getAgent = async (req, res) => {
       pending: leads.filter((l) => ['submitted', 'under_review', 'assigned'].includes(l.status)).length,
     };
 
-    res.json({ agent, stats, leads: leads.slice(0, 20) });
+    res.json({ agent, stats, subAgents, leads: leads.slice(0, 20) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -184,12 +202,19 @@ exports.getAgent = async (req, res) => {
  */
 exports.createAgent = async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, superAgentCode } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ message: 'name, email, and password are required' });
 
     const exists = await User.findOne({ email: email.toLowerCase() });
     if (exists) return res.status(409).json({ message: 'Email already registered' });
+
+    let superAgent;
+    if (superAgentCode && String(superAgentCode).trim()) {
+      const sa = await User.findOne({ superAgentCode: String(superAgentCode).trim().toUpperCase(), isSuperAgent: true, isActive: true });
+      if (!sa) return res.status(400).json({ message: 'Invalid or inactive super agent code' });
+      superAgent = sa._id;
+    }
 
     const agent = await User.create({
       name,
@@ -199,6 +224,7 @@ exports.createAgent = async (req, res) => {
       role: 'agent',
       isActive: true,
       referralCode: generateReferralCode(),
+      ...(superAgent ? { superAgent } : {}),
     });
 
     res.status(201).json({ user: sanitizeAgent(agent) });
@@ -216,7 +242,7 @@ exports.updateAgent = async (req, res) => {
     const agent = await User.findOne({ _id: req.params.id, role: 'agent' });
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
 
-    const { name, email, phone, holdPct, bankDetails, agency } = req.body;
+    const { name, email, phone, holdPct, bankDetails, agency, superAgentCode } = req.body;
     if (name !== undefined) agent.name = name;
     if (phone !== undefined) agent.phone = phone;
     if (holdPct !== undefined) agent.holdPct = Math.min(100, Math.max(0, Number(holdPct) || 0));
@@ -227,6 +253,16 @@ exports.updateAgent = async (req, res) => {
         const targetAgency = await User.findOne({ _id: agency, role: 'agency' });
         if (!targetAgency) return res.status(400).json({ message: 'Target agency not found' });
         agent.agency = targetAgency._id;
+      }
+    }
+    if (superAgentCode !== undefined) {
+      if (!superAgentCode || !String(superAgentCode).trim()) {
+        agent.superAgent = null;
+      } else {
+        if (agent.isSuperAgent) return res.status(400).json({ message: 'A super agent cannot be attached to another super agent' });
+        const sa = await User.findOne({ superAgentCode: String(superAgentCode).trim().toUpperCase(), isSuperAgent: true, isActive: true });
+        if (!sa) return res.status(400).json({ message: 'Invalid or inactive super agent code' });
+        agent.superAgent = sa._id;
       }
     }
     if (email) {
@@ -242,6 +278,13 @@ exports.updateAgent = async (req, res) => {
         accountNumber:     bankDetails.accountNumber     ?? agent.bankDetails?.accountNumber     ?? '',
         iban:              bankDetails.iban              ?? agent.bankDetails?.iban              ?? '',
         swiftCode:         bankDetails.swiftCode         ?? agent.bankDetails?.swiftCode         ?? '',
+        chequeCopy:        agent.bankDetails?.chequeCopy        ?? null,
+        bankLetter:        agent.bankDetails?.bankLetter        ?? null,
+        confirmedCorrect:  agent.bankDetails?.confirmedCorrect  ?? false,
+        verificationStatus: agent.bankDetails?.verificationStatus ?? 'none',
+        verifiedBy:        agent.bankDetails?.verifiedBy        ?? null,
+        verifiedAt:        agent.bankDetails?.verifiedAt        ?? null,
+        rejectReason:      agent.bankDetails?.rejectReason      ?? '',
       };
     }
     await agent.save();
@@ -280,7 +323,11 @@ exports.toggleAgentActive = async (req, res) => {
     const agent = await User.findOne({ _id: req.params.id, role: 'agent' });
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
     agent.isActive = !agent.isActive;
+    agent.deactivatedAt = agent.isActive ? null : new Date();
     await agent.save();
+    // Deactivated super agent: sub-agents go straight to MySilah from now on
+    // (leads already submitted keep their super agent, see Lead.superAgent).
+    if (!agent.isActive && agent.isSuperAgent) await releaseSubAgents(agent._id);
     res.json({ user: sanitizeAgent(agent) });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -294,6 +341,7 @@ exports.deleteAgent = async (req, res) => {
   try {
     const agent = await User.findOneAndDelete({ _id: req.params.id, role: 'agent' });
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
+    if (agent.isSuperAgent) await releaseSubAgents(agent._id);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -305,7 +353,7 @@ exports.deleteAgent = async (req, res) => {
  */
 exports.listPendingAgencies = async (req, res) => {
   try {
-    const agencies = await User.find({ role: 'agency', registrationStatus: 'pending' })
+    const agencies = await User.find({ $or: [{ role: 'agency' }, { role: 'agent', isSuperAgent: true }], registrationStatus: 'pending' })
       .select('-password -inviteToken -inviteTokenExpires')
       .sort({ createdAt: -1 });
     res.json(agencies);
@@ -319,7 +367,7 @@ exports.listPendingAgencies = async (req, res) => {
  */
 exports.approveAgency = async (req, res) => {
   try {
-    const agency = await User.findOne({ _id: req.params.id, role: 'agency', registrationStatus: 'pending' });
+    const agency = await User.findOne({ _id: req.params.id, $or: [{ role: 'agency' }, { role: 'agent', isSuperAgent: true }], registrationStatus: 'pending' });
     if (!agency) return res.status(404).json({ message: 'Pending agency not found' });
     agency.isActive = true;
     agency.registrationStatus = 'approved';
@@ -335,7 +383,7 @@ exports.approveAgency = async (req, res) => {
  */
 exports.rejectAgency = async (req, res) => {
   try {
-    const agency = await User.findOne({ _id: req.params.id, role: 'agency', registrationStatus: 'pending' });
+    const agency = await User.findOne({ _id: req.params.id, $or: [{ role: 'agency' }, { role: 'agent', isSuperAgent: true }], registrationStatus: 'pending' });
     if (!agency) return res.status(404).json({ message: 'Pending agency not found' });
     agency.registrationStatus = 'rejected';
     await agency.save();
@@ -670,6 +718,52 @@ exports.deleteAgencyEmployee = async (req, res) => {
     const deleted = await User.findOneAndDelete({ _id: req.params.id, role: 'employee', employeeType: { $in: AGENCY_EMPLOYEE_TYPES } });
     if (!deleted) return res.status(404).json({ message: 'Agency employee not found' });
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * PATCH /api/admin/agents/:id/bank-docs/verify  (admin / admin coordinator)
+ * Body: { action: 'approve' | 'reject', reason? }
+ * Manual verification of the agent's cheque copy + bank letter. Records who
+ * approved it so the agent (and other admins) can see it.
+ */
+exports.verifyBankDocs = async (req, res) => {
+  try {
+    const { action, reason } = req.body;
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ message: "action must be 'approve' or 'reject'" });
+    }
+    const agent = await User.findOne({ _id: req.params.id, role: 'agent' });
+    if (!agent) return res.status(404).json({ message: 'Agent not found' });
+    const bd = agent.bankDetails || {};
+    if (!bd.chequeCopy || !bd.bankLetter) {
+      return res.status(400).json({ message: 'Agent has not uploaded both the cheque copy and the bank letter' });
+    }
+    if (action === 'reject' && !String(reason || '').trim()) {
+      return res.status(400).json({ message: 'A reason is required when rejecting' });
+    }
+
+    agent.bankDetails.verificationStatus = action === 'approve' ? 'approved' : 'rejected';
+    agent.bankDetails.verifiedBy = req.user._id;
+    agent.bankDetails.verifiedAt = new Date();
+    agent.bankDetails.rejectReason = action === 'reject' ? String(reason).trim() : '';
+    agent.markModified('bankDetails');
+    await agent.save();
+
+    try {
+      await createAndEmit([String(agent._id)], {
+        type: 'bank_docs',
+        title: action === 'approve' ? 'Bank Documents Approved' : 'Bank Documents Rejected',
+        body: action === 'approve'
+          ? `Your bank documents were approved by ${req.user.name || 'MySilah'}.`
+          : `Your bank documents were rejected: ${String(reason).trim()}`,
+      }, req.user._id);
+    } catch (_) {}
+
+    const populated = await User.findById(agent._id).select('bankDetails').populate('bankDetails.verifiedBy', 'name email');
+    res.json({ bankDetails: populated.bankDetails });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

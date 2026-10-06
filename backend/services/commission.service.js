@@ -29,7 +29,7 @@ function findBracket(brackets, salary) {
 // Resolves how the submitter of this lead affects payout, gated by the
 // tagging/submitting agency's agencyCommissionModel so 'wholesale' agencies
 // (today's existing invoice/bucket flow) are completely unaffected:
-// - overrideAgency: set only when a plain agent (via User.agency) is tagged
+// - overrideAgency: the lead's super agent, or (when none) set only when a plain agent (via User.agency) is tagged
 //   to a 'referral'-model agency — that agency earns the per-product
 //   agencyOverride on top of the agent's own payout.
 // - selfReferral: true only when the lead's own submitter IS a 'referral'-
@@ -37,6 +37,10 @@ function findBracket(brackets, salary) {
 //   full receivable amount instead of the bracket's agent-facing payable.
 async function resolveSubmitterContext(lead) {
   if (!lead.agent) return { overrideAgency: null, selfReferral: false };
+  // Super agent locked on the lead at submit time: it earns the product's
+  // override ("SA Differ") on top of the sub-agent's own payout, whatever
+  // state the super agent's account is in now.
+  if (lead.superAgent) return { overrideAgency: lead.superAgent, selfReferral: false };
   const submitter = await User.findById(lead.agent).select('role agency agencyCommissionModel').lean();
   if (!submitter) return { overrideAgency: null, selfReferral: false };
   if (submitter.role === 'agency') {

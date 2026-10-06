@@ -6,6 +6,7 @@ const siteInquirySchema = new mongoose.Schema(
     email:       { type: String, required: true, trim: true },
     phone:       { type: String, trim: true },
     companyName: { type: String, trim: true },
+    queryType:   { type: String, enum: ['general', 'support'], default: 'general' },
     message:     { type: String, trim: true },
     read:        { type: Boolean, default: false },
   },

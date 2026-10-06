@@ -5,6 +5,7 @@ const bracketSchema = new mongoose.Schema(
     minimumSalary: { type: Number, required: true, min: 0 },
     receivable: { type: Number, required: true, min: 0 },
     payable: { type: Number, required: true, min: 0 },
+    agencyOverride: { type: Number, min: 0, default: 0 }, // SA Differ: extra AED paid to the submitting agent's super agent / tagging agency
   },
   { _id: false }
 );

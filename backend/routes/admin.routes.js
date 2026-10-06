@@ -11,6 +11,7 @@ router.post('/agents', ctrl.createAgent);
 router.patch('/agents/:id', ctrl.updateAgent);
 router.patch('/agents/:id/toggle-active', ctrl.toggleAgentActive);
 router.patch('/agents/:id/reset-password', ctrl.resetAgentPassword);
+router.patch('/agents/:id/bank-docs/verify', ctrl.verifyBankDocs);
 router.delete('/agents/:id', ctrl.deleteAgent);
 
 router.post('/blog-editors', ctrl.createBlogEditor);

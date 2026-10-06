@@ -36,7 +36,7 @@ const copyInS3 = async (subdir, filename) => {
   return newFilename;
 };
 
-const makeUpload = (subdir, allowedExts) => {
+const makeUpload = (subdir, allowedExts, { checkMime = true } = {}) => {
   const storage = multerS3({
     s3,
     bucket: BUCKET,
@@ -50,7 +50,7 @@ const makeUpload = (subdir, allowedExts) => {
 
   const fileFilter = (_req, file, cb) => {
     const re = new RegExp(allowedExts.join('|'));
-    const ok = re.test(path.extname(file.originalname).toLowerCase()) && re.test(file.mimetype);
+    const ok = re.test(path.extname(file.originalname).toLowerCase()) && (!checkMime || re.test(file.mimetype));
     cb(ok ? null : new Error(`Only ${allowedExts.join(', ')} files allowed`), ok);
   };
 
@@ -66,6 +66,9 @@ module.exports.leadDocuments      = makeUpload('lead-documents',       ['jpeg', 
 module.exports.featuredProductImages = makeUpload('featured-products', ['jpeg', 'jpg', 'png', 'webp', 'avif']);
 module.exports.avatars            = makeUpload('avatars',              ['jpeg', 'jpg', 'png', 'webp']);
 module.exports.resources          = makeUpload('resources',            ['jpeg', 'jpg', 'png', 'pdf']);
+module.exports.bankDocs           = makeUpload('bank-docs',            ['jpeg', 'jpg', 'png', 'pdf']);
+// Support-ticket attachments: photos, PDFs and office docs (docx/xlsx mimetypes don't contain the extension, so skip the mime check)
+module.exports.supportFiles       = makeUpload('support-files',        ['jpeg', 'jpg', 'png', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'], { checkMime: false });
 
 // In-memory upload for the leads bulk-import spreadsheet — parsed immediately, never persisted to S3.
 module.exports.leadImportFile = multer({

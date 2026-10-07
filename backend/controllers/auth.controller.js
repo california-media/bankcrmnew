@@ -233,10 +233,12 @@ exports.verifyEmail = async (req, res) => {
  */
 exports.registerAgency = async (req, res) => {
   try {
-    const { name, companyName, tradeLicense, email, phone, password, emiratesId, city, phoneVerifyToken } = req.body;
-    if (!companyName || !email || !password) {
-      return res.status(400).json({ message: 'Company name, email, and password are required' });
+    const { name, companyName, tradeLicense, email, phone, password, emiratesId, city, phoneVerifyToken, accountType } = req.body;
+    const isSuperAgent = accountType === 'super_agent';
+    if (!email || !password || (!isSuperAgent && !companyName)) {
+      return res.status(400).json({ message: isSuperAgent ? 'Name, email, and password are required' : 'Company name, email, and password are required' });
     }
+    if (isSuperAgent && !name) return res.status(400).json({ message: 'Name, email, and password are required' });
     if (!phone || !phoneVerifyToken) {
       return res.status(400).json({ message: 'Phone verification is required' });
     }
@@ -258,14 +260,13 @@ exports.registerAgency = async (req, res) => {
       if (idExists) return res.status(409).json({ message: 'A user is already registered with this Emirates ID' });
     }
 
-    // No trade license => Super Agent (agent-type account that can have sub-agents),
-    // trade license present => a regular Agency.
-    const license = String(tradeLicense || '').trim();
-    const isSuperAgent = !license;
+    // Explicit accountType: 'super_agent' => agent-type account that can have
+    // sub-agents (no company / trade license), otherwise a regular Agency.
+    const license = isSuperAgent ? '' : String(tradeLicense || '').trim();
 
     await User.create({
       name: name || companyName,
-      companyName,
+      ...(isSuperAgent ? {} : { companyName }),
       ...(license ? { tradeLicense: license } : {}),
       email: email.toLowerCase(),
       password,

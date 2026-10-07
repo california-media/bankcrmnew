@@ -25,9 +25,12 @@ const sanitizeAgent = (user) => ({
  * GET /api/admin/agents  (admin)
  * Response: agents with summary counts (total leads, approved leads, paid commission).
  */
-exports.listAgents = async (req, res) => {
+const listAgentsWhere = (superOnly) => async (req, res) => {
   try {
-    const agents = await User.find({ role: 'agent' })
+    // Pending super agent sign-ups live in the Super Agents "Pending Approval" tab.
+    const agents = await User.find(superOnly
+      ? { role: 'agent', isSuperAgent: true, registrationStatus: { $ne: 'pending' } }
+      : { role: 'agent', isSuperAgent: { $ne: true } })
       .select('-password -inviteToken -inviteTokenExpires')
       .populate('referredBy', 'name email referralCode')
       .populate('agency', 'name email')
@@ -65,6 +68,8 @@ exports.listAgents = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+exports.listAgents = listAgentsWhere(false);
+exports.listSuperAgents = listAgentsWhere(true);
 
 /**
  * GET /api/admin/overview  (admin)
@@ -349,11 +354,13 @@ exports.deleteAgent = async (req, res) => {
 };
 
 /**
- * GET /api/admin/agencies/pending  (admin)
+ * GET /api/admin/agencies/pending?type=super  (admin)
+ * Default: pending agencies. type=super: pending super agents.
  */
 exports.listPendingAgencies = async (req, res) => {
   try {
-    const agencies = await User.find({ $or: [{ role: 'agency' }, { role: 'agent', isSuperAgent: true }], registrationStatus: 'pending' })
+    const filter = req.query.type === 'super' ? { role: 'agent', isSuperAgent: true } : { role: 'agency' };
+    const agencies = await User.find({ ...filter, registrationStatus: 'pending' })
       .select('-password -inviteToken -inviteTokenExpires')
       .sort({ createdAt: -1 });
     res.json(agencies);

@@ -129,4 +129,62 @@ exports.earnings = async (req, res) => {
   }
 };
 
+// Joining a super agent after registration is one-time: an agent who already
+// has one can't switch or leave on their own (admin still can, from Agents).
+// Agents under an agency stay out so a lead never has both above it.
+const joinBlockReason = (user) => {
+  if (user.isSuperAgent) return 'A super agent cannot join another super agent';
+  if (user.agency) return 'Agents under an agency cannot join a super agent';
+  if (user.superAgent) return 'You are already attached to a super agent';
+  return null;
+};
+
+const findJoinableSuperAgent = (code) =>
+  User.findOne({ superAgentCode: String(code || '').trim().toUpperCase(), isSuperAgent: true, isActive: true })
+    .select('name superAgentCode');
+
+/**
+ * GET /api/super-agent/lookup?code=SA1234AB  (agent)
+ * Response: { name, superAgentCode } — shown to the agent before they confirm joining.
+ */
+exports.lookup = async (req, res) => {
+  try {
+    const blocked = joinBlockReason(req.user);
+    if (blocked) return res.status(400).json({ message: blocked });
+    if (!String(req.query.code || '').trim()) return res.status(400).json({ message: 'Enter a super agent code' });
+    const sa = await findJoinableSuperAgent(req.query.code);
+    if (!sa) return res.status(404).json({ message: 'Invalid or inactive super agent code' });
+    res.json({ name: sa.name, superAgentCode: sa.superAgentCode });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/super-agent/join  (agent)
+ * Body: { code }. Attaches the agent instantly; leads they submit from now on
+ * earn this super agent its differ. Already-submitted leads are unchanged.
+ * Response: { superAgent: { _id, name, superAgentCode } }
+ */
+exports.join = async (req, res) => {
+  try {
+    const blocked = joinBlockReason(req.user);
+    if (blocked) return res.status(400).json({ message: blocked });
+    if (!String(req.body.code || '').trim()) return res.status(400).json({ message: 'Enter a super agent code' });
+    const sa = await findJoinableSuperAgent(req.body.code);
+    if (!sa) return res.status(404).json({ message: 'Invalid or inactive super agent code' });
+
+    // Conditional update so two quick requests can't attach to two super agents
+    const updated = await User.findOneAndUpdate(
+      { _id: req.user._id, role: 'agent', isSuperAgent: { $ne: true }, superAgent: null, agency: null },
+      { $set: { superAgent: sa._id } },
+      { new: true }
+    );
+    if (!updated) return res.status(400).json({ message: 'You are already attached to a super agent' });
+    res.json({ superAgent: { _id: sa._id, name: sa.name, superAgentCode: sa.superAgentCode } });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.redactForSuperAgent = redactForSuperAgent;

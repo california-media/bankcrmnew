@@ -27,7 +27,7 @@ const POPULATE_FIELDS = [
   { path: 'agency', select: 'name email' },
   { path: 'agent', select: 'name email' },
   { path: 'agencyOverrideAgency', select: 'name email' },
-  { path: 'cardProduct', select: 'name cardType commissionBrackets cashbackCategories cardImage benefits feesEligibility', populate: { path: 'cashbackCategories.category', select: 'name' } },
+  { path: 'cardProduct', select: 'name cardType commissionBrackets cashbackCategories cardImage benefits feesEligibility keyFeatures additionalBenefits', populate: { path: 'cashbackCategories.category', select: 'name' } },
   { path: 'loanProduct', select: 'name loanCategory commissionBrackets benefits feesEligibility minSalary maxLoanAmount maxTenure interestRateRange' },
   { path: 'accountProduct', select: 'name accountCategory commissionBrackets benefits feesEligibility' },
   { path: 'employeeStatus', select: 'label color' },
@@ -2276,13 +2276,16 @@ exports.completeReferral = async (req, res) => {
       const eligible = sorted.filter((b) => b.minimumSalary <= effSalary);
       const bracket = eligible.length ? eligible[eligible.length - 1] : sorted[0];
       if (bracket) {
+        // A super agent submitting their own lead keeps the full receivable (no middleman).
+        const submitterDoc = await User.findById(lead.agent).select('role isSuperAgent').lean();
+        const payRate = submitterDoc?.role === 'agent' && submitterDoc.isSuperAgent ? bracket.receivable : bracket.payable;
         if (productType === 'credit_card') {
           lead.grossCommission = bracket.receivable;
-          lead.commission = bracket.payable;
+          lead.commission = payRate;
         } else {
           const amt = lead.loanAmount || 0;
           lead.grossCommission = (amt * bracket.receivable) / 100;
-          lead.commission = (amt * bracket.payable) / 100;
+          lead.commission = (amt * payRate) / 100;
         }
         if (lead.commission > 0 && lead.commissionStatus === 'none') lead.commissionStatus = 'pending';
       }
@@ -2526,7 +2529,7 @@ exports.getOne = async (req, res) => {
       .populate('bank', 'name code hasSpend hasCpv hasActivation')
       .populate('agency', 'name email')
       .populate('agent', 'name email phone')
-      .populate({ path: 'cardProduct', select: 'name cardType commissionBrackets cashbackCategories cardImage benefits feesEligibility', populate: { path: 'cashbackCategories.category', select: 'name' } })
+      .populate({ path: 'cardProduct', select: 'name cardType commissionBrackets cashbackCategories cardImage benefits feesEligibility keyFeatures additionalBenefits', populate: { path: 'cashbackCategories.category', select: 'name' } })
       .populate('loanProduct', 'name loanCategory commissionBrackets benefits feesEligibility minSalary maxLoanAmount maxTenure interestRateRange')
       .populate('accountProduct', 'name accountCategory commissionBrackets benefits feesEligibility')
       .populate('employeeStatus', 'label color')

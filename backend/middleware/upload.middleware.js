@@ -1,6 +1,6 @@
 const multer    = require('multer');
 const multerS3  = require('multer-s3');
-const { S3Client, DeleteObjectCommand, CopyObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, DeleteObjectCommand, CopyObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
 const path      = require('path');
 const crypto    = require('crypto');
 
@@ -80,7 +80,42 @@ module.exports.leadImportFile = multer({
     cb(ok ? null : new Error('Only .xlsx or .xls files allowed'), ok);
   },
 });
+// Request-reply email attachments: kept in memory so they can be attached to
+// the outgoing email first, then stored to S3 (putToS3) only once it's sent.
+const INQUIRY_REPLY_EXTS = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.csv', '.ppt', '.pptx', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.zip'];
+module.exports.INQUIRY_REPLY_EXTS = INQUIRY_REPLY_EXTS;
+module.exports.inquiryReplyFiles = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 10 },
+  fileFilter: (_req, file, cb) => {
+    const ok = INQUIRY_REPLY_EXTS.includes(path.extname(file.originalname).toLowerCase());
+    cb(ok ? null : new Error(`"${file.originalname}" is not an allowed file type`), ok);
+  },
+});
+
+// Stores an in-memory multer file under subdir/ and returns the new filename.
+// Downloads keep the original file name via Content-Disposition.
+const { detectMimeType } = require('nodemailer/lib/mime-funcs');
+// Browsers sometimes send a blank/generic type (e.g. .csv on Windows) — fall back to the extension.
+const fileMimeType = (file) =>
+  (file.mimetype && file.mimetype !== 'application/octet-stream' ? file.mimetype : detectMimeType(file.originalname));
+module.exports.fileMimeType = fileMimeType;
+
+const putToS3 = async (subdir, file) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  const filename = `${crypto.randomBytes(8).toString('hex')}${ext}`;
+  await s3.send(new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: `${subdir}/${filename}`,
+    Body: file.buffer,
+    ContentType: fileMimeType(file),
+    ContentDisposition: `inline; filename*=UTF-8''${encodeURIComponent(file.originalname)}`,
+  }));
+  return filename;
+};
+
 // Helpers added after the module.exports reassignment so they aren't overwritten
+module.exports.putToS3      = putToS3;
 module.exports.getFilename  = getFilename;
 module.exports.deleteFromS3 = deleteFromS3;
 module.exports.copyInS3     = copyInS3;

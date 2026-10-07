@@ -41,8 +41,11 @@ async function resolveSubmitterContext(lead) {
   // override ("SA Differ") on top of the sub-agent's own payout, whatever
   // state the super agent's account is in now.
   if (lead.superAgent) return { overrideAgency: lead.superAgent, selfReferral: false };
-  const submitter = await User.findById(lead.agent).select('role agency agencyCommissionModel').lean();
+  const submitter = await User.findById(lead.agent).select('role agency agencyCommissionModel isSuperAgent').lean();
   if (!submitter) return { overrideAgency: null, selfReferral: false };
+  // Super agent submitting directly: no middleman, so they keep the whole
+  // receivable (their own share + the differ amount).
+  if (submitter.role === 'agent' && submitter.isSuperAgent) return { overrideAgency: null, selfReferral: true };
   if (submitter.role === 'agency') {
     return { overrideAgency: null, selfReferral: submitter.agencyCommissionModel === 'referral' };
   }

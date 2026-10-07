@@ -46,8 +46,8 @@ const sendInviteEmail = async ({ to, inviteUrl }) => {
 const sendInquiryNotification = async ({ name, email, phone, companyName, message, queryType }) => {
   const t = getTransporter();
   const to = process.env.INQUIRY_NOTIFY_EMAIL || process.env.ADMIN_EMAIL;
-  const typeLabel = queryType === 'support' ? 'Support' : 'General Query';
-  const subject = `New ${typeLabel} Request from ${name}`;
+  const typeLabel = { support: 'Support', other: 'Other' }[queryType] || 'General Query';
+  const subject = queryType === 'other' ? `New Request from ${name}` : `New ${typeLabel} Request from ${name}`;
   const html = `
     <h2>New site inquiry</h2>
     <table>
@@ -144,6 +144,82 @@ const sendInquiryConfirmation = async ({ name, email }) => {
   });
 };
 
+const escapeHtml = (str = '') =>
+  String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const htmlLines = (str = '') => escapeHtml(str).replace(/\r?\n/g, '<br>');
+
+// Reply to a website request (SiteInquiry), sent through the reply-only SMTP
+// account saved by the admin (ReplySmtpSettings) — not the env SMTP.
+// bodyHtml must already be sanitized (utils/emailHtml.sanitizeEmailHtml);
+// bodyText is its plain-text twin. attachments: nodemailer attachment objects.
+const sendInquiryReply = async ({ smtp, to, cc, bcc, name, subject, bodyHtml, bodyText, attachments, senderName, original }) => {
+  const transport = nodemailer.createTransport({
+    host: smtp.host,
+    port: Number(smtp.port) || 587,
+    secure: !!smtp.secure,
+    auth: { user: smtp.user, pass: smtp.pass },
+  });
+  const receivedOn = original?.createdAt
+    ? new Date(original.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dubai' })
+    : '';
+  const html = `
+    <div style="background:#f1f5f9;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;">
+      <div style="max-width:600px;margin:0 auto;color:#1e293b;">
+        <div style="background:linear-gradient(135deg,#4c1d95,#6d28d9);padding:28px 36px;border-radius:12px 12px 0 0;">
+          <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">MySilah</h1>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,0.72);font-size:13px;">UAE Banking Referral Infrastructure</p>
+        </div>
+        <div style="background:#fff;padding:32px 36px;border:1px solid #e2e8f0;border-top:none;">
+          <p style="font-size:15px;margin:0 0 16px;">${name ? `Dear ${escapeHtml(name)},` : 'Hello,'}</p>
+          <p style="font-size:14px;color:#334155;line-height:1.7;margin:0 0 16px;">Thank you for contacting MySilah. Please find our response to your request below.</p>
+          <div style="font-size:14px;color:#1e293b;line-height:1.7;margin:0 0 24px;">${bodyHtml}</div>
+          <p style="font-size:14px;color:#334155;line-height:1.7;margin:0 0 4px;">If you have any further questions, simply reply to this email and we will be happy to help.</p>
+          <p style="font-size:14px;color:#334155;line-height:1.7;margin:20px 0 0;">
+            Best regards,<br>
+            <strong>${escapeHtml(senderName || 'MySilah Team')}</strong><br>
+            <span style="color:#64748b;">MySilah Team</span>
+          </p>
+          ${original?.message ? `
+          <div style="margin-top:28px;border-top:1px solid #e2e8f0;padding-top:18px;">
+            <p style="font-size:12px;color:#64748b;margin:0 0 8px;">Your original message${receivedOn ? ` (${receivedOn})` : ''}:</p>
+            <div style="background:#f8fafc;border-left:4px solid #6d28d9;border-radius:4px;padding:12px 16px;font-size:13px;color:#475569;line-height:1.6;">${htmlLines(original.message)}</div>
+          </div>` : ''}
+        </div>
+        <div style="background:#f8fafc;padding:16px 36px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;text-align:center;">
+          <p style="margin:0;font-size:12px;color:#94a3b8;">This email is a reply to your request submitted on <a href="https://mysilah.ae" style="color:#6d28d9;text-decoration:none;">mysilah.ae</a>.</p>
+        </div>
+      </div>
+    </div>
+  `;
+  const text = [
+    name ? `Dear ${name},` : 'Hello,',
+    '',
+    'Thank you for contacting MySilah. Please find our response to your request below.',
+    '',
+    bodyText,
+    '',
+    'If you have any further questions, simply reply to this email and we will be happy to help.',
+    '',
+    'Best regards,',
+    senderName || 'MySilah Team',
+    'MySilah Team',
+    ...(original?.message ? ['', `--- Your original message${receivedOn ? ` (${receivedOn})` : ''} ---`, original.message] : []),
+  ].join('\n');
+
+  const from = smtp.fromEmail || smtp.user;
+  await transport.sendMail({
+    from: `"${(smtp.fromName || 'MySilah').replace(/"/g, '')}" <${from}>`,
+    replyTo: from,
+    ...(to?.length ? { to } : {}),
+    ...(cc?.length ? { cc } : {}),
+    ...(bcc?.length ? { bcc } : {}),
+    subject,
+    html,
+    text,
+    attachments: attachments || [],
+  });
+};
+
 const sendEmailVerification = async ({ to, verifyUrl, name }) => {
   const t = getTransporter();
   const subject = 'Verify your email — MySilah';
@@ -183,4 +259,4 @@ const sendEmailVerification = async ({ to, verifyUrl, name }) => {
   return { dev: false };
 };
 
-module.exports = { sendInviteEmail, sendInquiryNotification, sendInquiryConfirmation, sendPasswordResetEmail, sendEmailVerification };
+module.exports = { sendInviteEmail, sendInquiryNotification, sendInquiryConfirmation, sendPasswordResetEmail, sendEmailVerification, sendInquiryReply };

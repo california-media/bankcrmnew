@@ -58,6 +58,7 @@ exports.create = async (req, res) => {
     const benefits = req.body.benefits || '';
     const feesEligibility = req.body.feesEligibility || '';
     const keyFeatures = req.body.keyFeatures || '';
+    const additionalBenefits = req.body.additionalBenefits || '';
     const clawbackMonths = req.body.clawbackMonths ? Number(req.body.clawbackMonths) : 0;
     const clawbackDays = req.body.clawbackDays ? Number(req.body.clawbackDays) : 0;
     const redirectUrl    = req.body.redirectUrl || '';
@@ -76,6 +77,7 @@ exports.create = async (req, res) => {
       benefits,
       feesEligibility,
       keyFeatures,
+      additionalBenefits,
       rate,
       clawbackMonths,
       clawbackDays,
@@ -126,6 +128,7 @@ exports.update = async (req, res) => {
     if (req.body.benefits !== undefined) update.benefits = req.body.benefits || '';
     if (req.body.feesEligibility !== undefined) update.feesEligibility = req.body.feesEligibility || '';
     if (req.body.keyFeatures !== undefined) update.keyFeatures = req.body.keyFeatures || '';
+    if (req.body.additionalBenefits !== undefined) update.additionalBenefits = req.body.additionalBenefits || '';
     if (req.body.clawbackMonths !== undefined) update.clawbackMonths = Number(req.body.clawbackMonths) || 0;
     if (req.body.clawbackDays !== undefined) update.clawbackDays = Number(req.body.clawbackDays) || 0;
     if (isActive !== undefined) update.isActive = isActive !== 'false' && isActive !== false;
@@ -182,7 +185,7 @@ exports.autoTagCashback = async (req, res) => {
     for (const card of cards) {
       const already = card.cashbackCategories.some(c => String(c.category) === String(cashbackCat._id));
       if (already) continue;
-      const blob = [card.name, card.benefits, card.feesEligibility, card.keyFeatures].join(' ').toLowerCase();
+      const blob = [card.name, card.benefits, card.feesEligibility, card.keyFeatures, card.additionalBenefits].join(' ').toLowerCase();
       if (blob.includes('cashback')) {
         card.cashbackCategories.push({ category: cashbackCat._id, rate: null });
         await card.save();

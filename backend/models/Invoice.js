@@ -52,6 +52,7 @@ const invoiceSchema = new mongoose.Schema(
     // Agency's own billing details for the "Bill To" box — the agency profile
     // itself doesn't carry these, so admin fills them in per invoice.
     billTo: {
+      name: { type: String, trim: true, default: '' }, // blank = the agency's own name
       trn: { type: String, trim: true, default: '' },
       address: { type: String, trim: true, default: '' },
       contact: { type: String, trim: true, default: '' },

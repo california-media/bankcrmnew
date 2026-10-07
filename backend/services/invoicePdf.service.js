@@ -192,12 +192,12 @@ function renderInvoicePdf(invoice, res, companySettings) {
   y += 14;
 
   // Bill To / Invoice Details
-  const agencyName = invoice.agency?.name || invoice.agency?.email || '—';
   const billTo = invoice.billTo || {};
+  const agencyName = billTo.name || invoice.agency?.name || invoice.agency?.email || '—';
   const billToLeft = [{ text: agencyName, bold: true, gap: 13 }];
-  if (billTo.trn) billToLeft.push({ text: `TRN: ${billTo.trn}`, gap: 13 });
   if (billTo.address) billToLeft.push({ text: billTo.address, gap: 13 });
   billToLeft.push({ text: `Contact / Email: ${billTo.contact || invoice.agency?.email || '—'}`, gap: 13 });
+  if (billTo.trn) billToLeft.push({ text: `TRN: ${billTo.trn}`, gap: 13 });
 
   y = drawTwoColBox(doc, y, {
     header: ['BILL TO', 'INVOICE DETAILS'],

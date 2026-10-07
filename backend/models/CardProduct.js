@@ -46,6 +46,7 @@ const cardProductSchema = new mongoose.Schema(
     benefits: { type: String, default: '' },
     feesEligibility: { type: String, default: '' },
     keyFeatures: { type: String, default: '' },
+    additionalBenefits: { type: String, default: '' },
     clawbackMonths: { type: Number, default: 0, min: 0 },
     clawbackDays:   { type: Number, default: 30, min: 0 },
     isActive:       { type: Boolean, default: true },

@@ -376,6 +376,19 @@ exports.getPublicBanks = async (req, res) => {
   }
 };
 
+// Fees & Eligibility is agent-only: drop it, keeping just the annual fee the website used to parse out of it.
+const toPublicCard = ({ feesEligibility, ...card }) => {
+  const feesText = (feesEligibility || '').replace(/<[^>]*>/g, '');
+  const m = feesText.match(/annual\s+fee[^0-9A-Z]*AED\s*([\d,]+)/i)
+         || feesText.match(/AED\s*([\d,]+)[^a-z]*(\/year|per year|annual fee)/i);
+  return {
+    ...card,
+    additionalBenefits: card.additionalBenefits || '', // lean() skips schema defaults on cards saved before this field
+    noAnnualFeeFromText: /no annual fee/i.test(feesText),
+    annualFeeFromText: m ? Number(m[1].replace(/,/g, '')) : null,
+  };
+};
+
 exports.getPublicCardProducts = async (req, res) => {
   try {
     // referralOnly bypasses websiteVisible on purpose — referral-form
@@ -386,9 +399,9 @@ exports.getPublicCardProducts = async (req, res) => {
     const cards = await CardProduct.find(filter)
       .populate({ path: 'bank', select: 'name isActive' })
       .populate({ path: 'cashbackCategories.category', select: 'name' })
-      .select('name cardType cardImage commissionBrackets bank benefits feesEligibility keyFeatures cashbackCategories rewardBadges redirectUrl redirectActive referralVisible rate kfsUrl tncUrl')
+      .select('name cardType cardImage commissionBrackets bank benefits feesEligibility keyFeatures additionalBenefits cashbackCategories rewardBadges redirectUrl redirectActive referralVisible rate kfsUrl tncUrl')
       .lean();
-    res.json(cards.filter(c => c.bank?.isActive !== false));
+    res.json(cards.filter(c => c.bank?.isActive !== false).map(toPublicCard));
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

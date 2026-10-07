@@ -5,6 +5,7 @@ const { protect, requireRole } = require('../middleware/auth.middleware');
 router.use(protect, requireRole('admin'));
 
 router.get('/agents', ctrl.listAgents);
+router.get('/super-agents', ctrl.listSuperAgents);
 router.get('/agents/:id', ctrl.getAgent);
 router.get('/overview', ctrl.overview);
 router.post('/agents', ctrl.createAgent);

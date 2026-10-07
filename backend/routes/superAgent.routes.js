@@ -7,5 +7,8 @@ router.use(protect, requireRole('agent'));
 router.get('/leads', ctrl.subAgentLeads);
 router.get('/sub-agents', ctrl.subAgents);
 router.get('/earnings', ctrl.earnings);
+// Any agent: join a super agent by code after registration (one-time)
+router.get('/lookup', ctrl.lookup);
+router.post('/join', ctrl.join);
 
 module.exports = router;

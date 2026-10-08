@@ -84,6 +84,9 @@ const leadSchema = new mongoose.Schema(
     // out independently. Mirrors commissionStatus's none/pending/paid states.
     agencyOverrideStatus: { type: String, enum: ['none', 'pending', 'paid'], default: 'none' },
     agencyOverridePaidAt: { type: Date },
+    // Commission rules this lead is calculated with (see commission.service).
+    // Missing = 1 (leads created before super-agent own-lead bonus / loan SA Differ %).
+    commissionRuleVersion: { type: Number },
     engagementStatus: { type: String, enum: ENGAGEMENT_STATUSES, default: 'new_lead' },
     employeeStatus: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeStatus' },
     consentStatus:  { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeStatus' },
@@ -266,6 +269,11 @@ leadSchema.statics.ENGAGEMENT_STATUSES = ENGAGEMENT_STATUSES;
 // employee is tagged for that bank.
 // Async pre-hooks take no `next` — Mongoose runs it as a promise and never
 // passes a callback, so calling one here would throw "next is not a function".
+// New leads use the current commission rules; existing leads keep theirs.
+leadSchema.pre('validate', function () {
+  if (this.isNew && this.commissionRuleVersion == null) this.commissionRuleVersion = 2;
+});
+
 leadSchema.pre('save', async function () {
   try {
     if (

@@ -32,28 +32,42 @@ function findBracket(brackets, salary) {
 // - overrideAgency: the lead's super agent, or (when none) set only when a plain agent (via User.agency) is tagged
 //   to a 'referral'-model agency — that agency earns the per-product
 //   agencyOverride on top of the agent's own payout.
+// - saSelf: a super agent submitting their own lead (no middleman) — on
+//   version 2+ leads they earn payable + the SA Differ.
 // - selfReferral: true only when the lead's own submitter IS a 'referral'-
 //   model agency (submitting its own lead directly) — that agency earns the
 //   full receivable amount instead of the bracket's agent-facing payable.
 async function resolveSubmitterContext(lead) {
-  if (!lead.agent) return { overrideAgency: null, selfReferral: false };
+  if (!lead.agent) return { overrideAgency: null, selfReferral: false, saSelf: false };
   // Super agent locked on the lead at submit time: it earns the product's
   // override ("SA Differ") on top of the sub-agent's own payout, whatever
   // state the super agent's account is in now.
-  if (lead.superAgent) return { overrideAgency: lead.superAgent, selfReferral: false };
+  if (lead.superAgent) return { overrideAgency: lead.superAgent, selfReferral: false, saSelf: false };
   const submitter = await User.findById(lead.agent).select('role agency agencyCommissionModel isSuperAgent').lean();
-  if (!submitter) return { overrideAgency: null, selfReferral: false };
-  // Super agent submitting directly: no middleman, so they keep the whole
-  // receivable (their own share + the differ amount).
-  if (submitter.role === 'agent' && submitter.isSuperAgent) return { overrideAgency: null, selfReferral: true };
+  if (!submitter) return { overrideAgency: null, selfReferral: false, saSelf: false };
+  if (submitter.role === 'agent' && submitter.isSuperAgent) return { overrideAgency: null, selfReferral: false, saSelf: true };
   if (submitter.role === 'agency') {
-    return { overrideAgency: null, selfReferral: submitter.agencyCommissionModel === 'referral' };
+    return { overrideAgency: null, selfReferral: submitter.agencyCommissionModel === 'referral', saSelf: false };
   }
   if (submitter.role === 'agent' && submitter.agency) {
     const agencyDoc = await User.findById(submitter.agency).select('agencyCommissionModel').lean();
-    return { overrideAgency: agencyDoc?.agencyCommissionModel === 'referral' ? submitter.agency : null, selfReferral: false };
+    return { overrideAgency: agencyDoc?.agencyCommissionModel === 'referral' ? submitter.agency : null, selfReferral: false, saSelf: false };
   }
-  return { overrideAgency: null, selfReferral: false };
+  return { overrideAgency: null, selfReferral: false, saSelf: false };
+}
+
+const CURRENT_COMMISSION_RULE_VERSION = 2;
+const ruleVersion = (lead) => lead.commissionRuleVersion || 1;
+
+// Agent-facing payable for a bracket. Loans return a % of loanAmount, cards
+// and accounts an AED amount. Version 2+: a super agent's own lead adds the
+// SA Differ (loans: agencyOverridePct %, cards/accounts: flat agencyOverride).
+function agentPayable(bracket, productType, { selfReferral, saSelf, version }) {
+  if (selfReferral) return bracket.receivable;
+  if (saSelf && version >= 2) {
+    return bracket.payable + ((productType === 'loan' ? bracket.agencyOverridePct : bracket.agencyOverride) || 0);
+  }
+  return bracket.payable;
 }
 
 /**
@@ -67,13 +81,14 @@ async function resolveCommissions(lead) {
     if (!card) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
     const bracket = findBracket(card.commissionBrackets, lead.customerSalary);
     if (!bracket) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
-    const { overrideAgency, selfReferral } = await resolveSubmitterContext(lead);
+    const ctx = await resolveSubmitterContext(lead);
+    const { overrideAgency } = ctx;
     // No tagging agency to pay it to -> the amount itself must be 0, not
     // just the recipient null, so a locked lead never shows a nonzero
     // override with nobody to receive it.
     return {
       receivable: bracket.receivable,
-      payable: selfReferral ? bracket.receivable : bracket.payable,
+      payable: agentPayable(bracket, 'credit_card', { ...ctx, version: ruleVersion(lead) }),
       agencyOverride: overrideAgency ? (bracket.agencyOverride || 0) : 0,
       agencyOverrideAgency: overrideAgency,
     };
@@ -83,10 +98,11 @@ async function resolveCommissions(lead) {
     if (!account) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
     const bracket = findBracket(account.commissionBrackets, lead.customerSalary);
     if (!bracket) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
-    const { overrideAgency, selfReferral } = await resolveSubmitterContext(lead);
+    const ctx = await resolveSubmitterContext(lead);
+    const { overrideAgency } = ctx;
     return {
       receivable: bracket.receivable,
-      payable: selfReferral ? bracket.receivable : bracket.payable,
+      payable: agentPayable(bracket, 'account', { ...ctx, version: ruleVersion(lead) }),
       agencyOverride: overrideAgency ? (bracket.agencyOverride || 0) : 0,
       agencyOverrideAgency: overrideAgency,
     };
@@ -96,11 +112,18 @@ async function resolveCommissions(lead) {
     if (!loan || !lead.loanAmount) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
     const bracket = findBracket(loan.commissionBrackets, lead.customerSalary);
     if (!bracket) return { receivable: 0, payable: 0, agencyOverride: 0, agencyOverrideAgency: null };
-    const { overrideAgency, selfReferral } = await resolveSubmitterContext(lead);
+    const ctx = await resolveSubmitterContext(lead);
+    const { overrideAgency } = ctx;
+    const version = ruleVersion(lead);
+    // Version 2+: SA Differ on loans is a % of the loan amount; older leads
+    // keep the legacy flat AED amount.
+    const loanOverride = version >= 2
+      ? (lead.loanAmount * (bracket.agencyOverridePct || 0)) / 100
+      : (bracket.agencyOverride || 0);
     return {
       receivable: (lead.loanAmount * bracket.receivable) / 100,
-      payable: (lead.loanAmount * (selfReferral ? bracket.receivable : bracket.payable)) / 100,
-      agencyOverride: overrideAgency ? (bracket.agencyOverride || 0) : 0,
+      payable: (lead.loanAmount * agentPayable(bracket, 'loan', { ...ctx, version })) / 100,
+      agencyOverride: overrideAgency ? loanOverride : 0,
       agencyOverrideAgency: overrideAgency,
     };
   }
@@ -212,6 +235,10 @@ async function getMonthlyBonus(agentId, year, month) {
 }
 
 module.exports = {
+  CURRENT_COMMISSION_RULE_VERSION,
+  ruleVersion,
+  agentPayable,
+  resolveSubmitterContext,
   resolveCommissionAmount,
   resolveCommissions,
   resolveGrossCommission,

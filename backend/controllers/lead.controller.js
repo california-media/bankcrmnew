@@ -150,6 +150,7 @@ exports.create = async (req, res) => {
       customerSalary,
       agent: req.user._id,
       superAgent: leadData.superAgent,
+      commissionRuleVersion: commissionService.CURRENT_COMMISSION_RULE_VERSION,
     });
     leadData.grossCommission = receivable;
     leadData.commission = payable;
@@ -2276,9 +2277,9 @@ exports.completeReferral = async (req, res) => {
       const eligible = sorted.filter((b) => b.minimumSalary <= effSalary);
       const bracket = eligible.length ? eligible[eligible.length - 1] : sorted[0];
       if (bracket) {
-        // A super agent submitting their own lead keeps the full receivable (no middleman).
-        const submitterDoc = await User.findById(lead.agent).select('role isSuperAgent').lean();
-        const payRate = submitterDoc?.role === 'agent' && submitterDoc.isSuperAgent ? bracket.receivable : bracket.payable;
+        // Same rule as commission.service: a super agent's own lead earns payable + SA Differ (version 2+ leads)
+        const ctx = await commissionService.resolveSubmitterContext(lead);
+        const payRate = commissionService.agentPayable(bracket, productType === 'credit_card' ? 'credit_card' : 'loan', { ...ctx, version: commissionService.ruleVersion(lead) });
         if (productType === 'credit_card') {
           lead.grossCommission = bracket.receivable;
           lead.commission = payRate;

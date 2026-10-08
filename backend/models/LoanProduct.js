@@ -5,7 +5,8 @@ const bracketSchema = new mongoose.Schema(
     minimumSalary: { type: Number, required: true, min: 0 },
     receivable: { type: Number, required: true, min: 0 },
     payable: { type: Number, required: true, min: 0 },
-    agencyOverride: { type: Number, min: 0, default: 0 }, // extra AED paid to the agent's tagging agency on disbursal — always a flat AED amount, NOT a percentage (unlike receivable/payable on this model, which ARE percentages of loanAmount)
+    agencyOverride: { type: Number, min: 0, default: 0 }, // LEGACY flat AED SA Differ — only used for leads created before commissionRuleVersion 2
+    agencyOverridePct: { type: Number, min: 0, max: 100, default: 0 }, // SA Differ as a % of loanAmount (commissionRuleVersion 2+ leads)
   },
   { _id: false }
 );

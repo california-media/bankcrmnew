@@ -148,7 +148,12 @@ exports.submitReferral = async (req, res) => {
     }
 
     leadData.superAgent = await resolveActiveSuperAgentId(agent);
-    const { receivable, payable } = await commissionService.resolveCommissions(leadData);
+    // A draft saved earlier keeps the commission rules it was created with
+    const draft = req.body.leadId ? await Lead.findById(req.body.leadId).select('commissionRuleVersion').lean() : null;
+    const { receivable, payable } = await commissionService.resolveCommissions({
+      ...leadData,
+      commissionRuleVersion: draft ? draft.commissionRuleVersion : commissionService.CURRENT_COMMISSION_RULE_VERSION,
+    });
     leadData.grossCommission = receivable;
     leadData.commission = payable;
     leadData.status = 'submitted';

@@ -26,6 +26,7 @@ const notificationSchema = new mongoose.Schema(
         'invoice_note',
         // Support tickets (supportTicket.controller.js)
         'support_ticket', 'bank_docs',
+        'coins_awarded',
       ],
       required: true,
     },

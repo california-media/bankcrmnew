@@ -36,6 +36,7 @@ const userSchema = new mongoose.Schema(
     referralCode: { type: String, unique: true, sparse: true },
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     leadCount: { type: Number, default: 0 },
+    coinBalance: { type: Number, default: 0, min: 0 },
     emiratesId: { type: String, default: null },
     nationality: { type: String, trim: true, default: null },
     uaepassSub: { type: String, sparse: true, default: null },

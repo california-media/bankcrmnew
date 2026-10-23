@@ -120,6 +120,16 @@
   }
   $('saveSettings').addEventListener('click', function () {
     showError('settingsError', '');
+    var bad = null;
+    segments.forEach(function (s, i) {
+      if (bad) return;
+      var c = String(s.coins).trim(), w = String(s.weight).trim();
+      if (c === '' || !Number.isInteger(Number(c)) || Number(c) < 0) bad = 'Row ' + (i + 1) + ': coins must be a whole number of 0 or more';
+      else if (w === '' || !Number.isFinite(Number(w)) || Number(w) < 0.01) bad = 'Row ' + (i + 1) + ': weight must be 0.01 or more';
+    });
+    var rw = $('inviteReward').value.trim();
+    if (!bad && (rw === '' || !Number.isInteger(Number(rw)) || Number(rw) < 0)) bad = 'Invite reward must be a whole number of coins';
+    if (bad) { showError('settingsError', bad); return; }
     var payload = {
       spinEnabled: $('spinEnabled').checked,
       spinSegments: segments.map(function (s) { return { coins: Number(s.coins), weight: Number(s.weight) }; }),
@@ -201,6 +211,9 @@
   $('voucherForm').addEventListener('submit', function (e) {
     e.preventDefault();
     showError('voucherError', '');
+    var cost = $('vCoinCost').value.trim(), sort = $('vSortOrder').value.trim();
+    if (cost === '' || !Number.isInteger(Number(cost)) || Number(cost) < 1) { showError('voucherError', 'Coin cost must be a whole number of 1 or more'); return; }
+    if (sort !== '' && !Number.isInteger(Number(sort))) { showError('voucherError', 'Sort order must be a whole number'); return; }
     var fd = new FormData();
     fd.append('title', $('vTitle').value);
     fd.append('brand', $('vBrand').value);

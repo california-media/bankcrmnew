@@ -4,7 +4,14 @@ const User = require('../models/User');
 const UaepassExchange = require('../models/UaepassExchange');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
 const { inactiveMessage, DEACTIVATED_MESSAGE } = require('../utils/superAgent');
-const { isAllowedAppRedirect, safeWebOrigin, appRedirectUrl } = require('../utils/appRedirect');
+const {
+  isAllowedAppRedirect,
+  safeWebOrigin,
+  appRedirectUrl,
+  isValidChallenge,
+  isValidVerifier,
+  pkceMatches,
+} = require('../utils/appRedirect');
 const { sanitize, safeUser } = require('./auth.controller');
 
 const IS_STAGING   = process.env.UAEPASS_ENV !== 'production';
@@ -33,16 +40,20 @@ const buildAuthUrl = (state) => {
 const getFrontendUrl = (req) =>
   safeWebOrigin(req.headers.referer || req.headers.referrer || req.headers.origin, FRONTEND_URL);
 
-// ?app_redirect= from the request, kept only when it matches UAEPASS_APP_REDIRECTS.
-const getAppRedirect = (req) => {
-  const target = req.query.app_redirect;
-  return isAllowedAppRedirect(target) ? target : undefined;
+// App fields for the signed state: ?app_redirect= (must match UAEPASS_APP_REDIRECTS) together
+// with its PKCE ?code_challenge= (S256). Without a valid challenge the app_redirect is ignored,
+// so the request runs the web flow. Returns {} for the web flow.
+const getAppState = (req) => {
+  const { app_redirect: target, code_challenge: challenge } = req.query;
+  if (!isAllowedAppRedirect(target) || !isValidChallenge(challenge)) return {};
+  return { app_redirect: target, code_challenge: challenge };
 };
 
 // app_redirect from a verified (signed) state payload, re-checked against the allowlist.
+// Never an app redirect without a PKCE challenge in the same state.
 const appRedirectOf = (payload) => {
   const target = payload && payload.app_redirect;
-  return isAllowedAppRedirect(target) ? target : null;
+  return isAllowedAppRedirect(target) && isValidChallenge(payload.code_challenge) ? target : null;
 };
 
 const getReturnPage = (req) => {
@@ -61,9 +72,7 @@ const getReturnPage = (req) => {
 exports.init = (req, res) => {
   const frontendUrl = getFrontendUrl(req);
   const returnPage  = getReturnPage(req);
-  const appRedirect = getAppRedirect(req);
-  const payload = { ctx: 'uaepass', frontendUrl, returnPage };
-  if (appRedirect) payload.app_redirect = appRedirect;
+  const payload = { ctx: 'uaepass', frontendUrl, returnPage, ...getAppState(req) };
   const state = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10m' });
   res.redirect(buildAuthUrl(state));
 };
@@ -86,7 +95,7 @@ exports.linkInit = (req, res) => {
 /**
  * GET /api/auth/uaepass/link-url  (protected)
  * Same as link-init but returns { url } as JSON, so the mobile app can open it.
- * ?app_redirect= (allowlisted) sends the result back to the app.
+ * ?app_redirect= (allowlisted) + ?code_challenge= (PKCE S256) send the result back to the app.
  */
 exports.linkUrl = (req, res) => {
   try {
@@ -95,9 +104,8 @@ exports.linkUrl = (req, res) => {
       action: 'link',
       userId: req.user._id.toString(),
       frontendUrl: getFrontendUrl(req),
+      ...getAppState(req),
     };
-    const appRedirect = getAppRedirect(req);
-    if (appRedirect) payload.app_redirect = appRedirect;
     const state = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10m' });
     res.json({ url: buildAuthUrl(state) });
   } catch (err) {
@@ -107,16 +115,26 @@ exports.linkUrl = (req, res) => {
 
 /**
  * POST /api/auth/uaepass/exchange  (public)
- * Swaps the single-use code from the app redirect for the login response { token, user }.
+ * Body { code, code_verifier }. Swaps the single-use code from the app redirect for
+ * the login response { token, user }, or { prefill } for a new user without email.
+ * code_verifier must hash (S256) to the code_challenge the app sent to init / link-url.
  */
 exports.exchange = async (req, res) => {
   try {
-    const { code } = req.body || {};
-    if (typeof code !== 'string' || !/^[0-9a-f]{32}$/.test(code)) {
+    const { code, code_verifier: verifier } = req.body || {};
+    if (typeof code !== 'string' || !/^[0-9a-f]{32}$/.test(code) || !isValidVerifier(verifier)) {
       return res.status(400).json({ message: EXCHANGE_EXPIRED });
     }
+    // Consume first: a wrong verifier still burns the code, so verifiers can't be brute-forced.
     const entry = await UaepassExchange.findOneAndDelete({ code, expiresAt: { $gt: new Date() } });
-    if (!entry) return res.status(400).json({ message: EXCHANGE_EXPIRED });
+    if (!entry || !pkceMatches(verifier, entry.challenge)) {
+      return res.status(400).json({ message: EXCHANGE_EXPIRED });
+    }
+
+    if (!entry.token) {
+      if (!entry.prefill) return res.status(400).json({ message: EXCHANGE_EXPIRED });
+      return res.json({ prefill: entry.prefill });
+    }
 
     let decoded;
     try {
@@ -124,7 +142,10 @@ exports.exchange = async (req, res) => {
     } catch {
       return res.status(400).json({ message: EXCHANGE_EXPIRED });
     }
-    const full = await safeUser(decoded.id);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(400).json({ message: EXCHANGE_EXPIRED });
+    if (!user.isActive) return res.status(403).json({ message: inactiveMessage(user) });
+    const full = await safeUser(user._id);
     if (!full) return res.status(400).json({ message: EXCHANGE_EXPIRED });
     res.json({ token: entry.token, user: sanitize(full) });
   } catch (err) {
@@ -173,15 +194,21 @@ exports.callback = async (req, res) => {
     return res.redirect(appRedirect ? appRedirectUrl(appRedirect, appParams) : webUrl);
   };
 
-  // Sign-in success: the website gets the JWT in the URL (unchanged); the app gets
-  // a single-use code that it swaps for the JWT via POST /uaepass/exchange.
-  const finishWithToken = async (payload, token, webBase) => {
+  // Outcomes carrying a secret (login token / register prefill): the website gets webUrl
+  // (unchanged, secret in the URL); the app gets only a single-use code. The secret stays
+  // server-side, bound to the state's PKCE challenge, until POST /uaepass/exchange.
+  const finishWithExchange = async (payload, secret, webUrl) => {
     if (appRedirectOf(payload)) {
       const exchangeCode = crypto.randomBytes(16).toString('hex');
-      await UaepassExchange.create({ code: exchangeCode, token, expiresAt: new Date(Date.now() + EXCHANGE_TTL_MS) });
+      await UaepassExchange.create({
+        code: exchangeCode,
+        ...secret,
+        challenge: payload.code_challenge,
+        expiresAt: new Date(Date.now() + EXCHANGE_TTL_MS),
+      });
       return finish(payload, null, { code: exchangeCode });
     }
-    return finish(payload, `${webBase}/auth/uaepass/callback?token=${token}`, null);
+    return finish(payload, webUrl, null);
   };
 
   // Resolve origin + returnPage from state even on error.
@@ -360,7 +387,7 @@ exports.callback = async (req, res) => {
       if (title       && title !== agent.uaepassTitle)                updates.uaepassTitle = title;
       if (Object.keys(updates).length) await User.findByIdAndUpdate(agent._id, { $set: updates });
       const token = signAuthToken(agent);
-      return await finishWithToken(statePayload, token, frontendUrl);
+      return await finishWithExchange(statePayload, { token }, `${frontendUrl}/auth/uaepass/callback?token=${token}`);
     }
 
     // New user — no email from UAE Pass → prefill register form
@@ -370,7 +397,7 @@ exports.callback = async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: '30m' }
       );
-      return finish(statePayload, `${frontendUrl}/register?uaepass_prefill=${prefill}`, { prefill });
+      return await finishWithExchange(statePayload, { prefill }, `${frontendUrl}/register?uaepass_prefill=${prefill}`);
     }
 
     // Create new agent directly (scenarios 1.2.1, 1.3.1)
@@ -395,7 +422,7 @@ exports.callback = async (req, res) => {
     });
 
     const token = signAuthToken(agent);
-    return await finishWithToken(statePayload, token, frontendUrl);
+    return await finishWithExchange(statePayload, { token }, `${frontendUrl}/auth/uaepass/callback?token=${token}`);
   } catch (err) {
     console.error('[UAE Pass callback]', err.message);
     return finish(

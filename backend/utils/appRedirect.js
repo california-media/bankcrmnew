@@ -1,6 +1,9 @@
 // Redirect targets for the UAE PASS flow.
 // - App (mobile) targets: only URLs starting with an allowlisted prefix.
 // - Web targets: only the CLIENT_URL origin or an explicitly allowlisted origin.
+// Plus PKCE (RFC 7636, S256 only) helpers that bind the app's one-time code to the device.
+
+const crypto = require('crypto');
 
 const DEFAULT_WEB_ORIGIN = 'http://localhost:5173';
 
@@ -47,4 +50,35 @@ function appRedirectUrl(base, params) {
   return `${base}${sep}${qs}`;
 }
 
-module.exports = { isAllowedAppRedirect, safeWebOrigin, appRedirectUrl };
+// PKCE S256: base64url(sha256(ascii(verifier))), no '=' padding — always 43 characters.
+function pkceChallengeOf(verifier) {
+  return crypto.createHash('sha256').update(verifier, 'ascii').digest('base64url');
+}
+
+// A code_challenge as the app must send it: 43 base64url characters.
+function isValidChallenge(challenge) {
+  return typeof challenge === 'string' && /^[A-Za-z0-9_-]{43}$/.test(challenge);
+}
+
+// A code_verifier per RFC 7636: 43–128 unreserved characters [A-Za-z0-9-._~].
+function isValidVerifier(verifier) {
+  return typeof verifier === 'string' && /^[A-Za-z0-9\-._~]{43,128}$/.test(verifier);
+}
+
+// Constant-time check that verifier hashes to the stored challenge.
+function pkceMatches(verifier, challenge) {
+  if (!isValidVerifier(verifier) || !isValidChallenge(challenge)) return false;
+  const expected = Buffer.from(challenge, 'ascii');
+  const actual = Buffer.from(pkceChallengeOf(verifier), 'ascii');
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
+
+module.exports = {
+  isAllowedAppRedirect,
+  safeWebOrigin,
+  appRedirectUrl,
+  pkceChallengeOf,
+  isValidChallenge,
+  isValidVerifier,
+  pkceMatches,
+};

@@ -68,6 +68,7 @@ app.use('/api/agencies',          require('./routes/agency.routes'));
 app.use('/api/leads',             require('./routes/lead.routes'));
 app.use('/api/commission-rules',  require('./routes/commissionRule.routes'));
 app.use('/api/volume-bonuses',    require('./routes/volumeBonus.routes'));
+app.use('/api/admin/coins',       require('./routes/coinsAdmin.routes'));
 app.use('/api/admin',             require('./routes/admin.routes'));
 app.use('/api/card-products',     require('./routes/cardProduct.routes'));
 app.use('/api/card-categories',   require('./routes/cardCategory.routes'));

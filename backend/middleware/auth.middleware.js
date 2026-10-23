@@ -25,6 +25,10 @@ const requireRole = (...roles) => (req, res, next) => {
   next();
 };
 
+// Super admin = unscoped admin.
+const requireSuperAdmin = (req, res, next) =>
+  (req.user?.role === 'admin' && !req.user.adminScope ? next() : res.status(403).json({ message: 'Super Admin only' }));
+
 // Lets an agency-scoped employee (Coordinator/Account Access) reach a route
 // that's otherwise agency-only. The agency owner always passes through
 // unchanged; an employee only passes if their employeeType is in the list —
@@ -41,4 +45,4 @@ const allowEmployeeTypes = (...types) => (req, res, next) => {
 // stored on their account.
 const resolveAgencyId = (user) => (user.role === 'agency' ? user._id : user.agency);
 
-module.exports = { protect, requireRole, allowEmployeeTypes, resolveAgencyId };
+module.exports = { protect, requireRole, requireSuperAdmin, allowEmployeeTypes, resolveAgencyId };

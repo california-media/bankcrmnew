@@ -26,12 +26,15 @@ const validateSpinSegments = (segs) => {
     if (!s || !Number.isInteger(s.coins) || s.coins < 0) {
       return 'Segment coins must be an integer of 0 or more';
     }
-    if (typeof s.weight !== 'number' || !Number.isFinite(s.weight) || s.weight <= 0) {
-      return 'Segment weight must be a number greater than 0';
+    if (typeof s.weight !== 'number' || !Number.isFinite(s.weight) || s.weight < 0.01) {
+      return 'Segment weight must be a number of at least 0.01';
     }
   }
   return null;
 };
+
+const validateInviteReward = (v) =>
+  (Number.isInteger(v) && v >= 0 ? null : 'Invite reward must be a whole number of coins');
 
 // Weights are scaled to integers for the draw: as-is when all are whole numbers,
 // otherwise x100 (two decimals of precision).
@@ -70,6 +73,7 @@ module.exports = {
   dubaiDayKey,
   nextDubaiMidnight,
   validateSpinSegments,
+  validateInviteReward,
   pickSegmentIndex,
   chancePcts,
   parseVoucherCodes,

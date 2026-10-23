@@ -92,6 +92,7 @@ app.use('/api/promotions',        require('./routes/promotion.routes'));
 app.use('/api/resources',         require('./routes/resource.routes'));
 app.use('/api/super-agent',       require('./routes/superAgent.routes'));
 app.use('/api/support-tickets',   require('./routes/supportTicket.routes'));
+app.use('/api/coins',              require('./routes/coins.routes'));
 
 app.use((err, req, res, _next) => {
   console.error(err);

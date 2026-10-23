@@ -29,14 +29,12 @@ function makeCoinsService(deps) {
       if (isDup(err)) throw httpError(409, "You've already spun today");
       throw err;
     }
-    let u;
-    try {
-      u = await User.findOneAndUpdate({ _id: userId, role: 'agent' }, { $inc: { coinBalance: coins } }, { new: true });
-      if (!u) throw httpError(404, 'User not found');
-    } catch (err) {
-      // Not credited: free the day's spin so the agent can retry.
+    // A thrown error here may still have applied the $inc, so the log is kept (one spin lost, never two credits).
+    const u = await User.findOneAndUpdate({ _id: userId, role: 'agent' }, { $inc: { coinBalance: coins } }, { new: true });
+    if (!u) {
+      // Definitively not credited: free the day's spin.
       await SpinLog.deleteOne({ _id: log._id }).catch((e) => console.error('spin rollback failed', e));
-      throw err;
+      throw httpError(404, 'User not found');
     }
     try {
       await CoinTransaction.create({
@@ -65,17 +63,12 @@ function makeCoinsService(deps) {
       VoucherCode.updateOne({ _id: code._id }, { $set: { status: 'available' }, $unset: { assignedTo: 1, assignedAt: 1 } });
 
     // 2. Guarded debit: the $gte filter is what prevents a negative balance.
-    let u;
-    try {
-      u = await User.findOneAndUpdate(
-        { _id: userId, role: 'agent', coinBalance: { $gte: cost } },
-        { $inc: { coinBalance: -cost } },
-        { new: true }
-      );
-    } catch (err) {
-      await release().catch((e) => console.error('code release failed', e));
-      throw err;
-    }
+    // A thrown error may still have applied the debit: leave the code held (assignedTo is the reconciliation trace).
+    const u = await User.findOneAndUpdate(
+      { _id: userId, role: 'agent', coinBalance: { $gte: cost } },
+      { $inc: { coinBalance: -cost } },
+      { new: true }
+    );
     if (!u) {
       await release();
       throw httpError(400, 'Not enough coins');
@@ -88,9 +81,26 @@ function makeCoinsService(deps) {
         user: userId, voucher: voucher._id, voucherCode: code._id, code: code.code, coinCost: cost, scratchedAt: null,
       });
     } catch (err) {
-      await User.findOneAndUpdate({ _id: userId }, { $inc: { coinBalance: cost } }).catch((e) => console.error('refund failed', e));
-      await release().catch((e) => console.error('code release failed', e));
-      throw err;
+      // The insert may have applied. Compensate only if the row definitively does not exist.
+      let existing;
+      try {
+        existing = await Redemption.exists({ voucherCode: code._id });
+      } catch (e) {
+        console.error('redemption existence check failed; not compensating', e);
+        throw err;
+      }
+      if (existing) {
+        r = existing; // it was written: carry on as success
+      } else {
+        try {
+          await User.findOneAndUpdate({ _id: userId }, { $inc: { coinBalance: cost } });
+        } catch (e) {
+          console.error('refund failed; code left held for reconciliation', e);
+          throw err;
+        }
+        await release().catch((e) => console.error('code release failed', e));
+        throw err;
+      }
     }
     // Charged and code held by now; ledger/back-link failures must not fail the request.
     try {
@@ -128,14 +138,12 @@ function makeCoinsService(deps) {
         if (isDup(err)) return; // already paid
         throw err;
       }
-      let u;
-      try {
-        u = await User.findOneAndUpdate({ _id: inviter._id }, { $inc: { coinBalance: reward } }, { new: true });
-        if (!u) throw new Error('inviter vanished');
-      } catch (err) {
-        // Not credited: drop the guard row so a later retry can still pay.
+      // A thrown error may have applied the $inc: keep the guard row (balanceAfter 0 marks it for reconciliation).
+      const u = await User.findOneAndUpdate({ _id: inviter._id }, { $inc: { coinBalance: reward } }, { new: true });
+      if (!u) {
+        // Definitively not credited: drop the guard row so a later retry can still pay.
         await CoinTransaction.deleteOne({ _id: tx._id }).catch((e) => console.error('invite rollback failed', e));
-        throw err;
+        throw new Error('inviter vanished');
       }
       await CoinTransaction.updateOne({ _id: tx._id }, { $set: { balanceAfter: u.coinBalance } })
         .catch((e) => console.error('invite balanceAfter update failed', e));

@@ -33,6 +33,7 @@ function build(o = {}) {
         if (o.userNull) return null;
         const d = u.$inc.coinBalance;
         if (f.coinBalance && balance < f.coinBalance.$gte) return null;
+        if (o.refundThrows && d > 0) throw new Error('refund down');
         if (o.userThrows) throw new Error('db down');
         balance += d;
         return { _id: f._id, coinBalance: balance };
@@ -43,7 +44,10 @@ function build(o = {}) {
       create: async (d) => { calls.spinCreate.push(d); if (o.spinDup) throw Object.assign(new Error('dup'), { code: 11000 }); return { _id: 'log1', ...d }; },
       deleteOne: async (f) => { calls.spinDelete.push(f); },
     },
-    Redemption: { create: async (d) => { calls.redemptionCreate.push(d); if (o.redemptionThrows) throw new Error('boom'); return { _id: 'r1', ...d }; } },
+    Redemption: {
+      create: async (d) => { calls.redemptionCreate.push(d); if (o.redemptionThrows) throw new Error('boom'); return { _id: 'r1', ...d }; },
+      exists: async () => { if (o.existsThrows) throw new Error('exists down'); return o.existsRow || null; },
+    },
     CoinTransaction: {
       count: 0,
       create: async function (d) {
@@ -103,11 +107,40 @@ test('redeem: second concurrent redeem fails without charging', async () => {
   assert.equal(getBalance(), 900);
 });
 
-test('redeem: redemption write failure refunds and releases the code', async () => {
+test('redeem: debit throws -> code stays held, no release', async () => {
+  const { svc, calls } = build({ userThrows: true });
+  await assert.rejects(svc.redeem('u1', 'v1'), { message: 'db down' });
+  assert.equal(calls.codeUpdate.length, 0);
+});
+
+test('redeem: create throws but redemption exists -> success, no refund/release', async () => {
+  const { svc, calls, getBalance } = build({ redemptionThrows: true, existsRow: { _id: 'r9' } });
+  const res = await svc.redeem('u1', 'v1');
+  assert.equal(res.balance, 900);
+  assert.equal(getBalance(), 900);
+  assert.equal(calls.userUpdate.length, 1);
+  assert.ok(!calls.codeUpdate.some(([, u]) => u.$set && u.$set.status === 'available'));
+});
+
+test('redeem: create throws and no row -> refund then release', async () => {
   const { svc, calls, getBalance } = build({ redemptionThrows: true });
   await assert.rejects(svc.redeem('u1', 'v1'), { message: 'boom' });
   assert.equal(getBalance(), 1000);
+  assert.equal(calls.userUpdate.length, 2);
   assert.equal(calls.codeUpdate[0][1].$set.status, 'available');
+});
+
+test('redeem: create throws, no row, refund throws -> no release', async () => {
+  const { svc, calls } = build({ redemptionThrows: true, refundThrows: true });
+  await assert.rejects(svc.redeem('u1', 'v1'), { message: 'boom' });
+  assert.equal(calls.codeUpdate.length, 0);
+});
+
+test('redeem: create throws and existence check throws -> no compensation', async () => {
+  const { svc, calls, getBalance } = build({ redemptionThrows: true, existsThrows: true });
+  await assert.rejects(svc.redeem('u1', 'v1'), { message: 'boom' });
+  assert.equal(getBalance(), 900);
+  assert.equal(calls.codeUpdate.length, 0);
 });
 
 test('spin: disabled -> 400', async () => {
@@ -134,9 +167,15 @@ test('spin: success credits segment coins and writes tx', async () => {
   assert.equal(calls.txCreate[0].title, 'Daily spin');
 });
 
-test('spin: credit failure removes the spin log so the agent can retry', async () => {
+test('spin: credit throws -> SpinLog NOT deleted, error propagates', async () => {
   const { svc, calls } = build({ userThrows: true });
   await assert.rejects(svc.spin('u1'), { message: 'db down' });
+  assert.equal(calls.spinDelete.length, 0);
+});
+
+test('spin: user definitively missing -> log removed, 404', async () => {
+  const { svc, calls } = build({ userNull: true });
+  await assert.rejects(svc.spin('u1'), { status: 404 });
   assert.deepEqual(calls.spinDelete, [{ _id: 'log1' }]);
 });
 
@@ -175,6 +214,9 @@ test('awardInvite: never throws (notify failure, db failure) and falls back on e
   await b.svc.awardInvite({ ...invitee, name: '   ' });
   assert.equal(b.calls.txCreate[0].title, 'Invite bonus · a partner');
   b = build({ userThrows: true });
+  await b.svc.awardInvite(invitee); // does not throw
+  assert.equal(b.calls.txDelete.length, 0); // $inc may have applied: guard row kept
+  b = build({ userNull: true });
   await b.svc.awardInvite(invitee);
-  assert.deepEqual(b.calls.txDelete, [{ _id: 't1' }]); // rolled back so a retry can pay
+  assert.deepEqual(b.calls.txDelete, [{ _id: 't1' }]); // definitively not credited: retry may pay
 });

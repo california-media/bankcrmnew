@@ -86,74 +86,103 @@ async function snapshot(args) {
   console.log(JSON.stringify(data, null, 2));
 }
 
-async function cleanup(args) {
-  const mongoose = require('mongoose');
-  const CoinSettings = require('../models/CoinSettings');
-  const CoinTransaction = require('../models/CoinTransaction');
-  const SpinLog = require('../models/SpinLog');
-  const Voucher = require('../models/Voucher');
-  const VoucherCode = require('../models/VoucherCode');
-  const Redemption = require('../models/Redemption');
-  const User = require('../models/User');
-
-  if (!fs.existsSync(SNAPSHOT_PATH)) throw new Error(`No snapshot at ${SNAPSHOT_PATH}; run --snapshot first`);
-  const snap = JSON.parse(fs.readFileSync(SNAPSHOT_PATH, 'utf8'));
+// Pure-ish core: all DB access goes through injected models so it can be tested with fakes.
+async function runCleanup({ models, snap, args, log = console.log }) {
+  const { CoinSettings, CoinTransaction, SpinLog, Voucher, VoucherCode, Redemption, User } = models;
   const takenAt = new Date(snap.takenAt);
   if (isNaN(takenAt)) throw new Error('Snapshot has invalid takenAt');
   const prefix = assertSafePrefix(args.voucherPrefix);
   const dry = args.dryRun;
-  console.log(dry ? '[DRY RUN] nothing will be written' : 'Cleaning up');
+  log(dry ? '[DRY RUN] nothing will be written' : 'Cleaning up');
 
   const users = await loadUsers(User, args.users);
   const snapByEmail = new Map(snap.users.map((u) => [u.email.toLowerCase(), u]));
-  const noSnap = users.filter((u) => !snapByEmail.has(u.email.toLowerCase()));
-  if (noSnap.length) throw new Error(`Users missing from snapshot: ${noSnap.map((u) => u.email).join(', ')}`);
+  for (const u of users) {
+    const su = snapByEmail.get(u.email.toLowerCase());
+    if (!su) throw new Error(`User missing from snapshot: ${u.email}`);
+    if (String(su._id) !== String(u._id)) throw new Error(`Snapshot _id mismatch for ${u.email}`);
+  }
+  const listed = new Set(users.map((u) => u.email.toLowerCase()));
+  const unlisted = snap.users.filter((u) => !listed.has(u.email.toLowerCase()));
+  if (unlisted.length) log(`WARNING: snapshot has users not listed in --users: ${unlisted.map((u) => u.email).join(', ')}`);
   const userIds = users.map((u) => u._id);
 
-  // Step 1: vouchers with the prefix
-  const vouchers = await Voucher.find({ title: { $regex: `^${escapeRegex(prefix)}` } }).select('title logo');
+  // Step 1: vouchers with the prefix, created after the snapshot
+  const vouchers = await Voucher.find({
+    title: { $regex: `^${escapeRegex(prefix)}` },
+    createdAt: { $gte: takenAt },
+  }).select('title logo');
   const voucherIds = vouchers.map((v) => v._id);
-  console.log(`Step 1: ${vouchers.length} voucher(s) matching prefix ${JSON.stringify(prefix)}`);
-  vouchers.forEach((v) => console.log(`  - ${v.title}${v.logo ? ` (S3 logo: ${v.logo} - delete manually)` : ''}`));
+  log(`Step 1: ${vouchers.length} voucher(s) matching prefix ${JSON.stringify(prefix)} created since snapshot`);
+  vouchers.forEach((v) => log(`  - ${v.title}${v.logo ? ` (S3 logo: ${v.logo} - delete manually)` : ''}`));
   if (voucherIds.length) {
-    const redemptions = await Redemption.find({ voucher: { $in: voucherIds } }).select('_id');
+    // Abort if anyone other than the listed users redeemed these vouchers.
+    const foreign = await Redemption.find({
+      voucher: { $in: voucherIds },
+      user: { $nin: userIds },
+    }).select('user coinCost createdAt');
+    if (foreign.length) {
+      const owners = await User.find({ _id: { $in: foreign.map((r) => r.user) } }).select('email');
+      const emailById = new Map(owners.map((o) => [String(o._id), o.email]));
+      log('ABORT: redemptions by non-listed users exist on matched vouchers (decide refunds manually):');
+      foreign.forEach((r) => log(`  - ${emailById.get(String(r.user)) || r.user} redemption=${r._id} coinCost=${r.coinCost} createdAt=${r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt}`));
+      throw new Error(`${foreign.length} redemption(s) by non-listed users; nothing was changed`);
+    }
+    const redemptionFilter = { voucher: { $in: voucherIds }, user: { $in: userIds } };
+    const redemptions = await Redemption.find(redemptionFilter).select('_id');
     const redemptionIds = redemptions.map((r) => r._id);
-    const txFilter = { redemption: { $in: redemptionIds } };
+    const txFilter = { redemption: { $in: redemptionIds }, user: { $in: userIds } };
+    const codeFilter = { voucher: { $in: voucherIds } };
+    const voucherFilter = { _id: { $in: voucherIds } };
     let nTx, nRed, nCodes, nVouchers;
     if (dry) {
       nTx = redemptionIds.length ? await CoinTransaction.countDocuments(txFilter) : 0;
       nRed = redemptionIds.length;
-      nCodes = await VoucherCode.countDocuments({ voucher: { $in: voucherIds } });
+      nCodes = await VoucherCode.countDocuments(codeFilter);
       nVouchers = voucherIds.length;
     } else {
       nTx = redemptionIds.length ? (await CoinTransaction.deleteMany(txFilter)).deletedCount : 0;
-      nRed = (await Redemption.deleteMany({ voucher: { $in: voucherIds } })).deletedCount;
-      nCodes = (await VoucherCode.deleteMany({ voucher: { $in: voucherIds } })).deletedCount;
-      nVouchers = (await Voucher.deleteMany({ _id: { $in: voucherIds } })).deletedCount;
+      nRed = redemptionIds.length ? (await Redemption.deleteMany(redemptionFilter)).deletedCount : 0;
+      nCodes = (await VoucherCode.deleteMany(codeFilter)).deletedCount;
+      nVouchers = (await Voucher.deleteMany(voucherFilter)).deletedCount;
     }
-    console.log(`  CoinTransactions (redemptions): ${nTx}, Redemptions: ${nRed}, VoucherCodes: ${nCodes}, Vouchers: ${nVouchers}`);
+    log(`  CoinTransactions (redemptions): ${nTx}, Redemptions: ${nRed}, VoucherCodes: ${nCodes}, Vouchers: ${nVouchers}`);
   }
 
   // Step 2: listed users' activity since snapshot
   const since = { user: { $in: userIds }, createdAt: { $gte: takenAt } };
   const nTx2 = dry ? await CoinTransaction.countDocuments(since) : (await CoinTransaction.deleteMany(since)).deletedCount;
   const nSpin = dry ? await SpinLog.countDocuments(since) : (await SpinLog.deleteMany(since)).deletedCount;
-  console.log(`Step 2: CoinTransactions since ${snap.takenAt}: ${nTx2}, SpinLogs: ${nSpin}`);
+  log(`Step 2: CoinTransactions since ${snap.takenAt}: ${nTx2}, SpinLogs: ${nSpin}`);
   for (const u of users) {
     const target = snapByEmail.get(u.email.toLowerCase()).coinBalance;
-    console.log(`  ${u.email}: coinBalance ${u.coinBalance || 0} -> ${target}`);
+    log(`  ${u.email}: coinBalance ${u.coinBalance || 0} -> ${target}`);
     if (!dry) await User.updateOne({ _id: u._id }, { $set: { coinBalance: target } });
   }
 
   // Step 3: restore settings
   const settings = await CoinSettings.getSingleton();
-  console.log('Step 3: CoinSettings restore ->', JSON.stringify(snap.settings));
+  log('Step 3: CoinSettings restore ->', JSON.stringify(snap.settings));
   if (!dry) {
     for (const f of SETTINGS_FIELDS) settings[f] = snap.settings[f];
     await settings.save();
   }
-  console.log(dry ? 'Dry run complete.' : 'Cleanup complete.');
-  void mongoose;
+  log(dry ? 'Dry run complete.' : 'Cleanup complete.');
+}
+
+async function cleanup(args) {
+  if (!fs.existsSync(SNAPSHOT_PATH)) throw new Error(`No snapshot at ${SNAPSHOT_PATH}; run --snapshot first`);
+  const snap = JSON.parse(fs.readFileSync(SNAPSHOT_PATH, 'utf8'));
+  const models = {
+    CoinSettings: require('../models/CoinSettings'),
+    CoinTransaction: require('../models/CoinTransaction'),
+    SpinLog: require('../models/SpinLog'),
+    Voucher: require('../models/Voucher'),
+    VoucherCode: require('../models/VoucherCode'),
+    Redemption: require('../models/Redemption'),
+    User: require('../models/User'),
+  };
+  await runCleanup({ models, snap, args });
 }
 
 async function main() {
@@ -166,7 +195,7 @@ async function main() {
   const mongoose = require('mongoose');
   let code = 0;
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, { autoIndex: false, autoCreate: false });
     if (args.mode === 'snapshot') await snapshot(args); else await cleanup(args);
   } catch (e) {
     console.error('Error:', e.message);
@@ -177,6 +206,6 @@ async function main() {
   return code;
 }
 
-module.exports = { parseArgs, assertSafePrefix, validateArgs, SNAPSHOT_PATH };
+module.exports = { runCleanup, parseArgs, assertSafePrefix, validateArgs, SNAPSHOT_PATH };
 
 if (require.main === module) main().then((c) => process.exit(c));

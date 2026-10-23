@@ -58,6 +58,7 @@ app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/coins-admin', express.static(path.join(__dirname, 'public/coins-admin')));
 
 app.get('/', (req, res) => res.json({ message: 'Bank CRM API' }));
 

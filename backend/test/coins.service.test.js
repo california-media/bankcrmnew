@@ -1,0 +1,180 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { makeCoinsService } = require('../services/coins.service');
+
+const SEGS = [
+  { coins: 5, weight: 30 }, { coins: 10, weight: 30 }, { coins: 20, weight: 20 },
+  { coins: 50, weight: 6 }, { coins: 10, weight: 10 }, { coins: 100, weight: 4 },
+];
+const NOW = new Date('2026-10-23T10:00:00Z');
+
+function build(o = {}) {
+  const calls = { userUpdate: [], codeClaim: [], codeUpdate: [], txCreate: [], txUpdate: [], txDelete: [], spinCreate: [], spinDelete: [], redemptionCreate: [], notify: [] };
+  let codes = o.codes === undefined ? [{ _id: 'c1', code: 'ABC', status: 'available' }] : o.codes;
+  let balance = o.balance === undefined ? 1000 : o.balance;
+  const deps = {
+    now: () => NOW,
+    randInt: o.randInt || (() => 0),
+    CoinSettings: { getSingleton: async () => ({ spinEnabled: true, spinSegments: SEGS, inviteEnabled: true, inviteReward: 1000, ...(o.settings || {}) }) },
+    Voucher: { findOne: async () => (o.voucher === undefined ? { _id: 'v1', title: 'Cafe', coinCost: 100, isActive: true } : o.voucher) },
+    VoucherCode: {
+      findOneAndUpdate: async (f, u) => {
+        calls.codeClaim.push([f, u]);
+        const c = codes.find((x) => x.status === 'available'); // sync: atomic claim
+        if (!c) return null;
+        c.status = 'assigned';
+        return { ...c };
+      },
+      updateOne: async (f, u) => { calls.codeUpdate.push([f, u]); return {}; },
+    },
+    User: {
+      findOneAndUpdate: async (f, u) => {
+        calls.userUpdate.push([f, u]);
+        if (o.userNull) return null;
+        const d = u.$inc.coinBalance;
+        if (f.coinBalance && balance < f.coinBalance.$gte) return null;
+        if (o.userThrows) throw new Error('db down');
+        balance += d;
+        return { _id: f._id, coinBalance: balance };
+      },
+      findOne: async () => (o.inviter === undefined ? { _id: 'inv1' } : o.inviter),
+    },
+    SpinLog: {
+      create: async (d) => { calls.spinCreate.push(d); if (o.spinDup) throw Object.assign(new Error('dup'), { code: 11000 }); return { _id: 'log1', ...d }; },
+      deleteOne: async (f) => { calls.spinDelete.push(f); },
+    },
+    Redemption: { create: async (d) => { calls.redemptionCreate.push(d); if (o.redemptionThrows) throw new Error('boom'); return { _id: 'r1', ...d }; } },
+    CoinTransaction: {
+      count: 0,
+      create: async function (d) {
+        calls.txCreate.push(d);
+        if (o.txDup || (o.txDupAfterFirst && calls.txCreate.length > 1)) throw Object.assign(new Error('dup'), { code: 11000 });
+        return { _id: 't' + calls.txCreate.length, ...d };
+      },
+      updateOne: async (f, u) => { calls.txUpdate.push([f, u]); },
+      deleteOne: async (f) => { calls.txDelete.push(f); },
+    },
+    notify: async (...a) => { calls.notify.push(a); if (o.notifyThrows) throw new Error('smtp'); },
+  };
+  return { svc: makeCoinsService(deps), calls, getBalance: () => balance, getCodes: () => codes };
+}
+
+test('redeem: happy path claims code, debits, writes redemption + tx', async () => {
+  const { svc, calls } = build();
+  const res = await svc.redeem('u1', 'v1');
+  assert.equal(res.balance, 900);
+  assert.equal(res.redemption.code, 'ABC');
+  assert.equal(calls.txCreate[0].amount, -100);
+  assert.equal(calls.txCreate[0].balanceAfter, 900);
+  assert.equal(calls.txCreate[0].type, 'redeem');
+  assert.deepEqual(calls.userUpdate[0][0], { _id: 'u1', role: 'agent', coinBalance: { $gte: 100 } });
+  assert.deepEqual(calls.codeUpdate.at(-1), [{ _id: 'c1' }, { $set: { redemption: 'r1' } }]);
+});
+
+test('redeem: missing or inactive voucher -> 404', async () => {
+  const { svc } = build({ voucher: null });
+  await assert.rejects(svc.redeem('u1', 'v1'), { status: 404, message: 'Voucher not found' });
+});
+
+test('redeem: out of stock leaves balance untouched', async () => {
+  const { svc, calls, getBalance } = build({ codes: [] });
+  await assert.rejects(svc.redeem('u1', 'v1'), { status: 409, message: 'Out of stock' });
+  assert.equal(calls.userUpdate.length, 0);
+  assert.equal(getBalance(), 1000);
+});
+
+test('redeem: not enough coins releases the code', async () => {
+  const { svc, calls } = build({ balance: 50 });
+  await assert.rejects(svc.redeem('u1', 'v1'), { status: 400, message: 'Not enough coins' });
+  const [f, u] = calls.codeUpdate[0];
+  assert.deepEqual(f, { _id: 'c1' });
+  assert.equal(u.$set.status, 'available');
+  assert.deepEqual(u.$unset, { assignedTo: 1, assignedAt: 1 });
+  assert.equal(calls.redemptionCreate.length, 0);
+});
+
+test('redeem: second concurrent redeem fails without charging', async () => {
+  const { svc, calls, getBalance } = build();
+  const results = await Promise.allSettled([svc.redeem('u1', 'v1'), svc.redeem('u1', 'v1')]);
+  assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
+  const rej = results.find((r) => r.status === 'rejected');
+  assert.equal(rej.reason.status, 409);
+  assert.equal(calls.userUpdate.length, 1);
+  assert.equal(getBalance(), 900);
+});
+
+test('redeem: redemption write failure refunds and releases the code', async () => {
+  const { svc, calls, getBalance } = build({ redemptionThrows: true });
+  await assert.rejects(svc.redeem('u1', 'v1'), { message: 'boom' });
+  assert.equal(getBalance(), 1000);
+  assert.equal(calls.codeUpdate[0][1].$set.status, 'available');
+});
+
+test('spin: disabled -> 400', async () => {
+  const { svc, calls } = build({ settings: { spinEnabled: false } });
+  await assert.rejects(svc.spin('u1'), { status: 400, message: 'Spin & Win is not available right now' });
+  assert.equal(calls.spinCreate.length, 0);
+});
+
+test('spin: duplicate day -> 409 and no credit', async () => {
+  const { svc, calls } = build({ spinDup: true });
+  await assert.rejects(svc.spin('u1'), { status: 409, message: "You've already spun today" });
+  assert.equal(calls.userUpdate.length, 0);
+});
+
+test('spin: success credits segment coins and writes tx', async () => {
+  const { svc, calls } = build({ randInt: () => 99 }); // weights sum 100; 99 -> index 5 (100 coins)
+  const res = await svc.spin('u1');
+  assert.equal(res.segmentIndex, 5);
+  assert.equal(res.coins, SEGS[5].coins);
+  assert.equal(res.balance, 1100);
+  assert.equal(calls.spinCreate[0].dayKey, '2026-10-23');
+  assert.equal(calls.txCreate[0].type, 'spin');
+  assert.equal(calls.txCreate[0].spin, 'log1');
+  assert.equal(calls.txCreate[0].title, 'Daily spin');
+});
+
+test('spin: credit failure removes the spin log so the agent can retry', async () => {
+  const { svc, calls } = build({ userThrows: true });
+  await assert.rejects(svc.spin('u1'), { message: 'db down' });
+  assert.deepEqual(calls.spinDelete, [{ _id: 'log1' }]);
+});
+
+const invitee = { _id: 'i1', name: '  Sara Ali ', referredBy: 'inv1' };
+
+test('awardInvite: credits once, idempotent on second call', async () => {
+  const { svc, calls } = build({ txDupAfterFirst: true });
+  await svc.awardInvite(invitee);
+  await svc.awardInvite(invitee);
+  assert.equal(calls.userUpdate.length, 1);
+  assert.equal(calls.notify.length, 1);
+  assert.equal(calls.txCreate[0].title, 'Invite bonus · Sara');
+  assert.equal(calls.txCreate[0].amount, 1000);
+  assert.deepEqual(calls.txUpdate[0], [{ _id: 't1' }, { $set: { balanceAfter: 2000 } }]);
+  assert.equal(calls.notify[0][1].body, 'You earned 1000 coins: Sara joined with your invite');
+  assert.equal(calls.notify[0][1].noCoordinatorCopy, true);
+});
+
+test('awardInvite: skips inactive inviter / disabled / no referrer / zero reward', async () => {
+  let b = build({ inviter: null });
+  await b.svc.awardInvite(invitee);
+  assert.equal(b.calls.txCreate.length, 0);
+  b = build({ settings: { inviteEnabled: false } });
+  await b.svc.awardInvite(invitee);
+  assert.equal(b.calls.txCreate.length, 0);
+  b = build();
+  await b.svc.awardInvite({ ...invitee, referredBy: undefined });
+  assert.equal(b.calls.txCreate.length, 0);
+  b = build({ settings: { inviteReward: 0 } });
+  await b.svc.awardInvite(invitee);
+  assert.equal(b.calls.txCreate.length, 0);
+});
+
+test('awardInvite: never throws (notify failure, db failure) and falls back on empty name', async () => {
+  let b = build({ notifyThrows: true });
+  await b.svc.awardInvite({ ...invitee, name: '   ' });
+  assert.equal(b.calls.txCreate[0].title, 'Invite bonus · a partner');
+  b = build({ userThrows: true });
+  await b.svc.awardInvite(invitee);
+  assert.deepEqual(b.calls.txDelete, [{ _id: 't1' }]); // rolled back so a retry can pay
+});

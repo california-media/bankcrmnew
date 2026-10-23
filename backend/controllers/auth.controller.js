@@ -68,6 +68,10 @@ const sanitizeFull = (user) => ({
 const safeUser = async (id) =>
   User.findById(id).select('-password -inviteToken -inviteTokenExpires').populate('agency', 'name email');
 
+// Shared with the UAE PASS code exchange so it returns the exact login shape.
+exports.sanitize = sanitize;
+exports.safeUser = safeUser;
+
 /**
  * POST /api/auth/register-agent  (public)
  */

@@ -27,3 +27,8 @@ test('chancePcts', () => assert.deepEqual(c.chancePcts(c.DEFAULT_SEGMENTS), [30,
 test('parseVoucherCodes', () => {
   assert.deepEqual(c.parseVoucherCodes(' A1 \n\nB2\r\nA1\n' + 'x'.repeat(65)), ['A1', 'B2']);
 });
+test('codesFromSheetRows keeps leading zeros and long numerics, skips header and blanks', () => {
+  assert.deepEqual(c.codesFromSheetRows([['Code'], ['00123'], [12345678901234], ['']]), ['00123', '12345678901234']);
+  assert.deepEqual(c.codesFromSheetRows([[' Codes '], ['A1'], [], [null]]), ['A1']);
+  assert.deepEqual(c.codesFromSheetRows([['A1'], ['code']]), ['A1', 'code']);
+});

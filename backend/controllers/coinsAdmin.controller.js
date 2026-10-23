@@ -5,7 +5,7 @@ const Voucher = require('../models/Voucher');
 const VoucherCode = require('../models/VoucherCode');
 const Redemption = require('../models/Redemption');
 const User = require('../models/User');
-const { validateSpinSegments, validateInviteReward, chancePcts, parseVoucherCodes } = require('../utils/coins');
+const { validateSpinSegments, validateInviteReward, chancePcts, parseVoucherCodes, codesFromSheetRows } = require('../utils/coins');
 const { logoUrl } = require('../utils/coinsShape');
 const { getFilename, deleteFromS3 } = require('../middleware/upload.middleware');
 
@@ -171,8 +171,8 @@ const textFromSheet = (buffer) => {
   const wb = XLSX.read(buffer, { type: 'buffer' });
   const sheet = wb.Sheets[wb.SheetNames[0]];
   if (!sheet) return '';
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
-  return rows.map((r) => String(r[0] ?? '').trim()).filter(Boolean).join('\n');
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
+  return codesFromSheetRows(rows).join('\n');
 };
 
 exports.addCodes = async (req, res) => {

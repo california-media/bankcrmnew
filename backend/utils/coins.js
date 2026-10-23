@@ -68,6 +68,21 @@ const parseVoucherCodes = (text) => {
   return out;
 };
 
+// First column of spreadsheet rows (sheet_to_json header:1, raw:true) -> code strings.
+// A leading 'code'/'codes' header cell is skipped. Blank cells are dropped.
+const codesFromSheetRows = (rows) => {
+  const out = [];
+  (rows || []).forEach((r, i) => {
+    const cell = Array.isArray(r) ? r[0] : undefined;
+    if (cell === undefined || cell === null) return;
+    const v = String(cell).trim();
+    if (!v) return;
+    if (i === 0 && ['code', 'codes'].includes(v.toLowerCase())) return;
+    out.push(v);
+  });
+  return out;
+};
+
 module.exports = {
   DEFAULT_SEGMENTS,
   dubaiDayKey,
@@ -77,4 +92,5 @@ module.exports = {
   pickSegmentIndex,
   chancePcts,
   parseVoucherCodes,
+  codesFromSheetRows,
 };

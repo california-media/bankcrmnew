@@ -56,7 +56,7 @@ exports.postSpin = async (req, res) => {
 
 exports.transactions = async (req, res) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const page = Math.min(100000, Math.max(1, parseInt(req.query.page, 10) || 1)); // cap: huge pages overflow skip
     const rows = await CoinTransaction.find({ user: req.user._id })
       .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * PAGE_SIZE)
@@ -110,6 +110,7 @@ exports.scratch = async (req, res) => {
     // Only set when still null; a lost race just means it was already scratched.
     await Redemption.updateOne({ _id: id, user: req.user._id, scratchedAt: null }, { $set: { scratchedAt: new Date() } });
     const fresh = await Redemption.findById(id).select('scratchedAt').lean();
+    if (!fresh) return res.status(404).json({ message: 'Redemption not found' }); // deleted mid-request
     res.json({ _id: fresh._id, scratchedAt: fresh.scratchedAt });
   } catch (err) { fail(res, err); }
 };

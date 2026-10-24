@@ -9,6 +9,9 @@ const DEFAULT_SEGMENTS = [
 
 const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
+// Upper bound for admin-set coin values and weights. Keeps the spin draw total
+// (8 segments x 1e6 x 100 scaling) far below crypto.randomInt's 2^48 limit.
+const MAX_COIN_SETTING = 1000000;
 const dayFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' });
 
 const dubaiDayKey = (date) => dayFmt.format(date);
@@ -36,15 +39,20 @@ const validateSpinSegments = (segs) => {
     if (!s || !Number.isInteger(s.coins) || s.coins < 0) {
       return 'Segment coins must be an integer of 0 or more';
     }
+    if (s.coins > MAX_COIN_SETTING) return 'Segment coins must be at most 1,000,000';
     if (typeof s.weight !== 'number' || !Number.isFinite(s.weight) || s.weight < 0.01) {
       return 'Segment weight must be a number of at least 0.01';
     }
+    if (s.weight > MAX_COIN_SETTING) return 'Segment weight must be at most 1,000,000';
   }
   return null;
 };
 
-const validateInviteReward = (v) =>
-  (Number.isInteger(v) && v >= 0 ? null : 'Invite reward must be a whole number of coins');
+const validateInviteReward = (v) => {
+  if (!Number.isInteger(v) || v < 0) return 'Invite reward must be a whole number of coins';
+  if (v > MAX_COIN_SETTING) return 'Invite reward must be at most 1,000,000 coins';
+  return null;
+};
 
 // Weights are scaled to integers for the draw: as-is when all are whole numbers,
 // otherwise x100 (two decimals of precision).

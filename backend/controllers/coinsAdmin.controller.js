@@ -158,7 +158,12 @@ exports.deleteVoucher = async (req, res) => {
     if (await VoucherCode.exists({ voucher: v._id, status: 'assigned' })) {
       return res.status(409).json({ message: 'This voucher has been redeemed. Deactivate it instead.' });
     }
-    await VoucherCode.deleteMany({ voucher: v._id });
+    // Only unused codes go; a redeem racing this delete may assign one after the check above.
+    await VoucherCode.deleteMany({ voucher: v._id, status: 'available' });
+    if (await VoucherCode.exists({ voucher: v._id, status: 'assigned' })) {
+      await Voucher.updateOne({ _id: v._id }, { $set: { isActive: false } });
+      return res.status(409).json({ message: 'This voucher was just redeemed, so it has been deactivated instead of deleted.' });
+    }
     await v.deleteOne();
     try { deleteFromS3('voucher-logos', v.logo); } catch (e) { console.error('voucher logo delete failed', e.message); }
     res.json({ message: 'Voucher deleted' });

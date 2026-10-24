@@ -11,8 +11,12 @@ test('valid prefill gives sub and emiratesId from token', () => {
   const t = sign({ sub: 'S1', emiratesId: '784-1', _uaepass: true });
   assert.deepStrictEqual(resolveUaepassFields({ uaepassPrefill: t }, SECRET), { uaepassSub: 'S1', emiratesId: '784-1' });
 });
-test('body.emiratesId wins over token', () => {
+test('verified token emiratesId wins over a typed body value', () => {
   const t = sign({ sub: 'S1', emiratesId: '784-1', _uaepass: true });
+  assert.strictEqual(resolveUaepassFields({ uaepassPrefill: t, emiratesId: '784-2' }, SECRET).emiratesId, '784-1');
+});
+test('typed body emiratesId is used when the token has none', () => {
+  const t = sign({ sub: 'S1', _uaepass: true });
   assert.strictEqual(resolveUaepassFields({ uaepassPrefill: t, emiratesId: '784-2' }, SECRET).emiratesId, '784-2');
 });
 test('expired token errors', () => {

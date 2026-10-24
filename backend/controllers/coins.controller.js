@@ -7,7 +7,7 @@ const Voucher = require('../models/Voucher');
 const VoucherCode = require('../models/VoucherCode');
 const Redemption = require('../models/Redemption');
 const User = require('../models/User');
-const { dubaiDayKey, nextDubaiMidnight, chancePcts } = require('../utils/coins');
+const { dubaiDayKey, nextDubaiMidnight, chancePcts, voucherValidFilter } = require('../utils/coins');
 const { balanceOf, maskName, shapeVoucher, shapeRedemption } = require('../utils/coinsShape');
 
 const PAGE_SIZE = 20;
@@ -75,7 +75,7 @@ exports.transactions = async (req, res) => {
 
 exports.vouchers = async (req, res) => {
   try {
-    const list = await Voucher.find({ isActive: true }).sort({ sortOrder: 1, createdAt: 1 }).lean();
+    const list = await Voucher.find({ isActive: true, ...voucherValidFilter(new Date()) }).sort({ sortOrder: 1, createdAt: 1 }).lean();
     const stock = await stockMap(list.map((v) => v._id));
     res.json(list.map((v) => shapeVoucher(v, stock.get(String(v._id)))));
   } catch (err) { fail(res, err); }

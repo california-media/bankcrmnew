@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { makeCoinsService } = require('../services/coins.service');
+const { voucherValidFilter } = require('../utils/coins');
 
 const SEGS = [
   { coins: 5, weight: 30 }, { coins: 10, weight: 30 }, { coins: 20, weight: 20 },
@@ -9,14 +10,23 @@ const SEGS = [
 const NOW = new Date('2026-10-23T10:00:00Z');
 
 function build(o = {}) {
-  const calls = { userUpdate: [], codeClaim: [], codeUpdate: [], txCreate: [], txUpdate: [], txDelete: [], spinCreate: [], spinDelete: [], redemptionCreate: [], notify: [] };
+  const calls = { voucherFind: [], userUpdate: [], codeClaim: [], codeUpdate: [], txCreate: [], txUpdate: [], txDelete: [], spinCreate: [], spinDelete: [], redemptionCreate: [], notify: [] };
   let codes = o.codes === undefined ? [{ _id: 'c1', code: 'ABC', status: 'available' }] : o.codes;
   let balance = o.balance === undefined ? 1000 : o.balance;
   const deps = {
     now: () => NOW,
     randInt: o.randInt || (() => 0),
     CoinSettings: { getSingleton: async () => ({ spinEnabled: true, spinSegments: SEGS, inviteEnabled: true, inviteReward: 1000, ...(o.settings || {}) }) },
-    Voucher: { findOne: async () => (o.voucher === undefined ? { _id: 'v1', title: 'Cafe', coinCost: 100, isActive: true } : o.voucher) },
+    Voucher: {
+      findOne: async (f) => {
+        calls.voucherFind.push(f);
+        const v = o.voucher === undefined ? { _id: 'v1', title: 'Cafe', coinCost: 100, isActive: true } : o.voucher;
+        if (!v || !f.$or) return v;
+        // Evaluate the validity $or the way Mongo would: null/missing, or validUntil >= bound.
+        const ok = f.$or.some((cond) => (cond.validUntil === null ? v.validUntil == null : v.validUntil >= cond.validUntil.$gte));
+        return ok ? v : null;
+      },
+    },
     VoucherCode: {
       findOneAndUpdate: async (f, u) => {
         calls.codeClaim.push([f, u]);
@@ -79,6 +89,27 @@ test('redeem: happy path claims code, debits, writes redemption + tx', async () 
 test('redeem: missing or inactive voucher -> 404', async () => {
   const { svc } = build({ voucher: null });
   await assert.rejects(svc.redeem('u1', 'v1'), { status: 404, message: 'Voucher not found' });
+});
+
+test('redeem: voucher lookup filters active and unexpired', async () => {
+  const { svc, calls } = build();
+  await svc.redeem('u1', 'v1');
+  assert.deepEqual(calls.voucherFind[0], { _id: 'v1', isActive: true, ...voucherValidFilter(NOW) });
+});
+
+test('redeem: voucher past its validUntil Dubai day -> 404, nothing claimed or charged', async () => {
+  // NOW is 2026-10-23 14:00 Dubai; validUntil 2026-10-22 ended at 2026-10-22T20:00Z.
+  const { svc, calls, getBalance } = build({ voucher: { _id: 'v1', title: 'Cafe', coinCost: 100, isActive: true, validUntil: new Date('2026-10-22') } });
+  await assert.rejects(svc.redeem('u1', 'v1'), { status: 404, message: 'Voucher not found' });
+  assert.equal(calls.codeClaim.length, 0);
+  assert.equal(calls.userUpdate.length, 0);
+  assert.equal(getBalance(), 1000);
+});
+
+test('redeem: voucher on its last valid Dubai day still redeems', async () => {
+  const { svc } = build({ voucher: { _id: 'v1', title: 'Cafe', coinCost: 100, isActive: true, validUntil: new Date('2026-10-23') } });
+  const res = await svc.redeem('u1', 'v1');
+  assert.equal(res.balance, 900);
 });
 
 test('redeem: out of stock leaves balance untouched', async () => {

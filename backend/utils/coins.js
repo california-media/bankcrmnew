@@ -8,6 +8,7 @@ const DEFAULT_SEGMENTS = [
 ];
 
 const DUBAI_OFFSET_MS = 4 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const dayFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dubai' });
 
 const dubaiDayKey = (date) => dayFmt.format(date);
@@ -17,6 +18,15 @@ const nextDubaiMidnight = (date) => {
   const [y, m, d] = dubaiDayKey(date).split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d + 1) - DUBAI_OFFSET_MS);
 };
+
+// 00:00 Dubai of the Dubai day containing `date` (fixed offset, so always 24h before the next one).
+const dubaiDayStart = (date) => new Date(nextDubaiMidnight(date).getTime() - DAY_MS);
+
+// Mongo filter part: no expiry, or a validUntil whose Dubai day is today or later,
+// i.e. a voucher stays valid through the whole Dubai day of its validUntil.
+const voucherValidFilter = (now) => ({
+  $or: [{ validUntil: null }, { validUntil: { $gte: dubaiDayStart(now) } }],
+});
 
 const validateSpinSegments = (segs) => {
   if (!Array.isArray(segs) || segs.length < 4 || segs.length > 8) {
@@ -87,6 +97,8 @@ module.exports = {
   DEFAULT_SEGMENTS,
   dubaiDayKey,
   nextDubaiMidnight,
+  dubaiDayStart,
+  voucherValidFilter,
   validateSpinSegments,
   validateInviteReward,
   pickSegmentIndex,

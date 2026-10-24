@@ -32,3 +32,19 @@ test('codesFromSheetRows keeps leading zeros and long numerics, skips header and
   assert.deepEqual(c.codesFromSheetRows([[' Codes '], ['A1'], [], [null]]), ['A1']);
   assert.deepEqual(c.codesFromSheetRows([['A1'], ['code']]), ['A1', 'code']);
 });
+test('dubaiDayStart: 00:00 Dubai of the Dubai day containing the instant', () => {
+  assert.equal(c.dubaiDayStart(new Date('2026-10-23T10:00:00Z')).toISOString(), '2026-10-22T20:00:00.000Z');
+  assert.equal(c.dubaiDayStart(new Date('2026-10-23T19:59:59Z')).toISOString(), '2026-10-22T20:00:00.000Z');
+  assert.equal(c.dubaiDayStart(new Date('2026-10-23T20:00:00Z')).toISOString(), '2026-10-23T20:00:00.000Z');
+});
+test('voucherValidFilter: no expiry, or valid through the whole Dubai day of validUntil', () => {
+  const until = new Date('2026-10-23'); // admin date input is stored as UTC midnight -> Dubai day 2026-10-23
+  const valid = (now) => {
+    const f = c.voucherValidFilter(now);
+    assert.deepEqual(f.$or[0], { validUntil: null });
+    return until >= f.$or[1].validUntil.$gte;
+  };
+  assert.equal(valid(new Date('2026-10-22T10:00:00Z')), true);
+  assert.equal(valid(new Date('2026-10-23T19:59:59Z')), true); // 23:59:59 Dubai on its last day
+  assert.equal(valid(new Date('2026-10-23T20:00:00Z')), false); // 00:00 Dubai the next day
+});

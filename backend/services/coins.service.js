@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { dubaiDayKey, pickSegmentIndex } = require('../utils/coins');
+const { dubaiDayKey, pickSegmentIndex, voucherValidFilter } = require('../utils/coins');
 const { balanceOf } = require('../utils/coinsShape');
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
@@ -48,7 +48,7 @@ function makeCoinsService(deps) {
   }
 
   async function redeem(userId, voucherId) {
-    const voucher = await Voucher.findOne({ _id: voucherId, isActive: true });
+    const voucher = await Voucher.findOne({ _id: voucherId, isActive: true, ...voucherValidFilter(now()) });
     if (!voucher) throw httpError(404, 'Voucher not found');
     const cost = voucher.coinCost;
 

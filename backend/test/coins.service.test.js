@@ -10,7 +10,8 @@ const SEGS = [
 const NOW = new Date('2026-10-23T10:00:00Z');
 
 function build(o = {}) {
-  const calls = { voucherFind: [], userUpdate: [], codeClaim: [], codeUpdate: [], txCreate: [], txUpdate: [], txDelete: [], spinCreate: [], spinDelete: [], redemptionCreate: [], notify: [] };
+  const calls = { voucherFind: [], userUpdate: [], codeClaim: [], codeUpdate: [], txCreate: [], txUpdate: [], txDelete: [], spinCreate: [], spinDelete: [], redemptionCreate: [], redemptionFind: [], notify: [] };
+  const rows = o.redemptions ? o.redemptions.map((r) => ({ ...r })) : []; // Redemption collection
   let codes = o.codes === undefined ? [{ _id: 'c1', code: 'ABC', status: 'available' }] : o.codes;
   let balance = o.balance === undefined ? 1000 : o.balance;
   const deps = {
@@ -56,8 +57,21 @@ function build(o = {}) {
       deleteOne: async (f) => { calls.spinDelete.push(f); },
     },
     Redemption: {
-      create: async (d) => { calls.redemptionCreate.push(d); if (o.redemptionThrows) throw new Error('boom'); return { _id: 'r1', ...d }; },
-      exists: async () => { if (o.existsThrows) throw new Error('exists down'); return o.existsRow || null; },
+      create: async (d) => {
+        calls.redemptionCreate.push(d);
+        // Unique index on voucherCode.
+        if (rows.some((r) => r.voucherCode === d.voucherCode)) throw Object.assign(new Error('E11000 duplicate key'), { code: 11000 });
+        if (o.redemptionThrows === 'after-insert') { rows.push({ _id: 'r9', ...d }); throw new Error('socket closed'); }
+        if (o.redemptionThrows) throw new Error('boom');
+        const r = { _id: 'r1', ...d };
+        rows.push(r);
+        return r;
+      },
+      findOne: async (f) => {
+        calls.redemptionFind.push(f);
+        if (o.findThrows) throw new Error('find down');
+        return rows.find((r) => Object.entries(f).every(([k, v]) => r[k] === v)) || null;
+      },
     },
     CoinTransaction: {
       count: 0,
@@ -123,7 +137,8 @@ test('redeem: not enough coins releases the code', async () => {
   const { svc, calls } = build({ balance: 50 });
   await assert.rejects(svc.redeem('u1', 'v1'), { status: 400, message: 'Not enough coins' });
   const [f, u] = calls.codeUpdate[0];
-  assert.deepEqual(f, { _id: 'c1' });
+  // Scoped release: only the code this request claimed, still held by this user and not yet linked.
+  assert.deepEqual(f, { _id: 'c1', status: 'assigned', assignedTo: 'u1', redemption: null });
   assert.equal(u.$set.status, 'available');
   assert.deepEqual(u.$unset, { assignedTo: 1, assignedAt: 1 });
   assert.equal(calls.redemptionCreate.length, 0);
@@ -145,13 +160,32 @@ test('redeem: debit throws -> code stays held, no release', async () => {
   assert.equal(calls.codeUpdate.length, 0);
 });
 
-test('redeem: create throws but redemption exists -> success, no refund/release', async () => {
-  const { svc, calls, getBalance } = build({ redemptionThrows: true, existsRow: { _id: 'r9' } });
+test('redeem: create throws but our row exists -> success with the full row, no refund/release', async () => {
+  const { svc, calls, getBalance } = build({ redemptionThrows: 'after-insert' });
   const res = await svc.redeem('u1', 'v1');
+  assert.deepEqual(calls.redemptionFind[0], { voucherCode: 'c1', user: 'u1' }); // user-scoped lookup
+  // The controller shapes the response from these fields; an {_id}-only row lost code/voucher/cost.
+  assert.equal(res.redemption._id, 'r9');
+  assert.equal(res.redemption.code, 'ABC');
+  assert.equal(res.redemption.voucher, 'v1');
+  assert.equal(res.redemption.coinCost, 100);
   assert.equal(res.balance, 900);
   assert.equal(getBalance(), 900);
   assert.equal(calls.userUpdate.length, 1);
   assert.ok(!calls.codeUpdate.some(([, u]) => u.$set && u.$set.status === 'available'));
+  assert.deepEqual(calls.codeUpdate.at(-1), [{ _id: 'c1' }, { $set: { redemption: 'r9' } }]);
+});
+
+test('redeem: duplicate voucherCode owned by another user is never our success -> refund, code kept out of the pool', async () => {
+  const foreign = { _id: 'rX', user: 'u2', voucher: 'v1', voucherCode: 'c1', code: 'ABC', coinCost: 100 };
+  const { svc, calls, getBalance } = build({ redemptions: [foreign] });
+  await assert.rejects(svc.redeem('u1', 'v1'), { code: 11000 });
+  assert.deepEqual(calls.redemptionFind[0], { voucherCode: 'c1', user: 'u1' });
+  assert.equal(getBalance(), 1000); // charged then refunded
+  assert.equal(calls.userUpdate.length, 2);
+  assert.equal(calls.txCreate.length, 0); // no ledger row, no back-link
+  // The code already backs u2's redemption: releasing it would only make the next redeemer fail the same way.
+  assert.equal(calls.codeUpdate.length, 0);
 });
 
 test('redeem: create throws and no row -> refund then release', async () => {
@@ -159,6 +193,7 @@ test('redeem: create throws and no row -> refund then release', async () => {
   await assert.rejects(svc.redeem('u1', 'v1'), { message: 'boom' });
   assert.equal(getBalance(), 1000);
   assert.equal(calls.userUpdate.length, 2);
+  assert.deepEqual(calls.codeUpdate[0][0], { _id: 'c1', status: 'assigned', assignedTo: 'u1', redemption: null });
   assert.equal(calls.codeUpdate[0][1].$set.status, 'available');
 });
 
@@ -169,7 +204,7 @@ test('redeem: create throws, no row, refund throws -> no release', async () => {
 });
 
 test('redeem: create throws and existence check throws -> no compensation', async () => {
-  const { svc, calls, getBalance } = build({ redemptionThrows: true, existsThrows: true });
+  const { svc, calls, getBalance } = build({ redemptionThrows: true, findThrows: true });
   await assert.rejects(svc.redeem('u1', 'v1'), { message: 'boom' });
   assert.equal(getBalance(), 900);
   assert.equal(calls.codeUpdate.length, 0);

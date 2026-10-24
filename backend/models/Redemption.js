@@ -13,5 +13,10 @@ const redemptionSchema = new mongoose.Schema(
 );
 
 redemptionSchema.index({ user: 1, createdAt: -1 });
+// One redemption per code. The redeem insert-failure recovery relies on it (services/coins.service.js).
+redemptionSchema.index(
+  { voucherCode: 1 },
+  { unique: true, partialFilterExpression: { voucherCode: { $type: 'objectId' } } }
+);
 
 module.exports = mongoose.model('Redemption', redemptionSchema);

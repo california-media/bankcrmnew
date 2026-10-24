@@ -60,8 +60,12 @@ function makeCoinsService(deps) {
     );
     if (!code) throw httpError(409, 'Out of stock');
 
+    // Frees only the code this request claimed, while it is still ours and not linked to a redemption.
     const release = () =>
-      VoucherCode.updateOne({ _id: code._id }, { $set: { status: 'available' }, $unset: { assignedTo: 1, assignedAt: 1 } });
+      VoucherCode.updateOne(
+        { _id: code._id, status: 'assigned', assignedTo: userId, redemption: null },
+        { $set: { status: 'available' }, $unset: { assignedTo: 1, assignedAt: 1 } }
+      );
 
     // 2. Guarded debit: the $gte filter is what prevents a negative balance.
     // A thrown error may still have applied the debit: leave the code held (assignedTo is the reconciliation trace).
@@ -82,16 +86,17 @@ function makeCoinsService(deps) {
         user: userId, voucher: voucher._id, voucherCode: code._id, code: code.code, coinCost: cost, scratchedAt: null,
       });
     } catch (err) {
-      // The insert may have applied. Compensate only if the row definitively does not exist.
+      // The insert may have applied. Compensate only if this user's row definitively does not exist.
+      // User-scoped: with the unique voucherCode index, a duplicate owned by someone else is never our success.
       let existing;
       try {
-        existing = await Redemption.exists({ voucherCode: code._id });
+        existing = await Redemption.findOne({ voucherCode: code._id, user: userId });
       } catch (e) {
-        console.error('redemption existence check failed; not compensating', e);
+        console.error('redemption lookup failed; not compensating', e);
         throw err;
       }
       if (existing) {
-        r = existing; // it was written: carry on as success
+        r = existing; // it was written: carry on as success with the full row
       } else {
         try {
           await User.findOneAndUpdate({ _id: userId }, { $inc: { coinBalance: cost } });
@@ -99,7 +104,12 @@ function makeCoinsService(deps) {
           console.error('refund failed; code left held for reconciliation', e);
           throw err;
         }
-        await release().catch((e) => console.error('code release failed', e));
+        if (isDup(err)) {
+          // The code already backs another redemption: back in the pool it would fail every next redeemer.
+          console.error('code already linked to another redemption; left held for reconciliation', code._id);
+        } else {
+          await release().catch((e) => console.error('code release failed', e));
+        }
         throw err;
       }
     }

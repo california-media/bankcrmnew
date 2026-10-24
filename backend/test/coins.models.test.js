@@ -28,3 +28,10 @@ test('User.coinBalance has no default: saving a loaded user without it never wri
   // New users are created without the field too; $inc creates it on first credit.
   assert.equal(new User({ email: 'c@x.com', role: 'agent' }).toObject().coinBalance, undefined);
 });
+
+test('Redemption.voucherCode is unique (one redemption per code)', () => {
+  const idx = require('../models/Redemption').schema.indexes().find(([k]) => JSON.stringify(k) === '{"voucherCode":1}');
+  assert.ok(idx, 'voucherCode index missing');
+  assert.equal(idx[1].unique, true);
+  assert.deepEqual(idx[1].partialFilterExpression, { voucherCode: { $type: 'objectId' } });
+});

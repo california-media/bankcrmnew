@@ -4,6 +4,9 @@ const LOGO_BASE = `https://${BUCKET}.s3.${REGION}.amazonaws.com/voucher-logos/`;
 
 const logoUrl = (filename) => (filename ? LOGO_BASE + filename : null);
 
+// User.coinBalance has no schema default, so a user never credited has no field: read it as 0.
+const balanceOf = (u) => (u && u.coinBalance) || 0;
+
 // "Maya Sharma Khan" -> "Maya K."; single word -> first name only.
 const maskName = (name) => {
   const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -37,4 +40,4 @@ const shapeRedemption = (r, voucher, stock) => ({
   voucher: voucher ? shapeVoucher(voucher, stock) : null,
 });
 
-module.exports = { logoUrl, maskName, shapeVoucher, shapeRedemption };
+module.exports = { logoUrl, balanceOf, maskName, shapeVoucher, shapeRedemption };

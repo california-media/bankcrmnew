@@ -16,3 +16,12 @@ test('shapeRedemption', () => {
   assert.equal(r.voucher.stock, 3);
   assert.equal(r.voucher.logoUrl, null);
 });
+test('balanceOf coalesces a missing coinBalance to 0', () => {
+  const { balanceOf } = require('../utils/coinsShape');
+  assert.equal(balanceOf({ coinBalance: 40 }), 40);
+  assert.equal(balanceOf({ coinBalance: 0 }), 0);
+  assert.equal(balanceOf({}), 0);
+  assert.equal(balanceOf({ coinBalance: null }), 0);
+  assert.equal(balanceOf(null), 0);
+  assert.equal(balanceOf(undefined), 0);
+});

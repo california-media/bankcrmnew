@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { dubaiDayKey, pickSegmentIndex } = require('../utils/coins');
+const { balanceOf } = require('../utils/coinsShape');
 
 const httpError = (status, message) => Object.assign(new Error(message), { status });
 const isDup = (err) => err && err.code === 11000;
@@ -38,12 +39,12 @@ function makeCoinsService(deps) {
     }
     try {
       await CoinTransaction.create({
-        user: userId, type: 'spin', amount: coins, balanceAfter: u.coinBalance, title: 'Daily spin', spin: log._id,
+        user: userId, type: 'spin', amount: coins, balanceAfter: balanceOf(u), title: 'Daily spin', spin: log._id,
       });
     } catch (err) {
       console.error('spin ledger write failed (balance already credited)', err); // coins are safe; only history is missing
     }
-    return { segmentIndex: i, coins, balance: u.coinBalance };
+    return { segmentIndex: i, coins, balance: balanceOf(u) };
   }
 
   async function redeem(userId, voucherId) {
@@ -105,7 +106,7 @@ function makeCoinsService(deps) {
     // Charged and code held by now; ledger/back-link failures must not fail the request.
     try {
       await CoinTransaction.create({
-        user: userId, type: 'redeem', amount: -cost, balanceAfter: u.coinBalance, title: `${voucher.title} redeemed`, redemption: r._id,
+        user: userId, type: 'redeem', amount: -cost, balanceAfter: balanceOf(u), title: `${voucher.title} redeemed`, redemption: r._id,
       });
     } catch (err) {
       console.error('redeem ledger write failed', err);
@@ -115,7 +116,7 @@ function makeCoinsService(deps) {
     } catch (err) {
       console.error('redeem code back-link failed', err);
     }
-    return { redemption: r, balance: u.coinBalance };
+    return { redemption: r, balance: balanceOf(u) };
   }
 
   async function awardInvite(invitee) {
@@ -145,7 +146,7 @@ function makeCoinsService(deps) {
         await CoinTransaction.deleteOne({ _id: tx._id }).catch((e) => console.error('invite rollback failed', e));
         throw new Error('inviter vanished');
       }
-      await CoinTransaction.updateOne({ _id: tx._id }, { $set: { balanceAfter: u.coinBalance } })
+      await CoinTransaction.updateOne({ _id: tx._id }, { $set: { balanceAfter: balanceOf(u) } })
         .catch((e) => console.error('invite balanceAfter update failed', e));
       await notify([inviter._id], {
         type: 'coins_awarded',

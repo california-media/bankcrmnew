@@ -8,7 +8,7 @@ const VoucherCode = require('../models/VoucherCode');
 const Redemption = require('../models/Redemption');
 const User = require('../models/User');
 const { dubaiDayKey, nextDubaiMidnight, chancePcts } = require('../utils/coins');
-const { maskName, shapeVoucher, shapeRedemption } = require('../utils/coinsShape');
+const { balanceOf, maskName, shapeVoucher, shapeRedemption } = require('../utils/coinsShape');
 
 const PAGE_SIZE = 20;
 const fail = (res, err) => res.status(err.status || 500).json({ message: err.message });
@@ -25,7 +25,7 @@ const stockMap = async (voucherIds) => {
 exports.me = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('coinBalance');
-    res.json({ balance: user?.coinBalance || 0 });
+    res.json({ balance: balanceOf(user) });
   } catch (err) { fail(res, err); }
 };
 

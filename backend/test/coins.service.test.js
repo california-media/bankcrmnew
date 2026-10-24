@@ -36,6 +36,7 @@ function build(o = {}) {
         if (o.refundThrows && d > 0) throw new Error('refund down');
         if (o.userThrows) throw new Error('db down');
         balance += d;
+        if (o.noBalanceField) return { _id: f._id }; // doc without the field: reads must coalesce to 0
         return { _id: f._id, coinBalance: balance };
       },
       findOne: async () => (o.inviter === undefined ? { _id: 'inv1' } : o.inviter),
@@ -219,4 +220,18 @@ test('awardInvite: never throws (notify failure, db failure) and falls back on e
   b = build({ userNull: true });
   await b.svc.awardInvite(invitee);
   assert.deepEqual(b.calls.txDelete, [{ _id: 't1' }]); // definitively not credited: retry may pay
+});
+
+test('spin/redeem/invite: a returned user doc without coinBalance reads as 0, never undefined', async () => {
+  let b = build({ noBalanceField: true });
+  const spun = await b.svc.spin('u1');
+  assert.equal(spun.balance, 0);
+  assert.equal(b.calls.txCreate[0].balanceAfter, 0);
+  b = build({ noBalanceField: true });
+  const red = await b.svc.redeem('u1', 'v1');
+  assert.equal(red.balance, 0);
+  assert.equal(b.calls.txCreate[0].balanceAfter, 0);
+  b = build({ noBalanceField: true });
+  await b.svc.awardInvite(invitee);
+  assert.deepEqual(b.calls.txUpdate[0], [{ _id: 't1' }, { $set: { balanceAfter: 0 } }]);
 });

@@ -5,6 +5,8 @@ const PhoneOtp = require('../models/PhoneOtp');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
 const { generateSuperAgentCode, generateUniqueReferralCode, inactiveMessage, releaseSubAgents } = require('../utils/superAgent');
 const { sendPasswordResetEmail, sendEmailVerification } = require('../utils/email');
+const coins = require('../services/coins.service');
+const { resolveUaepassFields } = require('../utils/uaepassPrefill');
 const { sendWhatsAppOtp } = require('../services/whatsappOtp.service');
 const { deleteFromS3, getFilename } = require('../middleware/upload.middleware');
 
@@ -66,12 +68,19 @@ const sanitizeFull = (user) => ({
 const safeUser = async (id) =>
   User.findById(id).select('-password -inviteToken -inviteTokenExpires').populate('agency', 'name email');
 
+// Shared with the UAE PASS code exchange so it returns the exact login shape.
+exports.sanitize = sanitize;
+exports.safeUser = safeUser;
+
 /**
  * POST /api/auth/register-agent  (public)
  */
 exports.registerAgent = async (req, res) => {
   try {
-    const { name, email, password, phone, referralCode, superAgentCode, emiratesId, uaepassSub, phoneVerifyToken } = req.body;
+    const { name, email, password, phone, referralCode, superAgentCode, phoneVerifyToken } = req.body;
+    const resolved = resolveUaepassFields(req.body, process.env.JWT_SECRET);
+    if (resolved.error) return res.status(400).json({ message: resolved.error });
+    const { emiratesId, uaepassSub } = resolved;
     if (!email || !password || !name) {
       return res.status(400).json({ message: 'Name, email, and password are required' });
     }
@@ -220,6 +229,8 @@ exports.verifyEmail = async (req, res) => {
     user.emailVerifyToken = undefined;
     user.emailVerifyExpires = undefined;
     await user.save();
+
+    coins.awardInvite(user).catch(() => {});
 
     const authToken = signAuthToken(user);
     res.json({ token: authToken, user: sanitize(user) });

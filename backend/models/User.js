@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema(
     referralCode: { type: String, unique: true, sparse: true },
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     leadCount: { type: Number, default: 0 },
+    // No default on purpose: Mongoose would $set the default on any load-modify-save
+    // of an older user doc and could overwrite a concurrent first $inc. Missing = 0
+    // everywhere it is read (utils/coinsShape balanceOf); $inc creates the field.
+    coinBalance: { type: Number, min: 0 },
     emiratesId: { type: String, default: null },
     nationality: { type: String, trim: true, default: null },
     uaepassSub: { type: String, sparse: true, default: null },

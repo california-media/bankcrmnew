@@ -58,6 +58,7 @@ app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/coins-admin', express.static(path.join(__dirname, 'public/coins-admin')));
 
 app.get('/', (req, res) => res.json({ message: 'Bank CRM API' }));
 
@@ -68,6 +69,7 @@ app.use('/api/agencies',          require('./routes/agency.routes'));
 app.use('/api/leads',             require('./routes/lead.routes'));
 app.use('/api/commission-rules',  require('./routes/commissionRule.routes'));
 app.use('/api/volume-bonuses',    require('./routes/volumeBonus.routes'));
+app.use('/api/admin/coins',       require('./routes/coinsAdmin.routes'));
 app.use('/api/admin',             require('./routes/admin.routes'));
 app.use('/api/card-products',     require('./routes/cardProduct.routes'));
 app.use('/api/card-categories',   require('./routes/cardCategory.routes'));
@@ -92,6 +94,7 @@ app.use('/api/promotions',        require('./routes/promotion.routes'));
 app.use('/api/resources',         require('./routes/resource.routes'));
 app.use('/api/super-agent',       require('./routes/superAgent.routes'));
 app.use('/api/support-tickets',   require('./routes/supportTicket.routes'));
+app.use('/api/coins',              require('./routes/coins.routes'));
 
 app.use((err, req, res, _next) => {
   console.error(err);

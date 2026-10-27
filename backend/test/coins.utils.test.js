@@ -1,0 +1,50 @@
+const test = require('node:test'); const assert = require('node:assert/strict');
+const c = require('../utils/coins');
+test('dubaiDayKey: 19:59:59Z and 20:00:00Z fall on different Dubai days', () => {
+  assert.equal(c.dubaiDayKey(new Date('2026-10-23T19:59:59Z')), '2026-10-23');
+  assert.equal(c.dubaiDayKey(new Date('2026-10-23T20:00:00Z')), '2026-10-24');
+});
+test('nextDubaiMidnight', () => {
+  assert.equal(c.nextDubaiMidnight(new Date('2026-10-23T10:00:00Z')).toISOString(), '2026-10-23T20:00:00.000Z');
+  assert.equal(c.nextDubaiMidnight(new Date('2026-10-23T20:00:00Z')).toISOString(), '2026-10-24T20:00:00.000Z');
+});
+test('validateSpinSegments', () => {
+  assert.equal(c.validateSpinSegments(c.DEFAULT_SEGMENTS), null);
+  assert.match(c.validateSpinSegments(c.DEFAULT_SEGMENTS.slice(0, 3)), /4 to 8/);
+  assert.match(c.validateSpinSegments([...c.DEFAULT_SEGMENTS, ...c.DEFAULT_SEGMENTS]), /4 to 8/);
+  assert.match(c.validateSpinSegments(c.DEFAULT_SEGMENTS.map((s) => ({ ...s, weight: 0 }))), /weight/i);
+  assert.match(c.validateSpinSegments([{ coins: -1, weight: 1 }, ...c.DEFAULT_SEGMENTS.slice(1)]), /coins/i);
+  assert.match(c.validateSpinSegments([{ coins: 1.5, weight: 1 }, ...c.DEFAULT_SEGMENTS.slice(1)]), /coins/i);
+});
+test('pickSegmentIndex maps the random draw onto cumulative weights', () => {
+  const segs = [{ coins: 5, weight: 30 }, { coins: 10, weight: 70 }];
+  assert.equal(c.pickSegmentIndex(segs, () => 0), 0);
+  assert.equal(c.pickSegmentIndex(segs, () => 29), 0);
+  assert.equal(c.pickSegmentIndex(segs, () => 30), 1);
+  assert.equal(c.pickSegmentIndex(segs, () => 99), 1);
+});
+test('chancePcts', () => assert.deepEqual(c.chancePcts(c.DEFAULT_SEGMENTS), [30, 30, 20, 6, 10, 4]));
+test('parseVoucherCodes', () => {
+  assert.deepEqual(c.parseVoucherCodes(' A1 \n\nB2\r\nA1\n' + 'x'.repeat(65)), ['A1', 'B2']);
+});
+test('codesFromSheetRows keeps leading zeros and long numerics, skips header and blanks', () => {
+  assert.deepEqual(c.codesFromSheetRows([['Code'], ['00123'], [12345678901234], ['']]), ['00123', '12345678901234']);
+  assert.deepEqual(c.codesFromSheetRows([[' Codes '], ['A1'], [], [null]]), ['A1']);
+  assert.deepEqual(c.codesFromSheetRows([['A1'], ['code']]), ['A1', 'code']);
+});
+test('dubaiDayStart: 00:00 Dubai of the Dubai day containing the instant', () => {
+  assert.equal(c.dubaiDayStart(new Date('2026-10-23T10:00:00Z')).toISOString(), '2026-10-22T20:00:00.000Z');
+  assert.equal(c.dubaiDayStart(new Date('2026-10-23T19:59:59Z')).toISOString(), '2026-10-22T20:00:00.000Z');
+  assert.equal(c.dubaiDayStart(new Date('2026-10-23T20:00:00Z')).toISOString(), '2026-10-23T20:00:00.000Z');
+});
+test('voucherValidFilter: no expiry, or valid through the whole Dubai day of validUntil', () => {
+  const until = new Date('2026-10-23'); // admin date input is stored as UTC midnight -> Dubai day 2026-10-23
+  const valid = (now) => {
+    const f = c.voucherValidFilter(now);
+    assert.deepEqual(f.$or[0], { validUntil: null });
+    return until >= f.$or[1].validUntil.$gte;
+  };
+  assert.equal(valid(new Date('2026-10-22T10:00:00Z')), true);
+  assert.equal(valid(new Date('2026-10-23T19:59:59Z')), true); // 23:59:59 Dubai on its last day
+  assert.equal(valid(new Date('2026-10-23T20:00:00Z')), false); // 00:00 Dubai the next day
+});

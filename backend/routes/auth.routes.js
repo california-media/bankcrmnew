@@ -8,6 +8,8 @@ router.get('/uaepass/init', uaepass.init);
 router.get('/uaepass/callback', uaepass.callback);
 router.get('/uaepass/link-init', protect, uaepass.linkInit);
 router.post('/uaepass/unlink', protect, uaepass.unlink);
+router.post('/uaepass/exchange', uaepass.exchange);
+router.get('/uaepass/link-url', protect, uaepass.linkUrl);
 
 router.post('/register-agent', ctrl.registerAgent);
 router.post('/send-otp', ctrl.sendOtp);

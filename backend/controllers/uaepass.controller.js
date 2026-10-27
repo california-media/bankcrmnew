@@ -1,7 +1,18 @@
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const UaepassExchange = require('../models/UaepassExchange');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
 const { inactiveMessage, DEACTIVATED_MESSAGE } = require('../utils/superAgent');
+const {
+  isAllowedAppRedirect,
+  safeWebOrigin,
+  appRedirectUrl,
+  isValidChallenge,
+  isValidVerifier,
+  pkceMatches,
+} = require('../utils/appRedirect');
+const { sanitize, safeUser } = require('./auth.controller');
 
 const IS_STAGING   = process.env.UAEPASS_ENV !== 'production';
 const BASE_URL     = IS_STAGING ? 'https://id.uaepass.ae/idshub' : 'https://id.uaepass.ae/idshub';
@@ -9,6 +20,9 @@ const CLIENT_ID    = process.env.UAEPASS_CLIENT_ID     || 'sandbox_stage';
 const CLIENT_SECRET= process.env.UAEPASS_CLIENT_SECRET || 'sandbox_stage';
 const REDIRECT_URI = process.env.UAEPASS_REDIRECT_URI  || 'http://localhost:8000/api/auth/uaepass/callback';
 const FRONTEND_URL = process.env.CLIENT_URL             || 'http://localhost:5173';
+
+const EXCHANGE_TTL_MS  = 120 * 1000;
+const EXCHANGE_EXPIRED = 'Sign-in link expired, please try again';
 
 const buildAuthUrl = (state) => {
   const params = new URLSearchParams({
@@ -22,12 +36,24 @@ const buildAuthUrl = (state) => {
   return `${BASE_URL}/authorize?${params.toString()}`;
 };
 
-const getFrontendUrl = (req) => {
-  try {
-    const referer = req.headers.referer || req.headers.referrer || req.headers.origin;
-    if (referer) return new URL(referer).origin;
-  } catch {}
-  return FRONTEND_URL;
+// Only CLIENT_URL's origin (or one listed in UAEPASS_WEB_ORIGINS) may receive the token.
+const getFrontendUrl = (req) =>
+  safeWebOrigin(req.headers.referer || req.headers.referrer || req.headers.origin, FRONTEND_URL);
+
+// App fields for the signed state: ?app_redirect= (must match UAEPASS_APP_REDIRECTS) together
+// with its PKCE ?code_challenge= (S256). Without a valid challenge the app_redirect is ignored,
+// so the request runs the web flow. Returns {} for the web flow.
+const getAppState = (req) => {
+  const { app_redirect: target, code_challenge: challenge } = req.query;
+  if (!isAllowedAppRedirect(target) || !isValidChallenge(challenge)) return {};
+  return { app_redirect: target, code_challenge: challenge };
+};
+
+// app_redirect from a verified (signed) state payload, re-checked against the allowlist.
+// Never an app redirect without a PKCE challenge in the same state.
+const appRedirectOf = (payload) => {
+  const target = payload && payload.app_redirect;
+  return isAllowedAppRedirect(target) && isValidChallenge(payload.code_challenge) ? target : null;
 };
 
 const getReturnPage = (req) => {
@@ -46,7 +72,8 @@ const getReturnPage = (req) => {
 exports.init = (req, res) => {
   const frontendUrl = getFrontendUrl(req);
   const returnPage  = getReturnPage(req);
-  const state = jwt.sign({ ctx: 'uaepass', frontendUrl, returnPage }, process.env.JWT_SECRET, { expiresIn: '10m' });
+  const payload = { ctx: 'uaepass', frontendUrl, returnPage, ...getAppState(req) };
+  const state = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10m' });
   res.redirect(buildAuthUrl(state));
 };
 
@@ -63,6 +90,67 @@ exports.linkInit = (req, res) => {
     { expiresIn: '10m' }
   );
   res.redirect(buildAuthUrl(state));
+};
+
+/**
+ * GET /api/auth/uaepass/link-url  (protected)
+ * Same as link-init but returns { url } as JSON, so the mobile app can open it.
+ * ?app_redirect= (allowlisted) + ?code_challenge= (PKCE S256) send the result back to the app.
+ */
+exports.linkUrl = (req, res) => {
+  try {
+    const payload = {
+      ctx: 'uaepass',
+      action: 'link',
+      userId: req.user._id.toString(),
+      frontendUrl: getFrontendUrl(req),
+      ...getAppState(req),
+    };
+    const state = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10m' });
+    res.json({ url: buildAuthUrl(state) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/auth/uaepass/exchange  (public)
+ * Body { code, code_verifier }. Swaps the single-use code from the app redirect for
+ * the login response { token, user }, or { prefill } for a new user without email.
+ * code_verifier must hash (S256) to the code_challenge the app sent to init / link-url.
+ */
+exports.exchange = async (req, res) => {
+  try {
+    const { code, code_verifier: verifier } = req.body || {};
+    if (typeof code !== 'string' || !/^[0-9a-f]{32}$/.test(code) || !isValidVerifier(verifier)) {
+      return res.status(400).json({ message: EXCHANGE_EXPIRED });
+    }
+    // Consume first: a wrong verifier still burns the code, so verifiers can't be brute-forced.
+    const entry = await UaepassExchange.findOneAndDelete({ code, expiresAt: { $gt: new Date() } });
+    if (!entry || !pkceMatches(verifier, entry.challenge)) {
+      return res.status(400).json({ message: EXCHANGE_EXPIRED });
+    }
+
+    if (!entry.token) {
+      if (!entry.prefill) return res.status(400).json({ message: EXCHANGE_EXPIRED });
+      return res.json({ prefill: entry.prefill });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(entry.token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(400).json({ message: EXCHANGE_EXPIRED });
+    }
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(400).json({ message: EXCHANGE_EXPIRED });
+    if (!user.isActive) return res.status(403).json({ message: inactiveMessage(user) });
+    const full = await safeUser(user._id);
+    if (!full) return res.status(400).json({ message: EXCHANGE_EXPIRED });
+    res.json({ token: entry.token, user: sanitize(full) });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 /**
@@ -98,14 +186,46 @@ exports.unlink = async (req, res) => {
 exports.callback = async (req, res) => {
   const { code, state, error, error_description } = req.query;
 
-  // Resolve origin + returnPage from state even on error
+  // Every outcome goes through finish(): when the verified state carries an
+  // allowlisted app_redirect, the app gets appRedirectUrl(app_redirect, appParams);
+  // otherwise the website gets webUrl, exactly as before.
+  const finish = (payload, webUrl, appParams) => {
+    const appRedirect = appRedirectOf(payload);
+    return res.redirect(appRedirect ? appRedirectUrl(appRedirect, appParams) : webUrl);
+  };
+
+  // Outcomes carrying a secret (login token / register prefill): the website gets webUrl
+  // (unchanged, secret in the URL); the app gets only a single-use code. The secret stays
+  // server-side, bound to the state's PKCE challenge, until POST /uaepass/exchange.
+  const finishWithExchange = async (payload, secret, webUrl) => {
+    if (appRedirectOf(payload)) {
+      const exchangeCode = crypto.randomBytes(16).toString('hex');
+      await UaepassExchange.create({
+        code: exchangeCode,
+        ...secret,
+        challenge: payload.code_challenge,
+        expiresAt: new Date(Date.now() + EXCHANGE_TTL_MS),
+      });
+      return finish(payload, null, { code: exchangeCode });
+    }
+    return finish(payload, webUrl, null);
+  };
+
+  // Resolve origin + returnPage from state even on error.
+  // payload is only set when the state verifies, so an unsigned app_redirect is never used.
   const resolveState = (s) => {
     try {
       const payload = jwt.verify(s, process.env.JWT_SECRET);
-      return { origin: payload.frontendUrl || FRONTEND_URL, returnPage: payload.returnPage || 'register' };
-    } catch { return { origin: FRONTEND_URL, returnPage: 'register' }; }
+      return {
+        origin: payload.frontendUrl ? safeWebOrigin(payload.frontendUrl, FRONTEND_URL) : FRONTEND_URL,
+        returnPage: payload.returnPage || 'register',
+        payload,
+      };
+    } catch { return { origin: FRONTEND_URL, returnPage: 'register', payload: null }; }
   };
-  const { origin: errorOrigin, returnPage: errorReturnPage } = state ? resolveState(state) : { origin: FRONTEND_URL, returnPage: 'register' };
+  const { origin: errorOrigin, returnPage: errorReturnPage, payload: verifiedState } = state
+    ? resolveState(state)
+    : { origin: FRONTEND_URL, returnPage: 'register', payload: null };
 
   if (error) {
     console.log('[UAE Pass callback] error:', error, '| error_description:', error_description, '| all params:', JSON.stringify(req.query));
@@ -116,19 +236,24 @@ exports.callback = async (req, res) => {
         frontendError = 'cancelledOnWeb';
       }
     }
-    return res.redirect(`${errorOrigin}/${errorReturnPage}?uaepass_error=${encodeURIComponent(frontendError)}`);
+    return finish(
+      verifiedState,
+      `${errorOrigin}/${errorReturnPage}?uaepass_error=${encodeURIComponent(frontendError)}`,
+      { uaepass_error: frontendError }
+    );
   }
   if (!code || !state) {
-    return res.redirect(`${FRONTEND_URL}/register?uaepass_error=missing_params`);
+    return finish(verifiedState, `${FRONTEND_URL}/register?uaepass_error=missing_params`, { uaepass_error: 'missing_params' });
   }
 
   let statePayload;
   let frontendUrl = FRONTEND_URL;
   try {
     statePayload = jwt.verify(state, process.env.JWT_SECRET);
-    if (statePayload.frontendUrl) frontendUrl = statePayload.frontendUrl;
+    if (statePayload.frontendUrl) frontendUrl = safeWebOrigin(statePayload.frontendUrl, FRONTEND_URL);
   } catch {
-    return res.redirect(`${FRONTEND_URL}/register?uaepass_error=invalid_state`);
+    // Unverifiable state: never trust its app_redirect — web only.
+    return finish(null, `${FRONTEND_URL}/register?uaepass_error=invalid_state`, { uaepass_error: 'invalid_state' });
   }
 
   const isLinkAction = statePayload.action === 'link';
@@ -141,7 +266,6 @@ exports.callback = async (req, res) => {
       redirect_uri: REDIRECT_URI,
       client_id: CLIENT_ID,
       code_length: code?.length,
-      code_prefix: code?.slice(0, 8),
     }));
     const tokenExchangeStart = Date.now();
     // Old x-www-form-urlencoded version (kept for quick revert if multipart doesn't work):
@@ -181,9 +305,11 @@ exports.callback = async (req, res) => {
     if (!tokenRes.ok) {
       const err = await tokenRes.text();
       console.error('[UAE Pass] token exchange failed — status:', tokenRes.status, '| body:', err);
-      return res.redirect(isLinkAction
-        ? `${frontendUrl}/settings?uaepass=error`
-        : `${frontendUrl}/register?uaepass_error=token_failed`);
+      return finish(
+        statePayload,
+        isLinkAction ? `${frontendUrl}/settings?uaepass=error` : `${frontendUrl}/register?uaepass_error=token_failed`,
+        isLinkAction ? { uaepass: 'error' } : { uaepass_error: 'token_failed' }
+      );
     }
 
     const { access_token } = await tokenRes.json();
@@ -194,17 +320,20 @@ exports.callback = async (req, res) => {
     });
 
     if (!infoRes.ok) {
-      return res.redirect(isLinkAction
-        ? `${frontendUrl}/settings?uaepass=error`
-        : `${frontendUrl}/register?uaepass_error=userinfo_failed`);
+      return finish(
+        statePayload,
+        isLinkAction ? `${frontendUrl}/settings?uaepass=error` : `${frontendUrl}/register?uaepass_error=userinfo_failed`,
+        isLinkAction ? { uaepass: 'error' } : { uaepass_error: 'userinfo_failed' }
+      );
     }
 
     const info = await infoRes.json();
-    console.log('[UAE Pass] userinfo:', JSON.stringify(info, null, 2));
+    // Never log the profile itself: it carries Emirates ID, mobile, email and names.
+    console.log('[UAE Pass] userinfo received, userType:', info.userType || 'unknown');
 
     const userType   = info.userType || '';
     if (userType === 'SOP1') {
-      return res.redirect(`${errorOrigin}/${errorReturnPage}?uaepass_error=unverified_user`);
+      return finish(statePayload, `${errorOrigin}/${errorReturnPage}?uaepass_error=unverified_user`, { uaepass_error: 'unverified_user' });
     }
 
     const sub        = info.sub;
@@ -219,12 +348,12 @@ exports.callback = async (req, res) => {
     // ── MANUAL LINK FLOW (scenarios 1.1.2, 1.1.3, 1.2.2, 1.2.3) ─────────────
     if (isLinkAction) {
       const targetUser = await User.findById(statePayload.userId);
-      if (!targetUser) return res.redirect(`${frontendUrl}/settings?uaepass=error`);
+      if (!targetUser) return finish(statePayload, `${frontendUrl}/settings?uaepass=error`, { uaepass: 'error' });
 
       // Conflict: this UAE Pass sub already linked to a different account
       const conflict = await User.findOne({ uaepassSub: sub });
       if (conflict && conflict._id.toString() !== targetUser._id.toString()) {
-        return res.redirect(`${frontendUrl}/settings?uaepass=conflict`);
+        return finish(statePayload, `${frontendUrl}/settings?uaepass=conflict`, { uaepass: 'conflict' });
       }
 
       const updates = { uaepassSub: sub, uaepassUuid: uuid };
@@ -234,7 +363,7 @@ exports.callback = async (req, res) => {
       if (nationality && nationality !== targetUser.nationality)      updates.nationality  = nationality;
       if (title       && title !== targetUser.uaepassTitle)           updates.uaepassTitle = title;
       await User.findByIdAndUpdate(targetUser._id, { $set: updates });
-      return res.redirect(`${frontendUrl}/settings?uaepass=linked`);
+      return finish(statePayload, `${frontendUrl}/settings?uaepass=linked`, { uaepass: 'linked' });
     }
 
     // ── LOGIN FLOW (scenarios 1.1.1, 1.2.1, 1.3.1) ───────────────────────────
@@ -247,7 +376,7 @@ exports.callback = async (req, res) => {
       // Deactivated / not-yet-approved accounts must not get in via UAE Pass either.
       if (!agent.isActive) {
         const code = inactiveMessage(agent) === DEACTIVATED_MESSAGE ? 'account_deactivated' : 'account_not_active';
-        return res.redirect(`${errorOrigin}/${errorReturnPage}?uaepass_error=${code}`);
+        return finish(statePayload, `${errorOrigin}/${errorReturnPage}?uaepass_error=${code}`, { uaepass_error: code });
       }
       const updates = {};
       if (!agent.uaepassSub)                                          updates.uaepassSub   = sub;
@@ -259,7 +388,7 @@ exports.callback = async (req, res) => {
       if (title       && title !== agent.uaepassTitle)                updates.uaepassTitle = title;
       if (Object.keys(updates).length) await User.findByIdAndUpdate(agent._id, { $set: updates });
       const token = signAuthToken(agent);
-      return res.redirect(`${frontendUrl}/auth/uaepass/callback?token=${token}`);
+      return await finishWithExchange(statePayload, { token }, `${frontendUrl}/auth/uaepass/callback?token=${token}`);
     }
 
     // New user — no email from UAE Pass → prefill register form
@@ -269,7 +398,7 @@ exports.callback = async (req, res) => {
         process.env.JWT_SECRET,
         { expiresIn: '30m' }
       );
-      return res.redirect(`${frontendUrl}/register?uaepass_prefill=${prefill}`);
+      return await finishWithExchange(statePayload, { prefill }, `${frontendUrl}/register?uaepass_prefill=${prefill}`);
     }
 
     // Create new agent directly (scenarios 1.2.1, 1.3.1)
@@ -294,11 +423,13 @@ exports.callback = async (req, res) => {
     });
 
     const token = signAuthToken(agent);
-    res.redirect(`${frontendUrl}/auth/uaepass/callback?token=${token}`);
+    return await finishWithExchange(statePayload, { token }, `${frontendUrl}/auth/uaepass/callback?token=${token}`);
   } catch (err) {
     console.error('[UAE Pass callback]', err.message);
-    res.redirect(isLinkAction
-      ? `${frontendUrl}/settings?uaepass=error`
-      : `${frontendUrl}/register?uaepass_error=server_error`);
+    return finish(
+      statePayload,
+      isLinkAction ? `${frontendUrl}/settings?uaepass=error` : `${frontendUrl}/register?uaepass_error=server_error`,
+      isLinkAction ? { uaepass: 'error' } : { uaepass_error: 'server_error' }
+    );
   }
 };

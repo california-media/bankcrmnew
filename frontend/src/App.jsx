@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, theme as antdTheme } from 'antd';
+import { useSelector } from 'react-redux';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import RegisterAgency from './pages/RegisterAgency';
@@ -65,6 +66,7 @@ import AdminBlog from './pages/admin/Blog';
 import LegalPages from './pages/admin/LegalPages';
 import AdminReports from './pages/admin/Reports';
 import ManageAdmins from './pages/admin/ManageAdmins';
+import CoinsVouchers from './pages/admin/CoinsVouchers';
 import AgencyReports from './pages/agency/Reports';
 import AgentReports from './pages/agent/Reports';
 import VerifyEmail from './pages/VerifyEmail';
@@ -96,6 +98,12 @@ const theme = {
     Button: { fontWeight: 500 },
   },
 };
+
+// Super admin only (admin role with no adminScope); scoped admins are sent back to /admin.
+function SuperAdminOnly({ children }) {
+  const { user } = useSelector((s) => s.auth);
+  return user?.role === 'admin' && !user.adminScope ? children : <Navigate to="/admin" replace />;
+}
 
 function App() {
   return (
@@ -173,6 +181,7 @@ function App() {
           <Route path="reports" element={<AdminReports initialTab="performance" />} />
           <Route path="margin-report" element={<AdminReports initialTab="margin" />} />
           <Route path="manage-admins" element={<ManageAdmins />} />
+          <Route path="coins" element={<SuperAdminOnly><CoinsVouchers /></SuperAdminOnly>} />
         </Route>
 
         <Route

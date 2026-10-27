@@ -328,7 +328,8 @@ exports.callback = async (req, res) => {
     }
 
     const info = await infoRes.json();
-    console.log('[UAE Pass] userinfo:', JSON.stringify(info, null, 2));
+    // Never log the profile itself: it carries Emirates ID, mobile, email and names.
+    console.log('[UAE Pass] userinfo received, userType:', info.userType || 'unknown');
 
     const userType   = info.userType || '';
     if (userType === 'SOP1') {

@@ -14,6 +14,7 @@ import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../../api/client';
 import NoticeBanner from '../../components/NoticeBanner';
+import { aed } from '../../utils/dirham';
 
 const statusTag = {
   draft: { color: 'default', label: 'Draft' },
@@ -26,7 +27,6 @@ const statusTag = {
 };
 
 const productLabels = { credit_card: 'Credit Card', loan: 'Loan' };
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const PIPELINE_STAGES = [
   { key: 'submitted',    view: 'submitted',     label: 'NEW',       bg: '#e0f7fa', border: '#a5f3fc', dot: '#06b6d4', text: '#0e7490' },
@@ -306,7 +306,7 @@ function AgentDashboard() {
               <div style={{ height: 1, background: '#e9d5ff', margin: '12px 0' }} />
               <Link to="/agent/commissions?tab=paid" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none' }}>
                 <span style={{ fontSize: 12, color: '#7C3AED', fontWeight: 600 }}>Earned</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: '#7C3AED' }}>AED {Number(stats?.thisMonth?.earned || 0).toLocaleString()}</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: '#7C3AED' }}>{aed(stats?.thisMonth?.earned)}</span>
               </Link>
             </Card>
             <LeadPipeline stats={stats} />

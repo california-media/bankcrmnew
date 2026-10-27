@@ -11,7 +11,9 @@ const MODULES = {
   ],
 };
 
-export default function QuillEditor({ value, onChange, style }) {
+// options: extra Quill config (modules/formats/placeholder) merged over the
+// default toolbar. minHeight: editing area height.
+export default function QuillEditor({ value, onChange, style, options, minHeight }) {
   const wrapperRef = useRef(null);
   const quillRef = useRef(null);
   const onChangeRef = useRef(onChange);
@@ -23,8 +25,9 @@ export default function QuillEditor({ value, onChange, style }) {
     const container = document.createElement('div');
     wrapper.appendChild(container);
 
-    const quill = new Quill(container, { theme: 'snow', modules: MODULES });
+    const quill = new Quill(container, { theme: 'snow', modules: MODULES, ...options });
     quillRef.current = quill;
+    if (minHeight) quill.root.style.minHeight = `${minHeight}px`;
     if (value) quill.clipboard.dangerouslyPasteHTML(value);
 
     quill.on('text-change', () => {

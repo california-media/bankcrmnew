@@ -8,8 +8,8 @@ import QuillEditor from '../../components/QuillEditor';
 import api from '../../api/client';
 import BulkToggleBar from '../../components/BulkToggleBar';
 import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
+import { aed } from '../../utils/dirham';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '/uploads');
 
@@ -42,6 +42,7 @@ function CardProducts() {
   const [benefitsHtml, setBenefitsHtml] = useState('');
   const [feesHtml, setFeesHtml] = useState('');
   const [keyFeaturesHtml, setKeyFeaturesHtml] = useState('');
+  const [additionalBenefitsHtml, setAdditionalBenefitsHtml] = useState('');
   const [form] = Form.useForm();
 
   const [categories, setCategories] = useState([]);
@@ -148,6 +149,7 @@ function CardProducts() {
     setBenefitsHtml('');
     setFeesHtml('');
     setKeyFeaturesHtml('');
+    setAdditionalBenefitsHtml('');
     setOpen(true);
   };
 
@@ -185,6 +187,7 @@ function CardProducts() {
     setBenefitsHtml(c.benefits || '');
     setFeesHtml(c.feesEligibility || '');
     setKeyFeaturesHtml(c.keyFeatures || '');
+    setAdditionalBenefitsHtml(c.additionalBenefits || '');
     setFileList(
       c.cardImage
         ? [{ uid: '-1', name: c.cardImage, status: 'done', url: `${UPLOADS_BASE}/card-images/${c.cardImage}` }]
@@ -210,6 +213,7 @@ function CardProducts() {
       fd.append('benefits', benefitsHtml);
       fd.append('feesEligibility', feesHtml);
       fd.append('keyFeatures', keyFeaturesHtml);
+      fd.append('additionalBenefits', additionalBenefitsHtml);
       fd.append('isActive', values.isActive !== false ? 'true' : 'false');
       fd.append('agentVisible', values.agentVisible !== false ? 'true' : 'false');
       fd.append('sendConsent', values.sendConsent !== false ? 'true' : 'false');
@@ -344,7 +348,7 @@ function CardProducts() {
           <Space direction="vertical" size={2}>
             {b.map((br, i) => (
               <Typography.Text key={i} style={{ fontSize: 12 }}>
-                ≥ AED {Number(br.minimumSalary).toLocaleString()} → R: {aed(br.receivable)} / P: {aed(br.payable)}
+                ≥ {aed(br.minimumSalary)} → R: {aed(br.receivable)} / P: {aed(br.payable)}
                 {br.feeType && <Tag color={feeTypeColors(br.feeType).tag} style={{ marginLeft: 4, fontSize: 10 }}>{feeTypeLabel(br.feeType)}</Tag>}
               </Typography.Text>
             ))}
@@ -602,7 +606,7 @@ function CardProducts() {
                       {...restField}
                       name={[name, 'receivable']}
                       label="Receivable (AED)"
-                      tooltip="Total commission MySilah earns from the bank for this deal. Everything else (Payable, Agency Override) is paid out of this amount."
+                      tooltip="Total commission MySilah earns from the bank for this deal. Everything else (Payable, SA Differ) is paid out of this amount."
                       rules={[{ required: true, message: 'Required' }]}
                       style={{ marginBottom: 0 }}
                     >
@@ -621,8 +625,8 @@ function CardProducts() {
                     <Form.Item
                       {...restField}
                       name={[name, 'agencyOverride']}
-                      label="Agency Override (AED)"
-                      tooltip="Extra AED paid to the agency that created the submitting agent's account, on top of the agent's own Payable commission, when this lead disburses. 0 = no override."
+                      label="SA Differ (AED)"
+                      tooltip="Extra AED paid to the super agent (or tagging agency) of the submitting agent, on top of the agent's own Payable commission, when this lead disburses. 0 = no override."
                       style={{ marginBottom: 0 }}
                     >
                       <InputNumber min={0} step={10} placeholder="50" style={{ width: 150 }} />
@@ -833,25 +837,19 @@ function CardProducts() {
           <Tabs
             items={[
               {
-                key: 'benefits',
-                label: 'Product Benefits',
-                children: (
-                  <QuillEditor
-                    value={benefitsHtml}
-                    onChange={setBenefitsHtml}
-                    style={{ height: 260, marginBottom: 42 }}
-                  />
-                ),
-              },
-              {
                 key: 'fees',
                 label: 'Fees & Eligibility',
                 children: (
-                  <QuillEditor
-                    value={feesHtml}
-                    onChange={setFeesHtml}
-                    style={{ height: 260, marginBottom: 42 }}
-                  />
+                  <>
+                    <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8, fontSize: 12 }}>
+                      Visible to agents only — not shown on the website.
+                    </Typography.Text>
+                    <QuillEditor
+                      value={feesHtml}
+                      onChange={setFeesHtml}
+                      style={{ height: 260, marginBottom: 42 }}
+                    />
+                  </>
                 ),
               },
               {
@@ -861,6 +859,28 @@ function CardProducts() {
                   <QuillEditor
                     value={keyFeaturesHtml}
                     onChange={setKeyFeaturesHtml}
+                    style={{ height: 260, marginBottom: 42 }}
+                  />
+                ),
+              },
+              {
+                key: 'benefits',
+                label: 'Product Reward Program',
+                children: (
+                  <QuillEditor
+                    value={benefitsHtml}
+                    onChange={setBenefitsHtml}
+                    style={{ height: 260, marginBottom: 42 }}
+                  />
+                ),
+              },
+              {
+                key: 'additionalBenefits',
+                label: 'Additional Benefits',
+                children: (
+                  <QuillEditor
+                    value={additionalBenefitsHtml}
+                    onChange={setAdditionalBenefitsHtml}
                     style={{ height: 260, marginBottom: 42 }}
                   />
                 ),

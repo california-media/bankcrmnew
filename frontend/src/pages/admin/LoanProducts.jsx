@@ -7,6 +7,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, Search
 import QuillEditor from '../../components/QuillEditor';
 import api from '../../api/client';
 import BulkToggleBar from '../../components/BulkToggleBar';
+import { aed } from '../../utils/dirham';
 
 
 const pct = (n) => `${Number(n || 0)}%`;
@@ -233,7 +234,7 @@ function LoanProducts() {
           <Space direction="vertical" size={2}>
             {b.map((br, i) => (
               <Typography.Text key={i} style={{ fontSize: 12 }}>
-                ≥ AED {Number(br.minimumSalary).toLocaleString()} → R: {pct(br.receivable)} / P: {pct(br.payable)}
+                ≥ {aed(br.minimumSalary)} → R: {pct(br.receivable)} / P: {pct(br.payable)}
               </Typography.Text>
             ))}
           </Space>
@@ -546,7 +547,7 @@ function LoanProducts() {
                       {...restField}
                       name={[name, 'receivable']}
                       label="Receivable (%)"
-                      tooltip="Total commission MySilah earns from the bank for this deal, as a % of the loan amount. Payable and Agency Override are paid out of this."
+                      tooltip="Total commission MySilah earns from the bank for this deal, as a % of the loan amount. Payable and SA Differ are paid out of this."
                       rules={[{ required: true, message: 'Required' }]}
                       style={{ marginBottom: 0 }}
                     >
@@ -564,12 +565,16 @@ function LoanProducts() {
                     </Form.Item>
                     <Form.Item
                       {...restField}
-                      name={[name, 'agencyOverride']}
-                      label="Agency Override (AED)"
-                      tooltip="Extra AED paid to the agency that created the submitting agent's account, on top of the agent's own Payable commission, when this lead disburses. Always a flat AED amount here too, even though Receivable/Payable on loans are percentages. 0 = no override."
+                      name={[name, 'agencyOverridePct']}
+                      label="SA Differ (%)"
+                      tooltip="% of the loan amount paid to the super agent (or tagging referral agency) of the submitting agent, on top of the agent's own Payable. A super agent submitting their own lead earns Payable % + this %. 0 = none."
                       style={{ marginBottom: 0 }}
                     >
-                      <InputNumber min={0} step={10} placeholder="50" style={{ width: 150 }} />
+                      <InputNumber min={0} max={100} step={0.1} placeholder="0.3" style={{ width: 150 }} />
+                    </Form.Item>
+                    {/* Legacy flat AED SA Differ — kept so leads created before the % rule still calculate the same */}
+                    <Form.Item {...restField} name={[name, 'agencyOverride']} hidden>
+                      <InputNumber />
                     </Form.Item>
                     <MinusCircleOutlined
                       onClick={() => remove(name)}

@@ -5,8 +5,8 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import api from '../../api/client';
 import NoticeBanner from '../../components/NoticeBanner';
+import { aed } from '../../utils/dirham';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const avatarBg = (name) => {
   const palette = ['#7C3AED','#ec4899','#14b8a6','#f59e0b','#8b5cf6','#06b6d4','#10b981','#f43f5e'];

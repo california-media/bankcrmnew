@@ -6,12 +6,13 @@ import {
 import { ArrowLeftOutlined, CreditCardOutlined, BankOutlined, SendOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { ownLeadReward } from '../../utils/reward';
 import api from '../../api/client';
 import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
 import { validateUAELocalPhone, toFullUAEPhone } from '../../utils/validatePhone';
 import { NATIONALITIES, CITIES } from '../../utils/customerOptions';
+import { aed } from '../../utils/dirham';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || `${API_BASE}/uploads`;
@@ -87,6 +88,8 @@ function buildBracketOptions(brackets) {
         </span>
       ),
       payable: b.payable,
+      agencyOverride: b.agencyOverride,
+      agencyOverridePct: b.agencyOverridePct,
       feeType: b.feeType,
     }));
 }
@@ -341,7 +344,7 @@ function SubmitLead() {
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>
-                  <Form.Item name="salary" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Monthly Salary (AED, min 5,000) <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Salary required' }, { type: 'number', min: 5000, message: 'Minimum salary is AED 5,000' }]} style={{ marginBottom: 10 }}>
+                  <Form.Item name="salary" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Monthly Salary (min {aed(5000)}) <span style={{ color: '#ef4444' }}>*</span></span>} rules={[{ required: true, message: 'Salary required' }, { type: 'number', min: 5000, message: <>Minimum salary is {aed(5000)}</> }]} style={{ marginBottom: 10 }}>
                     <InputNumber size="middle" min={0} step={500} style={{ width: '100%', borderRadius: 8 }} placeholder="e.g. 8000" formatter={v => v ? `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''} parser={v => v.replace(/,/g, '')} />
                   </Form.Item>
                 </Col>
@@ -473,8 +476,8 @@ function SubmitLead() {
                   )}
                   {selectedBracket && (
                     <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Estimated Payout</span>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>{aed(selectedBracket.payable)}</span>
+                      <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Estimated Reward</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>{aed(ownLeadReward(selectedBracket, 'credit_card', user?.isSuperAgent))}</span>
                     </div>
                   )}
                 </>
@@ -501,8 +504,8 @@ function SubmitLead() {
                   )}
                   {selectedBracket && (
                     <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Estimated Payout</span>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>{selectedBracket.payable}% of loan</span>
+                      <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Estimated Reward</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>{ownLeadReward(selectedBracket, 'loan', user?.isSuperAgent)}% of loan</span>
                     </div>
                   )}
                   {selectedLoan && (() => {
@@ -568,8 +571,8 @@ function SubmitLead() {
                   )}
                   {selectedBracket && (
                     <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Estimated Payout</span>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>AED {selectedBracket.payable}</span>
+                      <span style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>Estimated Reward</span>
+                      <span style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>{aed(ownLeadReward(selectedBracket, 'account', user?.isSuperAgent))}</span>
                     </div>
                   )}
                 </>

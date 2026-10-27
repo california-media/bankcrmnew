@@ -1613,6 +1613,13 @@
         <div class="field">
           <input id="inq-company" type="text" placeholder="Company Name" />
         </div>
+        <div class="field select-wrap">
+          <select id="inq-type">
+            <option value="" disabled selected>Select your query type</option>
+            <option value="general">General Query</option>
+            <option value="support">Support</option>
+          </select>
+        </div>
         <div class="field">
           <textarea id="inq-message" placeholder="What are you looking to achieve? Tell us a little bit about your interest."></textarea>
         </div>
@@ -1630,6 +1637,8 @@
       const phone   = document.getElementById('inq-phone').value.trim();
       const company = document.getElementById('inq-company').value.trim();
       const msg     = document.getElementById('inq-message').value.trim();
+      const queryType = document.getElementById('inq-type').value;
+      const inqApiBase = location.hostname === 'localhost' ? 'http://localhost:8000/api' : 'https://api.mysilah.ae/api';
       const fb      = document.getElementById('inq-feedback');
       const btn     = document.getElementById('inq-submit');
 
@@ -1639,16 +1648,22 @@
         fb.textContent   = 'Name and email are required.';
         return;
       }
+      if (!queryType) {
+        fb.style.display = 'block';
+        fb.style.color   = '#d14343';
+        fb.textContent   = 'Please select your query type.';
+        return;
+      }
 
       btn.disabled    = true;
       btn.textContent = 'Sending…';
       fb.style.display = 'none';
 
       try {
-        const res = await fetch('https://api.inizioglobal.com/api/inquiries', {
+        const res = await fetch(inqApiBase + '/inquiries', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ name, email, phone, companyName: company, message: msg }),
+          body:    JSON.stringify({ name, email, phone, companyName: company, queryType, message: msg }),
         });
         if (!res.ok) throw new Error('Server error');
         fb.style.display = 'block';
@@ -1657,6 +1672,7 @@
         ['inq-name','inq-email','inq-phone','inq-company','inq-message'].forEach(id => {
           document.getElementById(id).value = '';
         });
+        document.getElementById('inq-type').selectedIndex = 0;
       } catch {
         fb.style.display = 'block';
         fb.style.color   = '#d14343';

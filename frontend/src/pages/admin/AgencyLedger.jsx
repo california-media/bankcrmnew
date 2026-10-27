@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Table, Card, Row, Col, Statistic, Input, Typography } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 // Money the agency still owes admin for disbursed leads (hasn't confirmed
 // full payment yet) — mirrors the same fields agencyPayout.controller.js

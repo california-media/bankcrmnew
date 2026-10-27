@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLeadView } from '../../utils/leadViews';
 import LeadViewBanner from '../../components/LeadViewBanner';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
 const { useBreakpoint } = Grid;
 
@@ -24,7 +25,6 @@ const PRODUCTS = [
   { value: 'account', label: 'Account' },
 ];
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const STATUS_PILL = {
   draft:        { bg: '#f8fafc', border: '#e2e8f0', dot: '#94a3b8', text: '#475569', label: 'DRAFT' },

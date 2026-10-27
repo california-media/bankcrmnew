@@ -4,15 +4,11 @@ import 'quill/dist/quill.core.css';
 import { CreditCardOutlined, FundOutlined, RiseOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
+import { aed } from '../../utils/dirham';
+import { useSelector } from 'react-redux';
+import { ownLeadReward } from '../../utils/reward';
 
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || (import.meta.env.VITE_API_URL || 'http://localhost:8000/api').replace(/\/api$/, '/uploads');
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
-const dirham = (n) => (
-  <>
-    <img src="/uae-dirham.svg" alt="AED" style={{ height: '0.8em', width: '0.8em', verticalAlign: '-0.05em', marginRight: 3 }} />
-    {Number(n || 0).toLocaleString()}
-  </>
-);
 
 function StatCard({ icon, iconColor, label, value, borderColor }) {
   return (
@@ -47,6 +43,7 @@ function HtmlContent({ html }) {
 }
 
 function ProductCard({ product, onClick }) {
+  const isSuperAgent = useSelector((s) => s.auth.user?.isSuperAgent);
   const firstBracket = (product.commissionBrackets || [])[0];
   const hasImage = product.productType === 'credit_card' && product.cardImage;
 
@@ -89,13 +86,13 @@ function ProductCard({ product, onClick }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>Min Salary</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{dirham(firstBracket.minimumSalary)}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{aed(firstBracket.minimumSalary)}</div>
             </div>
             <div style={{ color: '#cbd5e1', fontSize: 18, fontWeight: 300 }}>→</div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 2 }}>Referral Reward</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#16a34a' }}>
-                {product.productType === 'loan' ? `${Number(firstBracket.payable || 0)}%` : dirham(firstBracket.payable)}
+                {product.productType === 'loan' ? `${ownLeadReward(firstBracket, 'loan', isSuperAgent)}%` : aed(ownLeadReward(firstBracket, product.productType, isSuperAgent))}
               </div>
             </div>
           </div>
@@ -131,6 +128,7 @@ function ProductCard({ product, onClick }) {
 }
 
 function Products() {
+  const isSuperAgent = useSelector((s) => s.auth.user?.isSuperAgent);
   const [cards, setCards] = useState([]);
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -153,7 +151,7 @@ function Products() {
   const allProducts = useMemo(() => [...cards, ...loans], [cards, loans]);
 
   const stats = useMemo(() => {
-    const cardPayables = cards.flatMap((p) => (p.commissionBrackets || []).map((b) => b.payable));
+    const cardPayables = cards.flatMap((p) => (p.commissionBrackets || []).map((b) => ownLeadReward(b, 'credit_card', isSuperAgent)));
     const topCardPayout = cardPayables.length ? Math.max(...cardPayables) : 0;
     return {
       total: allProducts.length,
@@ -161,7 +159,7 @@ function Products() {
       loanCount: loans.length,
       topCardPayout,
     };
-  }, [allProducts, cards, loans]);
+  }, [allProducts, cards, loans, isSuperAgent]);
 
   const bankOptions = useMemo(() => {
     const seen = new Set();
@@ -273,7 +271,7 @@ function Products() {
         open={!!selectedProduct}
         onCancel={() => setSelectedProduct(null)}
         footer={null}
-        width={600}
+        width={selectedProduct?.productType === 'credit_card' ? 680 : 600}
         destroyOnClose
         title={null}
       >
@@ -290,8 +288,30 @@ function Products() {
               )}
               <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>{selectedProduct.name}</Typography.Title>
             </div>
+            {/* Cards follow the admin Product Content tab order (modal widened so all four fit); loans keep their two tabs. */}
             <Tabs
-              items={[
+              items={selectedProduct.productType === 'credit_card' ? [
+                {
+                  key: 'fees',
+                  label: 'Fees & Eligibility',
+                  children: <HtmlContent html={selectedProduct.feesEligibility} />,
+                },
+                {
+                  key: 'keyFeatures',
+                  label: 'Key Features',
+                  children: <HtmlContent html={selectedProduct.keyFeatures} />,
+                },
+                {
+                  key: 'benefits',
+                  label: 'Product Reward Program',
+                  children: <HtmlContent html={selectedProduct.benefits} />,
+                },
+                {
+                  key: 'additionalBenefits',
+                  label: 'Additional Benefits',
+                  children: <HtmlContent html={selectedProduct.additionalBenefits} />,
+                },
+              ] : [
                 {
                   key: 'benefits',
                   label: 'Product Benefits',

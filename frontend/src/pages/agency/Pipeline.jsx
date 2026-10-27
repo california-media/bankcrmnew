@@ -4,8 +4,8 @@ import { CreditCardOutlined, BankOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 const relTime = (date) => {
   const diff = Date.now() - new Date(date);
   const mins = Math.floor(diff / 60000);

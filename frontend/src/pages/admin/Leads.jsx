@@ -11,6 +11,7 @@ import api from '../../api/client';
 import exportLeadsToExcel from '../../utils/exportLeadsExcel';
 import downloadLeadImportTemplate from '../../utils/importLeadsTemplate';
 import { LOAN_MILESTONES, ACTION_LABELS, getLoanActions } from '../../utils/loanActions';
+import { aed, aedSymbol } from '../../utils/dirham';
 
 const STATUSES = [
   { value: 'draft', label: 'Draft', color: 'default' },
@@ -34,7 +35,6 @@ const PRODUCTS = [
   { value: 'account', label: 'Account' },
 ];
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const ColHead = ({ children }) => (
   <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.8, textTransform: 'uppercase' }}>{children}</span>
@@ -102,6 +102,25 @@ function AdminLeads() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const undoApproval = (id) => {
+    Modal.confirm({
+      title: 'Undo approval?',
+      content: 'The lead goes back to its previous stage and the locked commission figures are cleared.',
+      okText: 'Undo approval',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await api.patch(`/leads/${id}/undo-approval`);
+          message.success('Approval undone');
+          load();
+        } catch (err) {
+          message.error(err.response?.data?.message || 'Failed to undo approval');
+          throw err;
+        }
+      },
+    });
   };
 
   const deleteLead = async (id) => {
@@ -270,10 +289,10 @@ function AdminLeads() {
   };
 
   const activeCount = leads.filter(l => !['approved', 'disbursed', 'rejected'].includes(l.status) && !l.isReferral).length;
-  const approvedCount = leads.filter(l => l.status === 'approved' && !l.isReferral).length;
+  const approvedCount = leads.filter(l => l.status === 'approved').length;
   const rejectedCount = leads.filter(l => l.status === 'rejected').length;
   const archiveCount = leads.filter(l => l.status === 'disbursed').length;
-  const referralCount = leads.filter(l => l.isReferral).length;
+  const referralCount = leads.filter(l => l.isReferral && !['approved', 'disbursed', 'rejected'].includes(l.status)).length;
 
   const bankOptions = useMemo(() => {
     const seen = new Set();
@@ -313,8 +332,10 @@ function AdminLeads() {
       if (view) {
         if (!view.match(l)) return false;
       } else if (!q) {
-        if (leadsTab === 'referral' && !l.isReferral) return false;
-        if (leadsTab === 'approved' && (l.status !== 'approved' || l.isReferral)) return false;
+        // Referral tab holds only open referral leads — once approved/disbursed/rejected
+        // they move to that status's tab like any other lead.
+        if (leadsTab === 'referral' && (!l.isReferral || ['approved', 'disbursed', 'rejected'].includes(l.status))) return false;
+        if (leadsTab === 'approved' && l.status !== 'approved') return false;
         if (leadsTab === 'archive' && l.status !== 'disbursed') return false;
         if (leadsTab === 'rejected' && l.status !== 'rejected') return false;
         if (leadsTab === 'active' && (['approved', 'disbursed', 'rejected'].includes(l.status) || l.isReferral)) return false;
@@ -561,6 +582,9 @@ function AdminLeads() {
             {canDisburse && <Button size="small" icon={<DollarOutlined />} onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>}
             {canEditLoan && <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />}
             {canReject && <Button size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>}
+            {row.status === 'approved' && !paymentLocked && row.commissionStatus !== 'payable' && (
+              <Button size="small" onClick={() => undoApproval(row._id)}>Undo Approval</Button>
+            )}
             {paymentLocked ? (
               <Tooltip title="This lead already has a payment recorded and cannot be deleted.">
                 <Button size="small" danger disabled icon={<DeleteOutlined />} />
@@ -791,7 +815,7 @@ function AdminLeads() {
         )}
         <Form form={loanForm} layout="vertical">
           <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount is required' }]}>
-            <InputNumber min={1} step={1000} style={{ width: '100%' }} prefix="AED" />
+            <InputNumber min={1} step={1000} style={{ width: '100%' }} prefix={aedSymbol()} />
           </Form.Item>
         </Form>
       </Modal>

@@ -3,8 +3,8 @@ import { Table, Tag, Typography, Input, Card, Row, Col, Statistic } from 'antd';
 import { SearchOutlined, DollarOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const COMM_COLORS = { payable: 'cyan', pending: 'gold', paid: 'green', none: 'default' };
 const COMM_LABELS = { payable: 'Payout Ready', pending: 'Pending', paid: 'Paid', none: '—' };
@@ -95,17 +95,17 @@ export default function AgencyAgentPayouts() {
       <Row gutter={16} style={{ marginBottom: 20 }}>
         <Col xs={24} sm={8}>
           <Card style={cardStyle}>
-            <Statistic title="Total Paid" value={totalPaid} prefix="AED" valueStyle={{ color: '#16a34a', fontWeight: 700 }} formatter={(v) => Number(v).toLocaleString()} />
+            <Statistic title="Total Paid" value={totalPaid} valueStyle={{ color: '#16a34a', fontWeight: 700 }} formatter={(v) => aed(v)} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
           <Card style={cardStyle}>
-            <Statistic title="Ready to Pay" value={totalPayable} prefix="AED" valueStyle={{ color: '#0891b2', fontWeight: 700 }} formatter={(v) => Number(v).toLocaleString()} />
+            <Statistic title="Ready to Pay" value={totalPayable} valueStyle={{ color: '#0891b2', fontWeight: 700 }} formatter={(v) => aed(v)} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
           <Card style={cardStyle}>
-            <Statistic title="Pending" value={totalPending} prefix="AED" valueStyle={{ color: '#d97706', fontWeight: 700 }} formatter={(v) => Number(v).toLocaleString()} />
+            <Statistic title="Pending" value={totalPending} valueStyle={{ color: '#d97706', fontWeight: 700 }} formatter={(v) => aed(v)} />
           </Card>
         </Col>
       </Row>

@@ -2,12 +2,84 @@ import { useEffect, useState, useMemo } from 'react';
 import { Card, Row, Col, Typography, Table, Tag, Empty, Skeleton, Space, Tabs, Statistic } from 'antd';
 import { CheckCircleOutlined, ClockCircleOutlined, RiseOutlined, DollarOutlined, LockOutlined } from '@ant-design/icons';
 import { useSearchParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 const productLabels = { credit_card: 'Credit Card', loan: 'Loan' };
 
+// Super agent only: commission (SA Differ) earned from sub-agents' leads.
+// Shows only the super agent's own amount, never the sub-agent's commission.
+function SuperAgentEarnings() {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    api.get('/super-agent/earnings').then((r) => setData(r.data)).catch(() => setData({ pending: 0, paid: 0, total: 0, leads: [] }));
+  }, []);
+
+  const cards = [
+    { label: 'Pending Commission', value: data?.pending, color: '#f59e0b', icon: <ClockCircleOutlined />, sub: 'Waiting for MySilah to pay' },
+    { label: 'Paid Commission', value: data?.paid, color: '#16a34a', icon: <CheckCircleOutlined />, sub: 'Already paid to you' },
+    { label: 'Total Earned', value: data?.total, color: '#7c3aed', icon: <DollarOutlined />, sub: `From ${data?.leads?.length || 0} sub-agent lead${data?.leads?.length === 1 ? '' : 's'}` },
+  ];
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ marginBottom: 12 }}>
+        <Typography.Title level={5} style={{ margin: 0, fontWeight: 600 }}>Sub-Agent Commission</Typography.Title>
+        <Typography.Text type="secondary" style={{ fontSize: 13 }}>What you earn when your sub-agents' leads are approved.</Typography.Text>
+      </div>
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        {cards.map((c) => (
+          <Col xs={24} sm={8} key={c.label}>
+            <div style={{
+              borderRadius: 14, border: '1px solid #edf0f7', borderTop: `3px solid ${c.color}`,
+              background: `linear-gradient(170deg, ${c.color}12 0%, #ffffff 45%, #f8faff 100%)`,
+              boxShadow: '0 4px 16px rgba(15,23,42,0.08)', padding: '18px 20px', height: '100%',
+            }}>
+              {!data ? <Skeleton active paragraph={{ rows: 1 }} /> : (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#94a3b8' }}>{c.label}</div>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: `${c.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.color, fontSize: 16 }}>{c.icon}</div>
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#1e293b', lineHeight: 1.2 }}>{aed(c.value)}</div>
+                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>{c.sub}</div>
+                </>
+              )}
+            </div>
+          </Col>
+        ))}
+      </Row>
+
+      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+        <Table
+          size="small" rowKey="_id" loading={!data} dataSource={data?.leads || []} pagination={{ pageSize: 5, size: 'small', hideOnSinglePage: true }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No commission from sub-agents yet" /> }}
+          scroll={{ x: 'max-content' }}
+          columns={[
+            { title: 'Reference', dataIndex: 'leadNumber', render: (v) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace' }}>{v || '—'}</Typography.Text> },
+            { title: 'Client', dataIndex: 'customerName', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
+            { title: 'Sub-Agent', render: (_, r) => r.agent?.name || '—' },
+            { title: 'Product', render: (_, r) => r.product?.name || productLabels[r.productType] || '—' },
+            { title: 'Bank', render: (_, r) => r.bank?.name || '—' },
+            { title: 'Lead Status', dataIndex: 'status', render: (v) => <Tag style={{ textTransform: 'capitalize' }}>{(v || '').replace(/_/g, ' ')}</Tag> },
+            { title: 'Your Commission', align: 'right', render: (_, r) => <span style={{ fontWeight: 700, color: r.amount > 0 ? '#7C3AED' : '#94a3b8' }}>{aed(r.amount)}</span> },
+            {
+              title: 'Payout',
+              render: (_, r) => (r.paymentStatus === 'none'
+                ? <Tag>No commission</Tag>
+                : <Tag color={r.paymentStatus === 'paid' ? 'green' : 'gold'}>{r.paymentStatus === 'paid' ? 'Paid' : 'Pending'}</Tag>),
+            },
+          ]}
+        />
+      </div>
+    </div>
+  );
+}
+
 function Commissions() {
+  const { user } = useSelector((s) => s.auth);
   const [searchParams] = useSearchParams();
   const [ledger, setLedger] = useState(null);
   const [bonuses, setBonuses] = useState([]);
@@ -137,6 +209,8 @@ function Commissions() {
         <Typography.Title level={4} style={{ margin: 0, fontWeight: 500 }}>Payouts &amp; Earnings</Typography.Title>
         <Typography.Text type="secondary">Track your payouts, pending settlements, and expected earnings.</Typography.Text>
       </div>
+
+      {user?.isSuperAgent && <SuperAgentEarnings />}
 
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
@@ -338,7 +412,8 @@ function Commissions() {
                 >
                   <Statistic
                     title={<span style={{ fontSize: 11, color: '#7C3AED' }}>{b.threshold}+ approvals/month</span>}
-                    value={aed(b.amount)}
+                    value={b.amount}
+                    formatter={(v) => aed(v)}
                     valueStyle={{ fontSize: 16, fontWeight: 700, color: '#4338ca' }}
                   />
                 </Card>

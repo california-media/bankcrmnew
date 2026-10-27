@@ -6,6 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useNotificationsContext } from '../contexts/NotificationsContext';
+import { withDirham } from '../utils/dirham';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -58,7 +59,9 @@ export default function Notifications() {
     if (!n.isRead) markRead([String(n._id)]);
     // Agency Coordinators use the agency-wide lead pages, not the employee ones.
     const base = user.role === 'employee' && user.employeeType === 'coordinator' ? 'agency' : user.role;
-    if (n.lead) navigate(`/${base}/leads/${n.lead}`);
+    if (n.type === 'support_ticket') navigate(`/${base}/support`);
+    else if (n.type === 'bank_docs') navigate(`/${base}/profile`);
+    else if (n.lead) navigate(`/${base}/leads/${n.lead}`);
     else if (n.invoice) navigate(`/${base}/invoices`);
   };
 
@@ -126,7 +129,7 @@ export default function Notifications() {
               {TITLE_REMAP[n.title] || n.title}
             </div>
             <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {cleanBody(n.body, n.type)}
+              {withDirham(cleanBody(n.body, n.type))}
             </div>
           </div>
 

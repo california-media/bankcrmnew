@@ -13,8 +13,8 @@ const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || `${API_BASE}/uploads`;
 import dayjs from 'dayjs';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 function AgencyPayouts() {
   const [searchParams] = useSearchParams();
@@ -493,7 +493,7 @@ function AgencyPayouts() {
               onChange={(v) => { setPaymentMethod(v); payoutForm.resetFields(['amountPaid']); }}
               options={[
                 { value: 'bank', label: 'Bank Transfer' },
-                { value: 'bucket', label: `Bucket (${aed(bucketBalance)} available)`, disabled: bucketBalance <= 0 },
+                { value: 'bucket', label: <>Bucket ({aed(bucketBalance)} available)</>, disabled: bucketBalance <= 0 },
               ]}
             />
           </Form.Item>
@@ -542,8 +542,8 @@ function AgencyPayouts() {
                   </span>
                   <span style={{ fontWeight: 800, color: bucketBalance >= selectedTotal ? '#15803d' : '#dc2626' }}>
                     {bucketBalance >= selectedTotal
-                      ? `+${aed(bucketBalance - selectedTotal)}`
-                      : `-${aed(selectedTotal - bucketBalance)}`}
+                      ? <>+{aed(bucketBalance - selectedTotal)}</>
+                      : <>-{aed(selectedTotal - bucketBalance)}</>}
                   </span>
                 </div>
               </div>

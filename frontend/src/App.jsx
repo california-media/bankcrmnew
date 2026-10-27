@@ -49,11 +49,15 @@ import Promotions from './pages/admin/Promotions';
 import EmployeeStatuses from './pages/admin/EmployeeStatuses';
 import BucketRequests from './pages/admin/BucketRequests';
 import Inquiries from './pages/admin/Inquiries';
+import Support from './pages/Support';
+import SubAgents from './pages/agent/SubAgents';
+import SubAgentLeads from './pages/agent/SubAgentLeads';
 import EmployeeDashboard from './pages/employee/Dashboard';
 import EmployeeLeads from './pages/employee/AssignedLeads';
 import LeadDetail from './pages/leads/LeadDetail';
 import Profile from './pages/Profile';
 import TermsAndConditions from './pages/TermsAndConditions';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import Notifications from './pages/Notifications';
 import UaePassCallback from './pages/UaePassCallback';
 import AdminNotices from './pages/admin/Notices';
@@ -111,6 +115,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/terms" element={<TermsAndConditions />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/auth/uaepass/callback" element={<UaePassCallback />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/ref/:code" element={<ReferralForm />} />
@@ -139,7 +144,8 @@ function App() {
           <Route path="agencies" element={<Agencies />} />
           <Route path="leads" element={<AdminLeads />} />
           <Route path="leads/:id" element={<LeadDetail />} />
-          <Route path="agents" element={<AdminAgents />} />
+          <Route path="agents" element={<AdminAgents key="agents" />} />
+          <Route path="super-agents" element={<AdminAgents key="super-agents" superOnly />} />
           <Route path="agents/:id" element={<AgentDetail />} />
           <Route path="card-products" element={<CardProducts />} />
           <Route path="featured-products" element={<FeaturedProducts />} />
@@ -158,6 +164,7 @@ function App() {
           <Route path="consent-logs" element={<ConsentLogs />} />
           <Route path="bucket-requests" element={<BucketRequests />} />
           <Route path="inquiries" element={<Inquiries />} />
+          <Route path="support" element={<Support />} />
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="notices" element={<AdminNotices />} />
@@ -188,6 +195,9 @@ function App() {
           <Route path="settings" element={<Profile />} />
           <Route path="promotions" element={<AgentPromotions />} />
           <Route path="resources" element={<AgentResources />} />
+          <Route path="support" element={<Support />} />
+          <Route path="sub-agents" element={<SubAgents />} />
+          <Route path="sub-agent-leads" element={<SubAgentLeads />} />
         </Route>
 
         <Route
@@ -219,6 +229,7 @@ function App() {
           <Route path="notifications" element={<Notifications />} />
           <Route path="reports" element={<AgencyReports />} />
           <Route path="resources" element={<AgentResources />} />
+          <Route path="support" element={<Support />} />
         </Route>
 
         <Route
@@ -237,6 +248,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="resources" element={<AgentResources />} />
+          <Route path="support" element={<Support />} />
         </Route>
 
         <Route
@@ -250,6 +262,7 @@ function App() {
           <Route index element={<AdminBlog />} />
           <Route path="blog" element={<AdminBlog />} />
           <Route path="profile" element={<Profile />} />
+          <Route path="support" element={<Support />} />
         </Route>
 
         <Route path="/" element={<Navigate to="/login" replace />} />

@@ -13,6 +13,7 @@ import api from '../../api/client';
 import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
 import { ACTION_LABELS, LOAN_MILESTONES, getLoanActions } from '../../utils/loanActions';
 import { NATIONALITIES, CITIES, VISA_OPTIONS } from '../../utils/customerOptions';
+import { aed, aedSymbol } from '../../utils/dirham';
 
 const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
 
@@ -61,7 +62,6 @@ const AGENCY_STATUSES = {
 const COMM_COLORS = { paid: 'green', payable: 'cyan', pending: 'gold', none: 'default' };
 const COMM_LABELS = { paid: 'Paid', payable: 'Payout Ready', pending: 'Pending', none: '—' };
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 const pct = (n) => `${Number(n || 0)}%`;
 
 const REJECTABLE_FROM      = ['submitted', 'under_review', 'assigned'];
@@ -286,6 +286,25 @@ export default function LeadDetail() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const undoApproval = () => {
+    Modal.confirm({
+      title: 'Undo approval?',
+      content: 'The lead goes back to its previous stage and the locked commission figures are cleared.',
+      okText: 'Undo approval',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await api.patch(`/leads/${id}/undo-approval`);
+          message.success('Approval undone');
+          load();
+        } catch (err) {
+          message.error(err.response?.data?.message || 'Failed to undo approval');
+          throw err;
+        }
+      },
+    });
   };
 
   useEffect(() => { load(); }, [id]);
@@ -541,6 +560,8 @@ export default function LeadDetail() {
     }
   };
 
+  // A super agent viewing a sub-agent's lead gets a redacted copy (no contact info, no sub-agent commission)
+  const isSubLead = lead?.myCommission !== undefined;
   const isCoordinator = role === 'employee' && user.employeeType === 'coordinator';
   const backPath = role === 'admin' ? '/admin/leads' : (role === 'agency' || isCoordinator) ? '/agency/leads' : role === 'employee' ? '/employee/leads' : '/agent/leads';
 
@@ -571,6 +592,20 @@ export default function LeadDetail() {
   const statusMeta = statusMap[lead.status] || { color: 'default', label: lead.status };
   const isLoan = lead.productType === 'loan';
   const product = isLoan ? lead.loanProduct : lead.cardProduct;
+  // Benefits & Fees modal tabs (empty ones hidden). Card leads follow the admin
+  // Product Content tab order; loan/account leads keep the original two tabs.
+  const productInfoTabs = (lead.productType === 'credit_card'
+    ? [
+      { key: 'fees', label: 'Fees & Eligibility', html: product?.feesEligibility },
+      { key: 'keyFeatures', label: 'Key Features', html: product?.keyFeatures },
+      { key: 'benefits', label: 'Product Reward Program', html: product?.benefits },
+      { key: 'additionalBenefits', label: 'Additional Benefits', html: product?.additionalBenefits },
+    ]
+    : [
+      { key: 'benefits', label: 'Product Benefits', html: product?.benefits },
+      { key: 'fees', label: 'Fees & Eligibility', html: product?.feesEligibility },
+    ]
+  ).filter((t) => t.html);
 
   const canChangeProduct = (() => {
     if (!CHANGE_PRODUCT_FROM.includes(lead.status)) return false;
@@ -640,7 +675,7 @@ export default function LeadDetail() {
           {lead.cpvDone && <Tag color="green" style={{ margin: 0 }}>CPV ✓</Tag>}
           {lead.activateDone && <Tag color="green" style={{ margin: 0 }}>Activated ✓</Tag>}
           {lead.spendDone && <Tag color="green" style={{ margin: 0 }}>Spend ✓</Tag>}
-          {role !== 'employee' && lead.commissionStatus !== 'none' && (
+          {role !== 'employee' && !isSubLead && lead.commissionStatus !== 'none' && (
             <Tag color={COMM_COLORS[lead.commissionStatus]} style={{ margin: 0 }}>{COMM_LABELS[lead.commissionStatus]}</Tag>
           )}
         </Space>
@@ -911,8 +946,12 @@ export default function LeadDetail() {
             ) : (
               <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }}>No notes yet.</Typography.Text>
             )}
-            <Input.TextArea rows={2} placeholder="Add a note..." value={noteText} onChange={(e) => setNoteText(e.target.value)} style={{ marginBottom: 6, fontSize: 12 }} />
-            <Button size="small" type="primary" loading={noteSubmitting} disabled={!noteText.trim()} onClick={addNote}>Add Note</Button>
+            {!isSubLead && (
+              <>
+                <Input.TextArea rows={2} placeholder="Add a note..." value={noteText} onChange={(e) => setNoteText(e.target.value)} style={{ marginBottom: 6, fontSize: 12 }} />
+                <Button size="small" type="primary" loading={noteSubmitting} disabled={!noteText.trim()} onClick={addNote}>Add Note</Button>
+              </>
+            )}
           </Card>
 
           {/* Payout History */}
@@ -1016,23 +1055,14 @@ export default function LeadDetail() {
             destroyOnHidden
           >
             <Tabs
-              defaultActiveKey={product?.benefits ? 'benefits' : 'fees'}
-              items={[
-                ...(product?.benefits ? [{
-                  key: 'benefits',
-                  label: 'Product Benefits',
-                  children: (
-                    <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.8, maxHeight: 480, overflowY: 'auto', paddingRight: 4 }} dangerouslySetInnerHTML={{ __html: product.benefits }} />
-                  ),
-                }] : []),
-                ...(product?.feesEligibility ? [{
-                  key: 'fees',
-                  label: 'Fees & Eligibility',
-                  children: (
-                    <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.8, maxHeight: 480, overflowY: 'auto', paddingRight: 4 }} dangerouslySetInnerHTML={{ __html: product.feesEligibility }} />
-                  ),
-                }] : []),
-              ]}
+              defaultActiveKey={productInfoTabs[0]?.key}
+              items={productInfoTabs.map((t) => ({
+                key: t.key,
+                label: t.label,
+                children: (
+                  <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.8, maxHeight: 480, overflowY: 'auto', paddingRight: 4 }} dangerouslySetInnerHTML={{ __html: t.html }} />
+                ),
+              }))}
             />
           </Modal>
 
@@ -1098,6 +1128,9 @@ export default function LeadDetail() {
                 {REJECTABLE_FROM.includes(lead.status) && (
                   <Button block size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal('rejected', 'Rejected')}>Reject</Button>
                 )}
+                {lead.status === 'approved' && ['agency', 'admin'].includes(role) && lead.commissionStatus !== 'paid' && (
+                  <Button block size="small" onClick={undoApproval}>Undo Approval</Button>
+                )}
                 {!['disbursed', 'rejected'].includes(lead.status) && (
                   <div style={{ marginTop: 4 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>Assign Employees</div>
@@ -1135,6 +1168,9 @@ export default function LeadDetail() {
                 )}
                 {REJECTABLE_FROM.includes(lead.status) && (
                   <Button block size="small" danger icon={<CloseOutlined />} onClick={() => openStatusModal('rejected', 'Rejected')}>Reject</Button>
+                )}
+                {lead.status === 'approved' && ['agency', 'admin'].includes(role) && lead.commissionStatus !== 'paid' && (
+                  <Button block size="small" onClick={undoApproval}>Undo Approval</Button>
                 )}
               </Space>
             </Card>
@@ -1310,7 +1346,7 @@ export default function LeadDetail() {
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 3 }}>Payout</div>
                         <div style={{ fontWeight: 800, fontSize: 17, color: '#16a34a' }}>
-                          {aed(role === 'agency' ? lead.grossCommission : lead.commission)}
+                          {aed(isSubLead ? lead.myCommission : role === 'agency' ? lead.grossCommission : lead.commission)}
                         </div>
                       </div>
                     </>
@@ -1339,7 +1375,7 @@ export default function LeadDetail() {
                   {lead.loanProduct?.maxLoanAmount > 0 && <InfoItem label="Max Loan" value={aed(lead.loanProduct.maxLoanAmount)} />}
                 </div>
               )}
-              {(product?.benefits || product?.feesEligibility) && (
+              {productInfoTabs.length > 0 && (
                 <button
                   onClick={() => setBenefitsOpen(true)}
                   style={{ marginTop: 12, width: '100%', background: 'linear-gradient(90deg, #7C3AED, #0EA5E9)', border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', letterSpacing: 0.3, boxShadow: '0 4px 14px rgba(124,58,237,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
@@ -1354,7 +1390,20 @@ export default function LeadDetail() {
           {role !== 'employee' && (
             <Card size="small" style={cardStyle} styles={{ body: cardBodyStyle }}>
               <div style={{ marginBottom: 10 }}>{sectionLabel('Commission')}</div>
-              {role === 'agency' ? (
+              {isSubLead ? (
+                <div>
+                  <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Your Commission</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a' }}>{aed(lead.myCommission)}</div>
+                  {lead.myCommissionStatus !== 'none' && (
+                    <Tag color={lead.myCommissionStatus === 'paid' ? 'green' : 'gold'} style={{ marginTop: 4 }}>
+                      {lead.myCommissionStatus === 'paid' ? 'Paid' : 'Pending'}
+                    </Tag>
+                  )}
+                  {lead.myCommissionPaidAt && (
+                    <div style={{ fontSize: 11, color: '#888', marginTop: 3 }}>Paid {new Date(lead.myCommissionPaidAt).toLocaleDateString()}</div>
+                  )}
+                </div>
+              ) : role === 'agency' ? (
                 <div>
                   <div style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>Payable to Admin</div>
                   <div style={{ fontSize: 22, fontWeight: 700, color: '#0f172a' }}>{aed(lead.grossCommission)}</div>
@@ -1410,7 +1459,7 @@ export default function LeadDetail() {
         <ModalSummary items={[{ label: 'Client', value: lead.customerName }, { label: 'Product', value: lead.loanProduct?.name }]} />
         <Form form={loanForm} layout="vertical">
           <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true }]}>
-            <InputNumber min={1} step={1000} style={{ width: '100%' }} prefix="AED" />
+            <InputNumber min={1} step={1000} style={{ width: '100%' }} prefix={aedSymbol()} />
           </Form.Item>
         </Form>
       </Modal>
@@ -1556,7 +1605,7 @@ export default function LeadDetail() {
                       .sort((a, b) => a.minimumSalary - b.minimumSalary)
                       .map((b) => ({
                         value: b.minimumSalary,
-                        label: `Min. AED ${Number(b.minimumSalary).toLocaleString()} · ${feeTypeLabel(b.feeType)} · AED ${Number(b.payable || 0).toLocaleString()}`,
+                        label: <>Min. {aed(b.minimumSalary)} · {feeTypeLabel(b.feeType)} · {aed(b.payable)}</>,
                       }))}
                   />
                 </Form.Item>
@@ -1564,7 +1613,7 @@ export default function LeadDetail() {
               {selectedBracket && (
                 <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
                   <div style={{ fontSize: 11, color: '#166534', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Expected Earning</div>
-                  <div style={{ fontWeight: 800, fontSize: 18, color: '#15803d' }}>AED {Number(selectedBracket.payable || 0).toLocaleString()}</div>
+                  <div style={{ fontWeight: 800, fontSize: 18, color: '#15803d' }}>{aed(selectedBracket.payable)}</div>
                 </div>
               )}
             </>

@@ -8,8 +8,8 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const COMM_COLORS = { payable: 'cyan', pending: 'gold', paid: 'green', none: 'default' };
 const COMM_LABELS = { payable: 'Payout Ready for Agent', pending: 'Awaiting Receipt', paid: 'Paid', none: '—' };
@@ -365,7 +365,7 @@ export default function Payouts() {
       render: (_, row) => (
         <Popconfirm
           title="Release hold?"
-          description={`Release ${aed(row.holdAmount)} to agent?`}
+          description={<>Release {aed(row.holdAmount)} to agent?</>}
           onConfirm={() => releaseHold(row._id)}
           okText="Release"
         >
@@ -400,15 +400,29 @@ export default function Payouts() {
       render: (v) => <Typography.Text type="secondary" style={{ fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{v || '—'}</Typography.Text>,
     },
     { title: 'Client', dataIndex: 'customerName' },
-    { title: 'Agent', render: (_, row) => row.agent?.name || row.agent?.email || '—' },
-    { title: 'Agency', render: (_, row) => row.agencyOverrideAgency?.name || row.agencyOverrideAgency?.email || '—' },
+    { title: 'Sub-Agent / Agent', render: (_, row) => row.agent?.name || row.agent?.email || '—' },
     {
-      title: 'Referral Bonus',
+      title: 'Sub-Agent Commission',
+      align: 'right',
+      render: (_, row) => (
+        <div style={{ lineHeight: 1.3 }}>
+          <span style={{ fontWeight: 700 }}>{aed(row.commission)}</span>
+          <div>
+            <Tag color={row.commissionStatus === 'paid' ? 'green' : row.commissionStatus === 'payable' ? 'cyan' : row.commissionStatus === 'pending' ? 'gold' : 'default'} style={{ margin: 0, fontSize: 10 }}>
+              {row.commissionStatus === 'none' ? 'Not started' : row.commissionStatus}
+            </Tag>
+          </div>
+        </div>
+      ),
+    },
+    { title: 'Super Agent / Agency', render: (_, row) => row.agencyOverrideAgency?.name || row.agencyOverrideAgency?.email || '—' },
+    {
+      title: 'SA Differ',
       align: 'right',
       render: (_, row) => <span style={{ fontWeight: 700 }}>{aed(row.agencyOverrideAmount)}</span>,
     },
     {
-      title: 'Status',
+      title: 'SA Differ Status',
       render: (_, row) => (
         <Tag color={row.agencyOverrideStatus === 'paid' ? 'green' : 'gold'}>
           {row.agencyOverrideStatus === 'paid' ? 'Paid' : 'Pending'}
@@ -440,7 +454,7 @@ export default function Payouts() {
     },
     {
       key: 'agencyOverrides',
-      label: <span><DollarOutlined style={{ color: '#7c3aed', marginRight: 5 }} />Agency Referral Bonus ({overrideStats.pending})</span>,
+      label: <span><DollarOutlined style={{ color: '#7c3aed', marginRight: 5 }} />Super Agent / Referral ({overrideStats.pending})</span>,
     },
   ];
 
@@ -568,7 +582,7 @@ export default function Payouts() {
                 {selectedHoldKeys.length > 0 && (
                   <Popconfirm
                     title={`Release ${selectedHoldKeys.length} hold(s)?`}
-                    description={`This will release ${aed(holds.filter(h => selectedHoldKeys.includes(h._id)).reduce((s, h) => s + (h.holdAmount || 0), 0))} to agents.`}
+                    description={<>This will release {aed(holds.filter(h => selectedHoldKeys.includes(h._id)).reduce((s, h) => s + (h.holdAmount || 0), 0))} to agents.</>}
                     onConfirm={() => bulkRelease(selectedHoldKeys)}
                     okText="Release"
                     okButtonProps={{ danger: false }}
@@ -585,7 +599,7 @@ export default function Payouts() {
                 )}
                 <Popconfirm
                   title={`Release all ${holds.length} holds?`}
-                  description={`This will release ${aed(stats.totalHeld)} total to agents.`}
+                  description={<>This will release {aed(stats.totalHeld)} total to agents.</>}
                   onConfirm={() => bulkRelease(null)}
                   okText="Release All"
                   okButtonProps={{ danger: false }}
@@ -622,7 +636,7 @@ export default function Payouts() {
               loading={loading}
               dataSource={agencyOverrideLeads}
               columns={overrideColumns}
-              locale={{ emptyText: 'No agency referral bonuses' }}
+              locale={{ emptyText: 'No super agent or referral commissions' }}
               scroll={{ x: 'max-content' }}
             />
           </div>
@@ -733,7 +747,7 @@ export default function Payouts() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748b' }}>
           <InfoCircleOutlined />
           {holdPct > 0
-            ? `Agent receives ${aed(netPayout)}. ${aed(holdAmount)} held until clawback period expires.`
+            ? <>Agent receives {aed(netPayout)}. {aed(holdAmount)} held until clawback period expires.</>
             : 'Full commission will be paid to agents.'}
           {payModal.mode === 'bucket' && ' Funded from the agency\'s bucket balance.'}
           {payModal.mode === 'bucket-full' && ' The agency never paid for these leads — the full gross commission is deducted from their bucket balance to settle both the agency\'s debt and this agent payout.'}

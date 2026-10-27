@@ -1,13 +1,33 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Card, Row, Col, Tag, Table, Typography, Button, Skeleton, Divider, Modal, Form, Input, message } from 'antd';
+import { Card, Row, Col, Tag, Table, Typography, Button, Skeleton, Divider, Modal, Form, Input, Popconfirm, message } from 'antd';
 import {
   ArrowLeftOutlined, BankOutlined, UserOutlined, LockOutlined,
   CheckCircleOutlined, DollarOutlined, AuditOutlined, ClockCircleOutlined, EditOutlined,
+  FilePdfOutlined, FileImageOutlined, CloseCircleOutlined,
 } from '@ant-design/icons';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
+import { UPLOADS_BASE } from '../../utils/uploads';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
+const VERIFY_TAG = {
+  none:     <Tag>No documents</Tag>,
+  pending:  <Tag color="gold">Pending verification</Tag>,
+  approved: <Tag color="green">Approved</Tag>,
+  rejected: <Tag color="red">Rejected</Tag>,
+};
+
+const DocLink = ({ label, file }) => (
+  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px' }}>
+    <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: '#94a3b8', marginBottom: 4 }}>{label}</div>
+    {file ? (
+      <a href={`${UPLOADS_BASE}/bank-docs/${file}`} target="_blank" rel="noreferrer" style={{ fontSize: 13, fontWeight: 600 }}>
+        {/\.pdf$/i.test(file) ? <FilePdfOutlined /> : <FileImageOutlined />} View document
+      </a>
+    ) : <span style={{ fontSize: 13, color: '#94a3b8' }}>Not uploaded</span>}
+  </div>
+);
+
 
 const InfoRow = ({ label, value }) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #f1f5f9' }}>
@@ -33,6 +53,9 @@ export default function AgentDetail() {
   const [loading, setLoading] = useState(true);
   const [editModal, setEditModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -50,7 +73,7 @@ export default function AgentDetail() {
     );
   }
 
-  const { agent, stats, leads } = data;
+  const { agent, stats, leads, subAgents = [] } = data;
   const bd = agent.bankDetails || {};
   const hasBankDetails = !!(bd.iban || bd.accountNumber);
 
@@ -77,6 +100,21 @@ export default function AgentDetail() {
       if (err?.response) message.error(err.response.data?.message || 'Update failed');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const verify = async (action, reason) => {
+    setVerifying(true);
+    try {
+      const res = await api.patch(`/admin/agents/${id}/bank-docs/verify`, { action, reason });
+      setData((prev) => ({ ...prev, agent: { ...prev.agent, bankDetails: res.data.bankDetails } }));
+      setRejectOpen(false);
+      setRejectReason('');
+      message.success(action === 'approve' ? 'Documents approved' : 'Documents rejected');
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -151,6 +189,12 @@ export default function AgentDetail() {
             {agent.referredBy && (
               <InfoRow label="Referred By" value={agent.referredBy.name || agent.referredBy.email} />
             )}
+            {agent.isSuperAgent && (
+              <InfoRow label="Super Agent Code" value={<span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#7c3aed', letterSpacing: 1 }}>{agent.superAgentCode}</span>} />
+            )}
+            {agent.superAgent && (
+              <InfoRow label="Super Agent" value={`${agent.superAgent.name || agent.superAgent.email} (${agent.superAgent.superAgentCode})`} />
+            )}
           </Card>
         </Col>
 
@@ -188,9 +232,55 @@ export default function AgentDetail() {
                 <BankField label="SWIFT / BIC Code" value={bd.swiftCode} />
               </div>
             )}
+
+            <Divider style={{ margin: '16px 0 12px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 700, fontSize: 13 }}>Document Verification</span>
+              {VERIFY_TAG[bd.verificationStatus || 'none']}
+              {bd.confirmedCorrect && <Tag color="blue">Agent confirmed details are correct</Tag>}
+            </div>
+            <Row gutter={10}>
+              <Col xs={24} sm={12}><DocLink label="Cheque Copy" file={bd.chequeCopy} /></Col>
+              <Col xs={24} sm={12}><DocLink label="Bank Letter" file={bd.bankLetter} /></Col>
+            </Row>
+            {bd.verificationStatus === 'approved' && (
+              <div style={{ marginTop: 10, fontSize: 12, color: '#15803d' }}>
+                <CheckCircleOutlined /> Approved by <b>{bd.verifiedBy?.name || bd.verifiedBy?.email || 'admin'}</b>
+                {bd.verifiedAt && ` on ${new Date(bd.verifiedAt).toLocaleString()}`}
+              </div>
+            )}
+            {bd.verificationStatus === 'rejected' && (
+              <div style={{ marginTop: 10, fontSize: 12, color: '#b91c1c' }}>
+                <CloseCircleOutlined /> Rejected by <b>{bd.verifiedBy?.name || bd.verifiedBy?.email || 'admin'}</b>
+                {bd.verifiedAt && ` on ${new Date(bd.verifiedAt).toLocaleString()}`}
+                {bd.rejectReason && <div>Reason: {bd.rejectReason}</div>}
+              </div>
+            )}
+            {bd.chequeCopy && bd.bankLetter && bd.verificationStatus !== 'approved' && (
+              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <Popconfirm title="Approve these documents?" onConfirm={() => verify('approve')} okText="Approve">
+                  <Button type="primary" icon={<CheckCircleOutlined />} loading={verifying}>Approve</Button>
+                </Popconfirm>
+                {bd.verificationStatus !== 'rejected' && (
+                  <Button danger icon={<CloseCircleOutlined />} onClick={() => setRejectOpen(true)}>Reject</Button>
+                )}
+              </div>
+            )}
           </Card>
         </Col>
       </Row>
+
+      <Modal
+        title="Reject bank documents"
+        open={rejectOpen}
+        onCancel={() => setRejectOpen(false)}
+        onOk={() => verify('reject', rejectReason)}
+        okText="Reject"
+        okButtonProps={{ danger: true, disabled: !rejectReason.trim() }}
+        confirmLoading={verifying}
+      >
+        <Input.TextArea rows={3} placeholder="Reason (shown to the agent)" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+      </Modal>
 
       <Modal
         title="Edit Bank Details"
@@ -231,6 +321,26 @@ export default function AgentDetail() {
           </Form.Item>
         </Form>
       </Modal>
+
+      {agent.isSuperAgent && (
+        <Card
+          style={{ borderRadius: 16, border: '1px solid #e2e8f0', marginTop: 16 }}
+          styles={{ header: { borderBottom: '1px solid #f1f5f9' } }}
+          title={<span style={{ fontWeight: 700 }}>Sub-Agents ({subAgents.length})</span>}
+        >
+          <Table
+            size="small" rowKey="_id" dataSource={subAgents} pagination={false}
+            locale={{ emptyText: 'No sub-agents' }}
+            onRow={(row) => ({ onClick: () => navigate(`/admin/agents/${row._id}`), style: { cursor: 'pointer' } })}
+            columns={[
+              { title: 'Name', dataIndex: 'name' },
+              { title: 'Email', dataIndex: 'email' },
+              { title: 'Status', dataIndex: 'isActive', render: (v) => <Tag color={v ? 'green' : 'default'}>{v ? 'Active' : 'Inactive'}</Tag> },
+              { title: 'Joined', dataIndex: 'createdAt', render: (d) => new Date(d).toLocaleDateString() },
+            ]}
+          />
+        </Card>
+      )}
 
       {/* Recent Leads */}
       <Card

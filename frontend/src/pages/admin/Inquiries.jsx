@@ -1,20 +1,116 @@
 import { useEffect, useState } from 'react';
 import {
-  Table, Tag, Typography, Button, Modal, Space, message, Badge,
+  Table, Tag, Typography, Button, Modal, Space, message, Badge, Form, Input, InputNumber, Switch, Alert,
 } from 'antd';
-import { EyeOutlined, DeleteOutlined, MailOutlined } from '@ant-design/icons';
+import { EyeOutlined, DeleteOutlined, MailOutlined, SettingOutlined, RollbackOutlined, PaperClipOutlined } from '@ant-design/icons';
+import { useSelector } from 'react-redux';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import api from '../../api/client';
+import { UPLOADS_BASE } from '../../utils/uploads';
+import InquiryReplyComposer from './InquiryReplyComposer';
+import { fileIcon, formatBytes } from '../../utils/attachments';
 
 dayjs.extend(relativeTime);
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
+
+const typeLabel = (v) => ({ support: 'Support', other: 'Other' }[v] || 'General Query');
+const typeColor = (v) => ({ support: 'orange', other: 'purple' }[v] || 'blue');
+
+const threadCard = (accent) => ({ border: '1px solid #e2e8f0', borderLeft: `3px solid ${accent}`, borderRadius: 8, padding: '12px 14px', background: '#fff' });
+
+function ReplyAttachments({ attachments }) {
+  if (!attachments?.length) return null;
+  return (
+    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed #e2e8f0' }}>
+      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+        <PaperClipOutlined /> {attachments.length} attachment{attachments.length === 1 ? '' : 's'}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {attachments.map((a, i) => {
+          const chip = (
+            <>
+              {fileIcon(a.originalName)}
+              <span style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.originalName}</span>
+              {a.size ? <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>{formatBytes(a.size)}</span> : null}
+            </>
+          );
+          const style = { display: 'flex', alignItems: 'center', gap: 6, border: '1px solid #e2e8f0', borderRadius: 8, padding: '4px 10px', background: '#f8fafc', maxWidth: 260, color: '#0f172a' };
+          return a.filename ? (
+            <a key={i} href={`${UPLOADS_BASE}/inquiry-reply-files/${a.filename}`} target="_blank" rel="noreferrer" style={style} title={a.originalName}>{chip}</a>
+          ) : (
+            <span key={i} style={style} title="Sent with the email, but no copy was stored">{chip}</span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function Inquiries() {
   const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
+  const { user } = useSelector((s) => s.auth);
+  const isSuperAdmin = user?.role === 'admin' && !user?.adminScope;
+  const canReply = user?.role === 'admin' && (!user?.adminScope || user.adminScope === 'coordinator');
+
+  const [composing, setComposing] = useState(false);
+  const [draftDirty, setDraftDirty] = useState(false);
+  const [smtpOpen, setSmtpOpen] = useState(false);
+  const [smtpSaving, setSmtpSaving] = useState(false);
+  const [smtpInfo, setSmtpInfo] = useState(null);
+  const [smtpForm] = Form.useForm();
+
+  const openSmtp = async () => {
+    try {
+      const { data } = await api.get('/inquiries/smtp-settings');
+      setSmtpInfo(data);
+      setSmtpOpen(true);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to load SMTP settings');
+    }
+  };
+
+  const saveSmtp = async () => {
+    const values = await smtpForm.validateFields();
+    setSmtpSaving(true);
+    try {
+      const { data } = await api.put('/inquiries/smtp-settings', values);
+      setSmtpInfo(data);
+      message.success('SMTP settings saved');
+      setSmtpOpen(false);
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to save SMTP settings');
+    } finally {
+      setSmtpSaving(false);
+    }
+  };
+
+  const onReplySent = (data) => {
+    setSelected(data);
+    setInquiries((prev) => prev.map((i) => (i._id === data._id ? data : i)));
+    setComposing(false);
+    setDraftDirty(false);
+  };
+
+  const resetComposer = () => { setComposing(false); setDraftDirty(false); };
+
+  // Closing the request with an unsent reply asks first, like a mail client.
+  const closeSelected = () => {
+    if (composing && draftDirty) {
+      Modal.confirm({
+        title: 'Discard your unsent reply?',
+        okText: 'Discard',
+        okButtonProps: { danger: true },
+        onOk: () => { resetComposer(); setSelected(null); },
+      });
+      return;
+    }
+    resetComposer();
+    setSelected(null);
+  };
 
   const load = async () => {
     setLoading(true);
@@ -31,6 +127,7 @@ export default function Inquiries() {
   useEffect(() => { load(); }, []);
 
   const open = async (record) => {
+    resetComposer();
     setSelected(record);
     if (!record.read) {
       try {
@@ -47,7 +144,7 @@ export default function Inquiries() {
       await api.delete(`/inquiries/${id}`);
       message.success('Deleted');
       setInquiries((prev) => prev.filter((i) => i._id !== id));
-      if (selected?._id === id) setSelected(null);
+      if (selected?._id === id) { resetComposer(); setSelected(null); }
     } catch {
       message.error('Failed to delete');
     }
@@ -70,10 +167,12 @@ export default function Inquiries() {
         <Space>
           <Text strong={!r.read}>{name}</Text>
           {!r.read && <Tag color="blue" style={{ fontSize: 10 }}>New</Tag>}
+          {r.replies?.length > 0 && <Tag color="green" style={{ fontSize: 10 }}>Replied</Tag>}
         </Space>
       ),
     },
     { title: 'Email',   dataIndex: 'email' },
+    { title: 'Type',    dataIndex: 'queryType',   render: (v) => <Tag color={typeColor(v)}>{typeLabel(v)}</Tag> },
     { title: 'Phone',   dataIndex: 'phone',       render: (v) => v || '—' },
     { title: 'Company', dataIndex: 'companyName',  render: (v) => v || '—' },
     {
@@ -107,6 +206,7 @@ export default function Inquiries() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Inquiries</h2>
+        {isSuperAdmin && <Button icon={<SettingOutlined />} onClick={openSmtp}>SMTP Settings</Button>}
       </div>
       <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
       <Table
@@ -123,43 +223,137 @@ export default function Inquiries() {
 
       <Modal
         open={!!selected}
-        onCancel={() => setSelected(null)}
+        width={820}
+        onCancel={closeSelected}
+        maskClosable={false}
         footer={[
           <Button
             key="del"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => remove(selected._id)}
+            onClick={() => Modal.confirm({ title: 'Delete inquiry?', okButtonProps: { danger: true }, onOk: () => remove(selected._id) })}
           >
             Delete
           </Button>,
-          <Button key="close" onClick={() => setSelected(null)}>Close</Button>,
+          <Button key="close" onClick={closeSelected}>Close</Button>,
         ]}
         title={
           <Space>
             <MailOutlined />
             {selected?.name}
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {selected && dayjs(selected.createdAt).format('DD MMM YYYY, HH:mm')}
-            </Text>
+            {selected && <Tag color={typeColor(selected.queryType)}>{typeLabel(selected.queryType)}</Tag>}
           </Space>
         }
       >
         {selected && (
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <Text><strong>Email:</strong> <a href={`mailto:${selected.email}`}>{selected.email}</a></Text>
-            {selected.phone    && <Text><strong>Phone:</strong> {selected.phone}</Text>}
-            {selected.companyName && <Text><strong>Company:</strong> {selected.companyName}</Text>}
-            {selected.message && (
-              <>
-                <Text strong>Message:</Text>
-                <Paragraph style={{ background: '#f9fafb', padding: 12, borderRadius: 8, marginBottom: 0 }}>
-                  {selected.message}
-                </Paragraph>
-              </>
-            )}
-          </Space>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Original request */}
+            <div style={threadCard('#7c3aed')}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                <Text strong>{selected.name} <Text type="secondary" style={{ fontWeight: 400 }}>&lt;{selected.email}&gt;</Text></Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(selected.createdAt).format('DD MMM YYYY, HH:mm')}</Text>
+              </div>
+              <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                {[selected.phone && `Phone: ${selected.phone}`, selected.companyName && `Company: ${selected.companyName}`].filter(Boolean).join(' · ') || 'Website request'}
+              </div>
+              <div style={{ marginTop: 10, fontSize: 14, color: '#1e293b', whiteSpace: 'pre-wrap' }}>
+                {selected.message || <Text type="secondary">(No message)</Text>}
+              </div>
+            </div>
+
+            {/* Replies sent */}
+            {selected.replies?.map((r) => (
+              <div key={r._id} style={threadCard('#16a34a')}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                  <Text strong>
+                    {r.sentBy?.name || 'Admin'} <Text type="secondary" style={{ fontWeight: 400 }}>(MySilah)</Text>
+                  </Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>{dayjs(r.sentAt).format('DD MMM YYYY, HH:mm')}</Text>
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  {[
+                    // replies saved before "To" was editable went to the requester
+                    ['To', r.to ?? [selected.email]],
+                    ['Cc', r.cc],
+                    ['Bcc', r.bcc],
+                  ].filter(([, list]) => list?.length).map(([k, list]) => `${k}: ${list.join(', ')}`).join(' · ')}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, marginTop: 8 }}>{r.subject}</div>
+                {r.bodyHtml ? (
+                  <div className="inquiry-reply-body" style={{ marginTop: 6, fontSize: 14, color: '#1e293b' }} dangerouslySetInnerHTML={{ __html: r.bodyHtml }} />
+                ) : (
+                  <div style={{ marginTop: 6, fontSize: 14, color: '#1e293b', whiteSpace: 'pre-wrap' }}>{r.body}</div>
+                )}
+                <ReplyAttachments attachments={r.attachments} />
+              </div>
+            ))}
+
+            {canReply && (composing ? (
+              <InquiryReplyComposer
+                key={selected._id}
+                inquiry={selected}
+                defaultSubject={selected.queryType === 'other' ? 'Re: Your request — MySilah' : `Re: Your ${typeLabel(selected.queryType)} request — MySilah`}
+                onSent={onReplySent}
+                onDiscard={resetComposer}
+                onDirtyChange={setDraftDirty}
+              />
+            ) : (
+              <div>
+                <Button type="primary" icon={<RollbackOutlined />} onClick={() => setComposing(true)}>
+                  {selected.replies?.length ? 'Reply again' : 'Reply'}
+                </Button>
+              </div>
+            ))}
+          </div>
         )}
+      </Modal>
+
+      <Modal
+        title="Reply Email — SMTP Settings"
+        open={smtpOpen}
+        onCancel={() => setSmtpOpen(false)}
+        onOk={saveSmtp}
+        okText="Save"
+        confirmLoading={smtpSaving}
+        destroyOnClose
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message="Used only for replying to requests on this page."
+        />
+        <Form form={smtpForm} layout="vertical" preserve={false} initialValues={{ port: 587, ...smtpInfo, pass: '' }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Form.Item name="host" label="SMTP Host" rules={[{ required: true, message: 'Host required' }]} style={{ flex: 1, marginBottom: 10 }}>
+              <Input placeholder="smtp.gmail.com" />
+            </Form.Item>
+            <Form.Item name="port" label="Port" rules={[{ required: true, message: 'Port required' }]} style={{ width: 110, marginBottom: 10 }}>
+              <InputNumber min={1} max={65535} style={{ width: '100%' }} />
+            </Form.Item>
+          </div>
+          <Form.Item name="secure" label="Use SSL/TLS (port 465)" valuePropName="checked" style={{ marginBottom: 10 }}>
+            <Switch />
+          </Form.Item>
+          <Form.Item name="user" label="Username" rules={[{ required: true, message: 'Username required' }]} style={{ marginBottom: 10 }}>
+            <Input placeholder="support@mysilah.ae" autoComplete="off" />
+          </Form.Item>
+          <Form.Item
+            name="pass"
+            label="Password"
+            rules={smtpInfo?.hasPassword ? [] : [{ required: true, message: 'Password required' }]}
+            extra={smtpInfo?.hasPassword ? 'A password is saved. Leave blank to keep it.' : undefined}
+            style={{ marginBottom: 10 }}
+          >
+            <Input.Password placeholder={smtpInfo?.hasPassword ? '••••••••' : 'SMTP password / app password'} autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item name="fromName" label="From Name" style={{ marginBottom: 10 }}>
+            <Input placeholder="MySilah Support" />
+          </Form.Item>
+          <Form.Item name="fromEmail" label="From Email" rules={[{ type: 'email', message: 'Valid email required' }]} extra="Leave blank to use the username." style={{ marginBottom: 0 }}>
+            <Input placeholder="support@mysilah.ae" />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

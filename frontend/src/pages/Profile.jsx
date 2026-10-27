@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Row, Col, Avatar, Tag, Form, Input, Button,
-  Space, Divider, message, Tooltip, Modal, Alert, Dropdown,
+  Space, Divider, message, Tooltip, Modal, Alert, Dropdown, Upload, Checkbox,
 } from 'antd';
 import {
   UserOutlined, MailOutlined, PhoneOutlined, CalendarOutlined,
   CopyOutlined, CheckOutlined, EditOutlined, SaveOutlined,
   CloseOutlined, BankOutlined, IdcardOutlined, LinkOutlined,
-  DeleteOutlined, WarningOutlined, CameraOutlined,
+  DeleteOutlined, WarningOutlined, CameraOutlined, InfoCircleOutlined, UploadOutlined,
+  FilePdfOutlined, FileImageOutlined, CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { updateProfile, logout } from '../store/slices/authSlice';
@@ -51,6 +52,68 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
+// Agent with no super agent (and not under an agency) can join one by code —
+// one-time, so the agent sees the super agent's name and confirms first.
+function JoinSuperAgent({ onJoined }) {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const join = async () => {
+    const clean = code.trim().toUpperCase();
+    if (!clean) { message.error('Enter a super agent code'); return; }
+    setBusy(true);
+    try {
+      const { data: sa } = await api.get('/super-agent/lookup', { params: { code: clean } });
+      Modal.confirm({
+        title: `Join ${sa.name}?`,
+        content: (
+          <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+            <p style={{ margin: '0 0 8px' }}>
+              <strong>{sa.name}</strong> will be your super agent for every lead you submit from now on. Your own commission does not change.
+            </p>
+            <p style={{ margin: '0 0 8px' }}>They will see those leads, but not the customer's phone, email or your commission.</p>
+            <p style={{ margin: 0, color: '#b45309' }}>This is permanent — you can't switch to another super agent or leave later.</p>
+          </div>
+        ),
+        okText: 'Join',
+        onOk: async () => {
+          try {
+            const { data } = await api.post('/super-agent/join', { code: clean });
+            message.success(`You have joined ${data.superAgent.name}`);
+            onJoined(data.superAgent);
+          } catch (err) {
+            message.error(err.response?.data?.message || 'Failed to join');
+          }
+        },
+      });
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Invalid or inactive super agent code');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>
+        Join a Super Agent
+      </div>
+      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>Have a super agent's code? Enter it to join them.</div>
+      <Space.Compact style={{ width: '100%' }}>
+        <Input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          onPressEnter={join}
+          placeholder="Super Agent Code (e.g. SA1A2B3C)"
+          maxLength={20}
+          style={{ fontFamily: 'monospace' }}
+        />
+        <Button type="primary" loading={busy} onClick={join}>Join</Button>
+      </Space.Compact>
+    </div>
+  );
+}
+
 export default function Profile() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -62,6 +125,8 @@ export default function Profile() {
   const [editingBank, setEditingBank] = useState(false);
   const [savingInfo, setSavingInfo]   = useState(false);
   const [savingBank, setSavingBank]   = useState(false);
+  const [chequeFile, setChequeFile]   = useState(null);
+  const [letterFile, setLetterFile]   = useState(null);
   const [copied, setCopied]           = useState(false);
   const [copiedLink, setCopiedLink]   = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
@@ -115,18 +180,32 @@ export default function Profile() {
       accountNumber: profile.bankDetails?.accountNumber || '',
       iban: profile.bankDetails?.iban || '',
       swiftCode: profile.bankDetails?.swiftCode || '',
+      confirmedCorrect: false,
     });
+    setChequeFile(null);
+    setLetterFile(null);
     setEditingBank(true);
   };
-  const cancelEditBank = () => { bankForm.resetFields(); setEditingBank(false); };
+  const cancelEditBank = () => { bankForm.resetFields(); setChequeFile(null); setLetterFile(null); setEditingBank(false); };
 
   const saveBank = async () => {
-    const values = await bankForm.validateFields();
+    let values;
+    try { values = await bankForm.validateFields(); } catch { return; }
+    const b = profile.bankDetails || {};
+    if (!chequeFile && !b.chequeCopy) { message.error('Please upload your cheque copy'); return; }
+    if (!letterFile && !b.bankLetter) { message.error('Please upload your bank letter'); return; }
     setSavingBank(true);
     try {
-      const { data } = await api.patch('/auth/profile', { bankDetails: values });
-      setProfile((p) => ({ ...p, bankDetails: data.user.bankDetails }));
-      message.success('Bank details updated');
+      const fd = new FormData();
+      ['accountHolderName', 'bankName', 'accountNumber', 'iban', 'swiftCode'].forEach((k) => fd.append(k, values[k] || ''));
+      fd.append('confirmedCorrect', 'true');
+      if (chequeFile) fd.append('chequeCopy', chequeFile);
+      if (letterFile) fd.append('bankLetter', letterFile);
+      const { data } = await api.patch('/auth/bank-details', fd);
+      setProfile((p) => ({ ...p, bankDetails: data.bankDetails }));
+      message.success('Bank details submitted for verification');
+      setChequeFile(null);
+      setLetterFile(null);
       setEditingBank(false);
     } catch (err) {
       message.error(err?.response?.data?.message || 'Update failed');
@@ -197,7 +276,7 @@ export default function Profile() {
   const initials = (profile.name || profile.email || '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const role = profile.role;
   const bd = profile.bankDetails || {};
-  const hasBankDetails = bd.accountHolderName || bd.bankName || bd.accountNumber || bd.iban;
+  const hasBankDetails = bd.accountHolderName || bd.bankName || bd.accountNumber || bd.iban || bd.chequeCopy || bd.bankLetter;
   const avatarBg = ROLE_BG[role] || '#7C3AED';
 
   return (
@@ -358,6 +437,40 @@ export default function Profile() {
                     <Form.Item name="swiftCode" label="SWIFT / BIC Code">
                       <Input placeholder="e.g. EBILAEAD" />
                     </Form.Item>
+                    <Form.Item
+                      label={<span>Cheque Copy <Tooltip title="Upload a clear photo or scan of a cancelled cheque (or the cheque leaf) from the same bank account. The account holder name and account number must be visible. JPG, PNG or PDF, max 10MB."><InfoCircleOutlined style={{ color: '#7C3AED' }} /></Tooltip></span>}
+                      required
+                      extra={!chequeFile && bd.chequeCopy ? 'A cheque copy is already uploaded. Choose a file only to replace it.' : undefined}
+                    >
+                      <Upload
+                        accept=".jpg,.jpeg,.png,.pdf" maxCount={1}
+                        fileList={chequeFile ? [chequeFile] : []}
+                        beforeUpload={(f) => { setChequeFile(f); return false; }}
+                        onRemove={() => setChequeFile(null)}
+                      >
+                        <Button icon={<UploadOutlined />}>Select cheque copy</Button>
+                      </Upload>
+                    </Form.Item>
+                    <Form.Item
+                      label={<span>Bank Letter <Tooltip title="Upload an account confirmation / IBAN letter issued and stamped by your bank, showing your name, account number and IBAN. JPG, PNG or PDF, max 10MB."><InfoCircleOutlined style={{ color: '#7C3AED' }} /></Tooltip></span>}
+                      required
+                      extra={!letterFile && bd.bankLetter ? 'A bank letter is already uploaded. Choose a file only to replace it.' : undefined}
+                    >
+                      <Upload
+                        accept=".jpg,.jpeg,.png,.pdf" maxCount={1}
+                        fileList={letterFile ? [letterFile] : []}
+                        beforeUpload={(f) => { setLetterFile(f); return false; }}
+                        onRemove={() => setLetterFile(null)}
+                      >
+                        <Button icon={<UploadOutlined />}>Select bank letter</Button>
+                      </Upload>
+                    </Form.Item>
+                    <Form.Item
+                      name="confirmedCorrect" valuePropName="checked"
+                      rules={[{ validator: (_, v) => (v ? Promise.resolve() : Promise.reject(new Error('Please confirm the information is correct'))) }]}
+                    >
+                      <Checkbox>The information given by me is correct</Checkbox>
+                    </Form.Item>
                     <Space>
                       <Button type="primary" icon={<SaveOutlined />} loading={savingBank} onClick={saveBank}>Save</Button>
                       <Button icon={<CloseOutlined />} onClick={cancelEditBank}>Cancel</Button>
@@ -371,6 +484,20 @@ export default function Profile() {
                   <InfoRow icon={<IdcardOutlined />} label="Account No."  value={bd.accountNumber} />
                   <InfoRow icon={<IdcardOutlined />} label="IBAN"         value={bd.iban} />
                   <InfoRow icon={<IdcardOutlined />} label="SWIFT"        value={bd.swiftCode} />
+                  <InfoRow icon={<FilePdfOutlined />} label="Cheque Copy" value={bd.chequeCopy ? <a href={`${UPLOADS_BASE}/bank-docs/${bd.chequeCopy}`} target="_blank" rel="noreferrer">View</a> : 'Not uploaded'} />
+                  <InfoRow icon={<FileImageOutlined />} label="Bank Letter" value={bd.bankLetter ? <a href={`${UPLOADS_BASE}/bank-docs/${bd.bankLetter}`} target="_blank" rel="noreferrer">View</a> : 'Not uploaded'} />
+                  <InfoRow
+                    icon={<CheckCircleOutlined />} label="Verification"
+                    value={
+                      bd.verificationStatus === 'approved' ? (
+                        <span><Tag color="green">Approved</Tag><span style={{ fontSize: 11, color: '#64748b' }}>by {bd.verifiedBy?.name || bd.verifiedBy?.email || 'MySilah'}{bd.verifiedAt ? ` · ${new Date(bd.verifiedAt).toLocaleDateString()}` : ''}</span></span>
+                      ) : bd.verificationStatus === 'rejected' ? (
+                        <span><Tag color="red" icon={<CloseCircleOutlined />}>Rejected</Tag><span style={{ fontSize: 11, color: '#b91c1c' }}>{bd.rejectReason}</span></span>
+                      ) : bd.verificationStatus === 'pending' ? (
+                        <Tag color="gold" icon={<ClockCircleOutlined />}>Pending verification</Tag>
+                      ) : <Tag>Documents required</Tag>
+                    }
+                  />
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '32px 0' }}>
@@ -394,7 +521,16 @@ export default function Profile() {
                 {profile.referredBy && (
                   <InfoRow icon={<UserOutlined />} label="Referred By" value={profile.referredBy.name || profile.referredBy.email} />
                 )}
+                {profile.isSuperAgent && (
+                  <InfoRow icon={<IdcardOutlined />} label="Super Agent Code" value={<span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#7c3aed', letterSpacing: 1 }}>{profile.superAgentCode}</span>} />
+                )}
+                {profile.superAgent && (
+                  <InfoRow icon={<UserOutlined />} label="Super Agent" value={profile.superAgent.name} />
+                )}
               </div>
+              {!profile.isSuperAgent && !profile.superAgent && !profile.agency && (
+                <JoinSuperAgent onJoined={(sa) => setProfile((p) => ({ ...p, superAgent: sa }))} />
+              )}
               {profile.referralCode && (
                 <div style={{ padding: '12px 20px', borderTop: '1px solid #f1f5f9' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>

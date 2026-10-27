@@ -10,10 +10,10 @@ import api from '../../api/client';
 import NoticeBanner from '../../components/NoticeBanner';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { aed } from '../../utils/dirham';
 
 dayjs.extend(relativeTime);
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 /* ── Trend badge ──────────────────────────────────────────────────── */
 const TrendBadge = ({ delta }) => {
@@ -435,9 +435,9 @@ function RecentActivity({ leads, loading }) {
           const productLabel = lead.productType === 'credit_card' ? 'Credit Card' : 'Loan';
           const bankName = lead.bank?.name || '—';
           const amount = lead.loanAmount
-            ? `AED ${Number(lead.loanAmount).toLocaleString()}`
+            ? aed(lead.loanAmount)
             : lead.commission
-              ? `AED ${Number(lead.commission).toLocaleString()}`
+              ? aed(lead.commission)
               : '';
 
           return (
@@ -466,7 +466,7 @@ function RecentActivity({ leads, loading }) {
                     {lead.customerName}
                   </div>
                   <div style={{ fontSize: 12, color: '#64748b', fontWeight: 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {productLabel} · {bankName}{amount ? ` · ${amount}` : ''}
+                    {productLabel} · {bankName}{amount ? <> · {amount}</> : ''}
                   </div>
                 </div>
 

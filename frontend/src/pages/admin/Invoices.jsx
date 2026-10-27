@@ -3,6 +3,7 @@ import { Button, Table, Modal, Form, Input, Select, InputNumber, Space, Dropdown
 import { PlusOutlined, DownloadOutlined, CheckOutlined, StopOutlined, DeleteOutlined, MinusCircleOutlined, EyeOutlined, MoreOutlined, ExclamationCircleFilled, SettingOutlined, EditOutlined, MessageOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 import InvoiceNotesModal from '../../components/InvoiceNotesModal';
+import { aed } from '../../utils/dirham';
 
 const STATUS_COLORS = { unpaid: 'orange', paid: 'green', cancelled: 'default' };
 
@@ -138,9 +139,10 @@ function Invoices() {
         vatRate: data.vatRate ?? 5,
         dueDays: data.dueDays ?? 15,
         paymentTermsDays: data.paymentTermsDays ?? 30,
-        billToTrn: data.billTo?.trn,
+        billToName: data.billTo?.name,
         billToAddress: data.billTo?.address,
         billToContact: data.billTo?.contact,
+        billToTrn: data.billTo?.trn,
         notes: data.notes,
       });
       setOpen(true);
@@ -200,7 +202,7 @@ function Invoices() {
         notes: values.notes,
         dueDays: values.dueDays,
         paymentTermsDays: values.paymentTermsDays,
-        billTo: { trn: values.billToTrn, address: values.billToAddress, contact: values.billToContact },
+        billTo: { name: values.billToName, address: values.billToAddress, contact: values.billToContact, trn: values.billToTrn },
         vatApplicable: values.vatApplicable,
         vatRate: values.vatRate,
       };
@@ -299,7 +301,7 @@ function Invoices() {
         return <Typography.Text type="secondary">Manual</Typography.Text>;
       },
     },
-    { title: 'Amount', dataIndex: 'amount', render: (v) => `AED ${Number(v || 0).toLocaleString()}` },
+    { title: 'Amount', dataIndex: 'amount', render: (v) => aed(v) },
     {
       title: 'Status', dataIndex: 'status',
       render: (v) => <Tag color={STATUS_COLORS[v] || 'default'}>{v.toUpperCase()}</Tag>,
@@ -381,9 +383,10 @@ function Invoices() {
                 onChange={onLeadsChange}
                 options={leads.map((l) => {
                   const productName = l.cardProduct?.name || l.loanProduct?.name || l.accountProduct?.name || '';
-                  return { value: l._id, label: `${l.leadNumber || l._id} — ${l.customerName}${productName ? ` · ${productName}` : ''} (AED ${Number(l.grossCommission || 0).toLocaleString()})` };
+                  const text = `${l.leadNumber || l._id} — ${l.customerName}${productName ? ` · ${productName}` : ''}`;
+                  return { value: l._id, searchText: text, label: <>{text} ({aed(l.grossCommission)})</> };
                 })}
-                filterOption={(input, opt) => opt.label.toLowerCase().includes(input.toLowerCase())}
+                filterOption={(input, opt) => opt.searchText.toLowerCase().includes(input.toLowerCase())}
                 notFoundContent="No unbilled approved leads for this agency"
               />
             </Form.Item>
@@ -450,14 +453,17 @@ function Invoices() {
 
           <Typography.Text strong>Bill To Details (optional)</Typography.Text>
           <Space style={{ display: 'flex', marginTop: 8 }} wrap>
-            <Form.Item name="billToTrn" style={{ width: 200, marginBottom: 8 }}>
-              <Input placeholder="Agency TRN" />
+            <Form.Item name="billToName" style={{ width: 280, marginBottom: 8 }}>
+              <Input placeholder="Agency Name (blank = agency's name)" />
             </Form.Item>
             <Form.Item name="billToAddress" style={{ width: 280, marginBottom: 8 }}>
               <Input placeholder="Agency Address" />
             </Form.Item>
-            <Form.Item name="billToContact" style={{ width: 200, marginBottom: 8 }}>
+            <Form.Item name="billToContact" style={{ width: 280, marginBottom: 8 }}>
               <Input placeholder="Contact / Email" />
+            </Form.Item>
+            <Form.Item name="billToTrn" style={{ width: 280, marginBottom: 8 }}>
+              <Input placeholder="Agency TRN" />
             </Form.Item>
           </Space>
 

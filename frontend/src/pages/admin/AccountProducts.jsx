@@ -7,6 +7,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, MinusCircleOutlined, Search
 import QuillEditor from '../../components/QuillEditor';
 import api from '../../api/client';
 import BulkToggleBar from '../../components/BulkToggleBar';
+import { aed } from '../../utils/dirham';
 
 const ACCOUNT_CATEGORIES = [
   { value: 'business', label: 'Business Account' },
@@ -208,7 +209,7 @@ function AccountProducts() {
           <Space direction="vertical" size={2}>
             {b.map((br, i) => (
               <Typography.Text key={i} style={{ fontSize: 12 }}>
-                ≥ AED {Number(br.minimumSalary).toLocaleString()} → R: AED {br.receivable} / P: AED {br.payable}
+                ≥ {aed(br.minimumSalary)} → R: {aed(br.receivable)} / P: {aed(br.payable)} / SA: {aed(br.agencyOverride || 0)}
               </Typography.Text>
             ))}
           </Space>
@@ -464,6 +465,15 @@ function AccountProducts() {
                       style={{ marginBottom: 0 }}
                     >
                       <InputNumber min={0} step={50} placeholder="300" style={{ width: 120 }} />
+                    </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'agencyOverride']}
+                      label="SA Differ (AED)"
+                      tooltip="Extra AED paid to the super agent (or tagging agency) of the submitting agent, on top of the agent's own Payable commission. 0 = none."
+                      style={{ marginBottom: 0 }}
+                    >
+                      <InputNumber min={0} step={10} placeholder="50" style={{ width: 150 }} />
                     </Form.Item>
                     <MinusCircleOutlined
                       onClick={() => remove(name)}

@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { Button, Table, Modal, Form, Select, InputNumber, Input, Space, Popconfirm, Typography, Tag, message } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
 const PRODUCTS = [
   { value: 'credit_card', label: 'Credit Card' },
   { value: 'loan', label: 'Loan' },
 ];
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 function AgencyCommissionRules() {
   const [rules, setRules] = useState([]);

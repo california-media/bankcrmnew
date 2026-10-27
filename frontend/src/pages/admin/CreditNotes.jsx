@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button, Table, Modal, Form, Input, Select, InputNumber, Space, Popconfirm, Tag, message, Typography } from 'antd';
 import { PlusOutlined, CheckOutlined, StopOutlined, DeleteOutlined } from '@ant-design/icons';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
 const STATUS_COLORS = { open: 'orange', settled: 'green', cancelled: 'default' };
 
@@ -69,7 +70,7 @@ function CreditNotes() {
   const columns = [
     { title: 'Note #', dataIndex: 'noteNumber', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
     { title: 'Agency', dataIndex: 'agency', render: (a) => a?.name || a?.email || '—' },
-    { title: 'Amount', dataIndex: 'amount', render: (v) => `AED ${Number(v || 0).toLocaleString()}` },
+    { title: 'Amount', dataIndex: 'amount', render: (v) => aed(v) },
     { title: 'Reason', dataIndex: 'reason', render: (v) => v || <Typography.Text type="secondary">—</Typography.Text> },
     {
       title: 'Status', dataIndex: 'status',

@@ -19,6 +19,8 @@ const UAE_PASS_ERROR_MESSAGES = {
   cancelledOnApp:   'User cancelled the login.',
   cancelledOnWeb:   'User cancelled the login.',
   cancelledOnMobile:'User cancelled the login.',
+  account_deactivated: 'Your account has been deactivated. Kindly contact support for activation on support@mysilah.ae',
+  account_not_active: 'Your account is not active yet. Please complete verification or wait for admin approval.',
   unverified_user:  'You are not eligible to access this service. Your account is either not upgraded or you have a visitor account. Please contact MySilah to access the services.',
 };
 
@@ -90,6 +92,7 @@ function Register() {
       password:   values.password,
       phone:      values.phone ? toFullUAEPhone(values.phone) : undefined,
       emiratesId: values.emiratesId,
+      superAgentCode: values.superAgentCode?.trim() || undefined,
       phoneVerifyToken,
     };
     if (values._uaepassSub) payload.uaepassSub = values._uaepassSub;
@@ -199,10 +202,10 @@ function Register() {
 
         {/* Heading */}
         <h2 style={{ fontSize:20, fontWeight:700, color:'#0B0F1E', textAlign:'center', margin:'0 0 2px', letterSpacing:'-0.025em' }}>
-          Agent Registration
+          Referral Partner Registration
         </h2>
         <p style={{ fontSize:13, color:'#6B7186', textAlign:'center', margin:'0 0 12px' }}>
-          Sign up to submit leads and earn commissions
+          Sign up to submit leads and earn incentives
         </p>
 
         {uaepassError && <Alert type="error" message={uaepassError} style={{ marginBottom:12, borderRadius:10 }} closable onClose={() => setUaepassError(null)} />}
@@ -292,6 +295,9 @@ function Register() {
           <Form.Item name="emiratesId" rules={[{ required: true, message: 'Emirates ID is required' }]} style={itemStyle}>
             <Input placeholder="Emirates ID * — 784-XXXX-XXXXXXX-X" style={inputStyle} />
           </Form.Item>
+          <Form.Item name="superAgentCode" style={itemStyle} initialValue={(searchParams.get('sa') || '').toUpperCase() || undefined}>
+            <Input placeholder="Super Referral Partner Code (optional)" style={inputStyle} />
+          </Form.Item>
 
           <Form.Item
             name="agreeToTerms" valuePropName="checked" style={{ marginBottom:10, marginTop:2 }}
@@ -380,12 +386,18 @@ function Register() {
           )}
         </Form>
 
-        <p style={{ textAlign:'center', marginTop:10, marginBottom:0, fontSize:12, color:'#9AA0B4', lineHeight:1.5 }}>
+        <div style={{ textAlign:'center', marginTop:10, marginBottom:0, fontSize:12, color:'#9AA0B4', lineHeight:1.5 }}>
           Already have an account?{' '}
           <Link to="/login" style={{ color:'#7C3AED', fontWeight:500 }}>Login</Link>
-          {' · '}
+          <div style={{ display:'flex', alignItems:'center', gap:10, margin:'8px 0' }}>
+            <span style={{ flex:1, height:1, background:'#E5E7EB' }} />
+            <span style={{ fontSize:12, color:'#9AA0B4' }}>or</span>
+            <span style={{ flex:1, height:1, background:'#E5E7EB' }} />
+          </div>
           <Link to="/register/agency" style={{ color:'#7C3AED', fontWeight:500 }}>Register as Agency</Link>
-        </p>
+          {' · '}
+          <Link to="/register/agency?type=super" style={{ color:'#7C3AED', fontWeight:500 }}>Register as Super Referral Partner</Link>
+        </div>
       </div>
     </div>
   );

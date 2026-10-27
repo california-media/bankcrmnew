@@ -4,6 +4,7 @@ import { Table, Tag, Button, Typography, message, Space, Badge } from 'antd';
 import { DownloadOutlined, EyeOutlined, MessageOutlined } from '@ant-design/icons';
 import api from '../../api/client';
 import InvoiceNotesModal from '../../components/InvoiceNotesModal';
+import { aed } from '../../utils/dirham';
 
 const STATUS_COLORS = { unpaid: 'orange', paid: 'green', cancelled: 'default' };
 
@@ -44,7 +45,7 @@ function AgencyInvoices() {
   const columns = [
     { title: 'Invoice #', dataIndex: 'invoiceNumber', render: (v) => <span style={{ fontWeight: 600 }}>{v}</span> },
     { title: 'Lead', dataIndex: 'lead', render: (l) => l?.leadNumber || <Typography.Text type="secondary">Manual</Typography.Text> },
-    { title: 'Amount', dataIndex: 'amount', render: (v) => `AED ${Number(v || 0).toLocaleString()}` },
+    { title: 'Amount', dataIndex: 'amount', render: (v) => aed(v) },
     {
       title: 'Status', dataIndex: 'status',
       render: (v) => <Tag color={STATUS_COLORS[v] || 'default'}>{v.toUpperCase()}</Tag>,

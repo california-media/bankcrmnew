@@ -48,9 +48,9 @@ const lineStyle = { fontSize: 11.5, color: TEXT_DARK, marginBottom: 4, lineHeigh
 
 function InvoicePreview({ invoice }) {
   if (!invoice) return null;
-  const agencyName = invoice.agency?.name || invoice.agency?.email || '—';
   const items = invoice.lineItems || [];
   const billTo = invoice.billTo || {};
+  const agencyName = billTo.name || invoice.agency?.name || invoice.agency?.email || '—';
   const createdByName = invoice.createdBy?.name || 'MySilah Team';
   const bank = invoice.companySettings?.bank || DEFAULT_BANK;
   const notesLines = invoice.companySettings?.notesLines?.length ? invoice.companySettings.notesLines : DEFAULT_NOTES_LINES;
@@ -110,9 +110,9 @@ function InvoicePreview({ invoice }) {
         <div style={twoColStyle}>
           <div style={{ ...bodyPadStyle, borderRight: `1px solid ${BORDER}` }}>
             <div style={{ ...lineStyle, fontWeight: 700 }}>{agencyName}</div>
-            {billTo.trn && <div style={lineStyle}>TRN: {billTo.trn}</div>}
             {billTo.address && <div style={lineStyle}>{billTo.address}</div>}
             <div style={lineStyle}>Contact / Email: {billTo.contact || invoice.agency?.email || '—'}</div>
+            {billTo.trn && <div style={lineStyle}>TRN: {billTo.trn}</div>}
           </div>
           <div style={bodyPadStyle}>
             <div style={lineStyle}><strong>Invoice No.:</strong> {invoice.invoiceNumber}</div>

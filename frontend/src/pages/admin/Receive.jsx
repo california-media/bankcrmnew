@@ -9,10 +9,10 @@ import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
 const TAB_LABELS = { pending: 'Awaiting Receipt', receipt: 'Receipt Submitted', confirmed: 'Marked Received' };
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || `${API_BASE}/uploads`;
 

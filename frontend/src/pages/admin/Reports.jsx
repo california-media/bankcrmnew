@@ -8,6 +8,7 @@ import {
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
 const { useBreakpoint } = Grid;
 
@@ -25,7 +26,6 @@ const STATUS_TAG = {
 };
 const PRODUCT_LABELS = { credit_card: 'Credit Card', loan: 'Loan' };
 const PIE_COLORS = ['#7C3AED', '#0EA5E9'];
-const aed = v => `AED ${Number(v || 0).toLocaleString()}`;
 
 function AdminReports({ initialTab = 'overview' }) {
   const screens = useBreakpoint();
@@ -356,9 +356,9 @@ function AdminReports({ initialTab = 'overview' }) {
 
   const kpiConfig = [
     ...(initialTab === 'margin' ? [
-      { title: 'Total Paid',     value: aed(marginKpi.paid),     color: '#f97316' },
-      { title: 'Total Received', value: aed(marginKpi.received), color: '#0ea5e9' },
-      { title: 'Total Margin',   value: aed(marginKpi.margin),   color: '#22c55e' },
+      { title: 'Total Paid',     value: marginKpi.paid,     color: '#f97316', money: true },
+      { title: 'Total Received', value: marginKpi.received, color: '#0ea5e9', money: true },
+      { title: 'Total Margin',   value: marginKpi.margin,   color: '#22c55e', money: true },
     ] : [
       { title: 'Total Leads',              value: kpi.total,       color: '#7C3AED' },
       { title: 'WIP (Work in Process)',    value: kpi.wip,         color: '#f97316' },
@@ -473,12 +473,13 @@ function AdminReports({ initialTab = 'overview' }) {
 
       {activeTab === 'overview' && <>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 20, marginTop: 16 }}>
-        {kpiConfig.map(({ title, value, color }) => (
+        {kpiConfig.map(({ title, value, color, money }) => (
           <div key={title} style={{ flex: '1 1 130px', minWidth: 120 }}>
             <Card size="small" style={{ borderRadius: 12, borderTop: `3px solid ${color}`, height: '100%' }}>
               <Statistic
                 title={<span style={{ fontSize: 11, color: '#64748b' }}>{title}</span>}
                 value={value}
+                formatter={money ? (v) => aed(v) : undefined}
                 valueStyle={{ fontSize: 20, fontWeight: 700, color }}
               />
             </Card>

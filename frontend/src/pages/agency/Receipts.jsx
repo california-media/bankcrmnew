@@ -6,6 +6,7 @@ import {
 import { SearchOutlined, FileTextOutlined, UploadOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
+import { aed } from '../../utils/dirham';
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || `${API_BASE}/uploads`;
@@ -126,7 +127,7 @@ export default function AgencyReceipts() {
           return (
             <div>
               <div>{row.loanProduct?.name || 'Loan'}</div>
-              <div style={{ fontSize: 12, color: '#888' }}>AED {Number(row.loanAmount || 0).toLocaleString()}</div>
+              <div style={{ fontSize: 12, color: '#888' }}>{aed(row.loanAmount)}</div>
             </div>
           );
         }

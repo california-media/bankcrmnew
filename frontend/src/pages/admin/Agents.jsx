@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Table, Typography, Button, Modal, Form, Input, InputNumber, Select, message, Space, Popconfirm, Row, Col, Card, Tag, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, StopOutlined, CheckCircleOutlined, TableOutlined, AppstoreOutlined, LockOutlined, EyeOutlined } from '@ant-design/icons';
+import { Table, Typography, Button, Modal, Form, Input, InputNumber, Select, message, Space, Popconfirm, Row, Col, Card, Tag, Tooltip, Tabs, Badge } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, StopOutlined, CheckCircleOutlined, TableOutlined, AppstoreOutlined, LockOutlined, EyeOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/client';
+import PendingSuperAgents from './PendingSuperAgents';
+import { aed } from '../../utils/dirham';
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const ColHead = ({ children }) => (
   <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.8, textTransform: 'uppercase' }}>{children}</span>
@@ -55,7 +56,7 @@ const AgentAvatar = ({ name }) => {
   );
 };
 
-function AdminAgents() {
+function AdminAgents({ superOnly = false }) {
   const navigate = useNavigate();
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -69,14 +70,22 @@ function AdminAgents() {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwForm] = Form.useForm();
   const [agencies, setAgencies] = useState([]);
+  const [tab, setTab] = useState('all');
+  const [pending, setPending] = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+
+  const loadPending = () => {
+    setPendingLoading(true);
+    api.get('/admin/agencies/pending', { params: { type: 'super' } }).then((res) => setPending(res.data)).finally(() => setPendingLoading(false));
+  };
 
   const load = () => {
     setLoading(true);
-    api.get('/admin/agents').then((res) => setAgents(res.data)).finally(() => setLoading(false));
+    api.get(superOnly ? '/admin/super-agents' : '/admin/agents').then((res) => setAgents(res.data)).finally(() => setLoading(false));
   };
   const loadAgencies = () => api.get('/agencies').then((res) => setAgencies(res.data)).catch(() => {});
 
-  useEffect(() => { load(); loadAgencies(); }, []);
+  useEffect(() => { load(); loadAgencies(); if (superOnly) loadPending(); }, []);
 
   const onSubmit = async () => {
     const values = await form.validateFields();
@@ -102,6 +111,7 @@ function AdminAgents() {
       phone: row.phone || '',
       holdPct: row.holdPct || 0,
       agency: row.agency?._id || row.agency || null,
+      superAgentCode: row.superAgent?.superAgentCode || '',
     });
   };
 
@@ -117,6 +127,20 @@ function AdminAgents() {
       message.error(err.response?.data?.message || 'Failed to update');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const confirmToggle = (row) => {
+    if (row.isSuperAgent && row.isActive) {
+      Modal.confirm({
+        title: 'Deactivate this super agent?',
+        content: 'Leads already submitted keep their commission, but all sub-agents will be detached and go to MySilah directly. New leads from them will no longer earn this super agent anything.',
+        okText: 'Deactivate',
+        okButtonProps: { danger: true },
+        onOk: () => onToggleActive(row),
+      });
+    } else {
+      onToggleActive(row);
     }
   };
 
@@ -164,7 +188,10 @@ function AdminAgents() {
       title: <ColHead>Agent</ColHead>,
       render: (_, row) => (
         <div style={{ lineHeight: 1.5 }}>
-          <div style={{ fontWeight: 500, fontSize: 14, color: '#0f172a' }}>{row.name || '—'}</div>
+          <div style={{ fontWeight: 500, fontSize: 14, color: '#0f172a' }}>
+            {row.name || '—'}
+            {row.isSuperAgent && <Tag color="purple" style={{ marginLeft: 8, fontSize: 10 }}>SUPER AGENT</Tag>}
+          </div>
           <div style={{ fontSize: 12, color: '#94a3b8' }}>{row.email}</div>
           {row.phone && <div style={{ fontSize: 11, color: '#64748b' }}>{row.phone}</div>}
         </div>
@@ -175,6 +202,18 @@ function AdminAgents() {
       dataIndex: 'referralCode',
       width: 130,
       render: (v) => <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: '#1d4ed8' }}>{v || '—'}</span>,
+    },
+    {
+      title: <ColHead>Super Agent</ColHead>,
+      width: 150,
+      render: (_, row) => row.isSuperAgent ? (
+        <div style={{ lineHeight: 1.4 }}>
+          <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>{row.superAgentCode}</span>
+          <div style={{ fontSize: 11, color: '#64748b' }}>{row.subAgentCount || 0} sub-agent{row.subAgentCount === 1 ? '' : 's'}</div>
+        </div>
+      ) : row.superAgent ? (
+        <span style={{ fontSize: 12, color: '#334155' }}>{row.superAgent.name || row.superAgent.email}</span>
+      ) : <span style={{ color: '#cbd5e1' }}>—</span>,
     },
     {
       title: <ColHead>Referred By</ColHead>,
@@ -235,7 +274,7 @@ function AdminAgents() {
             <Button size="small" type="text" icon={<LockOutlined />} onClick={() => openResetPassword(row)} style={{ color: '#64748b' }} />
           </Tooltip>
           <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
-            <Button size="small" type="text" icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />} onClick={() => onToggleActive(row)} style={{ color: row.isActive ? '#f59e0b' : '#16a34a' }} />
+            <Button size="small" type="text" icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />} onClick={() => confirmToggle(row)} style={{ color: row.isActive ? '#f59e0b' : '#16a34a' }} />
           </Tooltip>
           <Popconfirm title="Delete agent?" description="This cannot be undone." onConfirm={() => onDelete(row._id)} okText="Delete" okButtonProps={{ danger: true }}>
             <Tooltip title="Delete">
@@ -250,17 +289,41 @@ function AdminAgents() {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', rowGap: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>Agents</h2>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600, color: '#0f172a' }}>{superOnly ? 'Super Agents' : 'Agents'}</h2>
         <div style={{ display: 'flex', gap: 8 }}>
           <Button icon={<TableOutlined />} type={viewMode === 'table' ? 'primary' : 'default'} onClick={() => setViewMode('table')}>Table</Button>
           <Button icon={<AppstoreOutlined />} type={viewMode === 'card' ? 'primary' : 'default'} onClick={() => setViewMode('card')}>Cards</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setOpen(true); }}>
-            Add Agent
-          </Button>
+          {!superOnly && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setOpen(true); }}>
+              Add Agent
+            </Button>
+          )}
         </div>
       </div>
 
-      {viewMode === 'table' ? (
+      {superOnly && (
+        <Tabs
+          activeKey={tab}
+          onChange={setTab}
+          items={[
+            { key: 'all', label: <span>All Super Agents ({agents.length})</span> },
+            {
+              key: 'pending',
+              label: (
+                <span>
+                  <ClockCircleOutlined style={{ color: '#f59e0b', marginRight: 5 }} />
+                  Pending Approval
+                  {pending.length > 0 && <Badge count={pending.length} style={{ marginLeft: 8, backgroundColor: '#f59e0b' }} />}
+                </span>
+              ),
+            },
+          ]}
+        />
+      )}
+
+      {superOnly && tab === 'pending' ? (
+        <PendingSuperAgents pending={pending} loading={pendingLoading} onChanged={() => { loadPending(); load(); }} />
+      ) : viewMode === 'table' ? (
         <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
           <Table size="small" rowKey="_id" loading={loading} dataSource={agents} columns={columns} scroll={{ x: 'max-content' }} />
         </div>
@@ -337,7 +400,7 @@ function AdminAgents() {
                       <Button size="small" type="text" icon={<LockOutlined />} onClick={() => openResetPassword(row)} style={{ color: '#64748b' }} />
                     </Tooltip>
                     <Tooltip title={row.isActive ? 'Deactivate' : 'Activate'}>
-                      <Button size="small" type="text" icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />} onClick={() => onToggleActive(row)} style={{ color: row.isActive ? '#f59e0b' : '#16a34a' }} />
+                      <Button size="small" type="text" icon={row.isActive ? <StopOutlined /> : <CheckCircleOutlined />} onClick={() => confirmToggle(row)} style={{ color: row.isActive ? '#f59e0b' : '#16a34a' }} />
                     </Tooltip>
                     <Popconfirm title="Delete agent?" description="This cannot be undone." onConfirm={() => onDelete(row._id)} okText="Delete" okButtonProps={{ danger: true }}>
                       <Tooltip title="Delete"><Button size="small" type="text" danger icon={<DeleteOutlined />} /></Tooltip>
@@ -365,6 +428,9 @@ function AdminAgents() {
           <Form.Item name="phone" label="Phone">
             <Input />
           </Form.Item>
+          <Form.Item name="superAgentCode" label="Super Agent Code (optional)">
+            <Input placeholder="e.g. SA1A2B3C" style={{ textTransform: 'uppercase' }} />
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -387,6 +453,15 @@ function AdminAgents() {
           >
             <InputNumber min={0} max={100} formatter={(v) => `${v}%`} parser={(v) => v.replace('%', '')} style={{ width: '100%' }} />
           </Form.Item>
+          {!editTarget?.isSuperAgent && (
+            <Form.Item
+              name="superAgentCode"
+              label="Super Agent Code"
+              tooltip="Attaches this agent under a super agent (the super agent earns a share of this agent's commissions). Leave blank for none."
+            >
+              <Input placeholder="e.g. SA1A2B3C" style={{ textTransform: 'uppercase' }} />
+            </Form.Item>
+          )}
           <Form.Item
             name="agency"
             label="Tagged Agency"

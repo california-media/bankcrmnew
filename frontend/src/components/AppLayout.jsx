@@ -9,11 +9,13 @@ import {
   UserAddOutlined, SyncOutlined, MessageOutlined, ProjectOutlined, WalletOutlined,
   SettingOutlined, MailOutlined, NotificationOutlined, ReadOutlined, FileProtectOutlined,
   BarChartOutlined, StarOutlined, RiseOutlined, LockOutlined, GiftOutlined, FolderOutlined,
+  CustomerServiceOutlined, ApartmentOutlined,
 } from '@ant-design/icons';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout, updateProfile } from '../store/slices/authSlice';
 import { NotificationsProvider, useNotificationsContext } from '../contexts/NotificationsContext';
+import { withDirham } from '../utils/dirham';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
@@ -47,6 +49,7 @@ const menusByRole = {
     { key: '/admin',                   icon: <DashboardOutlined />,    label: <Link to="/admin">Overview</Link> },
     { key: '/admin/leads',             icon: <AuditOutlined />,        label: <Link to="/admin/leads">All Leads</Link> },
     { key: '/admin/agents',            icon: <IdcardOutlined />,       label: <Link to="/admin/agents">Agents</Link> },
+    { key: '/admin/super-agents',      icon: <ApartmentOutlined />,    label: <Link to="/admin/super-agents">Super Agents</Link> },
     { key: '/admin/agencies',          icon: <TeamOutlined />,         label: <Link to="/admin/agencies">Agencies</Link> },
     { key: '/admin/banks',             icon: <BankOutlined />,         label: <Link to="/admin/banks">Banks</Link> },
     { key: '/admin/card-products',     icon: <CreditCardOutlined />,   label: <Link to="/admin/card-products">Card Products</Link> },
@@ -62,7 +65,8 @@ const menusByRole = {
     { key: '/admin/pipeline',          icon: <ProjectOutlined />,      label: <Link to="/admin/pipeline">Pipeline</Link> },
     { key: '/admin/consent-logs',      icon: <MessageOutlined />,      label: <Link to="/admin/consent-logs">Consent Logs</Link> },
     { key: '/admin/bucket-requests',   icon: <WalletOutlined />,       label: <Link to="/admin/bucket-requests">Bucket Requests</Link> },
-    { key: '/admin/inquiries',         icon: <MailOutlined />,         label: <Link to="/admin/inquiries">Inquiries</Link> },
+    { key: '/admin/inquiries',         icon: <MailOutlined />,         label: <Link to="/admin/inquiries">Requests</Link> },
+    { key: '/admin/support',           icon: <CustomerServiceOutlined />, label: <Link to="/admin/support">Support Tickets</Link> },
     { key: '/admin/notifications',     icon: <BellOutlined />,         label: <Link to="/admin/notifications">Notifications</Link> },
     { key: '/admin/notices',           icon: <NotificationOutlined />, label: <Link to="/admin/notices">Notices</Link> },
     { key: '/admin/blog',              icon: <ReadOutlined />,         label: <Link to="/admin/blog">Blog Posts</Link> },
@@ -86,6 +90,7 @@ const menusByRole = {
     { key: '/agent/settings',         icon: <SettingOutlined />,      label: <Link to="/agent/settings">Settings</Link> },
     { key: '/agent/promotions',       icon: <GiftOutlined />,         label: <Link to="/agent/promotions">Promotion</Link> },
     { key: '/agent/resources',        icon: <FolderOutlined />,       label: <Link to="/agent/resources">Resources</Link> },
+    { key: '/agent/support',          icon: <CustomerServiceOutlined />, label: <Link to="/agent/support">Support</Link> },
   ],
   agency: [
     { key: '/agency',                 icon: <DashboardOutlined />,    label: <Link to="/agency">Dashboard</Link> },
@@ -101,6 +106,7 @@ const menusByRole = {
     { key: '/agency/reports',         icon: <BarChartOutlined />,     label: <Link to="/agency/reports">Reports</Link> },
     { key: '/agency/roles-permissions', icon: <IdcardOutlined />,     label: <Link to="/agency/roles-permissions">Roles & Permissions</Link> },
     { key: '/agency/resources',       icon: <FolderOutlined />,       label: <Link to="/agency/resources">Resources</Link> },
+    { key: '/agency/support',         icon: <CustomerServiceOutlined />, label: <Link to="/agency/support">Support</Link> },
   ],
   employee: [
     { key: '/employee',               icon: <DashboardOutlined />,    label: <Link to="/employee">Dashboard</Link> },
@@ -109,11 +115,13 @@ const menusByRole = {
     { key: '/employee/consent-logs',  icon: <MessageOutlined />,      label: <Link to="/employee/consent-logs">Consent Logs</Link> },
     { key: '/employee/notifications', icon: <BellOutlined />,         label: <Link to="/employee/notifications">Notifications</Link> },
     { key: '/employee/resources',     icon: <FolderOutlined />,       label: <Link to="/employee/resources">Resources</Link> },
+    { key: '/employee/support',       icon: <CustomerServiceOutlined />, label: <Link to="/employee/support">Support</Link> },
   ],
   blog_editor: [
     { key: '/blog_editor',            icon: <ReadOutlined />,   label: <Link to="/blog_editor">Blog Posts</Link> },
     { key: '/blog_editor/blog',       icon: <ReadOutlined />,   label: <Link to="/blog_editor/blog">Blog Posts</Link> },
     { key: '/blog_editor/profile',    icon: <UserOutlined />,   label: <Link to="/blog_editor/profile">Profile</Link> },
+    { key: '/blog_editor/support',    icon: <CustomerServiceOutlined />, label: <Link to="/blog_editor/support">Support</Link> },
   ],
 };
 
@@ -122,9 +130,9 @@ const menusByRole = {
 // unfiltered ("all access" is the point of Coordinator); the other three
 // scopes only see the menu keys listed here.
 const ADMIN_SCOPE_MENU_KEYS = {
-  product: ['/admin/banks', '/admin/card-products', '/admin/loan-products', '/admin/account-products', '/admin/featured-products'],
-  leads:   ['/admin', '/admin/leads', '/admin/pipeline', '/admin/employee-statuses', '/admin/consent-logs', '/admin/reports-group'],
-  finance: ['/admin/payouts', '/admin/receive', '/admin/bucket-requests', '/admin/reports-group'],
+  product: ['/admin/banks', '/admin/card-products', '/admin/loan-products', '/admin/account-products', '/admin/featured-products', '/admin/support'],
+  leads:   ['/admin', '/admin/leads', '/admin/pipeline', '/admin/employee-statuses', '/admin/consent-logs', '/admin/reports-group', '/admin/support'],
+  finance: ['/admin/payouts', '/admin/receive', '/admin/bucket-requests', '/admin/reports-group', '/admin/support'],
 };
 
 // Agency Coordinator/Account Access — an 'employee' role, but filtered from
@@ -133,8 +141,8 @@ const ADMIN_SCOPE_MENU_KEYS = {
 // note as ADMIN_SCOPE_MENU_KEYS above: visibility only, backend enforces
 // the real boundary per allowEmployeeTypes() in auth.middleware.js.
 const AGENCY_EMPLOYEE_TYPE_MENU_KEYS = {
-  coordinator: ['/agency', '/agency/leads', '/agency/pipeline', '/agency/employees', '/agency/consent-logs', '/agency/notifications', '/agency/reports', '/agency/resources'],
-  account:     ['/agency', '/agency/payouts', '/agency/invoices', '/agency/reports'],
+  coordinator: ['/agency', '/agency/leads', '/agency/pipeline', '/agency/employees', '/agency/consent-logs', '/agency/notifications', '/agency/reports', '/agency/resources', '/agency/support'],
+  account:     ['/agency', '/agency/payouts', '/agency/invoices', '/agency/reports', '/agency/support'],
 };
 
 const titleByRole = { admin: 'Admin', agency: 'Agency', agent: 'Agent', employee: 'Employee', blog_editor: 'Blog Editor' };
@@ -154,7 +162,8 @@ function NotifDropdown({ notifications, role, markRead, markAllRead, navigate })
         <div
           key={n._id}
           onClick={() => {
-            if (n.lead) navigate(`/${role}/leads/${n.lead}`);
+            if (n.type === 'support_ticket') navigate(`/${role}/support`);
+            else if (n.lead) navigate(`/${role}/leads/${n.lead}`);
             else if (n.invoice) navigate(`/${role}/invoices`);
             if (!n.isRead) markRead([String(n._id)]);
           }}
@@ -173,7 +182,7 @@ function NotifDropdown({ notifications, role, markRead, markAllRead, navigate })
             <div style={{ fontWeight: n.isRead ? 400 : 600, fontSize: 13, color: '#0f172a' }}>
               {({ 'New Lead Submitted': 'New Lead', 'Lead Approved': 'Application Approved', 'Lead Disbursed': 'Application Disbursed', 'Lead Rejected': 'Application Rejected' }[n.title] || n.title)}
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.body}</div>
+            <div style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{withDirham(n.body)}</div>
             <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{dayjs(n.createdAt).fromNow()}</div>
           </div>
           {!n.isRead && <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', marginTop: 5, flexShrink: 0 }} />}
@@ -210,9 +219,18 @@ function AppLayoutInner() {
     : menusByRole[user.role] || [];
   const allowedAdminKeys = user.role === 'admin' ? ADMIN_SCOPE_MENU_KEYS[user.adminScope] : null;
   const scopedItems = allowedAdminKeys ? baseItems.filter((item) => allowedAdminKeys.includes(item.key)) : baseItems;
-  const items = user.role === 'agency' && user.canViewPayouts
+  let items = user.role === 'agency' && user.canViewPayouts
     ? [...scopedItems, { key: '/agency/agent-payouts', icon: <DollarOutlined />, label: <Link to="/agency/agent-payouts">Agent Payouts</Link> }]
     : scopedItems;
+  // Super Agent = the agent sidebar plus their sub-agent views
+  if (user.role === 'agent' && user.isSuperAgent) {
+    const superAgentItems = [
+      { key: '/agent/sub-agents',      icon: <ApartmentOutlined />,       label: <Link to="/agent/sub-agents">My Sub-Agents</Link> },
+      { key: '/agent/sub-agent-leads', icon: <AuditOutlined />,           label: <Link to="/agent/sub-agent-leads">Sub-Agent Leads</Link> },
+    ];
+    const at = items.findIndex((i) => i.key === '/agent/leads/new') + 1;
+    items = [...items.slice(0, at), ...superAgentItems, ...items.slice(at)];
+  }
   const effectiveTitle = agencyEmployeeKeys ? AGENCY_EMPLOYEE_TYPE_TITLE[user.employeeType] : titleByRole[user.role];
   const roleColor = ROLE_COLORS[user.role] || '#1e40af';
 
@@ -402,7 +420,7 @@ function AppLayoutInner() {
 
           <div style={{ minWidth: 0, flex: '0 1 auto' }}>
             <Typography.Text style={{ fontSize: isMobile ? 13 : 14, fontWeight: 500, color: '#374151', whiteSpace: 'nowrap', display: 'block' }}>
-              {effectiveTitle} Panel
+              {user.role === 'agent' ? (user.isSuperAgent ? 'Super Agent' : 'Referral Partner') : effectiveTitle} Panel
             </Typography.Text>
             {!isMobile && (
               <div style={{ fontSize: 11, color: '#b0b8c8', marginTop: 1, fontWeight: 400 }}>

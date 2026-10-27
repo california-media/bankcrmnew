@@ -15,6 +15,8 @@ const UAE_PASS_ERROR_MESSAGES = {
   cancelledOnApp:   'User cancelled the login.',
   cancelledOnWeb:   'User cancelled the login.',
   cancelledOnMobile:'User cancelled the login.',
+  account_deactivated: 'Your account has been deactivated. Kindly contact support for activation on support@mysilah.ae',
+  account_not_active: 'Your account is not active yet. Please complete verification or wait for admin approval.',
   unverified_user:  'You are not eligible to access this service. Your account is either not upgraded or you have a visitor account. Please contact MySilah to access the services.',
 };
 
@@ -215,7 +217,7 @@ function Login() {
           </div>
 
           <p style={{ fontSize: 12, color: '#9AA0B4', textAlign: 'center', margin: '16px 0 0', lineHeight: 1.6 }}>
-            New agent?{' '}
+            New referral partner?{' '}
             <Link to="/register" style={{ color: '#7C3AED', fontWeight: 500 }}>Create an account</Link>
             {' '}· By signing in you agree to MySilah's <a href="https://mysilah.ae/terms.html" target='_blank'>Terms</a> and <a href="https://mysilah.ae/privacy-policy.html" target='_blank'> Privacy Policy</a>.
           </p>

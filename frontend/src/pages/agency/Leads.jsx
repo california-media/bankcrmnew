@@ -12,6 +12,7 @@ import api from '../../api/client';
 import exportLeadsToExcel from '../../utils/exportLeadsExcel';
 import downloadLeadImportTemplate from '../../utils/importLeadsTemplate';
 import { ACTION_LABELS, getLoanActions, LOAN_MILESTONES } from '../../utils/loanActions';
+import { aed, aedText, aedSymbol } from '../../utils/dirham';
 
 const STATUSES = [
   { value: 'submitted', label: 'New Lead', color: 'blue' },
@@ -32,7 +33,6 @@ const TERMINAL_STATUSES  = ['disbursed', 'rejected'];
 const LOAN_EDITABLE_FROM = ['submitted', 'under_review', 'assigned', 'approved'];
 const REJECTABLE_FROM    = ['submitted', 'under_review', 'assigned'];
 
-const aed = (n) => `AED ${Number(n || 0).toLocaleString()}`;
 
 const STATUS_PILL = {
   submitted:    { bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6', text: '#1d4ed8', label: 'NEW LEAD' },
@@ -95,7 +95,7 @@ const buildWhatsAppUrl = (row) => {
       ? (row.accountProduct?.name || 'Account')
       : (row.loanProduct?.name || 'Loan');
   const amountPart = row.productType === 'loan' && row.loanAmount
-    ? ` of ${aed(row.loanAmount)}`
+    ? ` of ${aedText(row.loanAmount)}`
     : '';
   const msg = `Hi ${customer}, Inizio Global here on behalf of ${bank}. Please confirm you authorize us to process your ${product} application${amountPart}. Reply YES to consent or STOP to cancel.`;
   const phone = (row.phone || '').replace(/[^0-9]/g, '');
@@ -160,6 +160,25 @@ function AgencyLeads() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const undoApproval = (id) => {
+    Modal.confirm({
+      title: 'Undo approval?',
+      content: 'The lead goes back to its previous stage and the locked commission figures are cleared.',
+      okText: 'Undo approval',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await api.patch(`/leads/${id}/undo-approval`);
+          message.success('Approval undone');
+          load();
+        } catch (err) {
+          message.error(err.response?.data?.message || 'Failed to undo approval');
+          throw err;
+        }
+      },
+    });
   };
 
   useEffect(() => {
@@ -605,7 +624,8 @@ function AgencyLeads() {
           milestoneButtons = loanActions.buttons;
           canDisburse = loanActions.canDisburse;
         }
-        if (!canApprove && !milestoneButtons.length && !canDisburse && !canEditLoan && !canReject) return null;
+        const canUndo = row.status === 'approved';
+        if (!canApprove && !milestoneButtons.length && !canDisburse && !canEditLoan && !canReject && !canUndo) return null;
         return (
           <Space size={4} wrap onClick={(e) => e.stopPropagation()}>
             {canApprove && <Button size="small" type="primary" onClick={() => openStatusModal(row._id, 'approved', 'Approved')}>Approve</Button>}
@@ -615,6 +635,7 @@ function AgencyLeads() {
             {canDisburse && <Button size="small" onClick={() => openStatusModal(row._id, 'disbursed', 'Disbursed')}>Disburse</Button>}
             {canEditLoan && <Button size="small" icon={<EditOutlined />} onClick={() => openLoanEdit(row)} />}
             {canReject && <Button size="small" danger onClick={() => openStatusModal(row._id, 'rejected', 'Rejected')}>Reject</Button>}
+            {canUndo && <Button size="small" onClick={() => undoApproval(row._id)}>Undo Approval</Button>}
           </Space>
         );
       },
@@ -990,7 +1011,7 @@ function AgencyLeads() {
         )}
         <Form form={loanForm} layout="vertical">
           <Form.Item name="loanAmount" label="Loan Amount (AED)" rules={[{ required: true, message: 'Loan amount is required' }]}>
-            <InputNumber min={1} step={1000} style={{ width: '100%' }} prefix="AED" />
+            <InputNumber min={1} step={1000} style={{ width: '100%' }} prefix={aedSymbol()} />
           </Form.Item>
         </Form>
       </Modal>

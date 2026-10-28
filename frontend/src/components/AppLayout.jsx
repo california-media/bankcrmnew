@@ -56,6 +56,7 @@ const menusByRole = {
     { key: '/admin/loan-products',     icon: <FundOutlined />,         label: <Link to="/admin/loan-products">Loan Products</Link> },
     { key: '/admin/account-products',  icon: <BankOutlined />,         label: <Link to="/admin/account-products">Account Products</Link> },
     { key: '/admin/featured-products', icon: <StarOutlined />,         label: <Link to="/admin/featured-products">Featured Products</Link> },
+    { key: '/admin/product-of-month',  icon: <GiftOutlined />,         label: <Link to="/admin/product-of-month">Product of the Month</Link> },
     { key: '/admin/payouts',           icon: <DollarOutlined />,       label: <Link to="/admin/payouts">Payouts</Link> },
     { key: '/admin/receive',           icon: <InboxOutlined />,        label: <Link to="/admin/receive">Receive</Link> },
     { key: '/admin/agency-ledger',     icon: <WalletOutlined />,       label: <Link to="/admin/agency-ledger">Agency Ledger</Link> },
@@ -131,7 +132,7 @@ const menusByRole = {
 // unfiltered ("all access" is the point of Coordinator); the other three
 // scopes only see the menu keys listed here.
 const ADMIN_SCOPE_MENU_KEYS = {
-  product: ['/admin/banks', '/admin/card-products', '/admin/loan-products', '/admin/account-products', '/admin/featured-products', '/admin/support'],
+  product: ['/admin/banks', '/admin/card-products', '/admin/loan-products', '/admin/account-products', '/admin/featured-products', '/admin/product-of-month', '/admin/support'],
   leads:   ['/admin', '/admin/leads', '/admin/pipeline', '/admin/employee-statuses', '/admin/consent-logs', '/admin/reports-group', '/admin/support'],
   finance: ['/admin/payouts', '/admin/receive', '/admin/bucket-requests', '/admin/reports-group', '/admin/support'],
 };

@@ -67,6 +67,7 @@ import LegalPages from './pages/admin/LegalPages';
 import AdminReports from './pages/admin/Reports';
 import ManageAdmins from './pages/admin/ManageAdmins';
 import CoinsVouchers from './pages/admin/CoinsVouchers';
+import ProductOfMonth from './pages/admin/ProductOfMonth';
 import AgencyReports from './pages/agency/Reports';
 import AgentReports from './pages/agent/Reports';
 import VerifyEmail from './pages/VerifyEmail';
@@ -157,6 +158,7 @@ function App() {
           <Route path="agents/:id" element={<AgentDetail />} />
           <Route path="card-products" element={<CardProducts />} />
           <Route path="featured-products" element={<FeaturedProducts />} />
+          <Route path="product-of-month" element={<ProductOfMonth />} />
           <Route path="resources" element={<AdminResources />} />
           <Route path="loan-products" element={<LoanProducts />} />
           <Route path="account-products" element={<AccountProducts />} />

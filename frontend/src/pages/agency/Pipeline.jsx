@@ -185,6 +185,11 @@ export default function Pipeline() {
 
   const getColId = (lead) => lead.employeeStatus?._id || '__none__';
   const leadsForCol = (colId) => filtered.filter((l) => getColId(l) === colId);
+  // Leads with no stage are counted in the Credit Card / Loan totals but sit in no stage column,
+  // so show them in a grey "No stage" column at the end; the columns then add up to the totals.
+  const boardColumns = filtered.some((l) => getColId(l) === '__none__')
+    ? [...columns, { _id: '__none__', label: 'No stage', color: 'default' }]
+    : columns;
 
   const creditCardCount = leads.filter((l) => l.productType === 'credit_card').length;
   const loanCount       = leads.filter((l) => l.productType === 'loan').length;
@@ -283,7 +288,7 @@ export default function Pipeline() {
           overflowY: 'hidden',
         }}
       >
-        {columns.map((col) => {
+        {boardColumns.map((col) => {
           const colId = String(col._id);
           const colLeads = leadsForCol(colId);
           const colors = COLOR_MAP[col.color] || COLOR_MAP.default;
@@ -385,7 +390,7 @@ export default function Pipeline() {
           );
         })}
 
-        {columns.length === 0 && (
+        {boardColumns.length === 0 && (
           <div style={{ color: '#94a3b8', fontSize: 13, padding: 24 }}>
             No pipeline stages configured. Add lead labels in Admin → Lead Status.
           </div>

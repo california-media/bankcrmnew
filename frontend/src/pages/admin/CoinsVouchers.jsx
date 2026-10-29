@@ -24,6 +24,10 @@ function SettingsTab() {
   const [inviteEnabled, setInviteEnabled] = useState(true);
   const [inviteReward, setInviteReward] = useState(0);
   const [segments, setSegments] = useState([]);
+  const [tiers, setTiers] = useState([]);
+  const [bonuses, setBonuses] = useState([]);
+  const [promoText, setPromoText] = useState('');
+  const [missions, setMissions] = useState([]);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [error, setError] = useState('');
 
@@ -32,6 +36,10 @@ function SettingsTab() {
     setInviteEnabled(!!s.inviteEnabled);
     setInviteReward(s.inviteReward);
     setSegments((s.spinSegments || []).map((x) => ({ coins: x.coins, weight: x.weight })));
+    setTiers((s.tiers || []).map((x) => ({ name: x.name, minCoins: x.minCoins })));
+    setBonuses((s.streakBonuses || []).map((x) => ({ days: x.days, coins: x.coins })));
+    setPromoText(s.promoText || '');
+    setMissions((s.missions || []).map((x) => ({ key: x.key, title: x.title, enabled: !!x.enabled, target: x.target, coins: x.coins })));
     setUpdatedAt(s.updatedAt);
   };
 
@@ -43,6 +51,10 @@ function SettingsTab() {
   }, []);
 
   const setSeg = (i, patch) => setSegments((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const patchRow = (setter) => (i, patch) => setter((prev) => prev.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const setTier = patchRow(setTiers);
+  const setBonus = patchRow(setBonuses);
+  const setMission = patchRow(setMissions);
   const totalWeight = segments.reduce((sum, s) => sum + (Number(s.weight) > 0 ? Number(s.weight) : 0), 0);
   const pct = (s) => (totalWeight > 0 && Number(s.weight) > 0 ? ((Number(s.weight) / totalWeight) * 100).toFixed(1) : '0.0');
 
@@ -58,6 +70,31 @@ function SettingsTab() {
     }
     if (!isWhole(inviteReward) || Number(inviteReward) < 0) return setError('Invite reward must be a whole number of coins');
     if (Number(inviteReward) > MAX) return setError('Invite reward must be at most 1,000,000 coins');
+    if (tiers.length < 1 || tiers.length > 10) return setError('Levels need 1 to 10 rows');
+    const names = new Set();
+    for (let i = 0; i < tiers.length; i += 1) {
+      const name = String(tiers[i].name || '').trim();
+      const min = tiers[i].minCoins;
+      if (!name || name.length > 30) return setError(`Level ${i + 1}: name is required (up to 30 characters)`);
+      if (names.has(name.toLowerCase())) return setError(`Level ${i + 1}: names must be unique`);
+      names.add(name.toLowerCase());
+      if (!isWhole(min) || Number(min) < 0 || Number(min) > MAX) return setError(`Level ${i + 1}: minimum coins must be a whole number from 0 to 1,000,000`);
+      if (i === 0 && Number(min) !== 0) return setError('The first level must start at 0 coins');
+      if (i > 0 && Number(min) <= Number(tiers[i - 1].minCoins)) return setError(`Level ${i + 1}: must need more coins than level ${i}`);
+    }
+    const days = new Set();
+    for (let i = 0; i < bonuses.length; i += 1) {
+      const { days: d, coins } = bonuses[i];
+      if (!isWhole(d) || Number(d) < 2 || Number(d) > 365) return setError(`Streak bonus ${i + 1}: days must be a whole number from 2 to 365`);
+      if (days.has(Number(d))) return setError(`Streak bonus ${i + 1}: days must be different for each bonus`);
+      days.add(Number(d));
+      if (!isWhole(coins) || Number(coins) < 1 || Number(coins) > MAX) return setError(`Streak bonus ${i + 1}: coins must be a whole number from 1 to 1,000,000`);
+    }
+    if (promoText.trim().length > 120) return setError('Promo strip text must be at most 120 characters');
+    for (const m of missions) {
+      if (!isWhole(m.target) || Number(m.target) < 1 || Number(m.target) > 1000) return setError(`${m.title}: target must be a whole number from 1 to 1,000`);
+      if (!isWhole(m.coins) || Number(m.coins) < 0 || Number(m.coins) > MAX) return setError(`${m.title}: coins must be a whole number from 0 to 1,000,000`);
+    }
     setSaving(true);
     try {
       const res = await api.put('/admin/coins/settings', {
@@ -65,6 +102,10 @@ function SettingsTab() {
         spinSegments: segments.map((s) => ({ coins: Number(s.coins), weight: Number(s.weight) })),
         inviteEnabled,
         inviteReward: Number(inviteReward),
+        tiers: tiers.map((t) => ({ name: String(t.name).trim(), minCoins: Number(t.minCoins) })),
+        streakBonuses: bonuses.map((b) => ({ days: Number(b.days), coins: Number(b.coins) })),
+        promoText: promoText.trim(),
+        missions: missions.map((m) => ({ key: m.key, enabled: m.enabled, target: Number(m.target), coins: Number(m.coins) })),
       });
       apply(res.data);
       message.success('Settings saved');
@@ -98,6 +139,35 @@ function SettingsTab() {
     },
   ];
 
+  const removeBtn = (setter, i, disabled) => (
+    <Button size="small" danger icon={<DeleteOutlined />} disabled={disabled}
+      onClick={() => setter((prev) => prev.filter((_x, idx) => idx !== i))}>Remove</Button>
+  );
+
+  const tierColumns = [
+    { title: '#', width: 50, render: (_, __, i) => i + 1 },
+    { title: 'Level name', render: (_, t, i) => <Input maxLength={30} value={t.name} onChange={(e) => setTier(i, { name: e.target.value })} style={{ width: 180 }} /> },
+    {
+      title: 'Min. coins', render: (_, t, i) => (
+        <InputNumber min={0} max={MAX} precision={0} value={t.minCoins} disabled={i === 0} onChange={(v) => setTier(i, { minCoins: v })} />
+      ),
+    },
+    { title: '', width: 100, render: (_, __, i) => removeBtn(setTiers, i, i === 0) },
+  ];
+
+  const bonusColumns = [
+    { title: 'Streak days', render: (_, b, i) => <InputNumber min={2} max={365} precision={0} value={b.days} onChange={(v) => setBonus(i, { days: v })} /> },
+    { title: 'Bonus coins', render: (_, b, i) => <InputNumber min={1} max={MAX} precision={0} value={b.coins} onChange={(v) => setBonus(i, { coins: v })} /> },
+    { title: '', width: 100, render: (_, __, i) => removeBtn(setBonuses, i, false) },
+  ];
+
+  const missionColumns = [
+    { title: 'Challenge', dataIndex: 'title' },
+    { title: 'On', width: 80, render: (_, m, i) => <Switch size="small" checked={m.enabled} onChange={(v) => setMission(i, { enabled: v })} /> },
+    { title: 'Target', render: (_, m, i) => <InputNumber min={1} max={1000} precision={0} value={m.target} onChange={(v) => setMission(i, { target: v })} /> },
+    { title: 'Coins', render: (_, m, i) => <InputNumber min={0} max={MAX} precision={0} value={m.coins} onChange={(v) => setMission(i, { coins: v })} /> },
+  ];
+
   return (
     <div style={{ maxWidth: 760 }}>
       {error && <Alert type="error" showIcon message={error} closable onClose={() => setError('')} style={{ marginBottom: 16 }} />}
@@ -122,6 +192,38 @@ function SettingsTab() {
           <span>Coins per invite</span>
           <InputNumber min={0} max={MAX} precision={0} value={inviteReward} onChange={setInviteReward} />
         </Space>
+      </div>
+      <div style={cardStyle}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontWeight: 600, color: '#0f172a' }}>Levels</div>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>Partners reach a level by lifetime coins earned. The first level starts at 0; each next level needs more coins.</Typography.Text>
+        </div>
+        <Table size="small" rowKey={(_, i) => i} loading={loading} pagination={false} dataSource={tiers} columns={tierColumns} scroll={{ x: 'max-content' }} />
+        <Button style={{ marginTop: 12 }} icon={<PlusOutlined />} disabled={tiers.length >= 10}
+          onClick={() => setTiers((prev) => [...prev, { name: '', minCoins: (Number(prev.at(-1)?.minCoins) || 0) + 1000 }])}>Add level</Button>
+      </div>
+      <div style={cardStyle}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontWeight: 600, color: '#0f172a' }}>Streak bonuses</div>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>Paid once when a partner's daily spin streak reaches exactly this many days in a row.</Typography.Text>
+        </div>
+        <Table size="small" rowKey={(_, i) => i} loading={loading} pagination={false} dataSource={bonuses} columns={bonusColumns} scroll={{ x: 'max-content' }} />
+        <Button style={{ marginTop: 12 }} icon={<PlusOutlined />} disabled={bonuses.length >= 10}
+          onClick={() => setBonuses((prev) => [...prev, { days: 7, coins: 100 }])}>Add bonus</Button>
+      </div>
+      <div style={cardStyle}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontWeight: 600, color: '#0f172a' }}>Promo strip text</div>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>Shown on the app's daily goal card. Leave empty to hide it.</Typography.Text>
+        </div>
+        <Input maxLength={120} showCount value={promoText} onChange={(e) => setPromoText(e.target.value)} placeholder="e.g. Double coins this weekend" />
+      </div>
+      <div style={cardStyle}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontWeight: 600, color: '#0f172a' }}>Challenges</div>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>Monthly, weekly and one-time challenges partners claim for coins. Titles are fixed; the target fills in the number.</Typography.Text>
+        </div>
+        <Table size="small" rowKey="key" loading={loading} pagination={false} dataSource={missions} columns={missionColumns} scroll={{ x: 'max-content' }} />
       </div>
       <Space>
         <Button type="primary" loading={saving} onClick={save}>Save settings</Button>

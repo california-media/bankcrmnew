@@ -5,7 +5,10 @@ const Voucher = require('../models/Voucher');
 const VoucherCode = require('../models/VoucherCode');
 const Redemption = require('../models/Redemption');
 const User = require('../models/User');
-const { validateSpinSegments, validateInviteReward, chancePcts, parseVoucherCodes, codesFromSheetRows } = require('../utils/coins');
+const {
+  validateSpinSegments, validateInviteReward, chancePcts, parseVoucherCodes, codesFromSheetRows,
+  validateTiers, validateStreakBonuses, validatePromoText, validateMissions, resolveMissions,
+} = require('../utils/coins');
 const { logoUrl } = require('../utils/coinsShape');
 const { getFilename, deleteFromS3 } = require('../middleware/upload.middleware');
 
@@ -21,6 +24,11 @@ const shapeSettings = (s) => {
     spinSegments: s.spinSegments.map((seg, i) => ({ coins: seg.coins, weight: seg.weight, chancePct: pcts[i] })),
     inviteEnabled: s.inviteEnabled,
     inviteReward: s.inviteReward,
+    tiers: (s.tiers || []).map((t) => ({ name: t.name, minCoins: t.minCoins })),
+    streakBonuses: (s.streakBonuses || []).map((b) => ({ days: b.days, coins: b.coins })),
+    promoText: s.promoText || '',
+    // title is the agent-facing one (target filled in); only enabled/target/coins are editable.
+    missions: resolveMissions(s.missions),
     updatedAt: s.updatedAt,
   };
 };
@@ -42,17 +50,35 @@ exports.getSettings = async (req, res) => {
 
 exports.updateSettings = async (req, res) => {
   try {
-    const { spinEnabled, spinSegments, inviteEnabled, inviteReward } = req.body || {};
+    const { spinEnabled, spinSegments, inviteEnabled, inviteReward, tiers, streakBonuses, promoText, missions } = req.body || {};
     const segErr = validateSpinSegments(spinSegments);
     if (segErr) return res.status(400).json({ message: segErr });
     const rewardErr = validateInviteReward(inviteReward);
     if (rewardErr) return res.status(400).json({ message: rewardErr });
+    // Plan H fields are optional: a body without one keeps its current value.
+    const optErr = (tiers !== undefined && validateTiers(tiers))
+      || (streakBonuses !== undefined && validateStreakBonuses(streakBonuses))
+      || (promoText !== undefined && validatePromoText(promoText))
+      || (missions !== undefined && validateMissions(missions));
+    if (optErr) return res.status(400).json({ message: optErr });
 
     const s = await CoinSettings.getSingleton();
     s.spinEnabled = !!spinEnabled;
     s.spinSegments = spinSegments.map((x) => ({ coins: x.coins, weight: x.weight }));
     s.inviteEnabled = !!inviteEnabled;
     s.inviteReward = inviteReward;
+    if (tiers !== undefined) s.tiers = tiers.map((t) => ({ name: t.name.trim(), minCoins: t.minCoins }));
+    if (streakBonuses !== undefined) {
+      s.streakBonuses = streakBonuses.map((b) => ({ days: b.days, coins: b.coins })).sort((a, b) => a.days - b.days);
+    }
+    if (promoText !== undefined) s.promoText = promoText.trim();
+    if (missions !== undefined) {
+      const given = new Map(missions.map((m) => [m.key, m]));
+      s.missions = resolveMissions(s.missions).map((m) => {
+        const g = given.get(m.key);
+        return g ? { key: m.key, enabled: g.enabled, target: g.target, coins: g.coins } : { key: m.key, enabled: m.enabled, target: m.target, coins: m.coins };
+      });
+    }
     s.updatedBy = req.user._id;
     await s.save();
     res.json(shapeSettings(s));

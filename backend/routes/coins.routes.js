@@ -5,6 +5,10 @@ const { protect, requireRole } = require('../middleware/auth.middleware');
 router.use(protect, requireRole('agent'));
 
 router.get('/me', ctrl.me);
+router.get('/summary', ctrl.summary);
+router.post('/activity', ctrl.activity);
+router.get('/missions', ctrl.missions);
+router.post('/missions/:key/claim', ctrl.claimMission);
 router.get('/spin', ctrl.getSpin);
 router.post('/spin', ctrl.postSpin);
 router.get('/transactions', ctrl.transactions);

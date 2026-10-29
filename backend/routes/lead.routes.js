@@ -9,6 +9,7 @@ router.use(protect);
 router.post('/', requireRole('agent', 'agency'), ctrl.create);
 router.get('/mine', requireRole('agent'), ctrl.listMine);
 router.get('/stats', requireRole('agent'), ctrl.stats);
+router.get('/leaderboard', requireRole('agent'), ctrl.leaderboard);
 router.get('/ledger', requireRole('agent'), ctrl.myLedger);
 router.delete('/:id', requireRole('agent'), ctrl.removeDraft);
 router.patch('/:id/engagement-status', requireRole('agent'), ctrl.updateEngagementStatus);

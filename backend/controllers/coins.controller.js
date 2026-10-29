@@ -29,6 +29,31 @@ exports.me = async (req, res) => {
   } catch (err) { fail(res, err); }
 };
 
+exports.summary = async (req, res) => {
+  try {
+    res.json(await coins.summary(req.user._id));
+  } catch (err) { fail(res, err); }
+};
+
+exports.activity = async (req, res) => {
+  try {
+    await coins.recordActivity(req.user._id, req.body && req.body.type);
+    res.status(204).end();
+  } catch (err) { fail(res, err); }
+};
+
+exports.missions = async (req, res) => {
+  try {
+    res.json(await coins.missions(req.user._id));
+  } catch (err) { fail(res, err); }
+};
+
+exports.claimMission = async (req, res) => {
+  try {
+    res.json(await coins.claimMission(req.user._id, req.params.key));
+  } catch (err) { fail(res, err); }
+};
+
 exports.getSpin = async (req, res) => {
   try {
     const now = new Date();
@@ -49,8 +74,8 @@ exports.getSpin = async (req, res) => {
 
 exports.postSpin = async (req, res) => {
   try {
-    const { segmentIndex, coins: won, balance } = await coins.spin(req.user._id);
-    res.json({ segmentIndex, coins: won, balance });
+    const { segmentIndex, coins: won, balance, streakBonus } = await coins.spin(req.user._id);
+    res.json({ segmentIndex, coins: won, balance, streakBonus });
   } catch (err) { fail(res, err); }
 };
 

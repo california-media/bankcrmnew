@@ -15,6 +15,8 @@ const { createAndEmit, getAdminIds, formatStatus } = require('../utils/notify');
 const waba = require('../services/waba.service');
 const { getFilename } = require('../middleware/upload.middleware');
 const XLSX = require('xlsx');
+const { dubaiMonthRange } = require('../utils/coins');
+const { maskName } = require('../utils/coinsShape');
 
 const normalizePhone = (p) => {
   const c = String(p).replace(/[\s\-\+\(\)\.]/g, '');
@@ -306,16 +308,20 @@ exports.stats = async (req, res) => {
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
+    // Last 6 month starts on the same (server-local) convention, oldest first; the last one is monthStart.
+    const monthStarts = [5, 4, 3, 2, 1, 0].map((k) => new Date(monthStart.getFullYear(), monthStart.getMonth() - k, 1));
 
-    const [total, approved, rejected, disbursed, cpvDoneCount, activateDoneCount, leads, monthPaidLeads] = await Promise.all([
+    const [total, approved, rejected, disbursed, cpvDoneCount, activateDoneCount, leads, recentPaidLeads, sentStatuses] = await Promise.all([
       Lead.countDocuments({ agent: agentId }),
       Lead.countDocuments({ agent: agentId, status: 'approved' }),
       Lead.countDocuments({ agent: agentId, status: 'rejected' }),
       Lead.countDocuments({ agent: agentId, status: 'disbursed' }),
       Lead.countDocuments({ agent: agentId, cpvDone: true }),
       Lead.countDocuments({ agent: agentId, activateDone: true }),
-      Lead.find({ agent: agentId }).select('status commission commissionStatus createdAt'),
-      Lead.find({ agent: agentId, commissionStatus: 'paid', commissionPaidAt: { $gte: monthStart } }).select('commission'),
+      Lead.find({ agent: agentId }).select('status commission commissionStatus createdAt consentStatus'),
+      Lead.find({ agent: agentId, commissionStatus: 'paid', commissionPaidAt: { $gte: monthStarts[0] } }).select('commission commissionPaidAt'),
+      // WhatsApp consent "Sent": same label match lead creation uses to tag it (and the app's Need consent view).
+      EmployeeStatus.find({ statusType: 'whatsapp_consent', label: { $regex: /^sent$/i } }).select('_id').lean(),
     ]);
 
     const activeStatuses = ['draft', 'submitted', 'under_review', 'assigned'];
@@ -335,8 +341,24 @@ exports.stats = async (req, res) => {
     const thisMonthLeads = leads.filter((l) => new Date(l.createdAt) >= monthStart);
     const thisMonthSubmitted = thisMonthLeads.filter((l) => l.status !== 'draft').length;
     const thisMonthApproved = thisMonthLeads.filter((l) => l.status === 'approved' || l.status === 'disbursed').length;
+    const monthPaidLeads = recentPaidLeads.filter((l) => new Date(l.commissionPaidAt) >= monthStart);
     const thisMonthPaid = monthPaidLeads.length;
     const thisMonthEarned = monthPaidLeads.reduce((s, l) => s + (l.commission || 0), 0);
+
+    // Paid rewards per month (same rule as thisMonth.earned), oldest -> newest; last = this month.
+    const trend = monthStarts.map((start, i) => {
+      const end = monthStarts[i + 1];
+      return recentPaidLeads
+        .filter((l) => { const d = new Date(l.commissionPaidAt); return d >= start && (!end || d < end); })
+        .reduce((s, l) => s + (l.commission || 0), 0);
+    });
+
+    const sentIds = new Set(sentStatuses.map((st) => String(st._id)));
+    const needConsent = leads.filter((l) => !['draft', 'rejected', 'disbursed'].includes(l.status)
+      && (!l.consentStatus || sentIds.has(String(l.consentStatus)))).length;
+    const nonDraft = leads.length - drafts;
+    const approvedOrDisbursed = leads.filter((l) => l.status === 'approved' || l.status === 'disbursed').length;
+    const approvalRate = nonDraft > 0 ? Math.round((100 * approvedOrDisbursed) / nonDraft) : 0;
 
     res.json({
       total, active, drafts, submitted, underReview, assigned,
@@ -344,6 +366,48 @@ exports.stats = async (req, res) => {
       cpvDone: cpvDoneCount, activateDone: activateDoneCount,
       paidEarnings, pendingEarnings,
       thisMonth: { submitted: thisMonthSubmitted, approved: thisMonthApproved, paid: thisMonthPaid, earned: thisMonthEarned },
+      needConsent,
+      approvalRate,
+      lastMonth: { earned: trend[4] },
+      trend,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * GET /api/leads/leaderboard  (agent)
+ * Leads closed this Dubai month per active agent. Closed = status 'disbursed', counted by createdAt in the month
+ * (same rule as the promotions disbursedCount). Competition ranking: rank = 1 + agents with strictly more.
+ * Other agents are shown as "First L."; the caller sees their own real name.
+ */
+exports.leaderboard = async (req, res) => {
+  try {
+    const { key, start, end } = dubaiMonthRange(new Date());
+    const rows = await Lead.aggregate([
+      { $match: { productType: { $in: ['credit_card', 'loan', 'account'] }, status: 'disbursed', createdAt: { $gte: start, $lt: end }, agent: { $ne: null } } },
+      { $group: { _id: '$agent', closed: { $sum: 1 } } },
+    ]);
+    const agents = rows.length
+      ? await User.find({ _id: { $in: rows.map((r) => r._id) }, role: 'agent', isActive: true }).select('name').lean()
+      : [];
+    const closedBy = new Map(rows.map((r) => [String(r._id), r.closed]));
+    const meId = String(req.user._id);
+    const myClosed = closedBy.get(meId) || 0;
+    const entries = agents.map((a) => ({ id: String(a._id), name: a.name, closed: closedBy.get(String(a._id)) || 0 }));
+    const rankOf = (closed) => 1 + entries.filter((e) => e.closed > closed).length;
+    // Ties: the caller first, then by name.
+    entries.sort((a, b) => b.closed - a.closed || (a.id === meId ? -1 : b.id === meId ? 1 : String(a.name).localeCompare(String(b.name))));
+    res.json({
+      month: key,
+      me: { rank: rankOf(myClosed), closed: myClosed, name: req.user.name || '' },
+      top: entries.slice(0, 10).map((e) => ({
+        rank: rankOf(e.closed),
+        name: e.id === meId ? (req.user.name || '') : maskName(e.name),
+        closed: e.closed,
+        isMe: e.id === meId,
+      })),
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

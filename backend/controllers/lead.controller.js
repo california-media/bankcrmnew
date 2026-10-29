@@ -379,28 +379,44 @@ exports.stats = async (req, res) => {
 /**
  * GET /api/leads/leaderboard  (agent)
  * Leads closed this Dubai month per active agent. Closed = status 'disbursed', counted by createdAt in the month
- * (same rule as the promotions disbursedCount). Competition ranking: rank = 1 + agents with strictly more.
+ * (same rule as the promotions disbursedCount; statusHistory is not written by the Excel import, so it can't date
+ * the disbursal). Competition ranking: rank = 1 + agents with strictly more.
  * Other agents are shown as "First L."; the caller sees their own real name.
  */
+const LEADERBOARD_TTL_MS = 60 * 1000;
+let leaderboardCache = null; // { key, at, entries:[{id,name,closed}] } — shared by every agent for 60 s
+
+async function leaderboardEntries(month) {
+  const t = Date.now();
+  if (leaderboardCache && leaderboardCache.key === month.key && t - leaderboardCache.at < LEADERBOARD_TTL_MS) {
+    return leaderboardCache.entries;
+  }
+  const rows = await Lead.aggregate([
+    { $match: { productType: { $in: ['credit_card', 'loan', 'account'] }, status: 'disbursed', createdAt: { $gte: month.start, $lt: month.end }, agent: { $ne: null } } },
+    { $group: { _id: '$agent', closed: { $sum: 1 } } },
+  ]);
+  const agents = rows.length
+    ? await User.find({ _id: { $in: rows.map((r) => r._id) }, role: 'agent', isActive: true }).select('name').lean()
+    : [];
+  const closedBy = new Map(rows.map((r) => [String(r._id), r.closed]));
+  const entries = agents.map((a) => ({ id: String(a._id), name: a.name, closed: closedBy.get(String(a._id)) || 0 }));
+  leaderboardCache = { key: month.key, at: t, entries };
+  return entries;
+}
+
 exports.leaderboard = async (req, res) => {
   try {
-    const { key, start, end } = dubaiMonthRange(new Date());
-    const rows = await Lead.aggregate([
-      { $match: { productType: { $in: ['credit_card', 'loan', 'account'] }, status: 'disbursed', createdAt: { $gte: start, $lt: end }, agent: { $ne: null } } },
-      { $group: { _id: '$agent', closed: { $sum: 1 } } },
-    ]);
-    const agents = rows.length
-      ? await User.find({ _id: { $in: rows.map((r) => r._id) }, role: 'agent', isActive: true }).select('name').lean()
-      : [];
-    const closedBy = new Map(rows.map((r) => [String(r._id), r.closed]));
+    const month = dubaiMonthRange(new Date());
     const meId = String(req.user._id);
-    const myClosed = closedBy.get(meId) || 0;
-    const entries = agents.map((a) => ({ id: String(a._id), name: a.name, closed: closedBy.get(String(a._id)) || 0 }));
+    // Copy: the cached list is shared and the tie order below depends on the caller.
+    const entries = [...(await leaderboardEntries(month))];
+    const mine = entries.find((e) => e.id === meId);
+    const myClosed = mine ? mine.closed : 0;
     const rankOf = (closed) => 1 + entries.filter((e) => e.closed > closed).length;
     // Ties: the caller first, then by name.
     entries.sort((a, b) => b.closed - a.closed || (a.id === meId ? -1 : b.id === meId ? 1 : String(a.name).localeCompare(String(b.name))));
     res.json({
-      month: key,
+      month: month.key,
       me: { rank: rankOf(myClosed), closed: myClosed, name: req.user.name || '' },
       top: entries.slice(0, 10).map((e) => ({
         rank: rankOf(e.closed),
@@ -413,6 +429,7 @@ exports.leaderboard = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+exports._clearLeaderboardCache = () => { leaderboardCache = null; };
 
 /**
  * GET /api/leads/agency  (agency)

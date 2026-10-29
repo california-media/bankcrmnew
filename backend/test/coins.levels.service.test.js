@@ -55,7 +55,9 @@ function build(o = {}) {
       deleteOne: async (f) => { const i = txs.findIndex((x) => x._id === f._id); if (i >= 0) txs.splice(i, 1); },
       aggregate: async (p) => {
         calls.aggregate.push(p);
-        const total = txs.filter((t) => t.user === p[0].$match.user && t.amount > 0).reduce((s, t) => s + t.amount, 0);
+        // Mirrors the $match: positive rows, minus once-only awards never credited (awardKey + balanceAfter 0).
+        const total = txs.filter((t) => t.user === p[0].$match.user && t.amount > 0 && !(typeof t.awardKey === 'string' && t.balanceAfter === 0))
+          .reduce((s, t) => s + t.amount, 0);
         return total ? [{ _id: null, total }] : [];
       },
       find: (f) => chain(txs.filter((t) => t.user === f.user && f.awardKey.$in.includes(t.awardKey))),
@@ -80,14 +82,14 @@ test('spin: the 7th day in a row pays the 7-day bonus in the same request', asyn
   assert.equal(res.coins, 5);
   assert.equal(res.balance, 605); // 100 + 5 + 500
   const bonus = txs.find((t) => t.type === 'streak');
-  assert.equal(bonus.awardKey, 'streak:7:2026-10-17');
+  assert.equal(bonus.awardKey, 'streak:7:2026-10'); // Dubai month of the award day
   assert.equal(bonus.title, '7-day streak bonus');
   assert.equal(bonus.amount, 500);
   assert.equal(bonus.balanceAfter, 605);
 });
 
-test('spin: a bonus already paid for this streak is not paid twice', async () => {
-  const { svc, calls, txs } = build({ spinDays: daysBack(6), txs: [{ _id: 't0', user: 'u1', type: 'streak', amount: 500, awardKey: 'streak:7:2026-10-17' }] });
+test('spin: a milestone already paid this Dubai month is not paid again (even for a new streak)', async () => {
+  const { svc, calls, txs } = build({ spinDays: daysBack(6), txs: [{ _id: 't0', user: 'u1', type: 'streak', amount: 500, balanceAfter: 600, awardKey: 'streak:7:2026-10' }] });
   const res = await svc.spin('u1');
   assert.equal(res.streakBonus, null);
   assert.equal(res.balance, 105);
@@ -110,7 +112,14 @@ test('spin: 30-day bonus uses the streak start as its key', async () => {
   const { svc, txs } = build({ spinDays: daysBack(29) }); // 24 Sep .. 22 Oct
   const res = await svc.spin('u1');
   assert.deepEqual(res.streakBonus, { days: 30, coins: 3000 });
-  assert.equal(txs.find((t) => t.type === 'streak').awardKey, 'streak:30:2026-09-24');
+  assert.equal(txs.find((t) => t.type === 'streak').awardKey, 'streak:30:2026-10');
+});
+
+test('spin: last month\'s milestone does not block this month\'s', async () => {
+  const { svc, txs } = build({ spinDays: daysBack(6), txs: [{ _id: 't0', user: 'u1', type: 'streak', amount: 500, balanceAfter: 600, awardKey: 'streak:7:2026-09' }] });
+  const res = await svc.spin('u1');
+  assert.deepEqual(res.streakBonus, { days: 7, coins: 500 });
+  assert.equal(txs.at(-1).awardKey, 'streak:7:2026-10');
 });
 
 test('spin: a failing bonus never fails the paid spin', async () => {
@@ -126,7 +135,10 @@ test('summary: lifetime from positive ledger rows, tier, streak, next bonus, pro
   const { svc, calls } = build({
     balance: 2200,
     spinDays: ['2026-10-22', '2026-10-21'],
-    txs: [{ user: 'u1', amount: 500 }, { user: 'u1', amount: 2000 }, { user: 'u1', amount: -300 }, { user: 'u2', amount: 9000 }],
+    txs: [
+      { user: 'u1', amount: 500 }, { user: 'u1', amount: 2000 }, { user: 'u1', amount: -300 }, { user: 'u2', amount: 9000 },
+      { user: 'u1', amount: 300, awardKey: 'mission:consents:2026-10', balanceAfter: 0 }, // guard row never credited
+    ],
     settings: { promoText: 'Double coins Friday' },
   });
   const s = await svc.summary('u1');
@@ -139,7 +151,9 @@ test('summary: lifetime from positive ledger rows, tier, streak, next bonus, pro
     streak: { days: 2, spunToday: false, nextBonus: { days: 7, coins: 500 } },
     promoText: 'Double coins Friday',
   });
-  assert.deepEqual(calls.aggregate[0][0], { $match: { user: 'u1', amount: { $gt: 0 } } });
+  assert.deepEqual(calls.aggregate[0][0], {
+    $match: { user: 'u1', amount: { $gt: 0 }, $nor: [{ awardKey: { $type: 'string' }, balanceAfter: 0 }] },
+  });
 });
 
 test('summary: new agent at the bottom; top tier and long streak have nothing next', async () => {

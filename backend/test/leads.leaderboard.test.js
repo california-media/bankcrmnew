@@ -13,10 +13,11 @@ const fakeRes = () => {
   return r;
 };
 const chain = (docs) => { const c = { select: () => c, lean: async () => docs }; return c; };
+test.beforeEach(() => ctrl._clearLeaderboardCache());
 
 function stubBoard(t, rows, agents) {
-  const seen = {};
-  t.mock.method(Lead, 'aggregate', async (p) => { seen.pipeline = p; return rows.map(([id, closed]) => ({ _id: id, closed })); });
+  const seen = { aggregates: 0 };
+  t.mock.method(Lead, 'aggregate', async (p) => { seen.aggregates += 1; seen.pipeline = p; return rows.map(([id, closed]) => ({ _id: id, closed })); });
   t.mock.method(User, 'find', (f) => { seen.userFilter = f; return chain(agents.filter((a) => f._id.$in.includes(a._id))); });
   return seen;
 }
@@ -67,10 +68,38 @@ test('leaderboard: no closes for me -> ranked after everyone with more; empty mo
   assert.deepEqual(res.body.me, { rank: 3, closed: 0, name: 'Sara Ali Hassan' });
   assert.deepEqual(res.body.top.map((r) => r.name), ['Omar R.', 'Maya K.']);
   t.mock.restoreAll();
+  ctrl._clearLeaderboardCache();
   stubBoard(t, [], []);
   res = await board(ME);
   assert.deepEqual(res.body.me, { rank: 1, closed: 0, name: 'Sara Ali Hassan' });
   assert.deepEqual(res.body.top, []);
+});
+
+test('leaderboard: counts cached 60 s per month key; each caller still gets their own rank and name', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-10-23T10:00:00Z') });
+  const seen = stubBoard(t, [['a1', 5], ['me', 3]], [{ _id: 'a1', name: 'Omar Rashid' }, { _id: 'me', name: 'Sara Ali Hassan' }]);
+  let res = await board(ME);
+  assert.deepEqual(res.body.me, { rank: 2, closed: 3, name: 'Sara Ali Hassan' });
+  res = await board({ _id: 'a1', name: 'Omar Rashid' });
+  assert.deepEqual(res.body.me, { rank: 1, closed: 5, name: 'Omar Rashid' });
+  assert.deepEqual(res.body.top.map((r) => [r.name, r.isMe]), [['Omar Rashid', true], ['Sara H.', false]]);
+  assert.equal(seen.aggregates, 1);
+  t.mock.timers.tick(59 * 1000);
+  await board(ME);
+  assert.equal(seen.aggregates, 1);
+  t.mock.timers.tick(2 * 1000); // 61 s
+  await board(ME);
+  assert.equal(seen.aggregates, 2);
+  t.mock.timers.setTime(new Date('2026-10-31T20:00:10Z').getTime()); // new Dubai month: new key
+  res = await board(ME);
+  assert.equal(seen.aggregates, 3);
+  assert.equal(res.body.month, '2026-11');
+});
+
+test('Lead has the month-count indexes', () => {
+  const keys = Lead.schema.indexes().map(([k]) => JSON.stringify(k));
+  assert.ok(keys.includes('{"agent":1,"createdAt":1}'));
+  assert.ok(keys.includes('{"status":1,"createdAt":1}'));
 });
 
 /* ── /leads/stats additions ────────────────────────────────────────── */

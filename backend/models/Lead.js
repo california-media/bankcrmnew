@@ -300,4 +300,8 @@ leadSchema.pre('save', async function () {
   }
 });
 
+// Per-agent month counts (stats, challenges) and month-wide status scans (leaderboard, promotions).
+leadSchema.index({ agent: 1, createdAt: 1 });
+leadSchema.index({ status: 1, createdAt: 1 });
+
 module.exports = mongoose.model('Lead', leadSchema);

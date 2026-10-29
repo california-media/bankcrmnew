@@ -111,16 +111,17 @@ const DEFAULT_TIERS = [
 const DEFAULT_STREAK_BONUSES = [{ days: 7, coins: 500 }, { days: 30, coins: 3000 }];
 const MAX_PROMO_TEXT = 120;
 const ACTIVITY_TYPES = ['share_link', 'watch_guide'];
-// Fixed challenge catalogue: titles/subtitles/periods are fixed, enabled/target/coins are admin-set.
-// `{n}` in a title is replaced by the target.
-const MISSION_DEFS = [
-  { key: 'submit_leads', title: 'Submit {n} leads this month', subtitle: 'Every lead counts', period: 'month', target: 6, coins: 300 },
-  { key: 'share_link', title: 'Share your link this week', subtitle: 'WhatsApp, email or QR', period: 'week', target: 1, coins: 50 },
-  { key: 'consents', title: 'Get {n} consents', subtitle: 'Clients reply YES', period: 'month', target: 3, coins: 150 },
-  { key: 'approvals', title: '{n} approvals this month', subtitle: 'Bank-approved applications', period: 'month', target: 3, coins: 400 },
-  { key: 'watch_guide', title: "Watch Sara's guide", subtitle: 'Learn the full journey', period: 'once', target: 1, coins: 100 },
-];
 const MAX_MISSION_TARGET = 1000;
+// Fixed challenge catalogue: titles/subtitles/periods are fixed, enabled/target/coins are admin-set.
+// `{n}` in a title is replaced by the target. maxTarget: share_link counts days in a week (max 7);
+// watch_guide is a single watch.
+const MISSION_DEFS = [
+  { key: 'submit_leads', title: 'Submit {n} leads this month', subtitle: 'Every lead counts', period: 'month', target: 6, coins: 300, maxTarget: MAX_MISSION_TARGET },
+  { key: 'share_link', title: 'Share your link this week', subtitle: 'WhatsApp, email or QR', period: 'week', target: 1, coins: 50, maxTarget: 7 },
+  { key: 'consents', title: 'Get {n} consents', subtitle: 'Clients reply YES', period: 'month', target: 3, coins: 150, maxTarget: MAX_MISSION_TARGET },
+  { key: 'approvals', title: '{n} approvals this month', subtitle: 'Bank-approved applications', period: 'month', target: 3, coins: 400, maxTarget: MAX_MISSION_TARGET },
+  { key: 'watch_guide', title: "Watch Sara's guide", subtitle: 'Learn the full journey', period: 'once', target: 1, coins: 100, maxTarget: 1 },
+];
 const defaultMissions = () => MISSION_DEFS.map(({ key, target, coins }) => ({ key, enabled: true, target, coins }));
 
 // 'YYYY-MM-DD' + delta days (calendar arithmetic, no timezone involved).
@@ -192,7 +193,7 @@ const resolveMissions = (stored) => {
   const byKey = new Map((stored || []).map((m) => [m.key, m]));
   return MISSION_DEFS.map((d) => {
     const s = byKey.get(d.key);
-    const target = s && Number.isInteger(s.target) && s.target >= 1 ? s.target : d.target;
+    const target = s && Number.isInteger(s.target) && s.target >= 1 && s.target <= d.maxTarget ? s.target : d.target;
     const coins = s && Number.isInteger(s.coins) && s.coins >= 0 ? s.coins : d.coins;
     return {
       key: d.key, title: missionTitle(d.title, target), subtitle: d.subtitle, period: d.period,
@@ -239,15 +240,17 @@ const validatePromoText = (v) => {
 
 const validateMissions = (list) => {
   if (!Array.isArray(list)) return 'Challenges must be a list';
-  const keys = new Set(MISSION_DEFS.map((d) => d.key));
+  const defs = new Map(MISSION_DEFS.map((d) => [d.key, d]));
   const seen = new Set();
   for (const m of list) {
-    if (!m || !keys.has(m.key)) return 'Unknown challenge';
+    const def = m && defs.get(m.key);
+    if (!def) return 'Unknown challenge';
     if (seen.has(m.key)) return 'Each challenge can appear only once';
     seen.add(m.key);
     if (typeof m.enabled !== 'boolean') return 'Challenge on/off must be true or false';
-    if (!Number.isInteger(m.target) || m.target < 1 || m.target > MAX_MISSION_TARGET) {
-      return 'Challenge target must be a whole number from 1 to 1,000';
+    if (!Number.isInteger(m.target) || m.target < 1 || m.target > def.maxTarget) {
+      if (def.maxTarget === 1) return `"${missionTitle(def.title, 1)}" target must be 1`;
+      return `"${missionTitle(def.title, 'N')}" target must be a whole number from 1 to ${def.maxTarget.toLocaleString('en-US')}`;
     }
     if (!Number.isInteger(m.coins) || m.coins < 0) return 'Challenge coins must be a whole number of 0 or more';
     if (m.coins > MAX_COIN_SETTING) return 'Challenge coins must be at most 1,000,000';

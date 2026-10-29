@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const {
-  dubaiDayKey, pickSegmentIndex, voucherValidFilter, DEFAULT_TIERS, ACTIVITY_TYPES, shiftDayKey, streakDays, nextBonus,
+  dubaiDayKey, pickSegmentIndex, voucherValidFilter, DEFAULT_TIERS, ACTIVITY_TYPES, streakDays, nextBonus,
   tierFor, dubaiWeekRange, dubaiMonthRange, resolveMissions,
 } = require('../utils/coins');
 const { balanceOf } = require('../utils/coinsShape');
@@ -89,7 +89,9 @@ function makeCoinsService(deps) {
         if (hit) {
           const r = await awardOnce(userId, {
             type: 'streak',
-            awardKey: `streak:${hit.days}:${shiftDayKey(today, 1 - days)}`,
+            // At most once per milestone per Dubai month (of the award day): breaking and rebuilding a streak
+            // inside the month does not pay the same milestone again.
+            awardKey: `streak:${hit.days}:${today.slice(0, 7)}`,
             amount: hit.coins,
             title: `${hit.days}-day streak bonus`,
           });
@@ -112,7 +114,8 @@ function makeCoinsService(deps) {
       CoinSettings.getSingleton(),
       User.findById(userId).select('coinBalance').lean(),
       CoinTransaction.aggregate([
-        { $match: { user: userId, amount: { $gt: 0 } } },
+        // A once-only award still at balanceAfter 0 was never (or not yet) credited: not earned.
+        { $match: { user: userId, amount: { $gt: 0 }, $nor: [{ awardKey: { $type: 'string' }, balanceAfter: 0 }] } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       spinDayKeys(userId),

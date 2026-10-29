@@ -67,6 +67,8 @@ test('resolveMissions: catalogue order, stored overrides, target in the title', 
   assert.equal(r[3].title, '3 approvals this month');
   assert.equal(r[4].period, 'once');
   assert.deepEqual(c.resolveMissions(undefined).map((m) => m.enabled), [true, true, true, true, true]);
+  // A stored target outside the per-challenge cap falls back to the default.
+  assert.equal(c.resolveMissions([{ key: 'share_link', enabled: true, target: 9, coins: 5 }])[1].target, 1);
 });
 
 test('validateTiers', () => {
@@ -102,6 +104,10 @@ test('validatePromoText and validateMissions', () => {
   assert.match(c.validateMissions([{ key: 'consents', enabled: 'yes', target: 1, coins: 1 }]), /true or false/);
   assert.match(c.validateMissions([{ key: 'consents', enabled: true, target: 0, coins: 1 }]), /target/);
   assert.match(c.validateMissions([{ key: 'consents', enabled: true, target: 1001, coins: 1 }]), /target/);
+  assert.equal(c.validateMissions([{ key: 'share_link', enabled: true, target: 7, coins: 1 }]), null);
+  assert.match(c.validateMissions([{ key: 'share_link', enabled: true, target: 8, coins: 1 }]), /1 to 7/);
+  assert.match(c.validateMissions([{ key: 'watch_guide', enabled: true, target: 2, coins: 1 }]), /must be 1/);
+  assert.equal(c.validateMissions([{ key: 'submit_leads', enabled: true, target: 1000, coins: 1 }]), null);
   assert.match(c.validateMissions([{ key: 'consents', enabled: true, target: 1, coins: -1 }]), /coins/);
 });
 

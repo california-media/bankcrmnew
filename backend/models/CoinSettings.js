@@ -58,11 +58,19 @@ const coinSettingsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const NOT_SETTINGS = ['_id', '__v', 'createdAt', 'updatedAt'];
+
+// Never saves the whole doc on read: after a deploy adds fields, parallel first reads each fill only the fields still
+// missing with a conditional $set (the first writer wins, the rest match nothing), so none can hit a VersionError.
 coinSettingsSchema.statics.getSingleton = async function () {
-  let doc = await this.findOne();
-  if (!doc) doc = new this({});
-  if (doc.isNew || doc.isModified()) await doc.save();
-  return doc;
+  const raw = await this.findOne().lean();
+  if (!raw) return this.create({});
+  const defaults = new this({}).toObject();
+  const missing = Object.keys(defaults).filter((k) => !NOT_SETTINGS.includes(k) && raw[k] === undefined);
+  if (!missing.length) return this.hydrate(raw);
+  await Promise.all(missing.map((k) =>
+    this.updateOne({ _id: raw._id, [k]: { $exists: false } }, { $set: { [k]: defaults[k] } }, { timestamps: false })));
+  return this.findById(raw._id);
 };
 
 module.exports = mongoose.model('CoinSettings', coinSettingsSchema);

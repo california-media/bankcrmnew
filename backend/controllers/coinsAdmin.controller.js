@@ -7,7 +7,7 @@ const Redemption = require('../models/Redemption');
 const User = require('../models/User');
 const {
   validateSpinSegments, validateInviteReward, chancePcts, parseVoucherCodes, codesFromSheetRows,
-  validateTiers, validateStreakBonuses, validatePromoText, validateMissions, resolveMissions,
+  validateTiers, validateStreakBonuses, validatePromoText, validateMissions, resolveMissions, MISSION_DEFS,
 } = require('../utils/coins');
 const { logoUrl } = require('../utils/coinsShape');
 const { getFilename, deleteFromS3 } = require('../middleware/upload.middleware');
@@ -27,8 +27,9 @@ const shapeSettings = (s) => {
     tiers: (s.tiers || []).map((t) => ({ name: t.name, minCoins: t.minCoins })),
     streakBonuses: (s.streakBonuses || []).map((b) => ({ days: b.days, coins: b.coins })),
     promoText: s.promoText || '',
-    // title is the agent-facing one (target filled in); only enabled/target/coins are editable.
-    missions: resolveMissions(s.missions),
+    // title is the agent-facing one (target filled in); titleTemplate/maxTarget let the page preview and cap edits.
+    // Only enabled/target/coins are editable.
+    missions: resolveMissions(s.missions).map((m, i) => ({ ...m, titleTemplate: MISSION_DEFS[i].title, maxTarget: MISSION_DEFS[i].maxTarget })),
     updatedAt: s.updatedAt,
   };
 };

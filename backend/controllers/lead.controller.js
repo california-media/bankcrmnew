@@ -355,7 +355,7 @@ exports.stats = async (req, res) => {
 
     const sentIds = new Set(sentStatuses.map((st) => String(st._id)));
     const needConsent = leads.filter((l) => !['draft', 'rejected', 'disbursed'].includes(l.status)
-      && (!l.consentStatus || sentIds.has(String(l.consentStatus)))).length;
+      && !!l.consentStatus && sentIds.has(String(l.consentStatus))).length;
     const nonDraft = leads.length - drafts;
     const approvedOrDisbursed = leads.filter((l) => l.status === 'approved' || l.status === 'disbursed').length;
     const approvalRate = nonDraft > 0 ? Math.round((100 * approvedOrDisbursed) / nonDraft) : 0;

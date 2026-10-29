@@ -109,10 +109,10 @@ test('stats: needConsent, approvalRate, lastMonth, trend; existing fields unchan
   const at = (monthsBack, day) => new Date(now.getFullYear(), now.getMonth() - monthsBack, day, 12);
   const leads = [
     { status: 'draft', commissionStatus: 'none', createdAt: at(0, 1) },
-    { status: 'submitted', commissionStatus: 'none', createdAt: at(0, 1) }, // unset consent -> needs it
+    { status: 'submitted', commissionStatus: 'none', createdAt: at(0, 1) }, // unset consent (no consent flow) -> not counted
     { status: 'under_review', commissionStatus: 'none', createdAt: at(1, 3), consentStatus: 'sent1' }, // sent -> needs it
     { status: 'assigned', commissionStatus: 'none', createdAt: at(1, 3), consentStatus: 'conf1' },
-    { status: 'approved', commissionStatus: 'pending', commission: 70, createdAt: at(0, 1) }, // unset -> needs it
+    { status: 'approved', commissionStatus: 'pending', commission: 70, createdAt: at(0, 1) }, // unset -> not counted
     { status: 'rejected', commissionStatus: 'none', createdAt: at(2, 3) },
     { status: 'disbursed', commissionStatus: 'paid', commission: 900, createdAt: at(2, 3) },
   ];
@@ -133,7 +133,7 @@ test('stats: needConsent, approvalRate, lastMonth, trend; existing fields unchan
   await ctrl.stats({ user: { _id: 'u1' } }, res);
   assert.equal(res.statusCode, 200);
   const b = res.body;
-  assert.equal(b.needConsent, 3);
+  assert.equal(b.needConsent, 1);
   assert.equal(b.approvalRate, 33); // 2 of 6 non-draft
   assert.deepEqual(b.trend, [25, 0, 400, 0, 200, 150]);
   assert.deepEqual(b.lastMonth, { earned: 200 });

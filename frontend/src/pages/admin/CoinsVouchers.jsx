@@ -39,7 +39,10 @@ function SettingsTab() {
     setTiers((s.tiers || []).map((x) => ({ name: x.name, minCoins: x.minCoins })));
     setBonuses((s.streakBonuses || []).map((x) => ({ days: x.days, coins: x.coins })));
     setPromoText(s.promoText || '');
-    setMissions((s.missions || []).map((x) => ({ key: x.key, title: x.title, enabled: !!x.enabled, target: x.target, coins: x.coins })));
+    setMissions((s.missions || []).map((x) => ({
+      key: x.key, title: x.title, titleTemplate: x.titleTemplate || x.title, maxTarget: x.maxTarget || 1000,
+      enabled: !!x.enabled, target: x.target, coins: x.coins,
+    })));
     setUpdatedAt(s.updatedAt);
   };
 
@@ -55,6 +58,15 @@ function SettingsTab() {
   const setTier = patchRow(setTiers);
   const setBonus = patchRow(setBonuses);
   const setMission = patchRow(setMissions);
+  // Live preview of the agent-facing title from the edited target.
+  const missionTitle = (m) => String(m.titleTemplate || m.title).replace('{n}', isWhole(m.target) ? String(m.target) : 'N');
+  // Next streak length not used yet (a week after the longest one).
+  const nextBonusDays = (list) => {
+    const used = new Set(list.map((b) => Number(b.days)));
+    let d = Math.min(365, Math.max(0, ...list.map((b) => Number(b.days) || 0)) + 7);
+    while (used.has(d) && d > 2) d -= 1;
+    return d;
+  };
   const totalWeight = segments.reduce((sum, s) => sum + (Number(s.weight) > 0 ? Number(s.weight) : 0), 0);
   const pct = (s) => (totalWeight > 0 && Number(s.weight) > 0 ? ((Number(s.weight) / totalWeight) * 100).toFixed(1) : '0.0');
 
@@ -92,8 +104,10 @@ function SettingsTab() {
     }
     if (promoText.trim().length > 120) return setError('Promo strip text must be at most 120 characters');
     for (const m of missions) {
-      if (!isWhole(m.target) || Number(m.target) < 1 || Number(m.target) > 1000) return setError(`${m.title}: target must be a whole number from 1 to 1,000`);
-      if (!isWhole(m.coins) || Number(m.coins) < 0 || Number(m.coins) > MAX) return setError(`${m.title}: coins must be a whole number from 0 to 1,000,000`);
+      if (!isWhole(m.target) || Number(m.target) < 1 || Number(m.target) > m.maxTarget) {
+        return setError(m.maxTarget === 1 ? `${missionTitle(m)}: target must be 1` : `${missionTitle(m)}: target must be a whole number from 1 to ${m.maxTarget.toLocaleString()}`);
+      }
+      if (!isWhole(m.coins) || Number(m.coins) < 0 || Number(m.coins) > MAX) return setError(`${missionTitle(m)}: coins must be a whole number from 0 to 1,000,000`);
     }
     setSaving(true);
     try {
@@ -162,9 +176,13 @@ function SettingsTab() {
   ];
 
   const missionColumns = [
-    { title: 'Challenge', dataIndex: 'title' },
+    { title: 'Challenge', render: (_, m) => missionTitle(m) },
     { title: 'On', width: 80, render: (_, m, i) => <Switch size="small" checked={m.enabled} onChange={(v) => setMission(i, { enabled: v })} /> },
-    { title: 'Target', render: (_, m, i) => <InputNumber min={1} max={1000} precision={0} value={m.target} onChange={(v) => setMission(i, { target: v })} /> },
+    {
+      title: 'Target', render: (_, m, i) => (
+        <InputNumber min={1} max={m.maxTarget} precision={0} value={m.target} disabled={m.maxTarget === 1} onChange={(v) => setMission(i, { target: v })} />
+      ),
+    },
     { title: 'Coins', render: (_, m, i) => <InputNumber min={0} max={MAX} precision={0} value={m.coins} onChange={(v) => setMission(i, { coins: v })} /> },
   ];
 
@@ -209,7 +227,7 @@ function SettingsTab() {
         </div>
         <Table size="small" rowKey={(_, i) => i} loading={loading} pagination={false} dataSource={bonuses} columns={bonusColumns} scroll={{ x: 'max-content' }} />
         <Button style={{ marginTop: 12 }} icon={<PlusOutlined />} disabled={bonuses.length >= 10}
-          onClick={() => setBonuses((prev) => [...prev, { days: 7, coins: 100 }])}>Add bonus</Button>
+          onClick={() => setBonuses((prev) => [...prev, { days: nextBonusDays(prev), coins: 100 }])}>Add bonus</Button>
       </div>
       <div style={cardStyle}>
         <div style={{ marginBottom: 12 }}>

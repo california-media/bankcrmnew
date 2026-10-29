@@ -16,7 +16,7 @@ const waba = require('../services/waba.service');
 const { getFilename } = require('../middleware/upload.middleware');
 const XLSX = require('xlsx');
 const { dubaiMonthRange } = require('../utils/coins');
-const { maskName } = require('../utils/coinsShape');
+const { maskName, displayName } = require('../utils/coinsShape');
 
 const normalizePhone = (p) => {
   const c = String(p).replace(/[\s\-\+\(\)\.]/g, '');
@@ -417,10 +417,10 @@ exports.leaderboard = async (req, res) => {
     entries.sort((a, b) => b.closed - a.closed || (a.id === meId ? -1 : b.id === meId ? 1 : String(a.name).localeCompare(String(b.name))));
     res.json({
       month: month.key,
-      me: { rank: rankOf(myClosed), closed: myClosed, name: req.user.name || '' },
+      me: { rank: rankOf(myClosed), closed: myClosed, name: displayName(req.user.name) },
       top: entries.slice(0, 10).map((e) => ({
         rank: rankOf(e.closed),
-        name: e.id === meId ? (req.user.name || '') : maskName(e.name),
+        name: e.id === meId ? displayName(req.user.name) : maskName(e.name),
         closed: e.closed,
         isMe: e.id === meId,
       })),

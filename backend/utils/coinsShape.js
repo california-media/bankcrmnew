@@ -7,14 +7,22 @@ const logoUrl = (filename) => (filename ? LOGO_BASE + filename : null);
 // User.coinBalance has no schema default, so a user never credited has no field: read it as 0.
 const balanceOf = (u) => (u && u.coinBalance) || 0;
 
-// "Maya Sharma Khan" -> "Maya K."; single word -> first name only.
+// Name words; UAE PASS stores names comma-separated ("HAFIZ,MUHAMMAD,QAMAR,,,").
+const nameParts = (name) => String(name || '').split(/[\s,]+/).filter(Boolean);
+// An ALL-CAPS word reads as shouting in a list: "HAFIZ" -> "Hafiz".
+const tidyWord = (w) => (w.length > 1 && w === w.toUpperCase() && w !== w.toLowerCase() ? w[0] + w.slice(1).toLowerCase() : w);
+
+// "Maya Sharma Khan" -> "Maya K."; "HAFIZ,MUHAMMAD,QAMAR,," -> "Hafiz Q."; single word -> first name only.
 const maskName = (name) => {
-  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  const parts = nameParts(name);
   if (parts.length === 0) return '';
-  if (parts.length === 1) return parts[0];
+  if (parts.length === 1) return tidyWord(parts[0]);
   const last = Array.from(parts[parts.length - 1])[0].toUpperCase();
-  return `${parts[0]} ${last}.`;
+  return `${tidyWord(parts[0])} ${last}.`;
 };
+
+// The caller's own full name with UAE PASS commas turned into spaces.
+const displayName = (name) => nameParts(name).join(' ');
 
 const shapeVoucher = (v, stock) => ({
   _id: v._id,
@@ -40,4 +48,4 @@ const shapeRedemption = (r, voucher, stock) => ({
   voucher: voucher ? shapeVoucher(voucher, stock) : null,
 });
 
-module.exports = { logoUrl, balanceOf, maskName, shapeVoucher, shapeRedemption };
+module.exports = { displayName, logoUrl, balanceOf, maskName, shapeVoucher, shapeRedemption };

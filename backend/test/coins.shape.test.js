@@ -1,10 +1,15 @@
 const test = require('node:test'); const assert = require('node:assert/strict');
-const { maskName, logoUrl, shapeRedemption } = require('../utils/coinsShape');
+const { maskName, displayName, logoUrl, shapeRedemption } = require('../utils/coinsShape');
 test('maskName', () => {
   assert.equal(maskName('Maya Sharma'), 'Maya S.');
   assert.equal(maskName('  maya   al khan '), 'maya K.');
   assert.equal(maskName('Maya'), 'Maya');
   assert.equal(maskName(''), '');
+  // UAE PASS stores names comma-separated; never leak the full name.
+  assert.equal(maskName('HAFIZ,MUHAMMAD,NOUMAN,QAMAR,,,'), 'Hafiz Q.');
+  assert.equal(maskName('ZAHID AHMED'), 'Zahid A.');
+  assert.equal(maskName('naem'), 'naem');
+  assert.equal(maskName(',,,'), '');
 });
 test('logoUrl', () => {
   assert.equal(logoUrl(null), null);
@@ -24,4 +29,10 @@ test('balanceOf coalesces a missing coinBalance to 0', () => {
   assert.equal(balanceOf({ coinBalance: null }), 0);
   assert.equal(balanceOf(null), 0);
   assert.equal(balanceOf(undefined), 0);
+});
+
+test('displayName turns UAE PASS commas into spaces', () => {
+  assert.equal(displayName('HAFIZ,MUHAMMAD,QAMAR,,,'), 'HAFIZ MUHAMMAD QAMAR');
+  assert.equal(displayName('  Eileen  Nausen '), 'Eileen Nausen');
+  assert.equal(displayName(undefined), '');
 });

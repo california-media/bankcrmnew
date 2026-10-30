@@ -70,6 +70,7 @@ app.use('/api/commission-rules',  require('./routes/commissionRule.routes'));
 app.use('/api/volume-bonuses',    require('./routes/volumeBonus.routes'));
 app.use('/api/admin/coins',       require('./routes/coinsAdmin.routes'));
 app.use('/api/admin/product-of-month', require('./routes/productOfMonthAdmin.routes'));
+app.use('/api/admin/companies',  require('./routes/companyAdmin.routes'));
 app.use('/api/admin',             require('./routes/admin.routes'));
 app.use('/api/card-products',     require('./routes/cardProduct.routes'));
 app.use('/api/card-categories',   require('./routes/cardCategory.routes'));
@@ -96,6 +97,7 @@ app.use('/api/super-agent',       require('./routes/superAgent.routes'));
 app.use('/api/support-tickets',   require('./routes/supportTicket.routes'));
 app.use('/api/coins',              require('./routes/coins.routes'));
 app.use('/api/product-of-month',   require('./routes/productOfMonth.routes'));
+app.use('/api/companies',          require('./routes/company.routes'));
 
 app.use((err, req, res, _next) => {
   console.error(err);

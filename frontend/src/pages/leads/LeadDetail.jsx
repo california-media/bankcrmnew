@@ -14,6 +14,7 @@ import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
 import { ACTION_LABELS, LOAN_MILESTONES, getLoanActions } from '../../utils/loanActions';
 import { NATIONALITIES, CITIES, VISA_OPTIONS } from '../../utils/customerOptions';
 import { aed, aedSymbol } from '../../utils/dirham';
+import CompanyCombobox from '../../components/CompanyCombobox';
 
 const TERMS = `TERMS AND CONDITIONS FOR LEAD SUBMISSION
 
@@ -1501,7 +1502,7 @@ export default function LeadDetail() {
             </Col>
             <Col xs={24} sm={12}>
               <Form.Item name="companyName" label="Company">
-                <Input />
+                <CompanyCombobox />
               </Form.Item>
             </Col>
             <Col xs={24} sm={12}>

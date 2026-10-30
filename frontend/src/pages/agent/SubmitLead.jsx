@@ -12,6 +12,7 @@ import { feeTypeLabel, feeTypeColors } from '../../utils/cardFee';
 import { validateUAELocalPhone, toFullUAEPhone } from '../../utils/validatePhone';
 import { NATIONALITIES, CITIES } from '../../utils/customerOptions';
 import { aed } from '../../utils/dirham';
+import CompanyCombobox from '../../components/CompanyCombobox';
 
 
 const API_BASE = import.meta.env.VITE_API_URL?.replace(/\/api$/, '') || 'http://localhost:5000';
@@ -360,7 +361,7 @@ function SubmitLead() {
                 </Col>
                 <Col xs={24} sm={12}>
                   <Form.Item name="companyName" label={<span style={{ fontWeight: 600, fontSize: 12, color: '#374151' }}>Company</span>} style={{ marginBottom: 10 }}>
-                    <Input size="middle" placeholder="Your company" style={{ borderRadius: 8 }} />
+                    <CompanyCombobox size="middle" placeholder="Your company" style={{ borderRadius: 8 }} />
                   </Form.Item>
                 </Col>
                 <Col xs={24} sm={12}>

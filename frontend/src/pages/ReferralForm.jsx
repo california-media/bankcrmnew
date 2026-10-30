@@ -5,6 +5,7 @@ import { SendOutlined, ReloadOutlined, CreditCardOutlined, BankOutlined } from '
 import axios from 'axios';
 import { feeTypeLabel, feeTypeColors } from '../utils/cardFee';
 import { validateUAELocalPhone, toFullUAEPhone } from '../utils/validatePhone';
+import CompanyCombobox from '../components/CompanyCombobox';
 
 const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE || 'https://mysilah.s3.us-east-1.amazonaws.com';
 const API_BASE     = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -312,7 +313,7 @@ export default function ReferralForm() {
                   </Col>
                   <Col span={12}>
                     <Form.Item name="companyName" label="Company" style={MB}>
-                      <Input placeholder="Your company" />
+                      <CompanyCombobox placeholder="Your company" />
                     </Form.Item>
                   </Col>
                   <Col span={12}>

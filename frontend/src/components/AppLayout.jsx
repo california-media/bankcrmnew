@@ -78,6 +78,7 @@ const menusByRole = {
     ] },
     { key: '/admin/manage-admins',     icon: <IdcardOutlined />,       label: <Link to="/admin/manage-admins">Roles & Permissions</Link> },
     { key: '/admin/coins',             icon: <DollarOutlined />,       label: <Link to="/admin/coins">Coins & Vouchers</Link> },
+    { key: '/admin/companies',         icon: <ApartmentOutlined />,    label: <Link to="/admin/companies">Companies</Link> },
     { key: '/admin/promotions',        icon: <GiftOutlined />,         label: <Link to="/admin/promotions">Promotions</Link> },
     { key: '/admin/resources',         icon: <FolderOutlined />,       label: <Link to="/admin/resources">Resources</Link> },
   ],
@@ -223,7 +224,7 @@ function AppLayoutInner() {
   const scopedByKeys = allowedAdminKeys ? baseItems.filter((item) => allowedAdminKeys.includes(item.key)) : baseItems;
   // Coins & Vouchers is super admin only (admin with no adminScope).
   const isSuperAdmin = user.role === 'admin' && !user.adminScope;
-  const scopedItems = scopedByKeys.filter((item) => item.key !== '/admin/coins' || isSuperAdmin);
+  const scopedItems = scopedByKeys.filter((item) => (item.key !== '/admin/coins' && item.key !== '/admin/companies') || isSuperAdmin);
   let items = user.role === 'agency' && user.canViewPayouts
     ? [...scopedItems, { key: '/agency/agent-payouts', icon: <DollarOutlined />, label: <Link to="/agency/agent-payouts">Agent Payouts</Link> }]
     : scopedItems;

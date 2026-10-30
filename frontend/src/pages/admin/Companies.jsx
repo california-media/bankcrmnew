@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Table, Button, Input, Space, Popconfirm, Alert, Upload, Typography, message } from 'antd';
-import { UploadOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { UploadOutlined, DownloadOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import api from '../../api/client';
 
@@ -25,6 +25,15 @@ const namesFromFile = async (file) => {
     out.push(v);
   });
   return out;
+};
+
+// Sample upload file: the "Company" header the parser skips, then one name per row in the first column.
+const downloadSample = () => {
+  const sheet = XLSX.utils.aoa_to_sheet([['Company'], ['Emirates NBD'], ['Etisalat by e&'], ['Dubai Holding'], ['Emirates Airline']]);
+  sheet['!cols'] = [{ wch: 32 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet, 'Companies');
+  XLSX.writeFile(wb, 'companies-sample.xlsx');
 };
 
 export default function Companies() {
@@ -163,6 +172,7 @@ export default function Companies() {
           <Upload accept=".xlsx,.xls,.csv" maxCount={1} showUploadList={false} beforeUpload={onFile}>
             <Button icon={<UploadOutlined />}>Upload .xlsx / .csv</Button>
           </Upload>
+          <Button icon={<DownloadOutlined />} onClick={downloadSample}>Download sample file</Button>
           {fileNames && (
             <>
               <Typography.Text type="secondary">{fileName}</Typography.Text>

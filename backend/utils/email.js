@@ -1,23 +1,39 @@
+const path = require('path');
 const nodemailer = require('nodemailer');
+const EmailSettings = require('../models/EmailSettings');
+const { decrypt } = require('./secretBox');
+const { partnerWelcomeSubject, partnerWelcomeHtml, partnerWelcomeText } = require('./partnerWelcomeEmail');
 
-let transporter = null;
+// The SMTP account saved under Admin → Email Settings (seeded from the SMTP_*
+// env vars until the Super Admin saves one). Null when nothing is configured,
+// so callers fall back to logging the email. Rebuilt whenever settings change.
+let cached = { version: null, mailer: null };
 
-const getTransporter = () => {
-  if (transporter) return transporter;
-  if (process.env.SMTP_HOST) {
-    // console.log(`[SMTP] host=${process.env.SMTP_HOST} port=${process.env.SMTP_PORT} secure=${process.env.SMTP_SECURE} user=${process.env.SMTP_USER}`);
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    });
+const getMailer = async () => {
+  const s = await EmailSettings.getSingleton();
+  const version = `${s._id}:${s.updatedAt?.getTime()}`;
+  if (cached.version !== version) {
+    const pass = decrypt(s.passEncrypted);
+    cached = {
+      version,
+      mailer: s.host && s.user && pass
+        ? {
+          transport: nodemailer.createTransport({
+            host: s.host,
+            port: Number(s.port) || 587,
+            secure: !!s.secure,
+            auth: { user: s.user, pass },
+          }),
+          from: `"${(s.fromName || 'MySilah').replace(/"/g, '')}" <${s.fromEmail || s.user}>`,
+        }
+        : null,
+    };
   }
-  return transporter;
+  return cached.mailer;
 };
 
 const sendInviteEmail = async ({ to, inviteUrl }) => {
-  const t = getTransporter();
+  const t = await getMailer();
   const subject = 'You have been invited to MySilah';
   const html = `
     <p>You have been invited to join MySilah.</p>
@@ -34,8 +50,8 @@ const sendInviteEmail = async ({ to, inviteUrl }) => {
     return { dev: true, inviteUrl };
   }
 
-  await t.sendMail({
-    from: process.env.SMTP_FROM || 'no-reply@mysilah.ae',
+  await t.transport.sendMail({
+    from: t.from,
     to,
     subject,
     html,
@@ -44,7 +60,7 @@ const sendInviteEmail = async ({ to, inviteUrl }) => {
 };
 
 const sendInquiryNotification = async ({ name, email, phone, companyName, message, queryType }) => {
-  const t = getTransporter();
+  const t = await getMailer();
   const to = process.env.INQUIRY_NOTIFY_EMAIL || process.env.ADMIN_EMAIL;
   const typeLabel = { support: 'Support', other: 'Other' }[queryType] || 'General Query';
   const subject = queryType === 'other' ? `New Request from ${name}` : `New ${typeLabel} Request from ${name}`;
@@ -69,8 +85,8 @@ const sendInquiryNotification = async ({ name, email, phone, companyName, messag
     return;
   }
 
-  await t.sendMail({
-    from: process.env.SMTP_FROM || 'no-reply@mysilah.ae',
+  await t.transport.sendMail({
+    from: t.from,
     to,
     subject,
     html,
@@ -78,7 +94,7 @@ const sendInquiryNotification = async ({ name, email, phone, companyName, messag
 };
 
 const sendPasswordResetEmail = async ({ to, resetUrl, name }) => {
-  const t = getTransporter();
+  const t = await getMailer();
   const subject = 'Reset your MySilah password';
   const html = `
     <p>Hi ${name || 'there'},</p>
@@ -96,8 +112,8 @@ const sendPasswordResetEmail = async ({ to, resetUrl, name }) => {
     return { dev: true, resetUrl };
   }
 
-  await t.sendMail({
-    from: process.env.SMTP_FROM || 'no-reply@mysilah.ae',
+  await t.transport.sendMail({
+    from: t.from,
     to,
     subject,
     html,
@@ -106,7 +122,7 @@ const sendPasswordResetEmail = async ({ to, resetUrl, name }) => {
 };
 
 const sendInquiryConfirmation = async ({ name, email }) => {
-  const t = getTransporter();
+  const t = await getMailer();
   const subject = 'Thanks for reaching out — MySilah';
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1e293b;">
@@ -136,8 +152,8 @@ const sendInquiryConfirmation = async ({ name, email }) => {
     return;
   }
 
-  await t.sendMail({
-    from: `MySilah <${process.env.SMTP_FROM || 'no-reply@mysilah.ae'}>`,
+  await t.transport.sendMail({
+    from: t.from,
     to: email,
     subject,
     html,
@@ -221,7 +237,7 @@ const sendInquiryReply = async ({ smtp, to, cc, bcc, name, subject, bodyHtml, bo
 };
 
 const sendEmailVerification = async ({ to, verifyUrl, name }) => {
-  const t = getTransporter();
+  const t = await getMailer();
   const subject = 'Verify your email — MySilah';
   const html = `
     <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#1e293b;">
@@ -250,8 +266,8 @@ const sendEmailVerification = async ({ to, verifyUrl, name }) => {
     return { dev: true, verifyUrl };
   }
 
-  await t.sendMail({
-    from: `MySilah <${process.env.SMTP_FROM || 'no-reply@mysilah.ae'}>`,
+  await t.transport.sendMail({
+    from: t.from,
     to,
     subject,
     html,
@@ -259,4 +275,34 @@ const sendEmailVerification = async ({ to, verifyUrl, name }) => {
   return { dev: false };
 };
 
-module.exports = { sendInviteEmail, sendInquiryNotification, sendInquiryConfirmation, sendPasswordResetEmail, sendEmailVerification, sendInquiryReply };
+const PARTNER_WELCOME_ASSETS = path.join(__dirname, '..', 'assets', 'partner-welcome');
+
+// Welcome email for a new agent / super agent: their first name and referral
+// code in the partner welcome design.
+const sendPartnerWelcomeEmail = async ({ to, name, code }) => {
+  const t = await getMailer();
+  const appUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const subject = partnerWelcomeSubject({ name });
+
+  if (!t) {
+    console.log('\n[DEV EMAIL — PARTNER WELCOME]');
+    console.log(`To: ${to}`);
+    console.log(`Name: ${name}  Code: ${code}\n`);
+    return { dev: true };
+  }
+
+  await t.transport.sendMail({
+    from: t.from,
+    to,
+    subject,
+    html: partnerWelcomeHtml({ name, code, appUrl }),
+    text: partnerWelcomeText({ name, code, appUrl }),
+    attachments: [
+      { filename: 'mysilah.png', path: path.join(PARTNER_WELCOME_ASSETS, 'logo.png'), cid: 'logo' },
+      { filename: 'voucher-qr.png', path: path.join(PARTNER_WELCOME_ASSETS, 'qr.png'), cid: 'qr' },
+    ],
+  });
+  return { dev: false };
+};
+
+module.exports = { sendInviteEmail, sendInquiryNotification, sendInquiryConfirmation, sendPasswordResetEmail, sendEmailVerification, sendInquiryReply, sendPartnerWelcomeEmail };

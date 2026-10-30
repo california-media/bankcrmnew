@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const { resolveAgencyId } = require('../middleware/auth.middleware');
 const { generateReferralCode } = require('../utils/token');
+const { sendPartnerWelcome } = require('../services/partnerWelcome.service');
 
 /**
  * POST /api/agents  (agency)
@@ -35,6 +36,7 @@ exports.create = async (req, res) => {
       referralCode,
       isActive: true,
     });
+    sendPartnerWelcome(agent).catch(() => {});
 
     const sanitized = agent.toObject();
     delete sanitized.password;

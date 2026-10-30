@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Singleton — SMTP account used ONLY for replying to website requests
-// (SiteInquiry). All other app emails keep using the SMTP_* env vars.
+// (SiteInquiry). All other app emails use EmailSettings.
 // The password is stored encrypted (see utils/secretBox.js) and is never
 // sent back to the client.
 const replySmtpSettingsSchema = new mongoose.Schema(

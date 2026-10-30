@@ -68,6 +68,7 @@ import ManageAdmins from './pages/admin/ManageAdmins';
 import CoinsVouchers from './pages/admin/CoinsVouchers';
 import ProductOfMonth from './pages/admin/ProductOfMonth';
 import Companies from './pages/admin/Companies';
+import EmailSettings from './pages/admin/EmailSettings';
 import AgencyReports from './pages/agency/Reports';
 import AgentReports from './pages/agent/Reports';
 import VerifyEmail from './pages/VerifyEmail';
@@ -192,6 +193,7 @@ function App() {
           <Route path="manage-admins" element={<ManageAdmins />} />
           <Route path="coins" element={<SuperAdminOnly><CoinsVouchers /></SuperAdminOnly>} />
           <Route path="companies" element={<SuperAdminOnly><Companies /></SuperAdminOnly>} />
+          <Route path="email-settings" element={<SuperAdminOnly><EmailSettings /></SuperAdminOnly>} />
         </Route>
 
         <Route

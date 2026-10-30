@@ -8,6 +8,7 @@ const { sendPasswordResetEmail, sendEmailVerification } = require('../utils/emai
 const coins = require('../services/coins.service');
 const { resolveUaepassFields } = require('../utils/uaepassPrefill');
 const { sendWhatsAppOtp } = require('../services/whatsappOtp.service');
+const { sendPartnerWelcome } = require('../services/partnerWelcome.service');
 const { deleteFromS3, getFilename } = require('../middleware/upload.middleware');
 
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
@@ -231,6 +232,7 @@ exports.verifyEmail = async (req, res) => {
     await user.save();
 
     coins.awardInvite(user).catch(() => {});
+    sendPartnerWelcome(user).catch(() => {});
 
     const authToken = signAuthToken(user);
     res.json({ token: authToken, user: sanitize(user) });

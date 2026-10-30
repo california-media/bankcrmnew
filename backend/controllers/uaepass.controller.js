@@ -4,6 +4,7 @@ const User = require('../models/User');
 const UaepassExchange = require('../models/UaepassExchange');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
 const { inactiveMessage, DEACTIVATED_MESSAGE } = require('../utils/superAgent');
+const { sendPartnerWelcome } = require('../services/partnerWelcome.service');
 const {
   isAllowedAppRedirect,
   safeWebOrigin,
@@ -421,6 +422,7 @@ exports.callback = async (req, res) => {
       ...(nationality  ? { nationality }        : {}),
       ...(title        ? { uaepassTitle: title } : {}),
     });
+    sendPartnerWelcome(agent).catch(() => {});
 
     const token = signAuthToken(agent);
     return await finishWithExchange(statePayload, { token }, `${frontendUrl}/auth/uaepass/callback?token=${token}`);

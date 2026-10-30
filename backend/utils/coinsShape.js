@@ -24,6 +24,9 @@ const maskName = (name) => {
 // The caller's own full name with UAE PASS commas turned into spaces.
 const displayName = (name) => nameParts(name).join(' ');
 
+// "HAFIZ,MUHAMMAD,QAMAR,,," -> "Hafiz"; "Omar Khan" -> "Omar".
+const firstName = (name) => tidyWord(nameParts(name)[0] || '');
+
 const shapeVoucher = (v, stock) => ({
   _id: v._id,
   title: v.title,
@@ -48,4 +51,4 @@ const shapeRedemption = (r, voucher, stock) => ({
   voucher: voucher ? shapeVoucher(voucher, stock) : null,
 });
 
-module.exports = { displayName, logoUrl, balanceOf, maskName, shapeVoucher, shapeRedemption };
+module.exports = { displayName, firstName, logoUrl, balanceOf, maskName, shapeVoucher, shapeRedemption };

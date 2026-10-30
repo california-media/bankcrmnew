@@ -1,7 +1,8 @@
 const SiteInquiry = require('../models/SiteInquiry');
 const ReplySmtpSettings = require('../models/ReplySmtpSettings');
 const { sendInquiryNotification, sendInquiryConfirmation, sendInquiryReply } = require('../utils/email');
-const { encrypt, decrypt } = require('../utils/secretBox');
+const { decrypt } = require('../utils/secretBox');
+const { smtpSettingsHandlers } = require('../utils/smtpSettings');
 const { sanitizeEmailHtml, htmlToText } = require('../utils/emailHtml');
 const { putToS3, fileMimeType } = require('../middleware/upload.middleware');
 
@@ -67,55 +68,19 @@ exports.deleteInquiry = async (req, res) => {
   }
 };
 
-// Reply SMTP settings as the client sees them — never includes the password.
-const publicSmtp = (doc) => ({
-  host: doc.host,
-  port: doc.port,
-  secure: doc.secure,
-  user: doc.user,
-  fromName: doc.fromName,
-  fromEmail: doc.fromEmail,
-  hasPassword: !!doc.passEncrypted,
-  configured: !!(doc.host && doc.user && doc.passEncrypted),
-  updatedAt: doc.updatedAt,
-});
+const replySmtp = smtpSettingsHandlers(ReplySmtpSettings);
 
 /**
  * GET /api/inquiries/smtp-settings  (Super Admin)
  */
-exports.getSmtpSettings = async (req, res) => {
-  try {
-    res.json(publicSmtp(await ReplySmtpSettings.getSingleton()));
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+exports.getSmtpSettings = replySmtp.get;
 
 /**
  * PUT /api/inquiries/smtp-settings  (Super Admin)
  * Body: { host, port, secure, user, pass?, fromName, fromEmail }
  * A blank pass keeps the saved one.
  */
-exports.updateSmtpSettings = async (req, res) => {
-  try {
-    const { host, port, secure, user, pass, fromName, fromEmail } = req.body;
-    if (!host || !user) return res.status(400).json({ message: 'SMTP host and username are required' });
-    const doc = await ReplySmtpSettings.getSingleton();
-    doc.host = String(host).trim();
-    doc.port = Number(port) || 587;
-    doc.secure = !!secure;
-    doc.user = String(user).trim();
-    if (pass) doc.passEncrypted = encrypt(pass);
-    if (!doc.passEncrypted) return res.status(400).json({ message: 'SMTP password is required' });
-    doc.fromName = (fromName || 'MySilah').trim();
-    doc.fromEmail = (fromEmail || '').trim();
-    doc.updatedBy = req.user._id;
-    await doc.save();
-    res.json(publicSmtp(doc));
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+exports.updateSmtpSettings = replySmtp.update;
 
 const MAX_TOTAL_ATTACHMENT_BYTES = 20 * 1024 * 1024; // stay under common 25 MB mail limits
 const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/;

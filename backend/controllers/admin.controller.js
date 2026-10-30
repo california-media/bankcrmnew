@@ -3,6 +3,7 @@ const Lead = require('../models/Lead');
 const { generateReferralCode } = require('../utils/token');
 const { releaseSubAgents } = require('../utils/superAgent');
 const { createAndEmit } = require('../utils/notify');
+const { sendPartnerWelcome } = require('../services/partnerWelcome.service');
 
 const sanitizeAgent = (user) => ({
   id: user._id,
@@ -231,6 +232,7 @@ exports.createAgent = async (req, res) => {
       referralCode: generateReferralCode(),
       ...(superAgent ? { superAgent } : {}),
     });
+    sendPartnerWelcome(agent).catch(() => {});
 
     res.status(201).json({ user: sanitizeAgent(agent) });
   } catch (err) {
@@ -379,6 +381,7 @@ exports.approveAgency = async (req, res) => {
     agency.isActive = true;
     agency.registrationStatus = 'approved';
     await agency.save();
+    if (agency.isSuperAgent) sendPartnerWelcome(agency).catch(() => {});
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });

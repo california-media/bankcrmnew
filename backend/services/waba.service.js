@@ -2,6 +2,8 @@ const http = require('http');
 const https = require('https');
 
 const WABA_API_URL  = process.env.WABA_API_URL  || 'https://nf6fp9tcn6.execute-api.eu-north-1.amazonaws.com/api/external/consent/send1';
+// Voycell's generic (non-consent) template send — same API key as consent.
+const WABA_TEMPLATE_API_URL = process.env.WABA_TEMPLATE_API_URL || 'https://nf6fp9tcn6.execute-api.eu-north-1.amazonaws.com/api/external/template/send';
 const WABA_API_KEY  = process.env.WABA_API_KEY  || '';
 const TEMPLATE_NAME = process.env.WABA_TEMPLATE || 'consent_message';
 const YES_BUTTON    = process.env.WABA_YES_BUTTON || 'YES';
@@ -16,41 +18,12 @@ function normalizePhone(phone) {
 
 const PRODUCT_LABELS = { credit_card: 'Credit Card', loan: 'Loan', account: 'Bank Account' };
 
-function sendConsentMessage({ phone, externalLeadId, customerName, productType }) {
+// POSTs JSON to a Voycell external API. Never rejects — resolves with
+// { status, body } or { error } so callers can fire and forget.
+function postToVoycell(apiUrl, payload) {
   return new Promise((resolve) => {
-    if (!WABA_API_KEY) return resolve({ skipped: true, reason: 'WABA_API_KEY not set' });
-
-    const normalized = normalizePhone(phone);
-    if (!normalized) return resolve({ skipped: true, reason: 'no phone' });
-
-    const productLabel = PRODUCT_LABELS[productType];
-
-    // NOTE: this deployed endpoint's own validation error names
-    // `externalLeadId` as the required field (confirmed live) — it does
-    // NOT match the `bankLeadId` naming documented in Voycell's own
-    // integration plan for /api/external/consent/send. That plan describes
-    // a different (or newer) contract than what's actually live here.
-    // Only the CALLBACK direction (Voycell -> our webhook) is confirmed to
-    // use `bankLeadId` — see webhook.controller.js.
-    const payload = JSON.stringify({
-      phone: normalized,
-      name: customerName || undefined,
-      externalLeadId: String(externalLeadId),
-      templateName: TEMPLATE_NAME,
-      callbackUrl: WABA_CALLBACK_URL,
-      yesButtonText: YES_BUTTON,
-      params: {
-        // Second value only added once a product type is known — keeps this
-        // call safe to ship before the WhatsApp template itself has a
-        // second {{}} placeholder approved. Once it does, this always
-        // sends two values (every lead has a productType).
-        body: productLabel
-          ? [customerName || 'Customer', productLabel]
-          : [customerName || 'Customer'],
-      },
-    });
-
-    const url = new URL(WABA_API_URL);
+    const body = JSON.stringify(payload);
+    const url = new URL(apiUrl);
     const options = {
       hostname: url.hostname,
       port: url.port || (url.protocol === 'https:' ? 443 : 80),
@@ -58,12 +31,10 @@ function sendConsentMessage({ phone, externalLeadId, customerName, productType }
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload),
+        'Content-Length': Buffer.byteLength(body),
         'x-api-key': WABA_API_KEY,
       },
     };
-
-    console.log(`[WABA] Sending consent to phone=${normalized} externalLeadId=${externalLeadId} customer="${customerName || 'Customer'}" product="${productLabel || 'n/a'}"`);
 
     const lib = url.protocol === 'https:' ? https : http;
     const req = lib.request(options, (res) => {
@@ -91,9 +62,63 @@ function sendConsentMessage({ phone, externalLeadId, customerName, productType }
       resolve({ error: 'timeout' });
     });
 
-    req.write(payload);
+    req.write(body);
     req.end();
   });
 }
 
-module.exports = { sendConsentMessage };
+async function sendConsentMessage({ phone, externalLeadId, customerName, productType }) {
+  if (!WABA_API_KEY) return { skipped: true, reason: 'WABA_API_KEY not set' };
+
+  const normalized = normalizePhone(phone);
+  if (!normalized) return { skipped: true, reason: 'no phone' };
+
+  const productLabel = PRODUCT_LABELS[productType];
+
+  console.log(`[WABA] Sending consent to phone=${normalized} externalLeadId=${externalLeadId} customer="${customerName || 'Customer'}" product="${productLabel || 'n/a'}"`);
+
+  // NOTE: this deployed endpoint's own validation error names
+  // `externalLeadId` as the required field (confirmed live) — it does
+  // NOT match the `bankLeadId` naming documented in Voycell's own
+  // integration plan for /api/external/consent/send. That plan describes
+  // a different (or newer) contract than what's actually live here.
+  // Only the CALLBACK direction (Voycell -> our webhook) is confirmed to
+  // use `bankLeadId` — see webhook.controller.js.
+  return postToVoycell(WABA_API_URL, {
+    phone: normalized,
+    name: customerName || undefined,
+    externalLeadId: String(externalLeadId),
+    templateName: TEMPLATE_NAME,
+    callbackUrl: WABA_CALLBACK_URL,
+    yesButtonText: YES_BUTTON,
+    params: {
+      // Second value only added once a product type is known — keeps this
+      // call safe to ship before the WhatsApp template itself has a
+      // second {{}} placeholder approved. Once it does, this always
+      // sends two values (every lead has a productType).
+      body: productLabel
+        ? [customerName || 'Customer', productLabel]
+        : [customerName || 'Customer'],
+    },
+  });
+}
+
+// Sends any approved template. `body` fills the template's {{named}}
+// variables in order.
+async function sendTemplateMessage({ phone, contactName, templateName, body }) {
+  if (!WABA_API_KEY) return { skipped: true, reason: 'WABA_API_KEY not set' };
+
+  const normalized = normalizePhone(phone);
+  if (!normalized) return { skipped: true, reason: 'no phone' };
+
+  console.log(`[WABA] Sending template=${templateName} to phone=${normalized}`);
+
+  return postToVoycell(WABA_TEMPLATE_API_URL, {
+    phone: normalized,
+    contactName: contactName || undefined,
+    templateName,
+    params: { body },
+  });
+}
+
+module.exports = { sendConsentMessage, sendTemplateMessage };

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Table, Tag, Typography, Button, Modal, Space, message, Badge, Form, Input, InputNumber, Switch, Alert,
+  Table, Tag, Typography, Button, Modal, Space, message, Badge, Form, Alert,
 } from 'antd';
 import { EyeOutlined, DeleteOutlined, MailOutlined, SettingOutlined, RollbackOutlined, PaperClipOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
@@ -9,6 +9,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import api from '../../api/client';
 import { UPLOADS_BASE } from '../../utils/uploads';
 import InquiryReplyComposer from './InquiryReplyComposer';
+import SmtpSettingsFields from '../../components/SmtpSettingsFields';
 import { fileIcon, formatBytes } from '../../utils/attachments';
 
 dayjs.extend(relativeTime);
@@ -324,35 +325,7 @@ export default function Inquiries() {
           message="Used only for replying to requests on this page."
         />
         <Form form={smtpForm} layout="vertical" preserve={false} initialValues={{ port: 587, ...smtpInfo, pass: '' }}>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <Form.Item name="host" label="SMTP Host" rules={[{ required: true, message: 'Host required' }]} style={{ flex: 1, marginBottom: 10 }}>
-              <Input placeholder="smtp.gmail.com" />
-            </Form.Item>
-            <Form.Item name="port" label="Port" rules={[{ required: true, message: 'Port required' }]} style={{ width: 110, marginBottom: 10 }}>
-              <InputNumber min={1} max={65535} style={{ width: '100%' }} />
-            </Form.Item>
-          </div>
-          <Form.Item name="secure" label="Use SSL/TLS (port 465)" valuePropName="checked" style={{ marginBottom: 10 }}>
-            <Switch />
-          </Form.Item>
-          <Form.Item name="user" label="Username" rules={[{ required: true, message: 'Username required' }]} style={{ marginBottom: 10 }}>
-            <Input placeholder="support@mysilah.ae" autoComplete="off" />
-          </Form.Item>
-          <Form.Item
-            name="pass"
-            label="Password"
-            rules={smtpInfo?.hasPassword ? [] : [{ required: true, message: 'Password required' }]}
-            extra={smtpInfo?.hasPassword ? 'A password is saved. Leave blank to keep it.' : undefined}
-            style={{ marginBottom: 10 }}
-          >
-            <Input.Password placeholder={smtpInfo?.hasPassword ? '••••••••' : 'SMTP password / app password'} autoComplete="new-password" />
-          </Form.Item>
-          <Form.Item name="fromName" label="From Name" style={{ marginBottom: 10 }}>
-            <Input placeholder="MySilah Support" />
-          </Form.Item>
-          <Form.Item name="fromEmail" label="From Email" rules={[{ type: 'email', message: 'Valid email required' }]} extra="Leave blank to use the username." style={{ marginBottom: 0 }}>
-            <Input placeholder="support@mysilah.ae" />
-          </Form.Item>
+          <SmtpSettingsFields hasPassword={smtpInfo?.hasPassword} />
         </Form>
       </Modal>
     </div>

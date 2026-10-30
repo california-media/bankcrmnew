@@ -32,6 +32,16 @@ function Register() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  // Partner code from the referral link (?ref=), kept for the tab so the UAE PASS round trip doesn't lose it.
+  const [refCode] = useState(() => {
+    const fromUrl = (searchParams.get('ref') || '').trim().toUpperCase();
+    try {
+      if (fromUrl) sessionStorage.setItem('signupRef', fromUrl);
+      return fromUrl || sessionStorage.getItem('signupRef') || '';
+    } catch {
+      return fromUrl;
+    }
+  });
   const { user, status, error, registrationPending, otpStatus, otpError, phoneVerifyToken } = useSelector((s) => s.auth);
   const [form] = Form.useForm();
   const screens = useBreakpoint();
@@ -92,6 +102,7 @@ function Register() {
       password:   values.password,
       phone:      values.phone ? toFullUAEPhone(values.phone) : undefined,
       emiratesId: values.emiratesId,
+      referralCode:   values.referralCode?.trim() || undefined,
       superAgentCode: values.superAgentCode?.trim() || undefined,
       phoneVerifyToken,
     };
@@ -294,6 +305,9 @@ function Register() {
           </Form.Item>
           <Form.Item name="emiratesId" rules={[{ required: true, message: 'Emirates ID is required' }]} style={itemStyle}>
             <Input placeholder="Emirates ID * — 784-XXXX-XXXXXXX-X" style={inputStyle} />
+          </Form.Item>
+          <Form.Item name="referralCode" style={itemStyle} initialValue={refCode || undefined}>
+            <Input prefix={<span style={{ color:'#94a3b8', marginRight:4 }}>Partner Code</span>} placeholder="(optional)" style={inputStyle} />
           </Form.Item>
           <Form.Item name="superAgentCode" style={itemStyle} initialValue={(searchParams.get('sa') || '').toUpperCase() || undefined}>
             <Input placeholder="Super Referral Partner Code (optional)" style={inputStyle} />

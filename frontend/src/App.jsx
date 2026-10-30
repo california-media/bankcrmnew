@@ -1,10 +1,9 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { ConfigProvider, theme as antdTheme } from 'antd';
 import { useSelector } from 'react-redux';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import RegisterAgency from './pages/RegisterAgency';
-import ReferralForm from './pages/ReferralForm';
 import TrackStatus from './pages/TrackStatus';
 import SetPassword from './pages/SetPassword';
 import ForgotPassword from './pages/ForgotPassword';
@@ -107,6 +106,13 @@ function SuperAdminOnly({ children }) {
   return user?.role === 'admin' && !user.adminScope ? children : <Navigate to="/admin" replace />;
 }
 
+// Referral link / QR (/ref/:code): agent sign-up with the partner code filled in (user, 2026-10-30).
+// It used to open the client application form (pages/ReferralForm), which is no longer routed.
+function RefSignup() {
+  const { code } = useParams();
+  return <Navigate to={`/register?ref=${encodeURIComponent(code || '')}`} replace />;
+}
+
 function App() {
   return (
     // virtual={false}: disables antd's virtual-scroll dropdown list app-wide.
@@ -128,7 +134,7 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/auth/uaepass/callback" element={<UaePassCallback />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/ref/:code" element={<ReferralForm />} />
+        <Route path="/ref/:code" element={<RefSignup />} />
         <Route path="/track-status" element={<TrackStatus />} />
         {/* Standalone, no sidebar — this is what "View" opens in a new tab.
             Server-side getOne/pdf still scope by agency, so this URL is only

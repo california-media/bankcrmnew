@@ -248,6 +248,7 @@ export default function ReferralForm() {
   );
 
   const accentColor = productType === 'credit_card' ? '#7C3AED' : '#16a34a';
+  const referrerName = String(agentName || '').split(/[\s,]+/).filter(Boolean).join(' ');
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#f5f3ff 0%,#ede9fe 100%)', padding: '20px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
@@ -260,6 +261,16 @@ export default function ReferralForm() {
         }
       `}</style>
       <div className="ref-form-outer" style={{ width: '100%', maxWidth: 1040, borderRadius: 20, overflow: 'hidden', boxShadow: '0 8px 48px rgba(124,58,237,0.15)' }}>
+
+        {/* Client-facing header: this public page is the CLIENT's application (opened from the agent's link / QR). */}
+        <div style={{ background: 'linear-gradient(120deg,#2F6BFF 0%,#6C4CF6 55%,#B04CF4 100%)', padding: '18px 20px', color: '#fff' }}>
+          <img src="/mysilah.svg" alt="MySilah" style={{ height: 28, width: 'auto', objectFit: 'contain', background: '#fff', borderRadius: 8, padding: '4px 8px' }} />
+          <div style={{ fontSize: 20, fontWeight: 700, marginTop: 12, lineHeight: 1.25 }}>Apply for a credit card or loan</div>
+          <div style={{ fontSize: 13, marginTop: 4, opacity: 0.92, lineHeight: 1.45 }}>
+            {referrerName ? <>You were referred by <b>{referrerName}</b>. </> : null}
+            Fill in your details below and our team will contact you.
+          </div>
+        </div>
 
         {/* Two-column body */}
         <div className="ref-form-body" style={{ background: '#f8f9fc', padding: '16px' }}>
@@ -274,7 +285,7 @@ export default function ReferralForm() {
                   <div style={{ width: 26, height: 26, borderRadius: 7, background: '#f3e8ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   </div>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: '#1e1b4b' }}>Client Information</span>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: '#1e1b4b' }}>Your details</span>
                 </div>
 
                 <Row gutter={10}>
@@ -293,7 +304,7 @@ export default function ReferralForm() {
                   </Col>
                   <Col span={12}>
                     <Form.Item name="email" label="Email" rules={[{ required: true, message: 'Required' }, { type: 'email', message: 'Invalid' }]} style={MB}>
-                      <Input placeholder="client@email.com" />
+                      <Input placeholder="you@email.com" />
                     </Form.Item>
                   </Col>
                   <Col span={12}>

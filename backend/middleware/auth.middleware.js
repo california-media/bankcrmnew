@@ -18,6 +18,21 @@ const protect = async (req, res, next) => {
   }
 };
 
+// Sets req.user when a valid token is sent, otherwise carries on anonymously
+// (for public routes that show more to signed-in users).
+const optionalAuth = async (req, res, next) => {
+  try {
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select('-password');
+      if (user && user.isActive) req.user = user;
+    }
+  } catch (err) { /* invalid or expired token: treat as anonymous */ }
+  next();
+};
+
 const requireRole = (...roles) => (req, res, next) => {
   if (!req.user || !roles.includes(req.user.role)) {
     return res.status(403).json({ message: 'Forbidden' });
@@ -45,4 +60,4 @@ const allowEmployeeTypes = (...types) => (req, res, next) => {
 // stored on their account.
 const resolveAgencyId = (user) => (user.role === 'agency' ? user._id : user.agency);
 
-module.exports = { protect, requireRole, requireSuperAdmin, allowEmployeeTypes, resolveAgencyId };
+module.exports = { protect, optionalAuth, requireRole, requireSuperAdmin, allowEmployeeTypes, resolveAgencyId };

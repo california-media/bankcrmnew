@@ -4,7 +4,9 @@ const { protect, requireRole, requireSuperAdmin } = require('../middleware/auth.
 
 router.use(protect, requireRole('admin'), requireSuperAdmin);
 router.get('/', ctrl.list);
+router.get('/ids', ctrl.ids);
 router.post('/bulk', ctrl.bulk);
+router.post('/bulk-delete', ctrl.bulkRemove);
 router.put('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);
 

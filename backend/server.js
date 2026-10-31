@@ -56,6 +56,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
+// Company uploads and bulk deletes send up to 5,000 rows per request.
+app.use('/api/admin/companies', express.json({ limit: '5mb' }));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

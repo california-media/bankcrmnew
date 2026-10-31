@@ -74,6 +74,19 @@ exports.search = async (req, res) => {
   }
 };
 
+// Admin / agency: every bank listing for one company name (exact, case-insensitive).
+exports.details = async (req, res) => {
+  try {
+    const name = normalizeName(req.query.name);
+    if (!isValidName(name)) return res.json({ found: false, banks: [] });
+    const docs = await Company.find({ nameKey: keyOf(name) }).select('_id name nameKey bankName category notes').sort({ bankKey: 1 }).lean();
+    const [company] = groupByCompany(docs, false);
+    res.json(company ? { found: true, name: company.name, banks: company.banks } : { found: false, banks: [] });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.list = async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);

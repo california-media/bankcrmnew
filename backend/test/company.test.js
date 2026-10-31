@@ -203,3 +203,26 @@ test('ids: every id matching the search', async (t) => {
   assert.deepEqual(res.body, { ids: ['a', 'b'] });
   assert.equal(filters[0].nameKey.source, 'em');
 });
+
+test('details: all bank rows for the exact name, or not found', async (t) => {
+  const filters = [];
+  t.mock.method(Company, 'find', findChain([
+    { _id: 'a', name: '101 Computer Embroidery', nameKey: '101 computer embroidery', bankName: 'ENBD', category: 'Cat B', notes: '' },
+    { _id: 'b', name: '101 COMPUTER EMBROIDERY', nameKey: '101 computer embroidery', bankName: 'FAB', category: 'Cat C', notes: 'x' },
+  ], filters));
+  let res = fakeRes();
+  await ctrl.details({ query: { name: ' 101  COMPUTER Embroidery ' } }, res);
+  assert.equal(filters[0].nameKey, '101 computer embroidery');
+  assert.deepEqual(res.body, {
+    found: true,
+    name: '101 Computer Embroidery',
+    banks: [{ bankName: 'ENBD', category: 'Cat B', notes: '' }, { bankName: 'FAB', category: 'Cat C', notes: 'x' }],
+  });
+  Company.find.mock.mockImplementation(findChain([]));
+  res = fakeRes();
+  await ctrl.details({ query: { name: 'Nope' } }, res);
+  assert.deepEqual(res.body, { found: false, banks: [] });
+  res = fakeRes();
+  await ctrl.details({ query: {} }, res);
+  assert.deepEqual(res.body, { found: false, banks: [] });
+});

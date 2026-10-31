@@ -72,6 +72,7 @@ app.use('/api/admin/coins',       require('./routes/coinsAdmin.routes'));
 app.use('/api/admin/product-of-month', require('./routes/productOfMonthAdmin.routes'));
 app.use('/api/admin/companies',  require('./routes/companyAdmin.routes'));
 app.use('/api/admin/email-settings', require('./routes/emailSettings.routes'));
+app.use('/api/admin/welcome-email', require('./routes/welcomeEmail.routes'));
 app.use('/api/admin',             require('./routes/admin.routes'));
 app.use('/api/card-products',     require('./routes/cardProduct.routes'));
 app.use('/api/card-categories',   require('./routes/cardCategory.routes'));

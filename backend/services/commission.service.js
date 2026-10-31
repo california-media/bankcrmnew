@@ -26,6 +26,16 @@ function findBracket(brackets, salary) {
   return eligible.length ? eligible[eligible.length - 1] : sorted[0];
 }
 
+// A card with 2+ brackets is "salary-based": the client's salary picks the
+// tier, so a salary under the lowest tier can't be submitted for that card.
+// Returns the lowest tier's minimum when blocked, null otherwise. Fixed cards
+// (0-1 bracket) and leads without a salary are never blocked here.
+function salaryBelowCardMinimum(brackets, salary) {
+  if (!brackets || brackets.length < 2 || salary == null) return null;
+  const lowest = Math.min(...brackets.map((b) => b.minimumSalary));
+  return Number(salary) < lowest ? lowest : null;
+}
+
 // Resolves how the submitter of this lead affects payout, gated by the
 // tagging/submitting agency's agencyCommissionModel so 'wholesale' agencies
 // (today's existing invoice/bucket flow) are completely unaffected:
@@ -239,6 +249,7 @@ module.exports = {
   ruleVersion,
   agentPayable,
   resolveSubmitterContext,
+  salaryBelowCardMinimum,
   resolveCommissionAmount,
   resolveCommissions,
   resolveGrossCommission,

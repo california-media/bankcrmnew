@@ -2,6 +2,8 @@
 // design as the WhatsApp welcome image, as email-safe HTML (tables + inline
 // styles). The logo and QR code are inline attachments: cid:logo / cid:qr.
 
+const { firstName, displayName } = require('./coinsShape');
+
 const escapeHtml = (str = '') =>
   String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
@@ -29,12 +31,26 @@ const STEPS = [
   ['3', '#C026D3', 'Track and earn', 'Follow every lead and see your rewards move from Pending to Paid.'],
 ];
 
+// Dark footer shared by the built-in and the admin-designed welcome email.
+const footerRow = (appUrl) => {
+  const year = new Date().getFullYear();
+  return `  <tr><td bgcolor="#22228A" style="background:#22228A;background-image:linear-gradient(135deg,#1B1B5E,#2A2AA0);border-radius:0 0 16px 16px;padding:28px 36px;">
+    <p style="margin:0 0 6px;${FONT}font-size:16px;font-weight:bold;color:#ffffff;">Important updates from MySilah</p>
+    <p style="margin:0 0 18px;${FONT}font-size:12px;line-height:19px;color:#D6D8F5;">To make sure you never miss an update, add us to your contacts or mark this email as &ldquo;Primary&rdquo;.</p>
+    <div style="border-top:1px solid #4A4AA8;margin:0 0 16px;font-size:0;line-height:0;">&nbsp;</div>
+    <p style="margin:0 0 16px;${FONT}font-size:12px;line-height:19px;color:#ffffff;"><strong>Stay safe.</strong> MySilah will never ask for your password, UAE PASS PIN or one-time code by email, phone or WhatsApp.</p>
+    <p style="margin:0 0 6px;${FONT}font-size:11px;line-height:17px;color:#B9BCE8;">You received this message because you registered as a Referral Partner with MySilah.</p>
+    <p style="margin:0 0 6px;${FONT}font-size:11px;color:#ffffff;"><a href="${appUrl}/privacy" style="color:#ffffff;">Privacy policy</a> &nbsp;|&nbsp; <a href="${appUrl}/terms" style="color:#ffffff;">Terms and conditions</a> &nbsp;|&nbsp; <a href="${appUrl}/agent/settings" style="color:#ffffff;">Email preferences</a></p>
+    <p style="margin:0;${FONT}font-size:11px;color:#B9BCE8;">&copy; ${year} Silah L.L.C-FZ. Dubai</p>
+  </td></tr>
+`;
+};
+
 const partnerWelcomeSubject = ({ name }) => `Welcome aboard, ${name}! Your MySilah partner code`;
 
 const partnerWelcomeHtml = ({ name, code, appUrl }) => {
   const n = escapeHtml(name);
   const c = escapeHtml(code);
-  const year = new Date().getFullYear();
 
   const steps = STEPS.map(([num, color, title, text]) => `
           <td width="33%" valign="top" style="padding:0 5px;">
@@ -143,16 +159,7 @@ const partnerWelcomeHtml = ({ name, code, appUrl }) => {
     </tr></table>
   </td></tr>
 
-  <tr><td bgcolor="#22228A" style="background:#22228A;background-image:linear-gradient(135deg,#1B1B5E,#2A2AA0);border-radius:0 0 16px 16px;padding:28px 36px;">
-    <p style="margin:0 0 6px;${FONT}font-size:16px;font-weight:bold;color:#ffffff;">Important updates from MySilah</p>
-    <p style="margin:0 0 18px;${FONT}font-size:12px;line-height:19px;color:#D6D8F5;">To make sure you never miss an update, add us to your contacts or mark this email as &ldquo;Primary&rdquo;.</p>
-    <div style="border-top:1px solid #4A4AA8;margin:0 0 16px;font-size:0;line-height:0;">&nbsp;</div>
-    <p style="margin:0 0 16px;${FONT}font-size:12px;line-height:19px;color:#ffffff;"><strong>Stay safe.</strong> MySilah will never ask for your password, UAE PASS PIN or one-time code by email, phone or WhatsApp.</p>
-    <p style="margin:0 0 6px;${FONT}font-size:11px;line-height:17px;color:#B9BCE8;">You received this message because you registered as a Referral Partner with MySilah.</p>
-    <p style="margin:0 0 6px;${FONT}font-size:11px;color:#ffffff;"><a href="${appUrl}/privacy" style="color:#ffffff;">Privacy policy</a> &nbsp;|&nbsp; <a href="${appUrl}/terms" style="color:#ffffff;">Terms and conditions</a> &nbsp;|&nbsp; <a href="${appUrl}/agent/settings" style="color:#ffffff;">Email preferences</a></p>
-    <p style="margin:0;${FONT}font-size:11px;color:#B9BCE8;">&copy; ${year} Silah L.L.C-FZ. Dubai</p>
-  </td></tr>
-
+${footerRow(appUrl)}
 </table>
 </td></tr>
 </table>
@@ -183,4 +190,115 @@ Need help? Call us on ${SUPPORT_PHONE} or email ${SUPPORT_EMAIL}.
 MySilah will never ask for your password, UAE PASS PIN or one-time code by email, phone or WhatsApp.
 `;
 
-module.exports = { partnerWelcomeSubject, partnerWelcomeHtml, partnerWelcomeText };
+// ── Admin-designed welcome email (Admin → Email Settings → Welcome Email) ──
+// The admin writes the subject and body; {{field}} placeholders are filled
+// per partner. The body sits in a fixed frame: logo on top, footer below.
+
+const WELCOME_FIELDS = [
+  { key: 'name', label: 'First name' },
+  { key: 'full_name', label: 'Full name' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'referral_code', label: 'Referral code' },
+  { key: 'referral_link', label: 'Referral link' },
+  { key: 'sign_in_link', label: 'Sign-in link' },
+  { key: 'super_agent_code', label: 'Super agent code' },
+];
+
+const welcomeFieldValues = (user, appUrl) => ({
+  name: firstName(user.name) || 'Partner',
+  full_name: displayName(user.name) || 'Partner',
+  email: user.email || '',
+  phone: user.phone || '',
+  referral_code: user.referralCode || '',
+  referral_link: user.referralCode ? `${appUrl}/ref/${user.referralCode}` : '',
+  sign_in_link: appUrl,
+  super_agent_code: user.superAgentCode || '',
+});
+
+// Sample partner for the admin's preview and test email.
+const sampleFieldValues = (appUrl) => welcomeFieldValues({
+  name: 'Ahmed Khan', email: 'ahmed.khan@example.com', phone: '971501234567',
+  referralCode: 'AB12CD34', superAgentCode: 'SA12CD34',
+}, appUrl);
+
+// {{ field }} (or its URL-encoded form inside a link) → value. Unknown
+// fields are left as typed so the admin can spot the mistake.
+const FIELD_TOKEN = /\{\{\s*([a-z_]+)\s*\}\}|%7B%7B([a-z_]+)%7D%7D/gi;
+const fillFields = (str, values, html = false) => String(str || '').replace(FIELD_TOKEN, (match, a, b) => {
+  const key = (a || b).toLowerCase();
+  if (!(key in values)) return match;
+  return html ? escapeHtml(values[key]) : String(values[key]);
+});
+
+// The editor's HTML, made email-client safe: alignment classes become inline
+// styles, non-breaking spaces become normal ones (so lines wrap) and images
+// shrink to fit narrow screens.
+const ALIGN_CLASS = / class="ql-align-(center|right|justify)"/g;
+const emailSafeBody = (html) => String(html || '')
+  .replace(ALIGN_CLASS, ' style="text-align:$1;"')
+  .replace(/&nbsp;/g, ' ')
+  .replace(/<img (?![^>]*style=)/g, '<img style="max-width:100%;height:auto;" ');
+
+const htmlToText = (html) => String(html)
+  .replace(/<a [^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (m, href, label) => (label.replace(/<[^>]+>/g, '') === href ? href : `${label} (${href})`))
+  .replace(/<li[^>]*>/gi, '- ')
+  .replace(/<\/(p|h[1-6]|li|div)>|<br\s*\/?>/gi, '\n')
+  .replace(/<[^>]+>/g, '')
+  .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+  .replace(/\n{3,}/g, '\n\n')
+  .trim();
+
+const customWelcomeEmail = ({ subject, bodyHtml }, values, appUrl) => {
+  const body = fillFields(emailSafeBody(bodyHtml), values, true);
+  const html = `<!doctype html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Welcome to MySilah</title></head>
+<body style="margin:0;padding:0;background:#EEF1F8;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF1F8;">
+<tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:16px;">
+
+  <tr><td style="padding:24px 28px 8px;">
+    <img src="cid:logo" width="196" height="45" alt="MySilah" style="display:block;border:0;">
+  </td></tr>
+
+  <tr><td style="padding:8px 28px 24px;${FONT}font-size:15px;line-height:24px;color:#3D4270;">
+${body}
+  </td></tr>
+
+${footerRow(appUrl)}
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+  const text = `${htmlToText(body)}
+
+MySilah will never ask for your password, UAE PASS PIN or one-time code by email, phone or WhatsApp.
+`;
+  return { subject: fillFields(subject, values), html, text };
+};
+
+// Files the admin attaches to the welcome email live in our S3 bucket under
+// email-attachments/; mail is sent with them fetched from that link.
+const ATTACHMENT_BASE = `https://${process.env.AWS_S3_BUCKET || 'mysilah'}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/email-attachments/`;
+const MAX_ATTACHMENTS = 5;
+const MAX_ATTACHMENTS_BYTES = 20 * 1024 * 1024;
+
+const welcomeAttachments = (list) => (list || []).map((a) => ({ filename: a.name, path: a.url }));
+
+// Error message, or null when the list is fine.
+const validWelcomeAttachments = (list) => {
+  if (!Array.isArray(list)) return 'Attachments must be a list';
+  if (list.length > MAX_ATTACHMENTS) return `Up to ${MAX_ATTACHMENTS} attachments`;
+  if (list.some((a) => !a?.name || typeof a.url !== 'string' || !a.url.startsWith(ATTACHMENT_BASE))) return 'Attachment link is not valid — upload the file again';
+  if (list.reduce((sum, a) => sum + (Number(a.size) || 0), 0) > MAX_ATTACHMENTS_BYTES) return 'Attachments must be 20 MB or less in total';
+  return null;
+};
+
+module.exports = {
+  partnerWelcomeSubject, partnerWelcomeHtml, partnerWelcomeText,
+  WELCOME_FIELDS, welcomeFieldValues, sampleFieldValues, fillFields, emailSafeBody, customWelcomeEmail,
+  welcomeAttachments, validWelcomeAttachments,
+};

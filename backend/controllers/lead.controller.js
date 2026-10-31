@@ -66,6 +66,8 @@ exports.create = async (req, res) => {
       const card = await CardProduct.findById(cardProduct).populate('agency', 'isActive role');
       if (!card) return res.status(400).json({ message: 'Invalid card product' });
       if (!card.isActive) return res.status(400).json({ message: 'This card product is not active' });
+      const cardMinSalary = commissionService.salaryBelowCardMinimum(card.commissionBrackets, customerSalary);
+      if (cardMinSalary != null) return res.status(400).json({ message: `Client salary is below this card's minimum of AED ${cardMinSalary.toLocaleString()}` });
       sendConsentFlag = card.sendConsent !== false;
       bankId = card.bank;
       if (card.agency && card.agency.role === 'agency' && card.agency.isActive) {
@@ -2326,6 +2328,8 @@ exports.completeReferral = async (req, res) => {
     if (productType === 'credit_card') {
       productDoc = await CardProduct.findById(cardProduct);
       if (!productDoc) return res.status(404).json({ message: 'Card product not found' });
+      const cardMinSalary = commissionService.salaryBelowCardMinimum(productDoc.commissionBrackets, lead.customerSalary || customerSalary);
+      if (cardMinSalary != null) return res.status(400).json({ message: `Client salary is below this card's minimum of AED ${cardMinSalary.toLocaleString()}` });
       bank = productDoc.bank;
       agency = productDoc.agency;
     } else {
@@ -2334,6 +2338,9 @@ exports.completeReferral = async (req, res) => {
       bank = productDoc.bank;
       agency = productDoc.agency;
     }
+    // Salary-based cards (2+ brackets) price off the client's own saved
+    // salary — the picked tier only fills it in when none was saved.
+    const salaryBased = productType === 'credit_card' && (productDoc.commissionBrackets || []).length > 1;
 
     lead.productType = productType;
     lead.bank = bank;
@@ -2348,7 +2355,7 @@ exports.completeReferral = async (req, res) => {
       lead.loanType = loanType || (['pos_loan', 'auto_loan'].includes(productDoc.loanCategory) ? productDoc.loanCategory : null);
     }
     // Agent's bracket selection determines which commission tier applies — always honour it
-    if (customerSalary != null) lead.customerSalary = customerSalary;
+    if (customerSalary != null && !(salaryBased && lead.customerSalary)) lead.customerSalary = customerSalary;
 
     // Compute commission directly from the product doc we already fetched
     const effSalary = lead.customerSalary;

@@ -7,6 +7,7 @@ const FeaturedProduct   = require('../models/FeaturedProduct');
 const AccountProduct    = require('../models/AccountProduct');
 const EmployeeStatus    = require('../models/EmployeeStatus');
 const { resolveActiveSuperAgentId } = require('../utils/superAgent');
+const { withLeadNumber } = require('../utils/leadRedirectUrl');
 const commissionService = require('../services/commission.service');
 const waba              = require('../services/waba.service');
 
@@ -129,7 +130,9 @@ exports.submitReferral = async (req, res) => {
     } else {
       if (cardProduct) {
         leadData.cardProduct = cardProduct;
-        const card = await CardProduct.findById(cardProduct).select('bank agency redirectUrl redirectActive sendConsent').lean();
+        const card = await CardProduct.findById(cardProduct).select('bank agency redirectUrl redirectActive sendConsent commissionBrackets').lean();
+        const cardMinSalary = commissionService.salaryBelowCardMinimum(card?.commissionBrackets, leadData.customerSalary);
+        if (cardMinSalary != null) return res.status(400).json({ message: `Your salary is below this card's minimum of AED ${cardMinSalary.toLocaleString()}` });
         if (card?.bank)   leadData.bank   = card.bank;
         if (card?.agency) leadData.agency = card.agency;
         if (card?.redirectActive && card?.redirectUrl) redirectUrl = card.redirectUrl;
@@ -187,7 +190,7 @@ exports.submitReferral = async (req, res) => {
         .catch(() => {});
     }
 
-    res.status(201).json({ message: 'Lead submitted successfully', redirectUrl });
+    res.status(201).json({ message: 'Lead submitted successfully', redirectUrl: withLeadNumber(redirectUrl, lead) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -458,33 +461,19 @@ exports.submitWebApply = async (req, res) => {
       leadData.leadNumber = `LD-${shortId}-${seq}`;
     }
 
+    // Website leads are a plain form submission — no WhatsApp consent
+    // message and no consent status (same for loan/account apply below).
     let redirectUrl = null;
-    let productSendConsent = true;
     if (cardProductId) {
       leadData.cardProduct = cardProductId;
-      const card = await CardProduct.findById(cardProductId).select('bank redirectUrl redirectActive sendConsent').lean();
+      const card = await CardProduct.findById(cardProductId).select('bank redirectUrl redirectActive').lean();
       if (card?.bank) leadData.bank = card.bank;
       if (card?.redirectActive && card?.redirectUrl) redirectUrl = card.redirectUrl;
-      productSendConsent = card?.sendConsent !== false;
-    }
-
-    if (redirectUrl) {
-      const confirmedConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: 'Confirmed' }).select('_id').lean();
-      if (confirmedConsent) leadData.consentStatus = confirmedConsent._id;
-    } else if (productSendConsent) {
-      const sentConsent = await EmployeeStatus.findOne({ label: /^sent$/i, statusType: 'whatsapp_consent', isActive: true }).select('_id').lean();
-      if (sentConsent) leadData.consentStatus = sentConsent._id;
     }
 
     const lead = await Lead.create(leadData);
 
-    if (!redirectUrl && productSendConsent) {
-      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName, productType: lead.productType })
-        .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
-        .catch(() => {});
-    }
-
-    res.status(201).json({ message: 'Application submitted successfully', redirectUrl });
+    res.status(201).json({ message: 'Application submitted successfully', redirectUrl: withLeadNumber(redirectUrl, lead) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -527,10 +516,9 @@ exports.submitWebLoanApply = async (req, res) => {
     }
 
     let loanRedirectUrl = null;
-    let productSendConsent = true;
     if (loanProductId) {
       leadData.loanProduct = loanProductId;
-      const loan = await LoanProduct.findById(loanProductId).select('bank redirectUrl redirectActive loanCategory sendConsent').lean();
+      const loan = await LoanProduct.findById(loanProductId).select('bank redirectUrl redirectActive loanCategory').lean();
       if (loan?.bank) leadData.bank = loan.bank;
       if (loan?.redirectActive && loan?.redirectUrl) loanRedirectUrl = loan.redirectUrl;
       // Fall back to the product's own category for the categories with
@@ -538,26 +526,11 @@ exports.submitWebLoanApply = async (req, res) => {
       if (!leadData.loanType && ['pos_loan', 'auto_loan'].includes(loan?.loanCategory)) {
         leadData.loanType = loan.loanCategory;
       }
-      productSendConsent = loan?.sendConsent !== false;
-    }
-
-    if (loanRedirectUrl) {
-      const confirmedConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: 'Confirmed' }).select('_id').lean();
-      if (confirmedConsent) leadData.consentStatus = confirmedConsent._id;
-    } else if (productSendConsent) {
-      const sentConsent = await EmployeeStatus.findOne({ label: /^sent$/i, statusType: 'whatsapp_consent', isActive: true }).select('_id').lean();
-      if (sentConsent) leadData.consentStatus = sentConsent._id;
     }
 
     const lead = await Lead.create(leadData);
 
-    if (!loanRedirectUrl && productSendConsent) {
-      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName, productType: lead.productType })
-        .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
-        .catch(() => {});
-    }
-
-    res.status(201).json({ message: 'Application submitted successfully', redirectUrl: loanRedirectUrl });
+    res.status(201).json({ message: 'Application submitted successfully', redirectUrl: withLeadNumber(loanRedirectUrl, lead) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -627,32 +600,16 @@ exports.submitWebAccountApply = async (req, res) => {
     }
 
     let accountRedirectUrl = null;
-    let productSendConsent = true;
     if (accountProductId) {
       leadData.accountProduct = accountProductId;
-      const account = await AccountProduct.findById(accountProductId).select('bank redirectUrl redirectActive sendConsent').lean();
+      const account = await AccountProduct.findById(accountProductId).select('bank redirectUrl redirectActive').lean();
       if (account?.bank) leadData.bank = account.bank;
       if (account?.redirectActive && account?.redirectUrl) accountRedirectUrl = account.redirectUrl;
-      productSendConsent = account?.sendConsent !== false;
-    }
-
-    if (accountRedirectUrl) {
-      const confirmedConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: 'Confirmed' }).select('_id').lean();
-      if (confirmedConsent) leadData.consentStatus = confirmedConsent._id;
-    } else if (productSendConsent) {
-      const sentConsent = await EmployeeStatus.findOne({ label: /^sent$/i, statusType: 'whatsapp_consent', isActive: true }).select('_id').lean();
-      if (sentConsent) leadData.consentStatus = sentConsent._id;
     }
 
     const lead = await Lead.create(leadData);
 
-    if (!accountRedirectUrl && productSendConsent) {
-      waba.sendConsentMessage({ phone: lead.phone, externalLeadId: lead.leadNumber || lead._id, customerName: lead.customerName, productType: lead.productType })
-        .then((r) => { if (r.error || r.skipped) console.log('[WABA]', r); })
-        .catch(() => {});
-    }
-
-    res.status(201).json({ message: 'Application submitted successfully', redirectUrl: accountRedirectUrl });
+    res.status(201).json({ message: 'Application submitted successfully', redirectUrl: withLeadNumber(accountRedirectUrl, lead) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

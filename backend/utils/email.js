@@ -2,7 +2,11 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const EmailSettings = require('../models/EmailSettings');
 const { decrypt } = require('./secretBox');
-const { partnerWelcomeSubject, partnerWelcomeHtml, partnerWelcomeText } = require('./partnerWelcomeEmail');
+const WelcomeEmailTemplate = require('../models/WelcomeEmailTemplate');
+const {
+  partnerWelcomeSubject, partnerWelcomeHtml, partnerWelcomeText,
+  welcomeFieldValues, sampleFieldValues, customWelcomeEmail, welcomeAttachments,
+} = require('./partnerWelcomeEmail');
 
 // The SMTP account saved under Admin → Email Settings (seeded from the SMTP_*
 // env vars until the Super Admin saves one). Null when nothing is configured,
@@ -277,32 +281,47 @@ const sendEmailVerification = async ({ to, verifyUrl, name }) => {
 
 const PARTNER_WELCOME_ASSETS = path.join(__dirname, '..', 'assets', 'partner-welcome');
 
-// Welcome email for a new agent / super agent: their first name and referral
-// code in the partner welcome design.
-const sendPartnerWelcomeEmail = async ({ to, name, code }) => {
+const LOGO_ATTACHMENT = { filename: 'mysilah.png', path: path.join(PARTNER_WELCOME_ASSETS, 'logo.png'), cid: 'logo' };
+
+// Welcome email for a new agent / super agent. Sends the admin-designed email
+// (Email Settings → Welcome Email) when it's switched on, otherwise the
+// built-in design with their first name and referral code.
+const sendPartnerWelcomeEmail = async ({ to, user }) => {
   const t = await getMailer();
   const appUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-  const subject = partnerWelcomeSubject({ name });
+  const values = welcomeFieldValues(user, appUrl);
+  const template = await WelcomeEmailTemplate.getSingleton();
+  const msg = template.enabled
+    ? { ...customWelcomeEmail(template, values, appUrl), attachments: [LOGO_ATTACHMENT, ...welcomeAttachments(template.attachments)] }
+    : {
+      subject: partnerWelcomeSubject({ name: values.name }),
+      html: partnerWelcomeHtml({ name: values.name, code: values.referral_code, appUrl }),
+      text: partnerWelcomeText({ name: values.name, code: values.referral_code, appUrl }),
+      attachments: [
+        LOGO_ATTACHMENT,
+        { filename: 'voucher-qr.png', path: path.join(PARTNER_WELCOME_ASSETS, 'qr.png'), cid: 'qr' },
+      ],
+    };
 
   if (!t) {
     console.log('\n[DEV EMAIL — PARTNER WELCOME]');
     console.log(`To: ${to}`);
-    console.log(`Name: ${name}  Code: ${code}\n`);
+    console.log(`Subject: ${msg.subject}  Code: ${values.referral_code}\n`);
     return { dev: true };
   }
 
-  await t.transport.sendMail({
-    from: t.from,
-    to,
-    subject,
-    html: partnerWelcomeHtml({ name, code, appUrl }),
-    text: partnerWelcomeText({ name, code, appUrl }),
-    attachments: [
-      { filename: 'mysilah.png', path: path.join(PARTNER_WELCOME_ASSETS, 'logo.png'), cid: 'logo' },
-      { filename: 'voucher-qr.png', path: path.join(PARTNER_WELCOME_ASSETS, 'qr.png'), cid: 'qr' },
-    ],
-  });
+  await t.transport.sendMail({ from: t.from, to, ...msg });
   return { dev: false };
 };
 
-module.exports = { sendInviteEmail, sendInquiryNotification, sendInquiryConfirmation, sendPasswordResetEmail, sendEmailVerification, sendInquiryReply, sendPartnerWelcomeEmail };
+// The admin's unsaved welcome email design, filled with a sample partner and
+// sent to the admin. Throws when no email account is set up.
+const sendWelcomeTestEmail = async ({ to, subject, bodyHtml, attachments }) => {
+  const t = await getMailer();
+  if (!t) throw new Error('No email account is set up — save the SMTP settings first');
+  const appUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const msg = customWelcomeEmail({ subject, bodyHtml }, sampleFieldValues(appUrl), appUrl);
+  await t.transport.sendMail({ from: t.from, to, ...msg, subject: `[Test] ${msg.subject}`, attachments: [LOGO_ATTACHMENT, ...welcomeAttachments(attachments)] });
+};
+
+module.exports = { sendInviteEmail, sendInquiryNotification, sendInquiryConfirmation, sendPasswordResetEmail, sendEmailVerification, sendInquiryReply, sendPartnerWelcomeEmail, sendWelcomeTestEmail, PARTNER_WELCOME_ASSETS };

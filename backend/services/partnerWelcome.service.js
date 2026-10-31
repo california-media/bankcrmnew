@@ -23,10 +23,10 @@ async function sendWelcomeWhatsApp(user, name) {
   }
 }
 
-async function sendWelcomeEmail(user, name) {
+async function sendWelcomeEmail(user) {
   try {
     if (!user.email) return { skipped: true, reason: 'no email' };
-    return await sendPartnerWelcomeEmail({ to: user.email, name, code: user.referralCode });
+    return await sendPartnerWelcomeEmail({ to: user.email, user });
   } catch (err) {
     console.error('[Welcome email]', user._id, err.message);
     return { error: err.message };
@@ -38,7 +38,7 @@ async function sendWelcomeEmail(user, name) {
 async function sendPartnerWelcome(user) {
   if (!user?.referralCode) return { skipped: true, reason: 'no referral code' };
   const name = firstName(user.name) || 'Partner';
-  const [whatsapp, email] = await Promise.all([sendWelcomeWhatsApp(user, name), sendWelcomeEmail(user, name)]);
+  const [whatsapp, email] = await Promise.all([sendWelcomeWhatsApp(user, name), sendWelcomeEmail(user)]);
   return { whatsapp, email };
 }
 

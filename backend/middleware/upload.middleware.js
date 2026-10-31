@@ -66,6 +66,8 @@ module.exports.blogCategoryImages = makeUpload('blog-category-images', ['jpeg', 
 module.exports.leadDocuments      = makeUpload('lead-documents',       ['jpeg', 'jpg', 'png', 'pdf']);
 module.exports.featuredProductImages = makeUpload('featured-products', ['jpeg', 'jpg', 'png', 'webp', 'avif']);
 module.exports.avatars            = makeUpload('avatars',              ['jpeg', 'jpg', 'png', 'webp']);
+module.exports.emailImages        = makeUpload('email-images',         ['jpeg', 'jpg', 'png', 'gif', 'webp']);
+module.exports.emailAttachments   = makeUpload('email-attachments',    ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpeg', 'jpg', 'png', 'gif', 'webp'], { checkMime: false });
 module.exports.resources          = makeUpload('resources',            ['jpeg', 'jpg', 'png', 'pdf']);
 module.exports.bankDocs           = makeUpload('bank-docs',            ['jpeg', 'jpg', 'png', 'pdf']);
 // Support-ticket attachments: photos, PDFs and office docs (docx/xlsx mimetypes don't contain the extension, so skip the mime check)

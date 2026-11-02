@@ -246,4 +246,51 @@ exports.bulkRemove = async (req, res) => {
   }
 };
 
+// Body: { ids: [...], set: { category?, bankName?, notes? } } — only the keys
+// sent are changed ('' clears). A row is left as is when its company is
+// already listed under the new bank (name + bank must stay unique).
+exports.bulkUpdate = async (req, res) => {
+  try {
+    const body = req.body || {};
+    const ids = Array.isArray(body.ids) ? body.ids : null;
+    if (!ids || !ids.length) return res.status(400).json({ message: 'ids must be a non-empty array' });
+    if (ids.length > MAX_BULK) return res.status(400).json({ message: `At most ${MAX_BULK} companies at a time` });
+    const input = body.set || {};
+    const set = {};
+    if (typeof input.category === 'string') set.category = cleanText(input.category, MAX_CATEGORY);
+    if (typeof input.notes === 'string') set.notes = cleanText(input.notes, MAX_NOTES);
+    const changeBank = typeof input.bankName === 'string';
+    if (!changeBank && !Object.keys(set).length) return res.status(400).json({ message: 'Nothing to change' });
+    const valid = [...new Set(ids.filter((id) => mongoose.isValidObjectId(id)).map(String))];
+    if (!valid.length) return res.json({ updated: 0, skipped: 0 });
+
+    if (!changeBank) {
+      const r = await Company.updateMany({ _id: { $in: valid } }, { $set: set });
+      return res.json({ updated: r.matchedCount || 0, skipped: 0 });
+    }
+
+    set.bankName = cleanBank(input.bankName);
+    set.bankKey = keyOf(set.bankName);
+    const docs = await Company.find({ _id: { $in: valid } }).select('_id nameKey bankKey').lean();
+    const nameKeys = [...new Set(docs.map((d) => d.nameKey))];
+    const listed = nameKeys.length
+      ? await Company.find({ nameKey: { $in: nameKeys }, bankKey: set.bankKey }).select('nameKey').lean()
+      : [];
+    const taken = new Set(listed.map((d) => d.nameKey));
+    const targets = [];
+    let skipped = 0;
+    for (const d of docs) {
+      if ((d.bankKey || '') === set.bankKey) { targets.push(d._id); continue; }
+      if (taken.has(d.nameKey)) { skipped += 1; continue; }
+      taken.add(d.nameKey);
+      targets.push(d._id);
+    }
+    if (targets.length) await Company.updateMany({ _id: { $in: targets } }, { $set: set });
+    res.json({ updated: targets.length, skipped });
+  } catch (err) {
+    if (err && err.code === 11000) return res.status(409).json({ message: 'Some of these companies are already listed for that bank' });
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports._normalizeName = normalizeName;

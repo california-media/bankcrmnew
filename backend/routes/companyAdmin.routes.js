@@ -7,6 +7,7 @@ router.get('/', ctrl.list);
 router.get('/ids', ctrl.ids);
 router.post('/bulk', ctrl.bulk);
 router.post('/bulk-delete', ctrl.bulkRemove);
+router.post('/bulk-update', ctrl.bulkUpdate);
 router.put('/:id', ctrl.update);
 router.delete('/:id', ctrl.remove);
 

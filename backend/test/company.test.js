@@ -226,3 +226,41 @@ test('details: all bank rows for the exact name, or not found', async (t) => {
   await ctrl.details({ query: {} }, res);
   assert.deepEqual(res.body, { found: false, banks: [] });
 });
+
+test('bulkUpdate: only the fields sent; empty string clears', async (t) => {
+  let call;
+  t.mock.method(Company, 'updateMany', async (f, u) => { call = [f, u]; return { matchedCount: 2 }; });
+  const res = fakeRes();
+  await ctrl.bulkUpdate({ body: { ids: [ID, 'bad'], set: { category: ' Cat A ', notes: '' } } }, res);
+  assert.deepEqual(call, [{ _id: { $in: [ID] } }, { $set: { category: 'Cat A', notes: '' } }]);
+  assert.deepEqual(res.body, { updated: 2, skipped: 0 });
+});
+test('bulkUpdate: rejects empty ids, over 5000 and nothing to change', async () => {
+  for (const body of [{ ids: [], set: { category: 'x' } }, { ids: new Array(5001).fill(ID), set: { category: 'x' } }, { ids: [ID], set: {} }]) {
+    const res = fakeRes();
+    await ctrl.bulkUpdate({ body }, res);
+    assert.equal(res.statusCode, 400, JSON.stringify(body).slice(0, 60));
+  }
+});
+test('bulkUpdate: new bank skips a company already listed under it', async (t) => {
+  const A = '6a1b2c3d4e5f60718293a4a1'; const B = '6a1b2c3d4e5f60718293a4b2';
+  const C = '6a1b2c3d4e5f60718293a4c3'; const D = '6a1b2c3d4e5f60718293a4d4';
+  let call = 0;
+  t.mock.method(Company, 'find', () => {
+    call += 1;
+    return findChain(call === 1
+      ? [
+        { _id: A, nameKey: 'emaar', bankKey: 'fab' }, // Emaar already has an ENBD row -> skipped
+        { _id: B, nameKey: 'damac', bankKey: 'fab' }, // moves to ENBD
+        { _id: C, nameKey: 'damac', bankKey: 'adcb' }, // Damac just took ENBD -> skipped
+        { _id: D, nameKey: 'nakheel', bankKey: 'enbd' }, // already ENBD -> updated
+      ]
+      : [{ nameKey: 'emaar' }])();
+  });
+  let upd;
+  t.mock.method(Company, 'updateMany', async (f, u) => { upd = [f, u]; return {}; });
+  const res = fakeRes();
+  await ctrl.bulkUpdate({ body: { ids: [A, B, C, D], set: { bankName: ' ENBD ', category: 'Cat B' } } }, res);
+  assert.deepEqual(res.body, { updated: 2, skipped: 2 });
+  assert.deepEqual(upd, [{ _id: { $in: [B, D] } }, { $set: { category: 'Cat B', bankName: 'ENBD', bankKey: 'enbd' } }]);
+});

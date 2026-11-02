@@ -4,6 +4,7 @@ const http      = require('http');
 const { Server } = require('socket.io');
 const jwt       = require('jsonwebtoken');
 const cors      = require('cors');
+const compression = require('compression');
 const path      = require('path');
 const connectDB = require('./config/db');
 const { setIO } = require('./utils/io');
@@ -56,6 +57,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
+app.use(compression());
 // Company uploads and bulk deletes send up to 5,000 rows per request.
 app.use('/api/admin/companies', express.json({ limit: '5mb' }));
 app.use(express.json());

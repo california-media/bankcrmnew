@@ -8,6 +8,7 @@ const AccountProduct    = require('../models/AccountProduct');
 const EmployeeStatus    = require('../models/EmployeeStatus');
 const { resolveActiveSuperAgentId } = require('../utils/superAgent');
 const { withLeadNumber } = require('../utils/leadRedirectUrl');
+const { getCached, setCached } = require('../utils/publicCardCache');
 const commissionService = require('../services/commission.service');
 const waba              = require('../services/waba.service');
 
@@ -391,6 +392,8 @@ const toPublicCard = ({ feesEligibility, ...card }) => {
          || feesText.match(/AED\s*([\d,]+)[^a-z]*(\/year|per year|annual fee)/i);
   return {
     ...card,
+    // Commission money (receivable/payable/agencyOverride) stays private — public pages only need salary + fee.
+    commissionBrackets: (card.commissionBrackets || []).map(({ minimumSalary, feeType, annualFeeAmount }) => ({ minimumSalary, feeType, annualFeeAmount })),
     additionalBenefits: card.additionalBenefits || '', // lean() skips schema defaults on cards saved before this field
     noAnnualFeeFromText: /no annual fee/i.test(feesText),
     annualFeeFromText: m ? Number(m[1].replace(/,/g, '')) : null,
@@ -401,6 +404,9 @@ exports.getPublicCardProducts = async (req, res) => {
   try {
     // referralOnly bypasses websiteVisible on purpose — referral-form
     // visibility is independent from marketing-website visibility.
+    const cacheKey = req.query.referralOnly ? 'referral' : 'website';
+    const cached = getCached(cacheKey);
+    if (cached) return res.json(cached);
     const filter = req.query.referralOnly
       ? { isActive: true, referralVisible: true }
       : { isActive: true, websiteVisible: { $ne: false } };
@@ -409,7 +415,9 @@ exports.getPublicCardProducts = async (req, res) => {
       .populate({ path: 'cashbackCategories.category', select: 'name' })
       .select('name cardType cardImage commissionBrackets bank benefits feesEligibility keyFeatures additionalBenefits cashbackCategories rewardBadges redirectUrl redirectActive referralVisible rate kfsUrl tncUrl feeTooltip rateTooltip salaryTooltip transferTooltip salaryTransfer feeNotes')
       .lean();
-    res.json(cards.filter(c => c.bank?.isActive !== false).map(toPublicCard));
+    const data = cards.filter(c => c.bank?.isActive !== false).map(toPublicCard);
+    setCached(cacheKey, data);
+    res.json(data);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

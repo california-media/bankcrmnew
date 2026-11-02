@@ -2,7 +2,7 @@ const CardProduct = require('../models/CardProduct');
 const User = require('../models/User');
 const { getFilename, deleteFromS3 } = require('../middleware/upload.middleware');
 const { resolveAgencyId } = require('../middleware/auth.middleware');
-const { clearPublicCardCache } = require('../utils/publicCardCache');
+const { clearPublicCardCache, notifyWebsiteCardsChanged } = require('../utils/publicCardCache');
 
 const POPULATE = [
   { path: 'bank', select: 'name code isActive logo' },
@@ -104,6 +104,7 @@ exports.create = async (req, res) => {
       referralVisible,
     });
     clearPublicCardCache();
+    notifyWebsiteCardsChanged();
     const populated = await card.populate(POPULATE);
     res.status(201).json(populated);
   } catch (err) {
@@ -173,6 +174,7 @@ exports.update = async (req, res) => {
       return res.status(404).json({ message: 'Card product not found' });
     }
     clearPublicCardCache();
+    notifyWebsiteCardsChanged();
     res.json(card);
   } catch (err) {
     if (req.file) deleteCardImage(getFilename(req.file));
@@ -186,6 +188,7 @@ exports.remove = async (req, res) => {
     if (!card) return res.status(404).json({ message: 'Card product not found' });
     if (card.cardImage) deleteCardImage(card.cardImage);
     clearPublicCardCache();
+    notifyWebsiteCardsChanged();
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -214,7 +217,7 @@ exports.autoTagCashback = async (req, res) => {
         updated++;
       }
     }
-    if (updated) clearPublicCardCache();
+    if (updated) { clearPublicCardCache(); notifyWebsiteCardsChanged(); }
     res.json({ updated, total: cards.length });
   } catch (err) {
     res.status(500).json({ message: err.message });

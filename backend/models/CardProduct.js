@@ -55,16 +55,9 @@ const cardProductSchema = new mongoose.Schema(
     transferTooltip: { type: String, trim: true, default: '' },
     // Website "Salary Transfer" box. '' = not specified.
     salaryTransfer: { type: String, enum: ['', 'required', 'not_required'], default: '' },
-    // Extra rows on the website's Fees Charges & Eligibility tab,
-    // e.g. { label: 'Late payment fee', value: 'AED 230' }.
-    extraFees: {
-      type: [{
-        label: { type: String, trim: true, required: true },
-        value: { type: String, trim: true, required: true },
-        _id: false,
-      }],
-      default: [],
-    },
+    // Free-text bullet lines under the website's Fees Charges & Eligibility
+    // boxes, e.g. 'Late payment fee: AED 230'.
+    feeNotes: { type: [{ type: String, trim: true }], default: [] },
     clawbackMonths: { type: Number, default: 0, min: 0 },
     clawbackDays:   { type: Number, default: 30, min: 0 },
     isActive:       { type: Boolean, default: true },

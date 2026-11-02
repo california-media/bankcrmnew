@@ -407,7 +407,7 @@ exports.getPublicCardProducts = async (req, res) => {
     const cards = await CardProduct.find(filter)
       .populate({ path: 'bank', select: 'name isActive' })
       .populate({ path: 'cashbackCategories.category', select: 'name' })
-      .select('name cardType cardImage commissionBrackets bank benefits feesEligibility keyFeatures additionalBenefits cashbackCategories rewardBadges redirectUrl redirectActive referralVisible rate kfsUrl tncUrl feeTooltip rateTooltip salaryTooltip transferTooltip salaryTransfer extraFees')
+      .select('name cardType cardImage commissionBrackets bank benefits feesEligibility keyFeatures additionalBenefits cashbackCategories rewardBadges redirectUrl redirectActive referralVisible rate kfsUrl tncUrl feeTooltip rateTooltip salaryTooltip transferTooltip salaryTransfer feeNotes')
       .lean();
     res.json(cards.filter(c => c.bank?.isActive !== false).map(toPublicCard));
   } catch (err) {

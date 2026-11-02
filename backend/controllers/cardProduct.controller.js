@@ -70,7 +70,7 @@ exports.create = async (req, res) => {
     const salaryTooltip  = req.body.salaryTooltip || '';
     const transferTooltip = req.body.transferTooltip || '';
     const salaryTransfer = req.body.salaryTransfer || '';
-    const extraFees      = parseJsonField(req.body.extraFees);
+    const feeNotes       = parseJsonField(req.body.feeNotes).filter(Boolean);
     const card = await CardProduct.create({
       name,
       cardType,
@@ -90,7 +90,7 @@ exports.create = async (req, res) => {
       salaryTooltip,
       transferTooltip,
       salaryTransfer,
-      extraFees,
+      feeNotes,
       clawbackMonths,
       clawbackDays,
       isActive: isActive === undefined ? true : isActive !== 'false' && isActive !== false,
@@ -156,7 +156,7 @@ exports.update = async (req, res) => {
     if (req.body.salaryTooltip !== undefined) update.salaryTooltip = req.body.salaryTooltip || '';
     if (req.body.transferTooltip !== undefined) update.transferTooltip = req.body.transferTooltip || '';
     if (req.body.salaryTransfer !== undefined) update.salaryTransfer = req.body.salaryTransfer || '';
-    if (req.body.extraFees !== undefined) update.extraFees = parseJsonField(req.body.extraFees);
+    if (req.body.feeNotes !== undefined) update.feeNotes = parseJsonField(req.body.feeNotes).filter(Boolean);
 
     if (req.file) {
       const existing = await CardProduct.findById(req.params.id, 'cardImage');

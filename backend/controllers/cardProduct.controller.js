@@ -65,6 +65,12 @@ exports.create = async (req, res) => {
     const redirectActive = req.body.redirectActive === 'true' || req.body.redirectActive === true;
     const referralVisible = req.body.referralVisible === 'true' || req.body.referralVisible === true;
     const rate           = req.body.rate || '';
+    const feeTooltip     = req.body.feeTooltip || '';
+    const rateTooltip    = req.body.rateTooltip || '';
+    const salaryTooltip  = req.body.salaryTooltip || '';
+    const transferTooltip = req.body.transferTooltip || '';
+    const salaryTransfer = req.body.salaryTransfer || '';
+    const extraFees      = parseJsonField(req.body.extraFees);
     const card = await CardProduct.create({
       name,
       cardType,
@@ -79,6 +85,12 @@ exports.create = async (req, res) => {
       keyFeatures,
       additionalBenefits,
       rate,
+      feeTooltip,
+      rateTooltip,
+      salaryTooltip,
+      transferTooltip,
+      salaryTransfer,
+      extraFees,
       clawbackMonths,
       clawbackDays,
       isActive: isActive === undefined ? true : isActive !== 'false' && isActive !== false,
@@ -139,6 +151,12 @@ exports.update = async (req, res) => {
     if (req.body.redirectActive !== undefined) update.redirectActive = req.body.redirectActive === 'true' || req.body.redirectActive === true;
     if (req.body.referralVisible !== undefined) update.referralVisible = req.body.referralVisible === 'true' || req.body.referralVisible === true;
     if (req.body.rate !== undefined) update.rate = req.body.rate || '';
+    if (req.body.feeTooltip !== undefined) update.feeTooltip = req.body.feeTooltip || '';
+    if (req.body.rateTooltip !== undefined) update.rateTooltip = req.body.rateTooltip || '';
+    if (req.body.salaryTooltip !== undefined) update.salaryTooltip = req.body.salaryTooltip || '';
+    if (req.body.transferTooltip !== undefined) update.transferTooltip = req.body.transferTooltip || '';
+    if (req.body.salaryTransfer !== undefined) update.salaryTransfer = req.body.salaryTransfer || '';
+    if (req.body.extraFees !== undefined) update.extraFees = parseJsonField(req.body.extraFees);
 
     if (req.file) {
       const existing = await CardProduct.findById(req.params.id, 'cardImage');

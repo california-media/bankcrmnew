@@ -6,7 +6,7 @@ const bracketSchema = new mongoose.Schema(
     receivable: { type: Number, required: true, min: 0 },
     payable: { type: Number, required: true, min: 0 },
     agencyOverride: { type: Number, min: 0, default: 0 }, // extra AED paid to the agent's tagging agency on disbursal
-    feeType: { type: String, enum: ['free', 'paid', 'free_tnc'], default: 'free' },
+    feeType: { type: String, enum: ['free', 'paid', 'free_tnc', 'first_year_free'], default: 'free' },
     annualFeeAmount: { type: Number, min: 0, default: null },
   },
   { _id: false }
@@ -47,6 +47,24 @@ const cardProductSchema = new mongoose.Schema(
     feesEligibility: { type: String, default: '' },
     keyFeatures: { type: String, default: '' },
     additionalBenefits: { type: String, default: '' },
+    // Website ⓘ tooltips on the card's Annual Fee / Rate / Minimum Salary /
+    // Salary Transfer. Empty = the site's default text.
+    feeTooltip:      { type: String, trim: true, default: '' },
+    rateTooltip:     { type: String, trim: true, default: '' },
+    salaryTooltip:   { type: String, trim: true, default: '' },
+    transferTooltip: { type: String, trim: true, default: '' },
+    // Website "Salary Transfer" box. '' = not specified.
+    salaryTransfer: { type: String, enum: ['', 'required', 'not_required'], default: '' },
+    // Extra rows on the website's Fees Charges & Eligibility tab,
+    // e.g. { label: 'Late payment fee', value: 'AED 230' }.
+    extraFees: {
+      type: [{
+        label: { type: String, trim: true, required: true },
+        value: { type: String, trim: true, required: true },
+        _id: false,
+      }],
+      default: [],
+    },
     clawbackMonths: { type: Number, default: 0, min: 0 },
     clawbackDays:   { type: Number, default: 30, min: 0 },
     isActive:       { type: Boolean, default: true },

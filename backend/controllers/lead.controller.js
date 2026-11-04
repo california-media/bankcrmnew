@@ -394,7 +394,15 @@ async function leaderboardEntries(month) {
     return leaderboardCache.entries;
   }
   const rows = await Lead.aggregate([
-    { $match: { productType: { $in: ['credit_card', 'loan', 'account'] }, status: 'disbursed', createdAt: { $gte: month.start, $lt: month.end }, agent: { $ne: null } } },
+    // A lead counts in the month it was disbursed (its statusHistory entry), whenever it was created.
+    {
+      $match: {
+        productType: { $in: ['credit_card', 'loan', 'account'] },
+        status: 'disbursed',
+        statusHistory: { $elemMatch: { status: 'disbursed', changedAt: { $gte: month.start, $lt: month.end } } },
+        agent: { $ne: null },
+      },
+    },
     { $group: { _id: '$agent', closed: { $sum: 1 } } },
   ]);
   const agents = rows.length

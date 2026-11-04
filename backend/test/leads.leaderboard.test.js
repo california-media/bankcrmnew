@@ -44,7 +44,7 @@ test('leaderboard: competition ranking, masked names, real name for me, Dubai mo
   assert.deepEqual(seen.pipeline[0].$match, {
     productType: { $in: ['credit_card', 'loan', 'account'] },
     status: 'disbursed',
-    createdAt: { $gte: new Date('2026-10-31T20:00:00Z'), $lt: new Date('2026-11-30T20:00:00Z') },
+    statusHistory: { $elemMatch: { status: 'disbursed', changedAt: { $gte: new Date('2026-10-31T20:00:00Z'), $lt: new Date('2026-11-30T20:00:00Z') } } },
     agent: { $ne: null },
   });
   // Inactive / non-agent users drop out through the User filter.

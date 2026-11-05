@@ -12,12 +12,12 @@ exports.setCached = (key, data) => cache.set(key, { data, at: Date.now() });
 
 exports.clearPublicCardCache = () => cache.clear();
 
-// The website (Hostinger) keeps its own copy of the card list inside the credit card page.
-// Tell it to re-fetch after card saves; waits 2s so a burst of saves sends one ping.
+// The website (Hostinger) keeps its own copy of the card, loan and account lists inside
+// its product pages. Tell it to re-fetch after product saves; waits 2s so a burst of saves sends one ping.
 const WEBSITE_REFRESH_URL = 'https://mysilah.ae/card-cache-refresh.php';
 let notifyTimer = null;
 
-exports.notifyWebsiteCardsChanged = () => {
+exports.notifyWebsiteProductsChanged = () => {
   clearTimeout(notifyTimer);
   notifyTimer = setTimeout(() => {
     fetch(WEBSITE_REFRESH_URL, { method: 'POST', signal: AbortSignal.timeout(15000) })

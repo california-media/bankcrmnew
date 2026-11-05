@@ -1,6 +1,7 @@
 const LoanProduct = require('../models/LoanProduct');
 const User = require('../models/User');
 const { resolveAgencyId } = require('../middleware/auth.middleware');
+const { notifyWebsiteProductsChanged } = require('../utils/publicCardCache');
 
 const POPULATE = [
   { path: 'bank', select: 'name code isActive logo' },
@@ -40,6 +41,7 @@ exports.create = async (req, res) => {
 
     const { benefits, feesEligibility, redirectUrl, redirectActive, referralVisible } = req.body;
     const loan = await LoanProduct.create({ name, loanCategory, bank, agency: agency || undefined, assignedAgencies: assignedAgencies || [], commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, agentVisible, sendConsent, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive, referralVisible: !!referralVisible });
+    notifyWebsiteProductsChanged();
     const populated = await loan.populate(POPULATE);
     res.status(201).json(populated);
   } catch (err) {
@@ -85,6 +87,7 @@ exports.update = async (req, res) => {
     const loan = await LoanProduct.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true })
       .populate(POPULATE);
     if (!loan) return res.status(404).json({ message: 'Loan product not found' });
+    notifyWebsiteProductsChanged();
     res.json(loan);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -95,6 +98,7 @@ exports.remove = async (req, res) => {
   try {
     const loan = await LoanProduct.findByIdAndDelete(req.params.id);
     if (!loan) return res.status(404).json({ message: 'Loan product not found' });
+    notifyWebsiteProductsChanged();
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });

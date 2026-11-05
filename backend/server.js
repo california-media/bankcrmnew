@@ -80,6 +80,7 @@ app.use('/api/admin/welcome-email', require('./routes/welcomeEmail.routes'));
 app.use('/api/admin',             require('./routes/admin.routes'));
 app.use('/api/card-products',     require('./routes/cardProduct.routes'));
 app.use('/api/card-categories',   require('./routes/cardCategory.routes'));
+app.use('/api/badge-icons',       require('./routes/badgeIcon.routes'));
 app.use('/api/loan-products',     require('./routes/loanProduct.routes'));
 app.use('/api/account-products',  require('./routes/accountProduct.routes'));
 app.use('/api/employees',         require('./routes/employee.routes'));

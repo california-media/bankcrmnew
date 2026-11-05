@@ -1,6 +1,7 @@
 const AccountProduct = require('../models/AccountProduct');
 const User = require('../models/User');
 const { resolveAgencyId } = require('../middleware/auth.middleware');
+const { notifyWebsiteProductsChanged } = require('../utils/publicCardCache');
 
 const POPULATE = [
   { path: 'bank', select: 'name code isActive logo' },
@@ -53,6 +54,7 @@ exports.create = async (req, res) => {
       type, digitalOnboarding, multiCurrency, salaryTransferRequired, freeTransactions, fallBelowFee, payoutFrequency,
       redirectUrl: redirectUrl || '', redirectActive: !!redirectActive,
     });
+    notifyWebsiteProductsChanged();
     const populated = await account.populate(POPULATE);
     res.status(201).json(populated);
   } catch (err) {
@@ -106,6 +108,7 @@ exports.update = async (req, res) => {
     const account = await AccountProduct.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true })
       .populate(POPULATE);
     if (!account) return res.status(404).json({ message: 'Account product not found' });
+    notifyWebsiteProductsChanged();
     res.json(account);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -116,6 +119,7 @@ exports.remove = async (req, res) => {
   try {
     const account = await AccountProduct.findByIdAndDelete(req.params.id);
     if (!account) return res.status(404).json({ message: 'Account product not found' });
+    notifyWebsiteProductsChanged();
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const Lead = require('../models/Lead');
 const User = require('../models/User');
 const EmployeeStatus = require('../models/EmployeeStatus');
+const CoinTransaction = require('../models/CoinTransaction');
 const ctrl = require('../controllers/lead.controller');
 
 // Model statics are stubbed per test (t.mock.method restores them); no DB is touched.
@@ -15,9 +16,10 @@ const fakeRes = () => {
 const chain = (docs) => { const c = { select: () => c, lean: async () => docs }; return c; };
 test.beforeEach(() => ctrl._clearLeaderboardCache());
 
-function stubBoard(t, rows, agents) {
+function stubBoard(t, rows, agents, coins = []) {
   const seen = { aggregates: 0 };
   t.mock.method(Lead, 'aggregate', async (p) => { seen.aggregates += 1; seen.pipeline = p; return rows.map(([id, closed]) => ({ _id: id, closed })); });
+  t.mock.method(CoinTransaction, 'aggregate', async (p) => { seen.coinPipeline = p; return coins.map(([id, n]) => ({ _id: id, coins: n })); });
   t.mock.method(User, 'find', (f) => { seen.userFilter = f; return chain(agents.filter((a) => f._id.$in.includes(a._id))); });
   return seen;
 }
@@ -33,12 +35,12 @@ test('leaderboard: competition ranking, masked names, real name for me, Dubai mo
   assert.equal(res.statusCode, 200);
   assert.deepEqual(res.body, {
     month: '2026-11',
-    me: { rank: 4, closed: 3, name: 'Sara Ali Hassan' },
+    me: { rank: 4, closed: 3, coins: 0, name: 'Sara Ali Hassan' },
     top: [
       { rank: 1, name: 'Lina', closed: 7, isMe: false },
       { rank: 2, name: 'Aisha K.', closed: 5, isMe: false },
       { rank: 2, name: 'Omar R.', closed: 5, isMe: false },
-      { rank: 4, name: 'Sara Ali Hassan', closed: 3, isMe: true },
+      { rank: 4, name: 'Sara Ali Hassan', closed: 3, coins: 0, isMe: true },
     ],
   });
   assert.deepEqual(seen.pipeline[0].$match, {
@@ -57,31 +59,61 @@ test('leaderboard: ties list me first; top is capped at 10', async (t) => {
   stubBoard(t, [['me', 4], ...others.map((a) => [a._id, 4])], [...others, { _id: 'me', name: ME.name }]);
   const res = await board(ME);
   assert.equal(res.body.top.length, 10);
-  assert.deepEqual(res.body.top[0], { rank: 1, name: 'Sara Ali Hassan', closed: 4, isMe: true });
+  assert.deepEqual(res.body.top[0], { rank: 1, name: 'Sara Ali Hassan', closed: 4, coins: 0, isMe: true });
   assert.deepEqual(res.body.top[1], { rank: 1, name: 'Agent A.', closed: 4, isMe: false });
-  assert.deepEqual(res.body.me, { rank: 1, closed: 4, name: 'Sara Ali Hassan' });
+  assert.deepEqual(res.body.me, { rank: 1, closed: 4, coins: 0, name: 'Sara Ali Hassan' });
 });
 
 test('leaderboard: no closes for me -> ranked after everyone with more; empty month -> #1 with nothing listed', async (t) => {
   stubBoard(t, [['a1', 2], ['a2', 1]], [{ _id: 'a1', name: 'Omar Rashid' }, { _id: 'a2', name: 'Maya Sharma Khan' }]);
   let res = await board(ME);
-  assert.deepEqual(res.body.me, { rank: 3, closed: 0, name: 'Sara Ali Hassan' });
+  assert.deepEqual(res.body.me, { rank: 3, closed: 0, coins: 0, name: 'Sara Ali Hassan' });
   assert.deepEqual(res.body.top.map((r) => r.name), ['Omar R.', 'Maya K.']);
   t.mock.restoreAll();
   ctrl._clearLeaderboardCache();
   stubBoard(t, [], []);
   res = await board(ME);
-  assert.deepEqual(res.body.me, { rank: 1, closed: 0, name: 'Sara Ali Hassan' });
+  assert.deepEqual(res.body.me, { rank: 1, closed: 0, coins: 0, name: 'Sara Ali Hassan' });
   assert.deepEqual(res.body.top, []);
+});
+
+test('leaderboard: same closes -> more coins ranks first; coins alone rank the 0-close agents; full ties share', async (t) => {
+  const seen = stubBoard(
+    t,
+    [['a1', 1], ['a2', 1], ['a3', 1]],
+    [
+      { _id: 'a1', name: 'Hafiz Qasim' }, { _id: 'a2', name: 'Hani Mansour' }, { _id: 'a3', name: 'Mubashir Iqbal' },
+      { _id: 'a4', name: 'Zara Noor' }, { _id: 'a5', name: 'Yusuf Ali' }, { _id: 'me', name: ME.name },
+    ],
+    [['a2', 300], ['a3', 100], ['a4', 80], ['a5', 80], ['me', 50], ['customer', 999]],
+  );
+  const res = await board(ME);
+  assert.deepEqual(res.body.top.map((r) => [r.rank, r.name, r.closed, r.coins]), [
+    // Other partners' coins are never sent; only the caller's.
+    [1, 'Hani M.', 1, undefined],
+    [2, 'Mubashir I.', 1, undefined],
+    [3, 'Hafiz Q.', 1, undefined],
+    [4, 'Yusuf A.', 0, undefined],
+    [4, 'Zara N.', 0, undefined],
+    [6, 'Sara Ali Hassan', 0, 50],
+  ]);
+  assert.ok(res.body.top.filter((r) => !r.isMe).every((r) => !('coins' in r)));
+  assert.deepEqual(res.body.me, { rank: 6, closed: 0, coins: 50, name: 'Sara Ali Hassan' });
+  // Earned coins only (no redeems, no uncredited awards); non-agents drop out through the User filter.
+  assert.deepEqual(seen.coinPipeline[0].$match, { amount: { $gt: 0 }, $nor: [{ awardKey: { $type: 'string' }, balanceAfter: 0 }] });
+  assert.ok(seen.userFilter._id.$in.includes('customer'));
+  // An agent with no close and no coin is not listed and comes after everyone listed.
+  const zero = await board({ _id: 'z', name: 'New Partner' });
+  assert.deepEqual(zero.body.me, { rank: 7, closed: 0, coins: 0, name: 'New Partner' });
 });
 
 test('leaderboard: counts cached 60 s per month key; each caller still gets their own rank and name', async (t) => {
   t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-10-23T10:00:00Z') });
   const seen = stubBoard(t, [['a1', 5], ['me', 3]], [{ _id: 'a1', name: 'Omar Rashid' }, { _id: 'me', name: 'Sara Ali Hassan' }]);
   let res = await board(ME);
-  assert.deepEqual(res.body.me, { rank: 2, closed: 3, name: 'Sara Ali Hassan' });
+  assert.deepEqual(res.body.me, { rank: 2, closed: 3, coins: 0, name: 'Sara Ali Hassan' });
   res = await board({ _id: 'a1', name: 'Omar Rashid' });
-  assert.deepEqual(res.body.me, { rank: 1, closed: 5, name: 'Omar Rashid' });
+  assert.deepEqual(res.body.me, { rank: 1, closed: 5, coins: 0, name: 'Omar Rashid' });
   assert.deepEqual(res.body.top.map((r) => [r.name, r.isMe]), [['Omar Rashid', true], ['Sara H.', false]]);
   assert.equal(seen.aggregates, 1);
   t.mock.timers.tick(59 * 1000);

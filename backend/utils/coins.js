@@ -148,6 +148,10 @@ const nextBonus = (bonuses, days) => {
   return ahead ? { days: ahead.days, coins: ahead.coins } : null;
 };
 
+// Coins a user has earned (lifetime; levels and the leaderboard tie-break). A once-only award still at
+// balanceAfter 0 was never (or not yet) credited: not earned. Redeems are negative, so spending never lowers it.
+const EARNED_COINS_MATCH = { amount: { $gt: 0 }, $nor: [{ awardKey: { $type: 'string' }, balanceAfter: 0 }] };
+
 // tiers ascending by minCoins, first at 0. Highest tier reached + the one after it (null at the top).
 const tierFor = (tiers, lifetime) => {
   let i = 0;
@@ -280,6 +284,7 @@ module.exports = {
   streakDays,
   nextBonus,
   tierFor,
+  EARNED_COINS_MATCH,
   dubaiWeekKey,
   dubaiWeekRange,
   dubaiMonthRange,

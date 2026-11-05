@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const {
   dubaiDayKey, pickSegmentIndex, voucherValidFilter, DEFAULT_TIERS, ACTIVITY_TYPES, streakDays, nextBonus,
-  tierFor, dubaiWeekRange, dubaiMonthRange, resolveMissions,
+  tierFor, dubaiWeekRange, dubaiMonthRange, resolveMissions, EARNED_COINS_MATCH,
 } = require('../utils/coins');
 const { balanceOf } = require('../utils/coinsShape');
 
@@ -114,8 +114,7 @@ function makeCoinsService(deps) {
       CoinSettings.getSingleton(),
       User.findById(userId).select('coinBalance').lean(),
       CoinTransaction.aggregate([
-        // A once-only award still at balanceAfter 0 was never (or not yet) credited: not earned.
-        { $match: { user: userId, amount: { $gt: 0 }, $nor: [{ awardKey: { $type: 'string' }, balanceAfter: 0 }] } },
+        { $match: { user: userId, ...EARNED_COINS_MATCH } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       spinDayKeys(userId),

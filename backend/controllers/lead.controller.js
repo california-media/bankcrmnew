@@ -15,7 +15,8 @@ const { createAndEmit, getAdminIds, formatStatus } = require('../utils/notify');
 const waba = require('../services/waba.service');
 const { getFilename } = require('../middleware/upload.middleware');
 const XLSX = require('xlsx');
-const { dubaiMonthRange } = require('../utils/coins');
+const CoinTransaction = require('../models/CoinTransaction');
+const { dubaiMonthRange, EARNED_COINS_MATCH } = require('../utils/coins');
 const { maskName, displayName } = require('../utils/coinsShape');
 
 const normalizePhone = (p) => {
@@ -382,11 +383,14 @@ exports.stats = async (req, res) => {
  * GET /api/leads/leaderboard  (agent)
  * Leads closed this Dubai month per active agent. Closed = status 'disbursed', counted by createdAt in the month
  * (same rule as the promotions disbursedCount; statusHistory is not written by the Excel import, so it can't date
- * the disbursal). Competition ranking: rank = 1 + agents with strictly more.
+ * the disbursal). Ties on leads closed go to the agent with more coins earned (lifetime, the number behind their level).
+ * Competition ranking: rank = 1 + agents ahead (more closed, or as many closed and more coins); a full tie shares the rank.
+ * Only agents with a close or a coin are listed; everyone else shares the rank after them. Coins are sent for the
+ * caller only: other partners' coins stay private (they still decide the order).
  * Other agents are shown as "First L."; the caller sees their own real name.
  */
 const LEADERBOARD_TTL_MS = 60 * 1000;
-let leaderboardCache = null; // { key, at, entries:[{id,name,closed}] } — shared by every agent for 60 s
+let leaderboardCache = null; // { key, at, entries:[{id,name,closed,coins}] } — shared by every agent for 60 s
 
 async function leaderboardEntries(month) {
   const t = Date.now();
@@ -405,11 +409,19 @@ async function leaderboardEntries(month) {
     },
     { $group: { _id: '$agent', closed: { $sum: 1 } } },
   ]);
-  const agents = rows.length
-    ? await User.find({ _id: { $in: rows.map((r) => r._id) }, role: 'agent', isActive: true }).select('name').lean()
+  const coinRows = await CoinTransaction.aggregate([
+    { $match: EARNED_COINS_MATCH },
+    { $group: { _id: '$user', coins: { $sum: '$amount' } } },
+  ]);
+  const ids = [...new Map([...rows, ...coinRows].map((r) => [String(r._id), r._id])).values()];
+  const agents = ids.length
+    ? await User.find({ _id: { $in: ids }, role: 'agent', isActive: true }).select('name').lean()
     : [];
   const closedBy = new Map(rows.map((r) => [String(r._id), r.closed]));
-  const entries = agents.map((a) => ({ id: String(a._id), name: a.name, closed: closedBy.get(String(a._id)) || 0 }));
+  const coinsBy = new Map(coinRows.map((r) => [String(r._id), r.coins]));
+  const entries = agents
+    .map((a) => ({ id: String(a._id), name: a.name, closed: closedBy.get(String(a._id)) || 0, coins: coinsBy.get(String(a._id)) || 0 }))
+    .filter((e) => e.closed > 0 || e.coins > 0);
   leaderboardCache = { key: month.key, at: t, entries };
   return entries;
 }
@@ -420,18 +432,23 @@ exports.leaderboard = async (req, res) => {
     const meId = String(req.user._id);
     // Copy: the cached list is shared and the tie order below depends on the caller.
     const entries = [...(await leaderboardEntries(month))];
-    const mine = entries.find((e) => e.id === meId);
-    const myClosed = mine ? mine.closed : 0;
-    const rankOf = (closed) => 1 + entries.filter((e) => e.closed > closed).length;
-    // Ties: the caller first, then by name.
-    entries.sort((a, b) => b.closed - a.closed || (a.id === meId ? -1 : b.id === meId ? 1 : String(a.name).localeCompare(String(b.name))));
+    const mine = entries.find((e) => e.id === meId) || { closed: 0, coins: 0 };
+    const rankOf = (r) => 1 + entries.filter((e) => e.closed > r.closed || (e.closed === r.closed && e.coins > r.coins)).length;
+    // Full ties: the caller first, then by name.
+    entries.sort(
+      (a, b) =>
+        b.closed - a.closed ||
+        b.coins - a.coins ||
+        (a.id === meId ? -1 : b.id === meId ? 1 : String(a.name).localeCompare(String(b.name))),
+    );
     res.json({
       month: month.key,
-      me: { rank: rankOf(myClosed), closed: myClosed, name: displayName(req.user.name) },
+      me: { rank: rankOf(mine), closed: mine.closed, coins: mine.coins, name: displayName(req.user.name) },
       top: entries.slice(0, 10).map((e) => ({
-        rank: rankOf(e.closed),
+        rank: rankOf(e),
         name: e.id === meId ? displayName(req.user.name) : maskName(e.name),
         closed: e.closed,
+        ...(e.id === meId ? { coins: e.coins } : {}),
         isMe: e.id === meId,
       })),
     });

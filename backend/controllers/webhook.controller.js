@@ -59,6 +59,11 @@ exports.wabaConsent = async (req, res) => {
     }
 
     console.log(`[WABA webhook] Found lead: ${lead._id} — updating consentStatus`);
+    // Log the customer's reply on the Consent Logs page (no changedBy: the customer
+    // answered on WhatsApp). Skip if they tap the same answer twice.
+    if (String(lead.consentStatus) !== String(targetStatus._id)) {
+      lead.consentStatusHistory.push({ consentStatus: targetStatus._id, changedAt: new Date() });
+    }
     lead.consentStatus = targetStatus._id;
     await lead.save();
 

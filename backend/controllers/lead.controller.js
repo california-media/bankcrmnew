@@ -175,7 +175,11 @@ exports.create = async (req, res) => {
     // lead would show a Sent consent status despite no message going out.
     if (sendConsentFlag) {
       const sentConsent = await EmployeeStatus.findOne({ label: /^sent$/i, statusType: 'whatsapp_consent', isActive: true });
-      if (sentConsent) leadData.consentStatus = sentConsent._id;
+      if (sentConsent) {
+        leadData.consentStatus = sentConsent._id;
+        // Log the change so the Consent Logs page shows it, same as a manual change.
+        leadData.consentStatusHistory = [{ consentStatus: sentConsent._id, changedBy: req.user._id, changedAt: new Date() }];
+      }
     }
 
     const lead = await Lead.create(leadData);
@@ -246,7 +250,10 @@ exports.sendToAgency = async (req, res) => {
     let defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: /^sent$/i, isActive: true });
     if (!defaultConsent) defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isDefault: true, isActive: true });
     if (!defaultConsent) defaultConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isActive: true }).sort({ order: 1, createdAt: 1 });
-    if (defaultConsent && !lead.consentStatus) lead.consentStatus = defaultConsent._id;
+    if (defaultConsent && !lead.consentStatus) {
+      lead.consentStatus = defaultConsent._id;
+      lead.consentStatusHistory.push({ consentStatus: defaultConsent._id, changedBy: req.user._id, changedAt: new Date() });
+    }
 
     // Auto-assign lead label: "New Lead" first, then isDefault, then lowest order
     let defaultLabel = await EmployeeStatus.findOne({ statusType: 'lead_label', label: /^new lead$/i, isActive: true });
@@ -2409,7 +2416,10 @@ exports.completeReferral = async (req, res) => {
     let defConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', label: /^sent$/i, isActive: true });
     if (!defConsent) defConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isDefault: true, isActive: true });
     if (!defConsent) defConsent = await EmployeeStatus.findOne({ statusType: 'whatsapp_consent', isActive: true }).sort({ order: 1, createdAt: 1 });
-    if (defConsent) lead.consentStatus = defConsent._id;
+    if (defConsent && String(lead.consentStatus) !== String(defConsent._id)) {
+      lead.consentStatus = defConsent._id;
+      lead.consentStatusHistory.push({ consentStatus: defConsent._id, changedBy: req.user._id, changedAt: new Date() });
+    }
 
     let defLabel = await EmployeeStatus.findOne({ statusType: 'lead_label', label: /^new lead$/i, isActive: true });
     if (!defLabel) defLabel = await EmployeeStatus.findOne({ statusType: 'lead_label', isDefault: true, isActive: true });

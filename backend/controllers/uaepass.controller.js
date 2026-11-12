@@ -5,6 +5,8 @@ const UaepassExchange = require('../models/UaepassExchange');
 const { signAuthToken, generateReferralCode } = require('../utils/token');
 const { inactiveMessage, DEACTIVATED_MESSAGE } = require('../utils/superAgent');
 const { sendPartnerWelcome } = require('../services/partnerWelcome.service');
+const coins = require('../services/coins.service');
+const { inviteStateOf, inviterFor } = require('../utils/uaepassInvite');
 const {
   isAllowedAppRedirect,
   safeWebOrigin,
@@ -73,7 +75,8 @@ const getReturnPage = (req) => {
 exports.init = (req, res) => {
   const frontendUrl = getFrontendUrl(req);
   const returnPage  = getReturnPage(req);
-  const payload = { ctx: 'uaepass', frontendUrl, returnPage, ...getAppState(req) };
+  // ?ref= (an agent's invite code, from an invite link) rides in the signed state to the new-account step.
+  const payload = { ctx: 'uaepass', frontendUrl, returnPage, ...getAppState(req), ...inviteStateOf(req.query) };
   const state = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10m' });
   res.redirect(buildAuthUrl(state));
 };
@@ -409,6 +412,9 @@ exports.callback = async (req, res) => {
       if (!(await User.findOne({ referralCode: refCode }))) break;
     }
 
+    // Came from an agent's invite link: link the new account to that agent (invite reward below).
+    const referredBy = await inviterFor(statePayload, User);
+
     agent = await User.create({
       name,
       email: email.toLowerCase(),
@@ -416,6 +422,7 @@ exports.callback = async (req, res) => {
       role: 'agent',
       referralCode: refCode,
       isActive: true,
+      ...(referredBy ? { referredBy } : {}),
       uaepassSub: sub,
       ...(uuid         ? { uaepassUuid: uuid } : {}),
       ...(emiratesId   ? { emiratesId }        : {}),
@@ -423,6 +430,9 @@ exports.callback = async (req, res) => {
       ...(title        ? { uaepassTitle: title } : {}),
     });
     sendPartnerWelcome(agent).catch(() => {});
+    // UAE PASS has verified the person and the account is active at once (no email to confirm), so the invite
+    // reward for both sides is paid now. awardInvite does nothing without referredBy and never throws.
+    coins.awardInvite(agent).catch(() => {});
 
     const token = signAuthToken(agent);
     return await finishWithExchange(statePayload, { token }, `${frontendUrl}/auth/uaepass/callback?token=${token}`);

@@ -84,7 +84,7 @@ exports.submitReferral = async (req, res) => {
     const {
       customerName, phone, email, salary, nationality, city, visaType,
       companyName, jobTitle, yearsOfExperience, notes,
-      productType, cardProduct, loanProduct, loanType, loanAmount,
+      productType, cardProduct, loanProduct, loanType, loanAmount, accountProduct,
     } = req.body;
     if (!customerName || !phone) return res.status(400).json({ message: 'Name and phone are required' });
     if (!email) return res.status(400).json({ message: 'Email is required' });
@@ -128,6 +128,19 @@ exports.submitReferral = async (req, res) => {
       // exactly one valid loanType (this public form has no loanType field).
       leadData.loanType = loanType || (['pos_loan', 'auto_loan'].includes(loanCategory) ? loanCategory : undefined);
       if (loanAmount) leadData.loanAmount = Number(loanAmount);
+    } else if (productType === 'account') {
+      // Account type always comes from the chosen product's own category
+      // (business/current/savings), never from the client's input.
+      if (accountProduct) {
+        const account = await AccountProduct.findById(accountProduct).select('bank agency redirectUrl redirectActive accountCategory sendConsent').lean();
+        if (!account) return res.status(400).json({ message: 'Selected account product was not found' });
+        leadData.accountProduct = accountProduct;
+        leadData.accountType = `${account.accountCategory}_account`;
+        if (account.bank)   leadData.bank   = account.bank;
+        if (account.agency) leadData.agency = account.agency;
+        if (account.redirectActive && account.redirectUrl) redirectUrl = account.redirectUrl;
+        productSendConsent = account.sendConsent !== false;
+      }
     } else {
       if (cardProduct) {
         leadData.cardProduct = cardProduct;
@@ -563,7 +576,12 @@ exports.getPublicLoanProducts = async (req, res) => {
 
 exports.getPublicAccountProducts = async (req, res) => {
   try {
-    const accounts = await AccountProduct.find({ isActive: true, websiteVisible: { $ne: false } })
+    // `?referralOnly=1` (only the /ref/:code referral form) shows every active
+    // account, ignoring websiteVisible; the marketing website is unchanged.
+    const filter = req.query.referralOnly
+      ? { isActive: true }
+      : { isActive: true, websiteVisible: { $ne: false } };
+    const accounts = await AccountProduct.find(filter)
       .populate({ path: 'bank', select: 'name code logo isActive' })
       .select('name accountCategory commissionBrackets bank benefits feesEligibility minBalance monthlyFee interestRate rateMin rateMax keyNotes tags type digitalOnboarding multiCurrency salaryTransferRequired freeTransactions fallBelowFee payoutFrequency redirectUrl redirectActive')
       .lean();

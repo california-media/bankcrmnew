@@ -53,6 +53,11 @@ const userSchema = new mongoose.Schema(
     isSuperAgent: { type: Boolean, default: false },
     superAgentCode: { type: String, unique: true, sparse: true },
     superAgent: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    // Referral Partner Clawback Policy acceptance (agents, super agents and
+    // agencies — everyone who submits leads; shown on first lead submit). Version = hash of the policy text accepted; when
+    // the super admin changes the text the hash differs and it's asked again.
+    clawbackAcceptedAt: { type: Date, default: null },
+    clawbackAcceptedVersion: { type: String, default: null },
     deactivatedAt: { type: Date, default: null },
 
     // Agent bank details for payouts

@@ -1,4 +1,6 @@
+const crypto = require('crypto');
 const LegalPage = require('../models/LegalPage');
+const User = require('../models/User');
 
 const DEFAULTS = [
   {
@@ -418,7 +420,178 @@ const DEFAULTS = [
 </section>
 `.trim(),
   },
+  // Referral Partner Terms & Conditions and Clawback Policy — shown to agents
+  // in a popup on their first lead submit (see clawbackStatus/clawbackAccept).
+  // Text is the client's PDF (Version 1.0, July 2026) word for word; the cb-*
+  // classes are styled by the frontend ClawbackPolicyModal.
+  {
+    slug: 'clawback-policy',
+    title: 'Referral Partner Terms & Conditions and Clawback Policy',
+    lastUpdated: new Date('2026-07-01'),
+    content: `
+<div class="cb-cover">
+  <p class="cb-tagline">CONNECT · EMPOWER · GROW</p>
+  <h1>Referral Partner Program</h1>
+  <p class="cb-subtitle">Terms &amp; Conditions and Clawback Policy</p>
+  <p class="cb-applies">Applies to all registered MySilah Referral Partners</p>
+  <p class="cb-covering">Covering the Credit Card and Personal Loan Incentive Programs</p>
+  <p class="cb-version-line">Silah L.L.C-FZ · Meydan FreeZone, Dubai, UAE · Version 1.0, Effective July 2026</p>
+</div>
+
+<h3 class="cb-highlights-title">Policy Highlights</h3>
+<div class="cb-highlights">
+  <div class="cb-highlight cb-hl-indigo"><strong>90 to 180 Day Retention</strong><span>Clawback retention runs 90 to 180 days from the card issuance date.</span></div>
+  <div class="cb-highlight cb-hl-red"><strong>100% Clawback on Violations</strong><span>Applies to fraud, mis-selling and confirmed policy breaches.</span></div>
+  <div class="cb-highlight cb-hl-blue"><strong>Independent Partner Status</strong><span>Referral Partners are not employees or agents of MySilah or any Partner Institution.</span></div>
+  <div class="cb-highlight cb-hl-purple"><strong>Applies Platform Wide</strong><span>Governs every referral submitted through MySilah.ae.</span></div>
+</div>
+
+<p class="cb-eyebrow">DOCUMENT OVERVIEW</p>
+<h2>Welcome and Purpose</h2>
+<div class="cb-meta">
+  <div><span>VERSION</span>1.0</div>
+  <div><span>EFFECTIVE</span>July 2026</div>
+  <div><span>OWNER</span>Silah L.L.C-FZ (MySilah)</div>
+  <div><span>CLASSIFICATION</span>Confidential, Partner and Compliance Distribution</div>
+</div>
+<p>These Terms &amp; Conditions form an integral part of the MySilah Referral Partner Program and apply to all referrals submitted through the MySilah platform unless otherwise agreed in writing by MySilah.ae. They explain how Incentive Amounts are earned, when they are paid, and the circumstances under which they may be subject to clawback. By submitting customer referrals through MySilah.ae, you acknowledge that you have read, understood and agree to these Terms &amp; Conditions.</p>
+<ol class="cb-toc">
+  <li>Referral Partner Status</li>
+  <li>Definitions</li>
+  <li>Credit Card Incentive Amount</li>
+  <li>Personal Loan Incentive Amount</li>
+  <li>Customer Eligibility</li>
+  <li>Clawback Policy</li>
+  <li>Recovery of Clawback Amount</li>
+  <li>Fraud and Mis-selling</li>
+  <li>Customer Consent</li>
+  <li>General Terms</li>
+  <li>Support</li>
+</ol>
+
+<h2>1. Referral Partner Status</h2>
+<p>MySilah Referral Partners act as independent referral partners and are not employees, agents, representatives, or authorised representatives of MySilah.ae, any Partner Institution, or any Authorised Agency Partner. Referral Partners may only introduce potential customers and must not:</p>
+<ul>
+  <li>Provide financial advice</li>
+  <li>Guarantee approvals</li>
+  <li>Make commitments on behalf of MySilah.ae, any Partner Institution or Authorised Agency Partner</li>
+  <li>Misrepresent product features, pricing, eligibility, timelines or benefits</li>
+</ul>
+<p>All applications remain subject to the assessment, verification and final approval of the respective Partner Institution and/or Authorised Agency Partner.</p>
+
+<p class="cb-eyebrow">DEFINITIONS, CREDIT CARD AND PERSONAL LOAN PROGRAM</p>
+<h2>2. Definitions</h2>
+<table class="cb-table">
+  <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+  <tbody>
+    <tr><td>Referral Partner</td><td>Registered individual or company referring customers.</td></tr>
+    <tr><td>Incentive Amount</td><td>Reward paid by MySilah.ae for an eligible and successfully booked product.</td></tr>
+    <tr><td>Partner Institution</td><td>Financial institution providing the product.</td></tr>
+    <tr><td>Authorised Agency Partner</td><td>Agency authorised by a Partner Institution to process customer applications.</td></tr>
+  </tbody>
+</table>
+
+<h2>3. Credit Card Incentive Amount</h2>
+<p>The Credit Card Incentive Amount is paid only after confirmation from the Partner Institution and/or Authorised Agency Partner that the following have been completed:</p>
+<ul>
+  <li>Approval and card issuance</li>
+  <li>Card activation</li>
+  <li>CPV / Quality calls, where applicable</li>
+  <li>Any required minimum spend, including AED 1 where required</li>
+  <li>Booking confirmation</li>
+</ul>
+<p>MySilah.ae may withhold payment until all confirmations are received.</p>
+
+<h2>4. Personal Loan Incentive Amount</h2>
+<table class="cb-table">
+  <thead><tr><th>Loan Type</th><th>Payment Trigger</th></tr></thead>
+  <tbody>
+    <tr><td>Buyout Loan</td><td>Paid after the Salary Transfer Letter (STL) is received, where applicable, and the customer's first salary is credited.</td></tr>
+    <tr><td>New Salary Transfer Loan</td><td>Paid after STL is processed and salary is credited.</td></tr>
+    <tr><td>PDC / Non-Salary Transfer Loan</td><td>Paid after loan booking and disbursement to the customer's account.</td></tr>
+  </tbody>
+</table>
+
+<p class="cb-eyebrow">ELIGIBILITY AND CLAWBACK POLICY</p>
+<h2>5. Customer Eligibility</h2>
+<p>Incentive Amounts are payable only for eligible customers who are new to the Partner Institution and meet the Partner Institution's criteria.</p>
+<div class="cb-note">No Incentive Amount is payable for rejected, cancelled, duplicate, withdrawn or ineligible applications.</div>
+<p>The Partner Institution's and/or Authorised Agency Partner's decision is final.</p>
+
+<h2>6. Clawback Policy</h2>
+<p>Retention periods are measured from the card issuance date and vary by Partner Institution and product, as set out below.</p>
+<table class="cb-table">
+  <thead><tr><th>Product</th><th>Standard Retention Period</th></tr></thead>
+  <tbody>
+    <tr><td>Most Credit Card products</td><td>90 to 180 days from the card issuance date</td></tr>
+    <tr><td>Selected Credit Card products</td><td>Such other period determined by the Partner Institution and/or Authorised Agency Partner</td></tr>
+  </tbody>
+</table>
+<div class="cb-alert cb-alert-red">
+  <h4>100% Clawback Trigger Events</h4>
+  <p>If any of the following occurs during the retention period, the Incentive Amount will be subject to 100% clawback:</p>
+  <ul>
+    <li>The customer closes the card</li>
+    <li>The customer fails to meet activation or spend requirements</li>
+    <li>The booking is reversed</li>
+  </ul>
+</div>
+
+<p class="cb-eyebrow">RECOVERY, CONDUCT AND CONSENT</p>
+<h2>7. Recovery of Clawback Amount</h2>
+<p>MySilah.ae may recover clawback amounts through any of the following methods:</p>
+<ul>
+  <li>Deduction from future Incentive Amounts</li>
+  <li>Adjustment against another eligible approved product, subject to approval</li>
+  <li>Direct request for repayment</li>
+</ul>
+<p>If the amount remains outstanding beyond the notified settlement period, MySilah.ae may temporarily suspend the Referral Partner account, withhold pending Incentive Amounts, adjust future Incentive Amounts, or take further action in accordance with company policies until settlement.</p>
+
+<h2>8. Fraud and Mis-selling</h2>
+<div class="cb-alert cb-alert-red">
+  <h4>Zero Tolerance Conduct</h4>
+  <ul>
+    <li>Fraud, fake or duplicate applications</li>
+    <li>Forged documents</li>
+    <li>Customer impersonation</li>
+    <li>Mis-selling or policy violations</li>
+  </ul>
+  <p>Any of the above may result in cancellation and 100% clawback of Incentive Amounts, suspension or removal from the program, and reporting to the relevant Partner Institution and/or Authorised Agency Partner where required.</p>
+</div>
+
+<h2>9. Customer Consent</h2>
+<div class="cb-alert cb-alert-amber">
+  <h4>Mandatory Before Every Submission</h4>
+  <p>Referral Partners must obtain the customer's explicit consent and provide accurate information before submitting any application.</p>
+  <p><strong>Submitting a customer's application without first obtaining their explicit consent is treated as a policy violation in its own right</strong>, and may result in cancellation and 100% clawback of the Incentive Amount, suspension or removal from the program, and reporting to the relevant Partner Institution and/or Authorised Agency Partner where required.</p>
+</div>
+
+<p class="cb-eyebrow">GENERAL TERMS, SUPPORT AND ACKNOWLEDGEMENT</p>
+<h2>10. General Terms</h2>
+<p>All Incentive Amounts are subject to final approval, validation, booking and payout confirmation by the Partner Institution and/or Authorised Agency Partner. Campaigns, eligibility, payout timelines, Incentive Amounts and retention requirements may change. MySilah.ae may amend these Terms &amp; Conditions at any time.</p>
+
+<h2>11. Support</h2>
+<div class="cb-support">
+  <span>For questions about this policy:</span>
+  <a href="mailto:support@mysilah.ae">support@mysilah.ae</a>
+  <span>www.mysilah.ae</span>
+</div>
+
+<h2>Acknowledgement</h2>
+<p>By participating in the MySilah Referral Partner Program, you confirm that you have read, understood and agree to these Terms &amp; Conditions and Clawback Policy.</p>
+
+<p class="cb-fineprint">This document is confidential and prepared for distribution to MySilah Referral Partners, partner institutions and compliance reviewers. MySilah is a trading name of Silah L.L.C-FZ, registered at Meydan FreeZone, Dubai, UAE. Version 1.0, July 2026.</p>
+<p class="cb-fineprint">© Silah L.L.C-FZ · Meydan FreeZone, Dubai, UAE · Strictly Confidential · admin@mysilah.ae · www.mysilah.ae</p>
+`.trim(),
+  },
 ];
+
+const CLAWBACK_SLUG = 'clawback-policy';
+// Roles that submit leads (POST /api/leads) and must accept the policy.
+const CLAWBACK_ROLES = ['agent', 'agency'];
+// Short hash of the policy text: any edit to the text gives a new version,
+// so agents are asked to accept again.
+const policyVersion = (content) => crypto.createHash('sha256').update(content || '').digest('hex').slice(0, 16);
 
 exports.ensureDefaults = async () => {
   for (const page of DEFAULTS) {
@@ -437,9 +610,59 @@ exports.list = async (req, res) => {
 
 exports.getBySlug = async (req, res) => {
   try {
+    // The clawback policy is marked confidential — not served on this public
+    // route; logged-in agents get it via /clawback/status, admins via list.
+    if (req.params.slug === CLAWBACK_SLUG) return res.status(404).json({ message: 'Page not found' });
     const page = await LegalPage.findOne({ slug: req.params.slug }).lean();
     if (!page) return res.status(404).json({ message: 'Page not found' });
     res.json(page);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * GET /api/legal/clawback/status  (logged in)
+ * The current Clawback Policy plus whether this user has accepted this exact
+ * version. Everyone who can submit leads — agents (incl. super agents) and
+ * agencies — is required to accept.
+ */
+exports.clawbackStatus = async (req, res) => {
+  try {
+    const page = await LegalPage.findOne({ slug: CLAWBACK_SLUG }).lean();
+    if (!page) return res.json({ required: false, accepted: true });
+    const version = policyVersion(page.content);
+    const required = CLAWBACK_ROLES.includes(req.user.role);
+    res.json({
+      required,
+      accepted: !required || req.user.clawbackAcceptedVersion === version,
+      acceptedAt: req.user.clawbackAcceptedAt || null,
+      version,
+      title: page.title,
+      content: page.content,
+      lastUpdated: page.lastUpdated,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/legal/clawback/accept  (agent / agency)  body: { version }
+ * Records acceptance of the version the user was shown. If the policy was
+ * changed in between, nothing is saved and the new text is sent back.
+ */
+exports.clawbackAccept = async (req, res) => {
+  try {
+    const page = await LegalPage.findOne({ slug: CLAWBACK_SLUG }).lean();
+    if (!page) return res.status(404).json({ message: 'Clawback policy not found' });
+    const version = policyVersion(page.content);
+    if (req.body?.version !== version) {
+      return res.status(409).json({ message: 'The policy was just updated. Please read the latest version.', version, title: page.title, content: page.content, lastUpdated: page.lastUpdated });
+    }
+    const acceptedAt = new Date();
+    await User.updateOne({ _id: req.user._id }, { $set: { clawbackAcceptedAt: acceptedAt, clawbackAcceptedVersion: version } });
+    res.json({ accepted: true, acceptedAt, version });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -289,6 +289,52 @@ function makeCoinsService(deps) {
     return { redemption: r, balance: balanceOf(u) };
   }
 
+  // The inviter's bonus. Ledger row first: its unique {invitee} index is the once-only guard.
+  async function payInviter(inviter, invitee, reward) {
+    const name = firstName(invitee.name);
+    let tx;
+    try {
+      tx = await CoinTransaction.create({
+        user: inviter._id, type: 'invite', invitee: invitee._id, amount: reward, balanceAfter: 0, title: `Invite bonus · ${name}`,
+      });
+    } catch (err) {
+      if (isDup(err)) return; // already paid
+      throw err;
+    }
+    // A thrown error may have applied the $inc: keep the guard row (balanceAfter 0 marks it for reconciliation).
+    const u = await User.findOneAndUpdate({ _id: inviter._id }, { $inc: { coinBalance: reward } }, { new: true });
+    if (!u) {
+      // Definitively not credited: drop the guard row so a later retry can still pay.
+      await CoinTransaction.deleteOne({ _id: tx._id }).catch((e) => console.error('invite rollback failed', e));
+      throw new Error('inviter vanished');
+    }
+    await CoinTransaction.updateOne({ _id: tx._id }, { $set: { balanceAfter: balanceOf(u) } })
+      .catch((e) => console.error('invite balanceAfter update failed', e));
+    await notify([inviter._id], {
+      type: 'coins_awarded',
+      title: 'Invite bonus',
+      body: `You earned ${reward} coins: ${name} joined with your invite`,
+      noCoordinatorCopy: true,
+    }).catch((e) => console.error('invite notify failed', e));
+  }
+
+  // The friend's welcome bonus (invite link, 2026-11-12): the same reward, once per account.
+  async function payInvitee(inviter, invitee, reward) {
+    const inviterName = firstName(inviter.name);
+    const paid = await awardOnce(invitee._id, {
+      type: 'invite_welcome', awardKey: 'invite_welcome', amount: reward, title: `Welcome bonus · invited by ${inviterName}`,
+    });
+    if (!paid) return; // already paid
+    await notify([invitee._id], {
+      type: 'coins_awarded',
+      title: 'Welcome bonus',
+      body: `You earned ${reward} coins for joining with ${inviterName}'s invite`,
+      noCoordinatorCopy: true,
+    }).catch((e) => console.error('invite welcome notify failed', e));
+  }
+
+  // At email confirmation: both the inviter and the friend get the invite reward. Each side is paid at most
+  // once, and one side failing never skips the other. Never throws.
   async function awardInvite(invitee) {
     try {
       if (!invitee || !invitee.referredBy) return;
@@ -297,33 +343,8 @@ function makeCoinsService(deps) {
       if (!settings.inviteEnabled || !(reward > 0)) return;
       const inviter = await User.findOne({ _id: invitee.referredBy, role: 'agent', isActive: true });
       if (!inviter) return;
-
-      const name = firstName(invitee.name);
-      // Ledger row first: its unique {invitee} index is the once-only guard.
-      let tx;
-      try {
-        tx = await CoinTransaction.create({
-          user: inviter._id, type: 'invite', invitee: invitee._id, amount: reward, balanceAfter: 0, title: `Invite bonus · ${name}`,
-        });
-      } catch (err) {
-        if (isDup(err)) return; // already paid
-        throw err;
-      }
-      // A thrown error may have applied the $inc: keep the guard row (balanceAfter 0 marks it for reconciliation).
-      const u = await User.findOneAndUpdate({ _id: inviter._id }, { $inc: { coinBalance: reward } }, { new: true });
-      if (!u) {
-        // Definitively not credited: drop the guard row so a later retry can still pay.
-        await CoinTransaction.deleteOne({ _id: tx._id }).catch((e) => console.error('invite rollback failed', e));
-        throw new Error('inviter vanished');
-      }
-      await CoinTransaction.updateOne({ _id: tx._id }, { $set: { balanceAfter: balanceOf(u) } })
-        .catch((e) => console.error('invite balanceAfter update failed', e));
-      await notify([inviter._id], {
-        type: 'coins_awarded',
-        title: 'Invite bonus',
-        body: `You earned ${reward} coins: ${name} joined with your invite`,
-        noCoordinatorCopy: true,
-      }).catch((e) => console.error('invite notify failed', e));
+      await payInviter(inviter, invitee, reward).catch((err) => console.error('awardInvite inviter failed', err));
+      await payInvitee(inviter, invitee, reward).catch((err) => console.error('awardInvite welcome failed', err));
     } catch (err) {
       console.error('awardInvite failed', err);
     }

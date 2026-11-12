@@ -7,6 +7,7 @@ test('coin models declare the guard indexes', () => {
   const invIdx = require('../models/CoinTransaction').schema.indexes().find(([k]) => JSON.stringify(k) === '{"invitee":1}');
   assert.deepEqual(invIdx[1].partialFilterExpression, { type: 'invite' });
   assert.ok(require('../models/User').schema.path('coinBalance'));
+  assert.ok(require('../models/CoinTransaction').schema.path('type').enumValues.includes('invite_welcome'));
   assert.ok(require('../models/Notification').schema.path('type').enumValues.includes('coins_awarded'));
 });
 

@@ -17,6 +17,9 @@ if (missing.length) {
 }
 
 const app        = express();
+// One nginx hop in front: req.ip is the caller's address (X-Forwarded-For), used by the invite-link matching
+// and the per-IP rate limits.
+app.set('trust proxy', 1);
 const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {

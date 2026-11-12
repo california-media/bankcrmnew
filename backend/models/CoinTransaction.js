@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const coinTransactionSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    type: { type: String, enum: ['spin', 'invite', 'redeem', 'streak', 'mission'], required: true },
+    type: { type: String, enum: ['spin', 'invite', 'invite_welcome', 'redeem', 'streak', 'mission'], required: true },
     amount: { type: Number, required: true },
     balanceAfter: { type: Number, required: true },
     title: { type: String, trim: true, default: '' },

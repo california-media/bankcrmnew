@@ -14,6 +14,7 @@ function build(o = {}) {
   const rows = o.redemptions ? o.redemptions.map((r) => ({ ...r })) : []; // Redemption collection
   let codes = o.codes === undefined ? [{ _id: 'c1', code: 'ABC', status: 'available' }] : o.codes;
   let balance = o.balance === undefined ? 1000 : o.balance;
+  let seenTx;
   const deps = {
     now: () => NOW,
     randInt: o.randInt || (() => 0),
@@ -78,6 +79,14 @@ function build(o = {}) {
       create: async function (d) {
         calls.txCreate.push(d);
         if (o.txDup || (o.txDupAfterFirst && calls.txCreate.length > 1)) throw Object.assign(new Error('dup'), { code: 11000 });
+        if (o.txThrowsType === d.type) throw new Error('db down');
+        // uniqueTx: the real unique guards ({invitee} for type 'invite', {user, awardKey}).
+        if (o.uniqueTx) {
+          const key = d.type === 'invite' ? `invite:${d.invitee}` : d.awardKey ? `${d.user}:${d.awardKey}` : null;
+          seenTx ??= new Set(o.uniqueTxSeed || []);
+          if (key && seenTx.has(key)) throw Object.assign(new Error('dup'), { code: 11000 });
+          if (key) seenTx.add(key);
+        }
         return { _id: 't' + calls.txCreate.length, ...d };
       },
       updateOne: async (f, u) => { calls.txUpdate.push([f, u]); },
@@ -285,7 +294,54 @@ test('awardInvite: never throws (notify failure, db failure) and falls back on e
   assert.equal(b.calls.txDelete.length, 0); // $inc may have applied: guard row kept
   b = build({ userNull: true });
   await b.svc.awardInvite(invitee);
-  assert.deepEqual(b.calls.txDelete, [{ _id: 't1' }]); // definitively not credited: retry may pay
+  assert.deepEqual(b.calls.txDelete[0], { _id: 't1' }); // definitively not credited: retry may pay
+});
+
+const INVITER = { _id: 'inv1', name: 'Omar Haddad' };
+
+test('awardInvite: both paid once', async () => {
+  const { svc, calls } = build({ uniqueTx: true, inviter: INVITER });
+  await svc.awardInvite(invitee);
+  assert.equal(calls.txCreate.length, 2);
+  assert.equal(calls.txCreate[0].type, 'invite');
+  assert.deepEqual(calls.txCreate[1], {
+    user: 'i1', type: 'invite_welcome', awardKey: 'invite_welcome', amount: 1000, balanceAfter: 0,
+    title: 'Welcome bonus · invited by Omar',
+  });
+  assert.equal(calls.userUpdate.length, 2);
+  assert.deepEqual(calls.userUpdate[1][0], { _id: 'i1', role: 'agent' });
+  assert.equal(calls.notify.length, 2);
+  assert.deepEqual(calls.notify[1], [['i1'], {
+    type: 'coins_awarded', title: 'Welcome bonus',
+    body: "You earned 1000 coins for joining with Omar's invite", noCoordinatorCopy: true,
+  }]);
+  // Email confirmation runs again: nobody is paid twice.
+  await svc.awardInvite(invitee);
+  assert.equal(calls.userUpdate.length, 2);
+  assert.equal(calls.notify.length, 2);
+});
+
+test('awardInvite: friend still paid when inviter already paid', async () => {
+  const { svc, calls } = build({ uniqueTx: true, uniqueTxSeed: ['invite:i1'], inviter: INVITER });
+  await svc.awardInvite(invitee);
+  assert.deepEqual(calls.userUpdate.map(([f]) => f._id), ['i1']);
+  assert.equal(calls.notify.length, 1);
+  assert.equal(calls.notify[0][1].title, 'Welcome bonus');
+});
+
+test('awardInvite: friend still paid when the inviter notification fails', async () => {
+  const { calls, svc } = build({ uniqueTx: true, inviter: INVITER, notifyThrows: true });
+  await svc.awardInvite(invitee);
+  assert.ok(calls.txCreate.some((d) => d.type === 'invite_welcome'));
+  assert.equal(calls.userUpdate.length, 2);
+});
+
+test('awardInvite: friend not paid when disabled / no inviter / zero reward', async () => {
+  for (const o of [{ settings: { inviteEnabled: false } }, { inviter: null }, { settings: { inviteReward: 0 } }]) {
+    const b = build({ uniqueTx: true, ...o });
+    await b.svc.awardInvite(invitee);
+    assert.equal(b.calls.txCreate.filter((d) => d.type === 'invite_welcome').length, 0);
+  }
 });
 
 test('spin/redeem/invite: a returned user doc without coinBalance reads as 0, never undefined', async () => {
@@ -300,4 +356,12 @@ test('spin/redeem/invite: a returned user doc without coinBalance reads as 0, ne
   b = build({ noBalanceField: true });
   await b.svc.awardInvite(invitee);
   assert.deepEqual(b.calls.txUpdate[0], [{ _id: 't1' }, { $set: { balanceAfter: 0 } }]);
+});
+
+test('awardInvite: friend still paid when paying the inviter fails', async () => {
+  const { svc, calls } = build({ uniqueTx: true, inviter: INVITER, txThrowsType: 'invite' });
+  await svc.awardInvite(invitee); // does not throw
+  assert.deepEqual(calls.userUpdate.map(([f]) => f._id), ['i1']);
+  assert.equal(calls.notify.length, 1);
+  assert.equal(calls.notify[0][1].title, 'Welcome bonus');
 });

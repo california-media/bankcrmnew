@@ -30,7 +30,7 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name, loanCategory, bank, agency, assignedAgencies, commissionBrackets, isActive, agentVisible, sendConsent, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths } = req.body;
+    const { name, loanCategory, loanType, salaryTransferRequired, bank, agency, assignedAgencies, commissionBrackets, isActive, agentVisible, sendConsent, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths } = req.body;
     if (!name || !loanCategory || !bank) {
       return res.status(400).json({ message: 'name, loanCategory, and bank are required' });
     }
@@ -40,7 +40,7 @@ exports.create = async (req, res) => {
     }
 
     const { benefits, feesEligibility, redirectUrl, redirectActive, referralVisible } = req.body;
-    const loan = await LoanProduct.create({ name, loanCategory, bank, agency: agency || undefined, assignedAgencies: assignedAgencies || [], commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, agentVisible, sendConsent, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive, referralVisible: !!referralVisible });
+    const loan = await LoanProduct.create({ name, loanCategory, loanType: loanType || undefined, salaryTransferRequired: typeof salaryTransferRequired === 'boolean' ? salaryTransferRequired : null, bank, agency: agency || undefined, assignedAgencies: assignedAgencies || [], commissionBrackets: commissionBrackets || [], benefits: benefits || '', feesEligibility: feesEligibility || '', isActive, agentVisible, sendConsent, websiteVisible, interestRateRange, minSalary, maxLoanAmount, maxTenure, keyNotes, minTurnover, collateralRequired, minPosHistoryMonths, redirectUrl: redirectUrl || '', redirectActive: !!redirectActive, referralVisible: !!referralVisible });
     notifyWebsiteProductsChanged();
     const populated = await loan.populate(POPULATE);
     res.status(201).json(populated);
@@ -55,6 +55,13 @@ exports.update = async (req, res) => {
     const update = {};
     if (name !== undefined) update.name = name;
     if (loanCategory !== undefined) update.loanCategory = loanCategory;
+    // Admin "Loan Type" and "Salary Transfer" selects (were sent but never saved). The app's Explore filters
+    // loans by them: Islamic (loanType), Salary Transfer (true), Non Salary Transfer (false). null = Varies.
+    if (req.body.loanType !== undefined) update.loanType = req.body.loanType || undefined;
+    if (req.body.salaryTransferRequired !== undefined) {
+      const v = req.body.salaryTransferRequired;
+      update.salaryTransferRequired = typeof v === 'boolean' ? v : null;
+    }
     if (bank !== undefined) update.bank = bank;
     if (agency !== undefined) {
       const agencyUser = await User.findOne({ _id: agency, role: 'agency' });

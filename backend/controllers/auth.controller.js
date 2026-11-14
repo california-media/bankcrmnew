@@ -6,7 +6,7 @@ const { signAuthToken, generateReferralCode } = require('../utils/token');
 const { generateSuperAgentCode, generateUniqueReferralCode, inactiveMessage, releaseSubAgents } = require('../utils/superAgent');
 const { sendPasswordResetEmail, sendEmailVerification } = require('../utils/email');
 const coins = require('../services/coins.service');
-const { resolveUaepassFields } = require('../utils/uaepassPrefill');
+const { resolveUaepassFields, resolveVerifiedUaepass } = require('../utils/uaepassPrefill');
 const { sendWhatsAppOtp } = require('../services/whatsappOtp.service');
 const { sendPartnerWelcome } = require('../services/partnerWelcome.service');
 const { deleteFromS3, getFilename } = require('../middleware/upload.middleware');
@@ -246,8 +246,13 @@ exports.verifyEmail = async (req, res) => {
  */
 exports.registerAgency = async (req, res) => {
   try {
-    const { name, companyName, tradeLicense, email, phone, password, emiratesId, city, phoneVerifyToken, accountType } = req.body;
+    const { name, companyName, tradeLicense, email, phone, password, city, phoneVerifyToken, accountType } = req.body;
     const isSuperAgent = accountType === 'super_agent';
+    // Signed up with UAE PASS (the app's Super Referral Partner page): the verified prefill token gives the
+    // UAE PASS id and Emirates ID.
+    const resolved = resolveVerifiedUaepass(req.body, process.env.JWT_SECRET);
+    if (resolved.error) return res.status(400).json({ message: resolved.error });
+    const { emiratesId, uaepassSub } = resolved;
     if (!email || !password || (!isSuperAgent && !companyName)) {
       return res.status(400).json({ message: isSuperAgent ? 'Name, email, and password are required' : 'Company name, email, and password are required' });
     }
@@ -272,6 +277,9 @@ exports.registerAgency = async (req, res) => {
       const idExists = await User.findOne({ emiratesId });
       if (idExists) return res.status(409).json({ message: 'A user is already registered with this Emirates ID' });
     }
+    if (uaepassSub && (await User.findOne({ uaepassSub }))) {
+      return res.status(409).json({ message: 'This UAE Pass account is already linked to another account' });
+    }
 
     // Explicit accountType: 'super_agent' => agent-type account that can have
     // sub-agents (no company / trade license), otherwise a regular Agency.
@@ -286,6 +294,7 @@ exports.registerAgency = async (req, res) => {
       phone,
       emiratesId: emiratesId || undefined,
       location: city,
+      ...(uaepassSub ? { uaepassSub } : {}),
       role: isSuperAgent ? 'agent' : 'agency',
       ...(isSuperAgent
         ? { isSuperAgent: true, superAgentCode: await generateSuperAgentCode(), referralCode: await generateUniqueReferralCode() }

@@ -19,4 +19,10 @@ function resolveUaepassFields(body, secret) {
   return { uaepassSub: body.uaepassSub, emiratesId: body.emiratesId };
 }
 
-module.exports = { resolveUaepassFields };
+// For POST /auth/register-agency: only a verified prefill token can set uaepassSub (a raw body value never does).
+function resolveVerifiedUaepass(body, secret) {
+  if (body.uaepassPrefill) return resolveUaepassFields(body, secret);
+  return { emiratesId: body.emiratesId };
+}
+
+module.exports = { resolveUaepassFields, resolveVerifiedUaepass };

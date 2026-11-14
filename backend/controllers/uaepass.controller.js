@@ -7,6 +7,7 @@ const { inactiveMessage, DEACTIVATED_MESSAGE } = require('../utils/superAgent');
 const { sendPartnerWelcome } = require('../services/partnerWelcome.service');
 const coins = require('../services/coins.service');
 const { inviteStateOf, inviterFor } = require('../utils/uaepassInvite');
+const { accountStateOf, signupPrefill } = require('../utils/uaepassSignup');
 const {
   isAllowedAppRedirect,
   safeWebOrigin,
@@ -75,8 +76,11 @@ const getReturnPage = (req) => {
 exports.init = (req, res) => {
   const frontendUrl = getFrontendUrl(req);
   const returnPage  = getReturnPage(req);
-  // ?ref= (an agent's invite code, from an invite link) rides in the signed state to the new-account step.
-  const payload = { ctx: 'uaepass', frontendUrl, returnPage, ...getAppState(req), ...inviteStateOf(req.query) };
+  // ?ref= (an agent's invite code, from an invite link) rides in the signed state to the new-account step, and so
+  // does ?account=super_agent (the app's Super Referral Partner sign-up: always the prefill, utils/uaepassSignup).
+  const payload = {
+    ctx: 'uaepass', frontendUrl, returnPage, ...getAppState(req), ...inviteStateOf(req.query), ...accountStateOf(req.query),
+  };
   const state = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10m' });
   res.redirect(buildAuthUrl(state));
 };
@@ -395,13 +399,10 @@ exports.callback = async (req, res) => {
       return await finishWithExchange(statePayload, { token }, `${frontendUrl}/auth/uaepass/callback?token=${token}`);
     }
 
-    // New user — no email from UAE Pass → prefill register form
-    if (!email) {
-      const prefill = jwt.sign(
-        { name, phone, emiratesId, nationality, sub, _uaepass: true },
-        process.env.JWT_SECRET,
-        { expiresIn: '30m' }
-      );
+    // New user — no email from UAE Pass (or a Super Referral Partner sign-up) → prefill register form
+    const prefillClaims = signupPrefill(statePayload, { name, phone, emiratesId, nationality, sub, email });
+    if (prefillClaims) {
+      const prefill = jwt.sign(prefillClaims, process.env.JWT_SECRET, { expiresIn: '30m' });
       return await finishWithExchange(statePayload, { prefill }, `${frontendUrl}/register?uaepass_prefill=${prefill}`);
     }
 

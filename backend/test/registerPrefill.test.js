@@ -37,3 +37,16 @@ test('token without _uaepass errors', () => {
 test('no prefill passes raw body through', () => {
   assert.deepStrictEqual(resolveUaepassFields({ uaepassSub: 'RAW', emiratesId: 'E' }, SECRET), { uaepassSub: 'RAW', emiratesId: 'E' });
 });
+
+const { resolveVerifiedUaepass } = require('../utils/uaepassPrefill');
+
+test('resolveVerifiedUaepass: a valid prefill gives sub and emiratesId from the token', () => {
+  const t = sign({ sub: 'S1', emiratesId: '784-1', _uaepass: true });
+  assert.deepStrictEqual(resolveVerifiedUaepass({ uaepassPrefill: t, emiratesId: '784-2' }, SECRET), { uaepassSub: 'S1', emiratesId: '784-1' });
+});
+test('resolveVerifiedUaepass: without a prefill a raw uaepassSub is ignored', () => {
+  assert.deepStrictEqual(resolveVerifiedUaepass({ uaepassSub: 'RAW', emiratesId: 'E' }, SECRET), { emiratesId: 'E' });
+});
+test('resolveVerifiedUaepass: a bad prefill errors', () => {
+  assert.deepStrictEqual(resolveVerifiedUaepass({ uaepassPrefill: 'nope' }, SECRET), { error: MSG });
+});

@@ -8,6 +8,7 @@ const { sendPartnerWelcome } = require('../services/partnerWelcome.service');
 const coins = require('../services/coins.service');
 const { inviteStateOf, inviterFor } = require('../utils/uaepassInvite');
 const { accountStateOf, signupPrefill } = require('../utils/uaepassSignup');
+const { onDeviceStateOf, appClientStateOf, acrValuesFor, clientFor } = require('../utils/uaepassChannel');
 const {
   isAllowedAppRedirect,
   safeWebOrigin,
@@ -20,22 +21,22 @@ const { sanitize, safeUser } = require('./auth.controller');
 
 const IS_STAGING   = process.env.UAEPASS_ENV !== 'production';
 const BASE_URL     = IS_STAGING ? 'https://id.uaepass.ae/idshub' : 'https://id.uaepass.ae/idshub';
-const CLIENT_ID    = process.env.UAEPASS_CLIENT_ID     || 'sandbox_stage';
-const CLIENT_SECRET= process.env.UAEPASS_CLIENT_SECRET || 'sandbox_stage';
-const REDIRECT_URI = process.env.UAEPASS_REDIRECT_URI  || 'http://localhost:8000/api/auth/uaepass/callback';
 const FRONTEND_URL = process.env.CLIENT_URL             || 'http://localhost:5173';
 
 const EXCHANGE_TTL_MS  = 120 * 1000;
 const EXCHANGE_EXPIRED = 'Sign-in link expired, please try again';
 
-const buildAuthUrl = (state) => {
+// `payload` is what `state` signs: it picks the client (website or mobile) and the login (web, or the UAE PASS
+// app on the same phone for the app's ?on_device=1), utils/uaepassChannel.js. The callback uses the same client.
+const buildAuthUrl = (state, payload) => {
+  const { clientId, redirectUri } = clientFor(payload);
   const params = new URLSearchParams({
     response_type: 'code',
-    client_id: CLIENT_ID,
+    client_id: clientId,
     scope: 'urn:uae:digitalid:profile:general urn:uae:digitalid:profile',
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     state,
-    acr_values: 'urn:safelayer:tws:policies:authentication:level:low',
+    acr_values: acrValuesFor(payload),
   });
   return `${BASE_URL}/authorize?${params.toString()}`;
 };
@@ -47,10 +48,11 @@ const getFrontendUrl = (req) =>
 // App fields for the signed state: ?app_redirect= (must match UAEPASS_APP_REDIRECTS) together
 // with its PKCE ?code_challenge= (S256). Without a valid challenge the app_redirect is ignored,
 // so the request runs the web flow. Returns {} for the web flow.
+// ?on_device=1 (the UAE PASS app is on the phone) and the mobile client choice are kept for app flows only.
 const getAppState = (req) => {
   const { app_redirect: target, code_challenge: challenge } = req.query;
   if (!isAllowedAppRedirect(target) || !isValidChallenge(challenge)) return {};
-  return { app_redirect: target, code_challenge: challenge };
+  return { app_redirect: target, code_challenge: challenge, ...onDeviceStateOf(req.query), ...appClientStateOf() };
 };
 
 // app_redirect from a verified (signed) state payload, re-checked against the allowlist.
@@ -82,7 +84,7 @@ exports.init = (req, res) => {
     ctx: 'uaepass', frontendUrl, returnPage, ...getAppState(req), ...inviteStateOf(req.query), ...accountStateOf(req.query),
   };
   const state = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10m' });
-  res.redirect(buildAuthUrl(state));
+  res.redirect(buildAuthUrl(state, payload));
 };
 
 /**
@@ -92,12 +94,9 @@ exports.init = (req, res) => {
  */
 exports.linkInit = (req, res) => {
   const frontendUrl = getFrontendUrl(req);
-  const state = jwt.sign(
-    { ctx: 'uaepass', action: 'link', userId: req.user._id.toString(), frontendUrl },
-    process.env.JWT_SECRET,
-    { expiresIn: '10m' }
-  );
-  res.redirect(buildAuthUrl(state));
+  const payload = { ctx: 'uaepass', action: 'link', userId: req.user._id.toString(), frontendUrl };
+  const state = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10m' });
+  res.redirect(buildAuthUrl(state, payload));
 };
 
 /**
@@ -115,7 +114,7 @@ exports.linkUrl = (req, res) => {
       ...getAppState(req),
     };
     const state = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '10m' });
-    res.json({ url: buildAuthUrl(state) });
+    res.json({ url: buildAuthUrl(state, payload) });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -267,7 +266,8 @@ exports.callback = async (req, res) => {
   const isLinkAction = statePayload.action === 'link';
 
   try {
-    // Exchange authorization code for access token
+    // Exchange authorization code for access token, with the client the authorize URL used.
+    const { clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, redirectUri: REDIRECT_URI } = clientFor(statePayload);
     const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64');
     console.log('[UAE Pass] token exchange request:', JSON.stringify({
       url: `${BASE_URL}/token`,

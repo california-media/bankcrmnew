@@ -43,6 +43,10 @@ const DEFAULT_NOTES_LINES = [
 ];
 const DEFAULT_VAT_NOTE = 'Since Silah is a newly established company, our VAT registration is currently under process.';
 
+// An empty VAT note means the admin cleared it on purpose — print nothing.
+// Only fall back to the old default when the setting was never stored.
+const resolveVatNote = (companySettings) => companySettings?.vatNote ?? DEFAULT_VAT_NOTE;
+
 const COLS = [
   { key: 'sno', label: 'S.No', x: 50, w: 30, align: 'center' },
   { key: 'customer', label: 'Customer Name', x: 80, w: 105, align: 'left' },
@@ -151,7 +155,7 @@ function drawColumnDividers(doc, topY, bottomY) {
 function renderInvoicePdf(invoice, res, companySettings) {
   const bank = companySettings?.bank || DEFAULT_BANK;
   const notesLines = companySettings?.notesLines?.length ? companySettings.notesLines : DEFAULT_NOTES_LINES;
-  const vatNote = companySettings?.vatNote || DEFAULT_VAT_NOTE;
+  const vatNote = resolveVatNote(companySettings);
   const trn = companySettings?.trn || COMPANY.trnStatus;
   const contactName = companySettings?.contactName || invoice.createdBy?.name || 'MySilah Team';
   const contactPhone = companySettings?.contactPhone || invoice.createdBy?.phone;
@@ -297,9 +301,11 @@ function renderInvoicePdf(invoice, res, companySettings) {
     doc.text(`• ${line}`, CONTENT_X + CELL_PAD, noteY, { width: LEFT_W - CELL_PAD * 2 });
     noteY += doc.heightOfString(`• ${line}`, { width: LEFT_W - CELL_PAD * 2 }) + 3;
   });
-  noteY += 6;
-  doc.text(vatNote, CONTENT_X + CELL_PAD, noteY, { width: LEFT_W - CELL_PAD * 2 });
-  noteY += doc.heightOfString(vatNote, { width: LEFT_W - CELL_PAD * 2 });
+  if (vatNote) {
+    noteY += 6;
+    doc.text(vatNote, CONTENT_X + CELL_PAD, noteY, { width: LEFT_W - CELL_PAD * 2 });
+    noteY += doc.heightOfString(vatNote, { width: LEFT_W - CELL_PAD * 2 });
+  }
 
   let bankY = y + 22;
   const bankLine = (label, value) => {
@@ -337,4 +343,4 @@ function renderInvoicePdf(invoice, res, companySettings) {
   doc.end();
 }
 
-module.exports = { renderInvoicePdf };
+module.exports = { renderInvoicePdf, resolveVatNote };

@@ -54,7 +54,8 @@ function InvoicePreview({ invoice }) {
   const createdByName = invoice.createdBy?.name || 'MySilah Team';
   const bank = invoice.companySettings?.bank || DEFAULT_BANK;
   const notesLines = invoice.companySettings?.notesLines?.length ? invoice.companySettings.notesLines : DEFAULT_NOTES_LINES;
-  const vatNote = invoice.companySettings?.vatNote || DEFAULT_VAT_NOTE;
+  // Empty = admin cleared it on purpose → show nothing; default only if never stored.
+  const vatNote = invoice.companySettings?.vatNote ?? DEFAULT_VAT_NOTE;
   const trn = invoice.companySettings?.trn || COMPANY.trnStatus;
   const contactName = invoice.companySettings?.contactName || createdByName;
   const contactPhone = invoice.companySettings?.contactPhone || invoice.createdBy?.phone;
@@ -179,7 +180,7 @@ function InvoicePreview({ invoice }) {
           {notesLines.map((line, i) => (
             <div key={i} style={{ fontSize: 10.5, color: TEXT_GRAY, marginBottom: 3 }}>• {line}</div>
           ))}
-          <div style={{ fontSize: 10.5, color: TEXT_GRAY, marginTop: 8 }}>{vatNote}</div>
+          {vatNote && <div style={{ fontSize: 10.5, color: TEXT_GRAY, marginTop: 8 }}>{vatNote}</div>}
         </div>
         <div style={bodyPadStyle}>
           <div style={{ fontWeight: 700, fontSize: 11, marginBottom: 6 }}>BANK DETAILS</div>

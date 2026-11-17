@@ -3,6 +3,9 @@ const assert = require('node:assert/strict');
 const XLSX = require('xlsx');
 const Lead = require('../models/Lead');
 const User = require('../models/User');
+const EmployeeStatus = require('../models/EmployeeStatus');
+const Notification = require('../models/Notification');
+const commissionService = require('../services/commission.service');
 const router = require('../routes/lead.routes');
 const ctrl = require('../controllers/lead.controller');
 
@@ -54,14 +57,15 @@ test('import gate: CPV/Sales employees and agents still forbidden', () => {
 });
 
 test('import: Account Access is limited to its own agency leads', async (t) => {
-  const leads = {
-    'LD-OWN-0001': { _id: 'l1', leadNumber: 'LD-OWN-0001', agency: AGENCY_ID },
-    'LD-OTHER-0001': { _id: 'l2', leadNumber: 'LD-OTHER-0001', agency: OTHER_AGENCY_ID },
-  };
+  const lead = (no, agency) => Lead.hydrate({ _id: no === 'LD-OWN-0001' ? '111111111111111111111111' : '222222222222222222222222', leadNumber: no, agency, customerName: 'X', status: 'submitted', commissionStatus: 'none' });
+  const leads = { 'LD-OWN-0001': lead('LD-OWN-0001', AGENCY_ID), 'LD-OTHER-0001': lead('LD-OTHER-0001', OTHER_AGENCY_ID) };
   t.mock.method(Lead, 'findOne', async (q) => leads[q.leadNumber] || null);
-  const updates = [];
-  t.mock.method(Lead, 'findByIdAndUpdate', async (id, u) => { updates.push([id, u]); return {}; });
-  // Post-import admin notification: no admins → nothing emitted.
+  const saved = [];
+  t.mock.method(Lead.prototype, 'save', async function save() { saved.push(this); return this; });
+  t.mock.method(commissionService, 'recalcOnStatusChange', async (l) => l);
+  t.mock.method(EmployeeStatus, 'findOne', async () => null);
+  t.mock.method(Notification, 'insertMany', async (d) => d);
+  // No admins / agencies in the stubbed DB → notifications are no-ops.
   t.mock.method(User, 'find', () => { const c = { select: () => c, lean: async () => [] }; return c; });
 
   const res = fakeRes();
@@ -76,8 +80,9 @@ test('import: Account Access is limited to its own agency leads', async (t) => {
   assert.equal(res.statusCode, 200);
   assert.equal(res.body.updated, 1);
   assert.deepEqual(res.body.failed, [{ row: 3, reason: 'Lead No "LD-OTHER-0001" does not belong to your agency' }]);
-  assert.equal(updates.length, 1);
-  assert.equal(updates[0][0], 'l1');
-  assert.equal(updates[0][1].$set.status, 'approved');
-  assert.equal(updates[0][1].$set.agency, AGENCY_ID);
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].leadNumber, 'LD-OWN-0001');
+  assert.equal(saved[0].status, 'approved');
+  assert.equal(String(saved[0].agency), AGENCY_ID);
+  assert.equal(leads['LD-OTHER-0001'].status, 'submitted');
 });

@@ -2992,6 +2992,27 @@ const normalizeProductType = (v) => {
   return null;
 };
 
+// Spreadsheet text used inside a RegExp must match literally: product names
+// like "Platinum+ (Islamic)" otherwise never match, and a stray "(" throws.
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// A status change made through import follows the same rules as the status
+// buttons (ROLE_TARGETS / FROM_STATES): agency-side importers can't pull a lead
+// back to New, and nothing moves backwards out of Disbursed. Marking a lead
+// Disbursed straight from New goes through Approved first, so the commission
+// is locked at approval exactly as if the buttons had been clicked in order.
+const planImportStatusSteps = (from, to, importerRole) => {
+  if (!ROLE_TARGETS[importerRole].includes(to)) {
+    return { error: `cannot change status from "${from}" to "${to}" by import` };
+  }
+  const canMove = (target, current) => !FROM_STATES[target] || FROM_STATES[target].includes(current);
+  if (canMove(to, from)) return { steps: [to] };
+  if (to === 'disbursed' && canMove('approved', from)) return { steps: ['approved', 'disbursed'] };
+  return { error: `cannot change status from "${from}" to "${to}"` };
+};
+
+const IMPORT_STATUS_LABELS = { approved: 'Approved', rejected: 'Rejected', disbursed: 'Disbursed' };
+
 /**
  * POST /api/leads/import  (admin, agency)
  * Bulk-create leads from an uploaded .xlsx/.xls file.
@@ -3066,14 +3087,14 @@ exports.importLeads = async (req, res) => {
         const bankNameRaw = String(row['Bank'] ?? '').trim();
         const productNameRaw = String(row['Product Name'] ?? '').trim();
         if (bankNameRaw && productNameRaw) {
-          bank = await Bank.findOne({ name: new RegExp(`^${bankNameRaw}$`, 'i') });
+          bank = await Bank.findOne({ name: new RegExp(`^${escapeRegex(bankNameRaw)}$`, 'i') });
           if (!bank) { fail(`No bank found named "${bankNameRaw}"`); continue; }
 
           if (productType === 'credit_card') {
-            cardProduct = await CardProduct.findOne({ name: new RegExp(`^${productNameRaw}$`, 'i'), bank: bank._id });
+            cardProduct = await CardProduct.findOne({ name: new RegExp(`^${escapeRegex(productNameRaw)}$`, 'i'), bank: bank._id });
             if (!cardProduct) { fail(`No credit card product named "${productNameRaw}" at ${bankNameRaw}`); continue; }
           } else {
-            loanProduct = await LoanProduct.findOne({ name: new RegExp(`^${productNameRaw}$`, 'i'), bank: bank._id });
+            loanProduct = await LoanProduct.findOne({ name: new RegExp(`^${escapeRegex(productNameRaw)}$`, 'i'), bank: bank._id });
             if (!loanProduct) { fail(`No loan product named "${productNameRaw}" at ${bankNameRaw}`); continue; }
             const loanAmountRaw = row['Loan Amount'];
             if (loanAmountRaw !== '' && loanAmountRaw != null) {
@@ -3096,12 +3117,14 @@ exports.importLeads = async (req, res) => {
 
       const agencyId = isAgencyImporter ? importerAgencyId : productAgency;
 
+      // Phone is required for a new lead; on an update (Lead No given) it is
+      // only checked — and changed — when the sheet actually has one.
       const phoneRaw = String(row['Phone'] ?? '').trim();
-      if (!isValidUAEPhone(phoneRaw)) { fail(`Invalid UAE mobile number "${phoneRaw}" — must start with 9715 (e.g. 971501234567)`); continue; }
+      if ((phoneRaw || !leadNoRaw) && !isValidUAEPhone(phoneRaw)) { fail(`Invalid UAE mobile number "${phoneRaw}" — must start with 9715 (e.g. 971501234567)`); continue; }
 
       const leadData = {
-        customerName: String(row['Customer Name']).trim(),
-        phone: phoneRaw,
+        customerName: String(row['Customer Name'] ?? '').trim(),
+        phone: phoneRaw ? normalizePhone(phoneRaw) : '',
         agent: agentId,
         status: 'submitted',
       };
@@ -3150,15 +3173,16 @@ exports.importLeads = async (req, res) => {
           }
           if (row['Reference No']) updateFields.referenceNo = String(row['Reference No']).trim();
           if (row['Remarks']) updateFields.remarks = String(row['Remarks']).trim();
-          // Accept both 'Lead Status' and 'Status' (export uses 'Status')
-          const statusRaw = String(row['Lead Status'] ?? row['Status'] ?? '').trim();
+          // Accept both 'Lead Status' and 'Status' (export uses 'Lead Status')
+          let targetStatus;
+          const statusRaw = String(row['Lead Status'] || row['Status'] || '').trim();
           if (statusRaw) {
             const normalized = statusRaw.toLowerCase().replace(/\s+/g, '_');
             if (VALID_LEAD_STATUSES.includes(normalized)) {
-              updateFields.status = normalized;
+              targetStatus = normalized;
             } else {
               // Try as employee status label fallback
-              const empStatusFallback = await EmployeeStatus.findOne({ label: new RegExp(`^${statusRaw}$`, 'i'), statusType: 'lead_label', isActive: true });
+              const empStatusFallback = await EmployeeStatus.findOne({ label: new RegExp(`^${escapeRegex(statusRaw)}$`, 'i'), statusType: 'lead_label', isActive: true });
               if (!empStatusFallback) { fail(`Invalid status "${statusRaw}". Valid pipeline: ${VALID_LEAD_STATUSES.join(', ')}. Or use a label from Employee Statuses.`); continue; }
               updateFields.employeeStatus = empStatusFallback._id;
             }
@@ -3181,12 +3205,18 @@ exports.importLeads = async (req, res) => {
           const rejectedRaw = String(row['Rejected'] ?? '').trim().toLowerCase();
           if (rejectedRaw) {
             if (!['yes', 'no', 'true', 'false', '1', '0'].includes(rejectedRaw)) { fail(`Rejected must be Yes or No, got "${row['Rejected']}"`); continue; }
-            if (['yes', 'true', '1'].includes(rejectedRaw)) updateFields.status = 'rejected';
+            if (['yes', 'true', '1'].includes(rejectedRaw)) targetStatus = 'rejected';
           }
           const disbursedRaw = String(row['Disbursed'] ?? '').trim().toLowerCase();
           if (disbursedRaw) {
             if (!['yes', 'no', 'true', 'false', '1', '0'].includes(disbursedRaw)) { fail(`Disbursed must be Yes or No, got "${row['Disbursed']}"`); continue; }
-            if (['yes', 'true', '1'].includes(disbursedRaw)) updateFields.status = 'disbursed';
+            if (['yes', 'true', '1'].includes(disbursedRaw)) targetStatus = 'disbursed';
+          }
+          let statusSteps = [];
+          if (targetStatus && targetStatus !== existing.status) {
+            const plan = planImportStatusSteps(existing.status, targetStatus, isAgencyImporter ? 'agency' : 'admin');
+            if (plan.error) { fail(`Lead No "${leadNoRaw}": ${plan.error}`); continue; }
+            statusSteps = plan.steps;
           }
           if (productType && (cardProduct || loanProduct)) {
             const { receivable, payable } = await commissionService.resolveCommissions({
@@ -3196,8 +3226,38 @@ exports.importLeads = async (req, res) => {
             updateFields.commission = payable;
           }
 
-          await Lead.findByIdAndUpdate(existing._id, { $set: updateFields });
+          existing.set(updateFields);
+          // Same bookkeeping as PATCH /:id/status, one step at a time.
+          for (const step of statusSteps) {
+            existing.status = step;
+            existing.statusHistory.push({ status: step, note: 'Bulk import', changedBy: req.user._id, changedAt: new Date() });
+            await commissionService.recalcOnStatusChange(existing);
+          }
+          const finalStatus = statusSteps[statusSteps.length - 1];
+          if (IMPORT_STATUS_LABELS[finalStatus] && !updateFields.employeeStatus) {
+            const lbl = await EmployeeStatus.findOne({ label: IMPORT_STATUS_LABELS[finalStatus], statusType: 'lead_label', isActive: true });
+            if (lbl) existing.employeeStatus = lbl._id;
+          }
+          existing.$locals.skipAutoRoute = true; // backfill tool — never auto-route (see create below)
+          await existing.save({ validateModifiedOnly: true });
           updated += 1;
+
+          if (finalStatus) {
+            // Admins get one summary for the whole file (below); the people on
+            // the lead get the same per-lead notice the status buttons send.
+            try {
+              await createAndEmit(
+                [existing.agency, existing.agent, existing.assignedCpvEmployee, existing.assignedSalesEmployee],
+                {
+                  type: 'status_changed',
+                  title: { approved: 'Application Approved', disbursed: 'Application Disbursed', rejected: 'Application Rejected' }[finalStatus] || `Lead ${formatStatus(finalStatus)}`,
+                  body: existing.customerName,
+                  lead: existing._id,
+                },
+                req.user._id,
+              );
+            } catch (_) {}
+          }
         } catch (err) {
           fail(`Could not update lead: ${err.message}`);
         }

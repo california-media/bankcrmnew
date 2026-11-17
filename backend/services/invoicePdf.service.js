@@ -43,9 +43,15 @@ const DEFAULT_NOTES_LINES = [
 ];
 const DEFAULT_VAT_NOTE = 'Since Silah is a newly established company, our VAT registration is currently under process.';
 
-// An empty VAT note means the admin cleared it on purpose — print nothing.
-// Only fall back to the old default when the setting was never stored.
-const resolveVatNote = (companySettings) => companySettings?.vatNote ?? DEFAULT_VAT_NOTE;
+// What the admin saved in Invoice Settings is what prints. An empty (or
+// spaces-only) VAT note / notes list means it was cleared on purpose — print
+// nothing. Defaults are only for a setting that was never stored at all.
+const resolveVatNote = (companySettings) => String(companySettings?.vatNote ?? DEFAULT_VAT_NOTE).trim();
+const resolveNotesLines = (companySettings) => (
+  Array.isArray(companySettings?.notesLines)
+    ? companySettings.notesLines.map((l) => String(l ?? '').trim()).filter(Boolean)
+    : DEFAULT_NOTES_LINES
+);
 
 const COLS = [
   { key: 'sno', label: 'S.No', x: 50, w: 30, align: 'center' },
@@ -154,7 +160,7 @@ function drawColumnDividers(doc, topY, bottomY) {
 // many pages as needed instead of overflowing/overlapping.
 function renderInvoicePdf(invoice, res, companySettings) {
   const bank = companySettings?.bank || DEFAULT_BANK;
-  const notesLines = companySettings?.notesLines?.length ? companySettings.notesLines : DEFAULT_NOTES_LINES;
+  const notesLines = resolveNotesLines(companySettings);
   const vatNote = resolveVatNote(companySettings);
   const trn = companySettings?.trn || COMPANY.trnStatus;
   const contactName = companySettings?.contactName || invoice.createdBy?.name || 'MySilah Team';
@@ -343,4 +349,4 @@ function renderInvoicePdf(invoice, res, companySettings) {
   doc.end();
 }
 
-module.exports = { renderInvoicePdf, resolveVatNote };
+module.exports = { renderInvoicePdf, resolveVatNote, resolveNotesLines };

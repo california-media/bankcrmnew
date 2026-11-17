@@ -53,9 +53,14 @@ function InvoicePreview({ invoice }) {
   const agencyName = billTo.name || invoice.agency?.name || invoice.agency?.email || '—';
   const createdByName = invoice.createdBy?.name || 'MySilah Team';
   const bank = invoice.companySettings?.bank || DEFAULT_BANK;
-  const notesLines = invoice.companySettings?.notesLines?.length ? invoice.companySettings.notesLines : DEFAULT_NOTES_LINES;
-  // Empty = admin cleared it on purpose → show nothing; default only if never stored.
-  const vatNote = invoice.companySettings?.vatNote ?? DEFAULT_VAT_NOTE;
+  // What the admin saved in Invoice Settings is what shows. Empty (or spaces-only)
+  // = cleared on purpose → show nothing; defaults only if never stored.
+  // Keep in sync with resolveNotesLines/resolveVatNote in backend invoicePdf.service.js.
+  const savedLines = invoice.companySettings?.notesLines;
+  const notesLines = Array.isArray(savedLines)
+    ? savedLines.map((l) => String(l ?? '').trim()).filter(Boolean)
+    : DEFAULT_NOTES_LINES;
+  const vatNote = String(invoice.companySettings?.vatNote ?? DEFAULT_VAT_NOTE).trim();
   const trn = invoice.companySettings?.trn || COMPANY.trnStatus;
   const contactName = invoice.companySettings?.contactName || createdByName;
   const contactPhone = invoice.companySettings?.contactPhone || invoice.createdBy?.phone;

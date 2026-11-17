@@ -3003,9 +3003,10 @@ const normalizeProductType = (v) => {
 exports.importLeads = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'File is required' });
-    // Agency owner and its Agency Coordinator import on behalf of the agency;
-    // admin imports are unscoped (agency comes from the product).
-    const isAgencyImporter = req.user.role === 'agency' || (req.user.role === 'employee' && req.user.employeeType === 'coordinator');
+    // Agency owner and its Agency Coordinator / Account Access staff import on
+    // behalf of the agency; admin imports are unscoped (agency comes from the product).
+    const isAgencyImporter = req.user.role === 'agency'
+      || (req.user.role === 'employee' && ['coordinator', 'account'].includes(req.user.employeeType));
     const importerAgencyId = isAgencyImporter ? String(resolveAgencyId(req.user)) : null;
 
     let rows;

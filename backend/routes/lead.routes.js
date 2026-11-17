@@ -32,9 +32,9 @@ router.patch('/:id/consent-status',  requireRole('employee', 'agency', 'admin'),
 router.patch('/:id/loan-status',     requireRole('admin', 'employee', 'agency'), require('../controllers/employeeStatus.controller').setLoanStatusOnLead);
 
 // Admin + Agency — bulk import from Excel
-// Agency Coordinator imports on behalf of their agency (see importLeads scoping).
+// Agency Coordinator and Account Access import on behalf of their agency (see importLeads scoping).
 router.post('/import', (req, res, next) => (
-  req.user?.role === 'employee' ? allowEmployeeTypes('coordinator')(req, res, next) : requireRole('admin', 'agency')(req, res, next)
+  req.user?.role === 'employee' ? allowEmployeeTypes('coordinator', 'account')(req, res, next) : requireRole('admin', 'agency')(req, res, next)
 ), upload.leadImportFile.single('file'), ctrl.importLeads);
 
 // Agency

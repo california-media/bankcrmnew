@@ -545,6 +545,19 @@ const FROM_STATES = {
   disbursed: ['approved'],
 };
 
+// Stage label that goes with a final status. Looked up even when the label is
+// switched off in Lead Status settings: switching it off only hides it from the
+// pickers. It must not leave approved/rejected/disbursed leads on their old
+// stage, or they show up under "In Process" / "New Lead" in the stage filters.
+// With no such label at all, the old stage label is cleared rather than kept.
+const FINAL_STATUS_LABELS = { approved: 'Approved', rejected: 'Rejected', disbursed: 'Disbursed' };
+const applyFinalStatusLabel = async (lead, status) => {
+  const label = FINAL_STATUS_LABELS[status];
+  if (!label) return;
+  const lbl = await EmployeeStatus.findOne({ label, statusType: 'lead_label' }, null, { sort: { isActive: -1 } });
+  lead.employeeStatus = lbl ? lbl._id : undefined;
+};
+
 const ROLE_TARGETS = {
   agency: ['under_review', 'assigned', 'approved', 'rejected', 'disbursed'],
   admin: ['under_review', 'assigned', 'approved', 'rejected', 'disbursed', 'submitted'],
@@ -609,11 +622,7 @@ exports.updateStatus = async (req, res) => {
     });
     await commissionService.recalcOnStatusChange(lead);
     // Auto-update lead label to match system status
-    const labelMap = { approved: 'Approved', rejected: 'Rejected', disbursed: 'Disbursed' };
-    if (labelMap[status]) {
-      const lbl = await EmployeeStatus.findOne({ label: labelMap[status], statusType: 'lead_label', isActive: true });
-      if (lbl) lead.employeeStatus = lbl._id;
-    }
+    await applyFinalStatusLabel(lead, status);
     await lead.save();
 
     const populated = await lead.populate(POPULATE_FIELDS);
@@ -693,9 +702,9 @@ exports.undoApproval = async (req, res) => {
     lead.grossCommission = receivable;
     lead.commission = payable;
 
-    // The auto-applied "Approved" label no longer applies
+    // The auto-applied "Approved" label (or none, if it had been cleared) no longer applies
     const current = lead.employeeStatus ? await EmployeeStatus.findById(lead.employeeStatus).select('label') : null;
-    if (current && /^approved$/i.test(current.label)) {
+    if (!current || /^approved$/i.test(current.label)) {
       const lbl = await EmployeeStatus.findOne({ label: /^new lead$/i, statusType: 'lead_label', isActive: true });
       if (lbl) lead.employeeStatus = lbl._id;
     }
@@ -3011,8 +3020,6 @@ const planImportStatusSteps = (from, to, importerRole) => {
   return { error: `cannot change status from "${from}" to "${to}"` };
 };
 
-const IMPORT_STATUS_LABELS = { approved: 'Approved', rejected: 'Rejected', disbursed: 'Disbursed' };
-
 /**
  * POST /api/leads/import  (admin, agency)
  * Bulk-create leads from an uploaded .xlsx/.xls file.
@@ -3234,9 +3241,8 @@ exports.importLeads = async (req, res) => {
             await commissionService.recalcOnStatusChange(existing);
           }
           const finalStatus = statusSteps[statusSteps.length - 1];
-          if (IMPORT_STATUS_LABELS[finalStatus] && !updateFields.employeeStatus) {
-            const lbl = await EmployeeStatus.findOne({ label: IMPORT_STATUS_LABELS[finalStatus], statusType: 'lead_label', isActive: true });
-            if (lbl) existing.employeeStatus = lbl._id;
+          if (FINAL_STATUS_LABELS[finalStatus] && !updateFields.employeeStatus) {
+            await applyFinalStatusLabel(existing, finalStatus);
           }
           existing.$locals.skipAutoRoute = true; // backfill tool — never auto-route (see create below)
           await existing.save({ validateModifiedOnly: true });

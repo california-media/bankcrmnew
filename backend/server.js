@@ -102,6 +102,7 @@ app.use('/api/credit-notes',      require('./routes/creditNote.routes'));
 app.use('/api/invoices',          require('./routes/invoice.routes'));
 app.use('/api/company-settings',  require('./routes/companySettings.routes'));
 app.use('/api/promotions',        require('./routes/promotion.routes'));
+app.use('/api/sara-videos',       require('./routes/saraVideo.routes'));
 app.use('/api/resources',         require('./routes/resource.routes'));
 app.use('/api/super-agent',       require('./routes/superAgent.routes'));
 app.use('/api/support-tickets',   require('./routes/supportTicket.routes'));

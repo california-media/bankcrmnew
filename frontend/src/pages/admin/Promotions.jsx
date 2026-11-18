@@ -3,6 +3,7 @@ import { Tabs, Table, Button, Modal, Form, Input, InputNumber, Switch, Tag, Sele
 import { PlusOutlined, EditOutlined, DeleteOutlined, LinkOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../api/client';
+import SaraGuideTab from './SaraGuideTab';
 
 const STATUS_COLORS = { earned: 'gold', sent: 'blue', redeemed: 'green' };
 const PRODUCT_TYPE_LABELS = { credit_card: 'Cards', loan: 'Loans', account: 'Accounts' };
@@ -462,6 +463,7 @@ function Promotions() {
           { key: 'awards', label: 'Agent Achievements', children: <AwardsTab /> },
           { key: 'monthly', label: 'Monthly Breakdown', children: <MonthlyBreakdownTab /> },
           { key: 'partnerGuide', label: 'Partner Guide', children: <PartnerGuideTab /> },
+          { key: 'saraGuide', label: 'Sara Guide', children: <SaraGuideTab /> },
         ]}
       />
     </>

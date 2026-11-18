@@ -24,6 +24,6 @@ router.get('/blogs', blogCtrl.listPublic);
 router.get('/blogs/:slug', blogCtrl.getBySlug);
 router.get('/blog-categories', catCtrl.list);
 // Sara's guide videos for the mobile app's sign-in screen (no sign-in needed).
-router.get('/guide-videos', require('../controllers/promotion.controller').listPublicGuideVideos);
+router.get('/guide-videos', require('../controllers/saraVideo.controller').listPublic);
 
 module.exports = router;

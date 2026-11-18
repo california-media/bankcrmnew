@@ -8,7 +8,7 @@ import dayjs from 'dayjs';
 import api from '../../api/client';
 
 const MAX = 1000000;
-const THEMES = ['shop', 'dine', 'cine', 'trav', 'coff', 'fuel'];
+const THEMES = ['shop', 'dine', 'cine', 'trav', 'coff', 'fuel', 'groc'];
 const THEME_OPTIONS = THEMES.map((t) => ({ value: t, label: t }));
 const errMsg = (err, fallback) => err.response?.data?.message || fallback;
 const fmt = (d) => (d ? dayjs(d).format('DD MMM YYYY, HH:mm') : '');

@@ -311,23 +311,6 @@ exports.listResources = async (req, res) => {
   }
 };
 
-/**
- * GET /api/public/guide-videos  (no sign-in)
- * The mobile app's sign-in screen "Watch how it works" (Sara's guide): active Partner Guide items that
- * have a video link, newest first. Only the title, description and video link are sent (never docsLink).
- */
-exports.listPublicGuideVideos = async (req, res) => {
-  try {
-    const videos = await PartnerResource.find({ isActive: true, videoLink: { $nin: [null, ''] } })
-      .sort({ createdAt: -1 })
-      .select('title description videoLink')
-      .lean();
-    res.json(videos);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
 exports.createResource = async (req, res) => {
   try {
     const { title, description, videoLink, docsLink } = req.body;

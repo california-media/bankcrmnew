@@ -256,7 +256,7 @@ export default function AgentDetail() {
                 {bd.rejectReason && <div>Reason: {bd.rejectReason}</div>}
               </div>
             )}
-            {bd.chequeCopy && bd.bankLetter && bd.verificationStatus !== 'approved' && (
+            {(bd.chequeCopy || bd.bankLetter) && bd.verificationStatus !== 'approved' && (
               <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
                 <Popconfirm title="Approve these documents?" onConfirm={() => verify('approve')} okText="Approve">
                   <Button type="primary" icon={<CheckCircleOutlined />} loading={verifying}>Approve</Button>

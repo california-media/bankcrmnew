@@ -274,6 +274,23 @@ leadSchema.pre('validate', function () {
   if (this.isNew && this.commissionRuleVersion == null) this.commissionRuleVersion = 2;
 });
 
+// A lead that comes in as a New Lead gets the "New Lead" stage label, however
+// it was created (website apply form, referral form, draft submitted, import).
+// Without it the lead never shows under the "New Lead" stage filter. Looked up
+// even when the label is switched off in settings. Only on arrival, so a label
+// cleared by hand later is not put back.
+leadSchema.pre('save', async function () {
+  if (this.employeeStatus || this.status !== 'submitted' || !(this.isNew || this.isModified('status'))) return;
+  try {
+    const EmployeeStatus = require('./EmployeeStatus');
+    const lbl = await EmployeeStatus.findOne({ statusType: 'lead_label', label: /^new lead$/i }, null, { sort: { isActive: -1 } });
+    if (lbl) this.employeeStatus = lbl._id;
+  } catch (err) {
+    // The label is a convenience — it must never stop a lead from saving.
+    console.error('[lead] New Lead label lookup failed:', err.message);
+  }
+});
+
 leadSchema.pre('save', async function () {
   try {
     if (

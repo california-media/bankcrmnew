@@ -25,6 +25,7 @@ router.get('/vouchers', ctrl.listVouchers);
 router.post('/vouchers', logoUpload, ctrl.createVoucher);
 router.put('/vouchers/:id', logoUpload, ctrl.updateVoucher);
 router.delete('/vouchers/:id', ctrl.deleteVoucher);
+router.get('/vouchers/:id/codes', ctrl.listCodes);
 router.post('/vouchers/:id/codes', codesUpload, ctrl.addCodes);
 
 router.get('/redemptions', ctrl.listRedemptions);

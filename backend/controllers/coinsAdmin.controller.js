@@ -207,6 +207,44 @@ const textFromSheet = (buffer) => {
   return codesFromSheetRows(rows).join('\n');
 };
 
+/**
+ * GET /api/admin/coins/vouchers/:id/codes  (super admin)
+ * Every code of a voucher for the admin "View codes" list: unused, used (with the agent and when) or
+ * reserved (taken by a redeem that never finished). Oldest first.
+ * Response: { voucher: { _id, title }, counts: { unused, used, reserved }, codes: [{ _id, code, status,
+ *   addedAt, usedAt, scratchedAt, usedBy: { _id, name, email, phone } | null }] }
+ */
+exports.listCodes = async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Voucher not found' });
+    const voucher = await Voucher.findById(req.params.id).select('title').lean();
+    if (!voucher) return res.status(404).json({ message: 'Voucher not found' });
+    const rows = await VoucherCode.find({ voucher: voucher._id })
+      .sort({ createdAt: 1 })
+      .populate('assignedTo', 'name email phone')
+      .populate('redemption', 'createdAt scratchedAt')
+      .lean();
+    const counts = { unused: 0, used: 0, reserved: 0 };
+    const codes = rows.map((c) => {
+      const status = c.status === 'available' ? 'unused' : c.redemption ? 'used' : 'reserved';
+      counts[status] += 1;
+      const u = c.assignedTo;
+      return {
+        _id: c._id,
+        code: c.code,
+        status,
+        addedAt: c.createdAt,
+        usedAt: c.redemption?.createdAt || c.assignedAt || null,
+        scratchedAt: c.redemption?.scratchedAt || null,
+        usedBy: u ? { _id: u._id, name: u.name || '', email: u.email || '', phone: u.phone || '' } : null,
+      };
+    });
+    res.json({ voucher: { _id: voucher._id, title: voucher.title }, counts, codes });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.addCodes = async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ message: 'Voucher not found' });

@@ -6,6 +6,7 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../../api/client';
+import VoucherCodesModal from './VoucherCodesModal';
 
 const MAX = 1000000;
 const THEMES = ['shop', 'dine', 'cine', 'trav', 'coff', 'fuel', 'groc'];
@@ -338,6 +339,7 @@ function VouchersTab() {
   };
 
   const openCodes = (v) => { setCodesTarget(v); setCodesText(''); setCodesFile(null); setCodesResult(''); };
+  const [viewCodes, setViewCodes] = useState(null);
   const submitCodes = async () => {
     if (!codesFile && !codesText.trim()) return message.error('Enter codes or choose an .xlsx file');
     let body;
@@ -376,6 +378,7 @@ function VouchersTab() {
         <Space>
           <Button size="small" icon={<EditOutlined />} onClick={() => openForm(r)}>Edit</Button>
           <Button size="small" icon={<PlusOutlined />} onClick={() => openCodes(r)}>Add codes</Button>
+          <Button size="small" onClick={() => setViewCodes(r)}>View codes</Button>
           <Popconfirm title={`Delete "${r.title}" and all its unused codes?`} okText="Delete" okButtonProps={{ danger: true }} onConfirm={() => remove(r)}>
             <Button size="small" danger icon={<DeleteOutlined />}>Delete</Button>
           </Popconfirm>
@@ -429,6 +432,7 @@ function VouchersTab() {
         </Form>
       </Modal>
 
+      <VoucherCodesModal voucher={viewCodes} onClose={() => setViewCodes(null)} />
       <Modal title={codesTarget ? `Add codes: ${codesTarget.title}` : ''} open={!!codesTarget} onCancel={() => setCodesTarget(null)}
         onOk={submitCodes} okText="Add codes" confirmLoading={codesSaving} destroyOnClose>
         <p style={{ color: '#64748b', fontSize: 13, marginTop: 0 }}>

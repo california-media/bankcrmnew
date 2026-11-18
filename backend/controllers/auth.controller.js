@@ -486,12 +486,13 @@ exports.updateBankDetails = async (req, res) => {
     if (cheque && bd.chequeCopy) deleteFromS3('bank-docs', bd.chequeCopy);
     if (letter && bd.bankLetter) deleteFromS3('bank-docs', bd.bankLetter);
 
-    const hasBothDocs = !!(next.chequeCopy && next.bankLetter);
+    // One document is enough: the cheque copy OR the bank letter (mobile app, 2026-11-18)
+    const hasAnyDoc = !!(next.chequeCopy || next.bankLetter);
     user.bankDetails = {
       ...next,
       confirmedCorrect: true,
-      // Submitted for manual review once both documents are present
-      verificationStatus: hasBothDocs ? 'pending' : 'none',
+      // Submitted for manual review once a document is present
+      verificationStatus: hasAnyDoc ? 'pending' : 'none',
       verifiedBy: null,
       verifiedAt: null,
       rejectReason: '',

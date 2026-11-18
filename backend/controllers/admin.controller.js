@@ -736,7 +736,7 @@ exports.deleteAgencyEmployee = async (req, res) => {
 /**
  * PATCH /api/admin/agents/:id/bank-docs/verify  (admin / admin coordinator)
  * Body: { action: 'approve' | 'reject', reason? }
- * Manual verification of the agent's cheque copy + bank letter. Records who
+ * Manual verification of the agent's cheque copy and/or bank letter (either is enough). Records who
  * approved it so the agent (and other admins) can see it.
  */
 exports.verifyBankDocs = async (req, res) => {
@@ -748,8 +748,8 @@ exports.verifyBankDocs = async (req, res) => {
     const agent = await User.findOne({ _id: req.params.id, role: 'agent' });
     if (!agent) return res.status(404).json({ message: 'Agent not found' });
     const bd = agent.bankDetails || {};
-    if (!bd.chequeCopy || !bd.bankLetter) {
-      return res.status(400).json({ message: 'Agent has not uploaded both the cheque copy and the bank letter' });
+    if (!bd.chequeCopy && !bd.bankLetter) {
+      return res.status(400).json({ message: 'Agent has not uploaded a cheque copy or bank letter' });
     }
     if (action === 'reject' && !String(reason || '').trim()) {
       return res.status(400).json({ message: 'A reason is required when rejecting' });

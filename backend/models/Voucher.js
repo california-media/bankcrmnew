@@ -10,7 +10,7 @@ const voucherSchema = new mongoose.Schema(
     valueLabel: { type: String, trim: true, default: '' },
     coinCost: { type: Number, required: true, min: 1 },
     logo: { type: String, default: null }, // S3 filename
-    theme: { type: String, enum: ['shop', 'dine', 'cine', 'trav', 'coff', 'fuel'], default: 'shop' },
+    theme: { type: String, enum: ['shop', 'dine', 'cine', 'trav', 'coff', 'fuel', 'groc'], default: 'shop' },
     validUntil: { type: Date, default: null },
     isActive: { type: Boolean, default: true },
     sortOrder: { type: Number, default: 0 },

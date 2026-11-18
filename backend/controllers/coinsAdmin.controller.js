@@ -13,7 +13,7 @@ const { logoUrl } = require('../utils/coinsShape');
 const { getFilename, deleteFromS3 } = require('../middleware/upload.middleware');
 
 const PAGE_SIZE = 50;
-const THEMES = ['shop', 'dine', 'cine', 'trav', 'coff', 'fuel'];
+const THEMES = ['shop', 'dine', 'cine', 'trav', 'coff', 'fuel', 'groc'];
 const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const toBool = (v) => v === true || v === 'true' || v === '1' || v === 'on';
 

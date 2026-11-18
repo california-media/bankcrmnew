@@ -59,6 +59,8 @@ const makeUpload = (subdir, allowedExts, { checkMime = true } = {}) => {
 
 module.exports                    = makeUpload('receipts',             ['jpeg', 'jpg', 'png', 'pdf']);
 module.exports.cardImages         = makeUpload('card-images',          ['jpeg', 'jpg', 'png', 'webp', 'svg', 'avif']);
+module.exports.loanImages         = makeUpload('loan-images',          ['jpeg', 'jpg', 'png', 'webp', 'svg', 'avif']);
+module.exports.accountImages      = makeUpload('account-images',       ['jpeg', 'jpg', 'png', 'webp', 'svg', 'avif']);
 module.exports.bankLogos          = makeUpload('bank-logos',           ['jpeg', 'jpg', 'png', 'webp', 'svg']);
 module.exports.voucherLogos       = makeUpload('voucher-logos',        ['jpeg', 'jpg', 'png', 'webp', 'svg']);
 module.exports.blogImages         = makeUpload('blog-images',          ['jpeg', 'jpg', 'png', 'webp', 'avif']);

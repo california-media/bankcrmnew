@@ -2,11 +2,16 @@ const LoanProduct = require('../models/LoanProduct');
 const User = require('../models/User');
 const { resolveAgencyId } = require('../middleware/auth.middleware');
 const { notifyWebsiteProductsChanged } = require('../utils/publicCardCache');
+const productImageHandlers = require('../utils/productImage');
 
 const POPULATE = [
   { path: 'bank', select: 'name code isActive logo' },
   { path: 'agency', select: 'name email' },
 ];
+
+const images = productImageHandlers(LoanProduct, 'loan-images', POPULATE, 'Loan product not found');
+exports.uploadImage = images.uploadImage;
+exports.removeImage = images.removeImage;
 
 exports.list = async (req, res) => {
   try {
@@ -105,6 +110,7 @@ exports.remove = async (req, res) => {
   try {
     const loan = await LoanProduct.findByIdAndDelete(req.params.id);
     if (!loan) return res.status(404).json({ message: 'Loan product not found' });
+    if (loan.productImage) images.deleteImage(loan.productImage);
     notifyWebsiteProductsChanged();
     res.json({ ok: true });
   } catch (err) {

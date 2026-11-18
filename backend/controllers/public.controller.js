@@ -566,7 +566,7 @@ exports.getPublicLoanProducts = async (req, res) => {
       : { isActive: true, websiteVisible: { $ne: false } };
     const loans = await LoanProduct.find(filter)
       .populate({ path: 'bank', select: 'name code logo isActive' })
-      .select('name loanCategory commissionBrackets bank benefits feesEligibility interestRateRange minSalary maxLoanAmount maxTenure keyNotes rateMin rateMax rateType rateBasis salaryTransferRequired tags processingFee earlySettlement lateFee maxAmountNote maxAmountNum disclosedNote source sourceLabel tenureMaxMonths loanType minTurnover collateralRequired minPosHistoryMonths redirectUrl redirectActive referralVisible')
+      .select('name productImage loanCategory commissionBrackets bank benefits feesEligibility interestRateRange minSalary maxLoanAmount maxTenure keyNotes rateMin rateMax rateType rateBasis salaryTransferRequired tags processingFee earlySettlement lateFee maxAmountNote maxAmountNum disclosedNote source sourceLabel tenureMaxMonths loanType minTurnover collateralRequired minPosHistoryMonths redirectUrl redirectActive referralVisible')
       .lean();
     res.json(loans.filter(l => l.bank?.isActive !== false));
   } catch (err) {
@@ -583,7 +583,7 @@ exports.getPublicAccountProducts = async (req, res) => {
       : { isActive: true, websiteVisible: { $ne: false } };
     const accounts = await AccountProduct.find(filter)
       .populate({ path: 'bank', select: 'name code logo isActive' })
-      .select('name accountCategory commissionBrackets bank benefits feesEligibility minBalance monthlyFee interestRate rateMin rateMax keyNotes tags type digitalOnboarding multiCurrency salaryTransferRequired freeTransactions fallBelowFee payoutFrequency redirectUrl redirectActive')
+      .select('name productImage accountCategory commissionBrackets bank benefits feesEligibility minBalance monthlyFee interestRate rateMin rateMax keyNotes tags type digitalOnboarding multiCurrency salaryTransferRequired freeTransactions fallBelowFee payoutFrequency redirectUrl redirectActive')
       .lean();
     res.json(accounts.filter(a => a.bank?.isActive !== false));
   } catch (err) {

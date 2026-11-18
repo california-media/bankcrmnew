@@ -12,8 +12,8 @@ const TYPES = Object.keys(MODELS);
 // Explicit whitelist — never receivable, assignedAgencies, agency, or agency email.
 const AGENT_FIELDS = {
   credit_card: '_id name bank cardImage cardType commissionBrackets isActive agentVisible',
-  loan: '_id name bank commissionBrackets isActive agentVisible',
-  account: '_id name bank commissionBrackets isActive agentVisible',
+  loan: '_id name bank productImage commissionBrackets isActive agentVisible',
+  account: '_id name bank productImage commissionBrackets isActive agentVisible',
 };
 
 const shapeBracket = (b) => ({
@@ -34,6 +34,7 @@ const shapeAgentProduct = (p) => {
     agentVisible: p.agentVisible,
   };
   if (p.cardImage !== undefined) out.cardImage = p.cardImage;
+  if (p.productImage !== undefined) out.productImage = p.productImage;
   if (p.cardType !== undefined) out.cardType = p.cardType;
   return out;
 };

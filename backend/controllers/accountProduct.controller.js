@@ -2,11 +2,16 @@ const AccountProduct = require('../models/AccountProduct');
 const User = require('../models/User');
 const { resolveAgencyId } = require('../middleware/auth.middleware');
 const { notifyWebsiteProductsChanged } = require('../utils/publicCardCache');
+const productImageHandlers = require('../utils/productImage');
 
 const POPULATE = [
   { path: 'bank', select: 'name code isActive logo' },
   { path: 'agency', select: 'name email' },
 ];
+
+const images = productImageHandlers(AccountProduct, 'account-images', POPULATE, 'Account product not found');
+exports.uploadImage = images.uploadImage;
+exports.removeImage = images.removeImage;
 
 exports.list = async (req, res) => {
   try {
@@ -119,6 +124,7 @@ exports.remove = async (req, res) => {
   try {
     const account = await AccountProduct.findByIdAndDelete(req.params.id);
     if (!account) return res.status(404).json({ message: 'Account product not found' });
+    if (account.productImage) images.deleteImage(account.productImage);
     notifyWebsiteProductsChanged();
     res.json({ ok: true });
   } catch (err) {

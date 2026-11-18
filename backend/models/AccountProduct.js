@@ -30,6 +30,8 @@ const accountProductSchema = new mongoose.Schema(
     // Defaults true so nothing already relying on consent sending changes.
     sendConsent:    { type: Boolean, default: true },
     websiteVisible: { type: Boolean, default: true },
+    // Picture shown with the product (like a card's cardImage) — filename in S3
+    productImage:   { type: String, trim: true },
     redirectUrl:    { type: String, trim: true },
     redirectActive: { type: Boolean, default: false },
     minBalance: { type: Number },

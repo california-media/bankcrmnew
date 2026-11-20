@@ -15,7 +15,10 @@ const bracketSchema = new mongoose.Schema(
 const cardProductSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    cardType: { type: String, enum: ['regular', 'premium', 'rewards_lifestyle', 'cashback', 'islamic', 'travel', 'ecommerce', 'legacy'], required: true },
+    // Keys from the CardType list. cardType is always cardTypes[0]: the app and
+    // the website read that single field.
+    cardTypes: { type: [{ type: String, trim: true }], default: [] },
+    cardType: { type: String, required: true },
     bank: { type: mongoose.Schema.Types.ObjectId, ref: 'Bank', required: true },
     agency: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     // Product Admin: "assign to agency products and banks". Empty/absent =

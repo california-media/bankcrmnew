@@ -3,6 +3,7 @@ const User = require('../models/User');
 const { getFilename, deleteFromS3 } = require('../middleware/upload.middleware');
 const { resolveAgencyId } = require('../middleware/auth.middleware');
 const { clearPublicCardCache, notifyWebsiteProductsChanged } = require('../utils/publicCardCache');
+const { cleanCardTypes } = require('./cardType.controller');
 
 const POPULATE = [
   { path: 'bank', select: 'name code isActive logo' },
@@ -40,10 +41,16 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { name, cardType, bank, agency, isActive, agentVisible, sendConsent, websiteVisible } = req.body;
-    if (!name || !cardType || !bank) {
+    const { name, bank, agency, isActive, agentVisible, sendConsent, websiteVisible } = req.body;
+    if (!name || !bank) {
       if (req.file) deleteCardImage(getFilename(req.file));
-      return res.status(400).json({ message: 'name, cardType, and bank are required' });
+      return res.status(400).json({ message: 'name and bank are required' });
+    }
+    // Older admin page sends a single cardType
+    const types = await cleanCardTypes(req.body.cardTypes !== undefined ? req.body.cardTypes : req.body.cardType);
+    if (types.error) {
+      if (req.file) deleteCardImage(getFilename(req.file));
+      return res.status(400).json({ message: types.error });
     }
     if (agency) {
       const agencyUser = await User.findOne({ _id: agency, role: 'agency' });
@@ -74,7 +81,8 @@ exports.create = async (req, res) => {
     const feeNotes       = parseJsonField(req.body.feeNotes).filter(Boolean);
     const card = await CardProduct.create({
       name,
-      cardType,
+      cardTypes: types.cardTypes,
+      cardType: types.cardTypes[0],
       bank,
       agency: agency || undefined,
       assignedAgencies: parseJsonField(req.body.assignedAgencies),
@@ -115,10 +123,25 @@ exports.create = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, cardType, bank, agency, isActive, agentVisible, sendConsent, websiteVisible } = req.body;
+    const { name, bank, agency, isActive, agentVisible, sendConsent, websiteVisible } = req.body;
     const update = {};
     if (name !== undefined) update.name = name;
-    if (cardType !== undefined) update.cardType = cardType;
+    if (req.body.cardTypes !== undefined || req.body.cardType !== undefined) {
+      let rawTypes = req.body.cardTypes;
+      if (rawTypes === undefined) {
+        // Older admin page sends a single cardType: it replaces the main type, the card's other types stay
+        const current = await CardProduct.findById(req.params.id).select('cardTypes').lean();
+        const extras = (current?.cardTypes || []).slice(1).filter((t) => t && t !== req.body.cardType);
+        rawTypes = [req.body.cardType, ...extras];
+      }
+      const types = await cleanCardTypes(rawTypes);
+      if (types.error) {
+        if (req.file) deleteCardImage(getFilename(req.file));
+        return res.status(400).json({ message: types.error });
+      }
+      update.cardTypes = types.cardTypes;
+      update.cardType = types.cardTypes[0];
+    }
     if (bank !== undefined) update.bank = bank;
     if (agency !== undefined) {
       const agencyUser = await User.findOne({ _id: agency, role: 'agency' });

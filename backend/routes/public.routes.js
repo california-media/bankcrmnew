@@ -4,6 +4,7 @@ const blogCtrl = require('../controllers/blog.controller');
 const catCtrl  = require('../controllers/blogCategory.controller');
 
 router.get('/card-categories', require('../controllers/cardCategory.controller').list);
+router.get('/card-types', require('../controllers/cardType.controller').listPublic);
 router.get('/ref/:code', ctrl.getRefInfo);
 // Agent invite links (app.mysilah.ae/join/<code>): tap record + the app's first-launch match.
 const inviteCtrl = require('../controllers/inviteClick.controller');

@@ -408,6 +408,8 @@ const toPublicCard = ({ feesEligibility, ...card }) => {
     // Commission money (receivable/payable/agencyOverride) stays private — public pages only need salary + fee.
     commissionBrackets: (card.commissionBrackets || []).map(({ minimumSalary, feeType, annualFeeAmount }) => ({ minimumSalary, feeType, annualFeeAmount })),
     additionalBenefits: card.additionalBenefits || '', // lean() skips schema defaults on cards saved before this field
+    // Every type the card has (first = main type, same as cardType). Cards saved before multi-type only have cardType.
+    cardTypes: card.cardTypes?.length ? card.cardTypes : (card.cardType ? [card.cardType] : []),
     noAnnualFeeFromText: /no annual fee/i.test(feesText),
     annualFeeFromText: m ? Number(m[1].replace(/,/g, '')) : null,
   };
@@ -426,7 +428,7 @@ exports.getPublicCardProducts = async (req, res) => {
     const cards = await CardProduct.find(filter)
       .populate({ path: 'bank', select: 'name isActive' })
       .populate({ path: 'cashbackCategories.category', select: 'name' })
-      .select('name cardType cardImage commissionBrackets bank benefits feesEligibility keyFeatures additionalBenefits cashbackCategories rewardBadges redirectUrl redirectActive referralVisible rate kfsUrl tncUrl feeTooltip rateTooltip salaryTooltip transferTooltip salaryTransfer feeNotes')
+      .select('name cardType cardTypes cardImage commissionBrackets bank benefits feesEligibility keyFeatures additionalBenefits cashbackCategories rewardBadges redirectUrl redirectActive referralVisible rate kfsUrl tncUrl feeTooltip rateTooltip salaryTooltip transferTooltip salaryTransfer feeNotes')
       .lean();
     const data = cards.filter(c => c.bank?.isActive !== false).map(toPublicCard);
     setCached(cacheKey, data);
